@@ -2,5 +2,5 @@ package io.gridgo.socket;
 
 public interface SocketFactory {
 
-	Socket createSocket(SocketOptions options);
+	<T extends Socket> T createSocket(SocketOptions options);
 }

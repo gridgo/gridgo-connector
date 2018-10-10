@@ -2,20 +2,22 @@ package io.gridgo.net.nanomsg.test;
 
 import java.nio.ByteBuffer;
 
-import io.gridgo.socket.nanomsg.NNSender;
+import io.gridgo.socket.Socket;
+import io.gridgo.socket.SocketOptions;
+import io.gridgo.socket.agent.impl.DefaultSocketSender;
 import io.gridgo.socket.nanomsg.NNSocket;
-import io.gridgo.socket.nanomsg.NNSockets;
+import io.gridgo.socket.nanomsg.NNSocketFactory;
 
-public class PushClient extends NNSender {
+public class PushClient extends DefaultSocketSender {
 
 	public static void main(String[] args) throws InterruptedException {
 		final PushClient client = new PushClient();
-		
+
 		Runtime.getRuntime().addShutdownHook(new Thread(client::stop, "shutdown-thread"));
 		client.start();
 
 		int numMessages = (int) 1e6;
-		int messageSize = 2048;
+		int messageSize = 1024;
 
 		final ByteBuffer buffer = ByteBuffer.allocateDirect(messageSize);
 		byte bval = 111;
@@ -40,12 +42,16 @@ public class PushClient extends NNSender {
 		System.exit(0);
 	}
 
-	@Override
-	protected NNSocket createSocket() {
-		NNSocket socket = NNSockets.createPushSocket("tcp://127.0.0.1:8888");
-		if (!socket.connect()) {
-			throw new RuntimeException("Cannot connect to: " + socket.getAddress());
-		}
+	PushClient() {
+		this.setSocket(this.createSocket());
+	}
+
+	protected Socket createSocket() {
+		SocketOptions options = new SocketOptions();
+		options.setType("push");
+		NNSocket socket = new NNSocketFactory().createSocket(options);
+		String address = "tcp://localhost:8888";
+		socket.connect(address);
 		return socket;
 	}
 }

@@ -3,6 +3,8 @@ package io.gridgo.socket.helper;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.gridgo.utils.InetAddressUtils;
+
 public class EndpointParser {
 
 	private static final Pattern PORT_PATTERN = Pattern.compile("\\d{1,5}");

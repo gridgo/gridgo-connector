@@ -1,13 +1,14 @@
 package io.gridgo.net.nanomsg.test;
 
-import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
 
-import io.gridgo.socket.nanomsg.NNReceiver;
+import io.gridgo.socket.Socket;
+import io.gridgo.socket.SocketOptions;
+import io.gridgo.socket.agent.impl.DefaultSocketReceiver;
 import io.gridgo.socket.nanomsg.NNSocket;
-import io.gridgo.socket.nanomsg.NNSockets;
+import io.gridgo.socket.nanomsg.NNSocketFactory;
 
-public class PullServer extends NNReceiver {
+public class PullServer extends DefaultSocketReceiver {
 
 	public static void main(String[] args) throws InterruptedException {
 
@@ -28,7 +29,8 @@ public class PullServer extends NNReceiver {
 	private Thread monitorThread;
 
 	public PullServer() {
-		super(2048);
+		this.setSocket(createSocket());
+		this.setBufferSize(2048);
 	}
 
 	@Override
@@ -72,20 +74,14 @@ public class PullServer extends NNReceiver {
 		}
 	}
 
-	@Override
-	protected NNSocket createSocket() {
-		NNSocket socket = NNSockets.createPullSocket("tcp://127.0.0.1:8888");
-		if (!socket.setRecvTimeout(100)) {
-			throw new RuntimeException("Cannot set recvTimeout for socket " + socket.getAddress());
-		} else if (!socket.bind()) {
-			throw new RuntimeException("Cannot bind socket to " + socket.getAddress());
-		}
+	private Socket createSocket() {
+		SocketOptions options = new SocketOptions();
+		options.setType("pull");
+		options.addConfig("recvTimeout", 100);
+
+		NNSocket socket = new NNSocketFactory().createSocket(options);
+		String address = "tcp://127.0.0.1:8888";
+		socket.bind(address);
 		return socket;
 	}
-
-	@Override
-	protected void onRecv(int length, ByteBuffer buffer) {
-		// System.out.printf("Received %d bytes\n", length);
-	}
-
 }

@@ -4,73 +4,104 @@ import java.nio.ByteBuffer;
 
 import org.nanomsg.NanoLibrary;
 
+import io.gridgo.socket.helper.Endpoint;
+import io.gridgo.socket.impl.AbstractSocket;
+import io.gridgo.utils.PrimitiveUtils;
+import io.gridgo.utils.helper.Assert;
 import lombok.AccessLevel;
 import lombok.Getter;
 
-public class NNSocket {
-
-	static final NanoLibrary nanomsg = new NanoLibrary();
+public class NNSocket extends AbstractSocket {
 
 	@Getter(AccessLevel.PROTECTED)
 	private final int id;
 
-	@Getter
-	private final String address;
+	@Getter(AccessLevel.PROTECTED)
+	private final NanoLibrary nanomsg;
 
-	NNSocket(int type, String address) {
-		if (address == null) {
-			throw new NullPointerException("Cannot create socket with null address");
-		}
-
-		this.id = nanomsg.nn_socket(nanomsg.AF_SP, type);
-		if (this.getId() < 0) {
-			throw new RuntimeException("Cannot create socket with type " + type);
-		}
-
-		this.address = address;
+	NNSocket(int id, NanoLibrary nanoLibrary) {
+		this.id = id;
+		this.nanomsg = Assert.notNull(nanoLibrary, "Nanomsg");
 	}
 
-	public boolean connect() {
-		return nanomsg.nn_connect(id, address) >= 0;
+	@Override
+	protected void doClose() {
+		nanomsg.nn_close(getId());
 	}
 
-	public boolean bind() {
-		return nanomsg.nn_bind(id, address) >= 0;
+	@Override
+	protected void doConnect(Endpoint endpoint) {
+		nanomsg.nn_connect(getId(), endpoint.getResolvedAddress());
 	}
 
-	public boolean setTcpNodelay(boolean nodelay) {
-		return nanomsg.nn_setsockopt_int(id, nanomsg.NN_TCP, nanomsg.NN_TCP_NODELAY, nodelay ? 1 : 0) >= 0;
+	@Override
+	protected void doBind(Endpoint endpoint) {
+		nanomsg.nn_bind(getId(), endpoint.getResolvedAddress());
 	}
 
-	public boolean setRecvTimeout(int recvTimeout) {
-		return nanomsg.nn_setsockopt_int(id, nanomsg.NN_SOL_SOCKET, nanomsg.NN_RCVTIMEO, recvTimeout) >= 0;
+	@Override
+	protected int doSend(ByteBuffer buffer, boolean block) {
+		return nanomsg.nn_send(getId(), buffer, block ? 0 : nanomsg.NN_DONTWAIT);
 	}
 
-	public boolean setSendTimeout(int sendTimeout) {
-		return nanomsg.nn_setsockopt_int(id, nanomsg.NN_SOL_SOCKET, nanomsg.NN_SNDTIMEO, sendTimeout) >= 0;
-	}
-
-	public boolean close() {
-		return nanomsg.nn_close(id) >= 0;
-	}
-
-	public int send(byte[] bytes) {
-		return nanomsg.nn_sendbyte(id, bytes, 0);
-	}
-
-	public int send(ByteBuffer bb) {
-		return nanomsg.nn_send(id, bb, 0);
-	}
-
-	public int receive(ByteBuffer buffer, boolean block) {
+	@Override
+	protected int doReveive(ByteBuffer buffer, boolean block) {
 		return nanomsg.nn_recv(id, buffer, block ? 0 : nanomsg.NN_DONTWAIT);
 	}
 
-	public int receive(ByteBuffer buffer) {
-		return this.receive(buffer, true);
+	private void applyConfig(int option, int value) {
+		boolean success = nanomsg.nn_setsockopt_int(this.getId(), nanomsg.NN_SOL_SOCKET, option, value) >= 0;
+		if (!success) {
+			throw new NNException("Cannot apply option " + option + " to nnsocket id " + this.getId());
+		}
 	}
 
-	public byte[] receive() {
-		return nanomsg.nn_recvbyte(id, 0);
+	@Override
+	public void applyConfig(String name, Object value) {
+		Assert.notNull(name, "Config's name");
+		Assert.notNull(value, "Config's value");
+
+		switch (name.toLowerCase()) {
+		case "linger":
+			this.applyConfig(nanomsg.NN_LINGER, PrimitiveUtils.getIntegerValueFrom(value));
+			break;
+		case "sendbuffer":
+		case "sndbuf":
+			this.applyConfig(nanomsg.NN_SNDBUF, PrimitiveUtils.getIntegerValueFrom(value));
+			break;
+		case "receivebuffer":
+		case "recvbuffer":
+		case "recvbuf":
+		case "rcvbuf":
+			this.applyConfig(nanomsg.NN_RCVBUF, PrimitiveUtils.getIntegerValueFrom(value));
+			break;
+		case "sendtimeout":
+		case "sndtimeout":
+		case "sendtimeo":
+		case "sndtimeo":
+			this.applyConfig(nanomsg.NN_SNDTIMEO, PrimitiveUtils.getIntegerValueFrom(value));
+			break;
+		case "receivetimeout":
+		case "recvtimeout":
+		case "rcvtimeo":
+			this.applyConfig(nanomsg.NN_RCVTIMEO, PrimitiveUtils.getIntegerValueFrom(value));
+			break;
+		case "reconnectinterval":
+		case "reconnect_ivl":
+		case "reconnectivl":
+			this.applyConfig(nanomsg.NN_RECONNECT_IVL, PrimitiveUtils.getIntegerValueFrom(value));
+			break;
+		case "reconnectivlmax":
+		case "reconnect_ivl_max":
+		case "reconnectintervalmax":
+			this.applyConfig(nanomsg.NN_RECONNECT_IVL_MAX, PrimitiveUtils.getIntegerValueFrom(value));
+			break;
+		case "sendpriority":
+		case "sndpriority":
+		case "sendprio":
+		case "sndprio":
+			this.applyConfig(nanomsg.NN_SNDPRIO, PrimitiveUtils.getIntegerValueFrom(value));
+			break;
+		}
 	}
 }

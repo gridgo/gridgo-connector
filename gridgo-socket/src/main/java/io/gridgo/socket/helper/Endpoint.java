@@ -1,9 +1,11 @@
 package io.gridgo.socket.helper;
 
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+@Setter
+@Getter
 @Builder
 public class Endpoint {
 
@@ -16,7 +18,12 @@ public class Endpoint {
 	@Builder.Default
 	private int port = -1;
 
-	public String getRebuildAddress() {
+	public String getResolvedAddress() {
 		return this.getProtocol() + "://" + host + (port <= 0 ? "" : (":" + port));
+	}
+
+	@Override
+	public String toString() {
+		return this.getAddress();
 	}
 }

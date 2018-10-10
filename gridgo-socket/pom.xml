@@ -11,11 +11,20 @@
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
+	<properties>
+		<joo.promise4j.version>1.1.1</joo.promise4j.version>
+	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>io.gridgo</groupId>
 			<artifactId>gridgo-utils</artifactId>
 			<version>${gridgo.utils.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.dungba</groupId>
+			<artifactId>joo-promise4j</artifactId>
+			<version>${joo.promise4j.version}</version>
 		</dependency>
 	</dependencies>
 </project>

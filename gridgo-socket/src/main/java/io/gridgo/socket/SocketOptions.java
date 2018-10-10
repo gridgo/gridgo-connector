@@ -1,15 +1,19 @@
 package io.gridgo.socket;
 
-import lombok.Builder;
+import java.util.HashMap;
+import java.util.Map;
+
 import lombok.Data;
 
 @Data
-@Builder
 public class SocketOptions {
 
-	private SocketType socketType;
+	private String type;
 
-	private String address;
+	private final Map<String, Object> config = new HashMap<>();
 
-	private boolean passive;
+	public SocketOptions addConfig(String name, Object value) {
+		this.config.put(name, value);
+		return this;
+	}
 }
