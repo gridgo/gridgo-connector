@@ -39,7 +39,7 @@ public interface Socket {
 	}
 
 	default int send(byte[] bytes, boolean block) {
-		return this.send(ByteBuffer.wrap(bytes), block);
+		return this.send(ByteBuffer.wrap(bytes).flip(), block);
 	}
 
 	default int receive(ByteBuffer buffer) {

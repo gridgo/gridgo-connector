@@ -5,6 +5,8 @@ import java.util.function.BiConsumer;
 
 public interface SocketReceiver extends SocketAgent {
 
+	void setBufferSize(int bufferSize);
+
 	void setConsumer(BiConsumer<Integer, ByteBuffer> consumer);
 
 	long getTotalRecvBytes();

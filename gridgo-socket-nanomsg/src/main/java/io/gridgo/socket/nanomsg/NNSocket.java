@@ -1,6 +1,7 @@
 package io.gridgo.socket.nanomsg;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import org.nanomsg.NanoLibrary;
 
@@ -41,7 +42,15 @@ public class NNSocket extends AbstractSocket {
 
 	@Override
 	protected int doSend(ByteBuffer buffer, boolean block) {
-		return nanomsg.nn_send(getId(), buffer, block ? 0 : nanomsg.NN_DONTWAIT);
+		int flags = block ? 0 : nanomsg.NN_DONTWAIT;
+		if (buffer.isDirect()) {
+			return nanomsg.nn_send(getId(), buffer, flags);
+		}
+		int pos = buffer.position();
+		int limit = buffer.limit();
+		byte[] bytes = Arrays.copyOfRange(buffer.array(), pos, limit);
+		nanomsg.nn_sendbyte(getId(), bytes, flags);
+		return bytes.length;
 	}
 
 	@Override

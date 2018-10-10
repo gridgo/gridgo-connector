@@ -14,11 +14,19 @@ public interface SocketSender extends SocketAgent {
 	}
 
 	default int send(ByteBuffer buffer) {
-		return this.send(new DefaultSocketPayload(buffer));
+		return this.send(buffer, true);
+	}
+
+	default int send(ByteBuffer buffer, boolean block) {
+		return this.send(new DefaultSocketPayload(buffer), block);
 	}
 
 	default int send(byte[] bytes) {
-		return this.send(ByteBuffer.wrap(bytes));
+		return this.send(bytes, true);
+	}
+
+	default int send(byte[] bytes, boolean block) {
+		return this.send(ByteBuffer.wrap(bytes).flip(), block);
 	}
 
 	long getTotalSentBytes();
