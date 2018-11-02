@@ -6,7 +6,9 @@ import io.gridgo.connector.message.Message;
 
 public interface Producer {
 
-	void send(Message message);
+	public void send(Message message);
+	
+	public Promise<Message, Throwable> send(Message message, boolean sendWithAck);
 
-	Promise<Message, Throwable> call(Message request);
+	public Promise<Message, Throwable> call(Message request);
 }

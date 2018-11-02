@@ -6,9 +6,9 @@ import io.gridgo.bean.BValue;
 
 public interface Payload {
 
-	BValue getId();
+	public BValue getId();
 
-	BObject getHeaders();
+	public BObject getHeaders();
 
-	BElement getBody();
+	public BElement getBody();
 }

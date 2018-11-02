@@ -2,7 +2,7 @@ package io.gridgo.connector;
 
 public interface Connector {
 
-	Producer getProducer();
+	public Producer getProducer();
 
-	Consumer getConsumer();
+	public Consumer getConsumer();
 }
