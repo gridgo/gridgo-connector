@@ -1,8 +1,10 @@
 package io.gridgo.connector;
 
+import java.util.Optional;
+
 public interface Connector {
 
-	public Producer getProducer();
+	public Optional<Producer> getProducer();
 
-	public Consumer getConsumer();
+	public Optional<Consumer> getConsumer();
 }
