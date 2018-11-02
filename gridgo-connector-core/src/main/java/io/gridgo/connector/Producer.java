@@ -13,7 +13,7 @@ public interface Producer {
 
 	public Promise<Message, Throwable> call(Message request);
 	
-	public void produceOn(ExecutionStrategy strategy);
+	public Producer produceOn(ExecutionStrategy strategy);
 	
-	public void invokeCallbackOn(ExecutionStrategy strategy);
+	public Producer invokeCallbackOn(ExecutionStrategy strategy);
 }
