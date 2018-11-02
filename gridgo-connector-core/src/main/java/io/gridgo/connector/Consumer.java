@@ -7,7 +7,7 @@ import io.gridgo.framework.execution.ExecutionStrategy;
 
 public interface Consumer {
 
-	public Consumer subscribe(java.util.function.BiConsumer<Message, Deferred<Message, Throwable>> subscriber);
+	public Consumer subscribe(java.util.function.BiConsumer<Message, Deferred<Message, Exception>> subscriber);
 
 	public Consumer subscribe(java.util.function.Consumer<Message> subscriber);
 

@@ -9,9 +9,9 @@ public interface Producer {
 
 	public void send(Message message);
 	
-	public Promise<Message, Throwable> sendWithAck(Message message);
+	public Promise<Message, Exception> sendWithAck(Message message);
 
-	public Promise<Message, Throwable> call(Message request);
+	public Promise<Message, Exception> call(Message request);
 	
 	public Producer produceOn(ExecutionStrategy strategy);
 	
