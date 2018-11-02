@@ -9,7 +9,7 @@ public interface Producer {
 
 	public void send(Message message);
 	
-	public Promise<Message, Throwable> send(Message message, boolean sendWithAck);
+	public Promise<Message, Throwable> sendWithAck(Message message);
 
 	public Promise<Message, Throwable> call(Message request);
 	
