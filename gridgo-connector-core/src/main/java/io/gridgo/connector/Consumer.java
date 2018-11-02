@@ -1,8 +1,12 @@
 package io.gridgo.connector;
 
+import java.util.function.BiConsumer;
+
+import org.joo.promise4j.Deferred;
+
 import io.gridgo.connector.message.Message;
 
 public interface Consumer {
 
-	void subscribe(java.util.function.Consumer<Message> subscriber);
+	public void subscribe(BiConsumer<Message, Deferred<Message, Throwable>> subscriber);
 }
