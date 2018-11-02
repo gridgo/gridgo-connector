@@ -14,6 +14,7 @@
 
 	<properties>
 		<joo.promise4j.version>1.1.1</joo.promise4j.version>
+		<gridgo.framework.version>0.1.0-SNAPSHOT</gridgo.framework.version>
 	</properties>
 
 	<dependencies>
@@ -21,6 +22,11 @@
 			<groupId>org.dungba</groupId>
 			<artifactId>joo-promise4j</artifactId>
 			<version>${joo.promise4j.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.gridgo</groupId>
+			<artifactId>gridgo-framework</artifactId>
+			<version>${gridgo.framework.version}</version>
 		</dependency>
 	</dependencies>
 </project>
