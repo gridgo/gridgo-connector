@@ -1,24 +1,18 @@
 package io.gridgo.connector;
 
-public class ConnectorFactory {
+public interface ConnectorFactory {
 
-	public void register(String prefix, ConnectorResolver resolver) {
-
+	public default Connector createConnector(String endpoint) {
+		return createConnector(endpoint, false);
+	}
+	
+	public default Connector createConnector(String endpoint, ConnectorResolver resolver) {
+		return createConnector(endpoint, resolver, false);
 	}
 
-	public void deregister(String prefix) {
+	public Connector createConnector(String endpoint, boolean prototype);
 
-	}
-
-	public void isRegistered(String prefix) {
-
-	}
-
-	public void getResolver(String prefix) {
-
-	}
-
-	public Connector createConnector(String endpoint) {
-		return null;
-	}
+	public Connector createConnector(String endpoint, ConnectorResolver resolver, boolean prototype);
+	
+	public ConnectorFactory setDefaultConnectorResolver(ConnectorResolver resolver);
 }

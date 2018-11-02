@@ -12,9 +12,9 @@ public interface Message {
 	 * 
 	 * @return the routing id
 	 */
-	BValue getRoutingId();
+	public BValue getRoutingId();
 
-	Map<String, Object> getMisc();
+	public Map<String, Object> getMisc();
 
-	Payload getPayload();
+	public Payload getPayload();
 }
