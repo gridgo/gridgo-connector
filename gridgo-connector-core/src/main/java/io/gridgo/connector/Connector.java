@@ -7,4 +7,6 @@ public interface Connector {
 	public Optional<Producer> getProducer();
 
 	public Optional<Consumer> getConsumer();
+	
+	public ConnectorConfig getConnectorConfig();
 }
