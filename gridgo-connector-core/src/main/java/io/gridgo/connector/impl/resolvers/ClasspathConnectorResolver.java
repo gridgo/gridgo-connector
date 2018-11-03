@@ -56,8 +56,9 @@ public class ClasspathConnectorResolver implements ConnectorResolver {
 		String scheme = endpoint.scheme();
 		if (classMappings.containsKey(scheme)) {
 			// TODO log warning
+		} else {
+			classMappings.put(scheme, clzz);
 		}
-		classMappings.putIfAbsent(scheme, clzz);
 	}
 
 	@Override
