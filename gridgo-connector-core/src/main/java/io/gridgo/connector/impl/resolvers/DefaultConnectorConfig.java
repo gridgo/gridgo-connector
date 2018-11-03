@@ -2,7 +2,7 @@ package io.gridgo.connector.impl.resolvers;
 
 import java.util.Map;
 
-import io.gridgo.connector.ConnectorConfig;
+import io.gridgo.connector.support.config.ConnectorConfig;
 import lombok.Getter;
 
 @Getter

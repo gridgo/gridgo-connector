@@ -1,4 +1,4 @@
-package io.gridgo.connector;
+package io.gridgo.connector.support.config;
 
 import java.util.Map;
 

@@ -2,7 +2,10 @@ package io.gridgo.connector;
 
 import java.util.Optional;
 
-public interface Connector {
+import io.gridgo.connector.support.config.ConnectorConfig;
+import io.gridgo.framework.ComponentLifecycle;
+
+public interface Connector extends ComponentLifecycle {
 
 	public Optional<Producer> getProducer();
 

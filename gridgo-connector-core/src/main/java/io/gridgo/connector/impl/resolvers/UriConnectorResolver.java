@@ -5,8 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.gridgo.connector.Connector;
-import io.gridgo.connector.ConnectorConfig;
 import io.gridgo.connector.ConnectorResolver;
+import io.gridgo.connector.support.config.ConnectorConfig;
 import io.gridgo.connector.support.exceptions.ConnectorResolutionException;
 
 public class UriConnectorResolver implements ConnectorResolver {
