@@ -22,6 +22,7 @@
 		<gridgo.utils.version>0.1.0-SNAPSHOT</gridgo.utils.version>
 		<gridgo.socket.version>0.1.0-SNAPSHOT</gridgo.socket.version>
 		<gridgo.bean.version>0.1.0-SNAPSHOT</gridgo.bean.version>
+		<junit.version>4.12</junit.version>
 	</properties>
 
 	<dependencies>
@@ -29,6 +30,12 @@
 			<groupId>io.gridgo</groupId>
 			<artifactId>gridgo-bean</artifactId>
 			<version>${gridgo.bean.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>${junit.version}</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 </project>

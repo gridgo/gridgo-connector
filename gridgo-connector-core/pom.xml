@@ -15,6 +15,7 @@
 	<properties>
 		<joo.promise4j.version>1.1.1</joo.promise4j.version>
 		<gridgo.framework.version>0.1.0-SNAPSHOT</gridgo.framework.version>
+		<reflections.version>0.9.11</reflections.version>
 	</properties>
 
 	<dependencies>
@@ -27,6 +28,11 @@
 			<groupId>io.gridgo</groupId>
 			<artifactId>gridgo-framework</artifactId>
 			<version>${gridgo.framework.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.reflections</groupId>
+			<artifactId>reflections</artifactId>
+			<version>${reflections.version}</version>
 		</dependency>
 	</dependencies>
 </project>
