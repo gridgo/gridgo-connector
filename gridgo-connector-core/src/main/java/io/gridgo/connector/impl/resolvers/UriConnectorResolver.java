@@ -1,7 +1,9 @@
 package io.gridgo.connector.impl.resolvers;
 
 import java.lang.reflect.InvocationTargetException;
+import java.net.URLDecoder;
 import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -78,8 +80,9 @@ public class UriConnectorResolver implements ConnectorResolver {
 				i += placeholderValue.length();
 			} else {
 				if (syntaxChar != schemeChar) {
-					throw new MalformedEndpointException(String.format(
-							"Malformed endpoint, invalid token at %d, expected '%c', actual '%c': %s", i, syntaxChar, schemeChar, schemePart));
+					throw new MalformedEndpointException(
+							String.format("Malformed endpoint, invalid token at %d, expected '%c', actual '%c': %s", i,
+									syntaxChar, schemeChar, schemePart));
 				}
 				i++;
 				j++;
@@ -87,9 +90,11 @@ public class UriConnectorResolver implements ConnectorResolver {
 		}
 
 		if (i != schemePart.length())
-			throw new MalformedEndpointException(String.format("Malformed endpoint, unexpected tokens \"%s\": %s", schemePart.substring(i), schemePart));
+			throw new MalformedEndpointException(String.format("Malformed endpoint, unexpected tokens \"%s\": %s",
+					schemePart.substring(i), schemePart));
 		if (j != syntax.length())
-			throw new MalformedEndpointException(String.format("Malformed endpoint, missing values for syntax", syntax.substring(j), schemePart));
+			throw new MalformedEndpointException(
+					String.format("Malformed endpoint, missing values for syntax", syntax.substring(j), schemePart));
 
 		return props;
 	}
@@ -125,7 +130,7 @@ public class UriConnectorResolver implements ConnectorResolver {
 		for (String query : queries) {
 			String[] keyValuePair = query.split("=");
 			if (keyValuePair.length == 2)
-				params.put(keyValuePair[0], keyValuePair[1]);
+				params.put(keyValuePair[0], URLDecoder.decode(keyValuePair[1], Charset.forName("utf-8")));
 		}
 
 		return params;
