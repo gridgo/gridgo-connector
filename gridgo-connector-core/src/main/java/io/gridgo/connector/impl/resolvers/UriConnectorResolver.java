@@ -21,7 +21,7 @@ public class UriConnectorResolver implements ConnectorResolver {
 	public Connector resolve(String endpoint) {
 		try {
 			ConnectorConfig config = resolveProperties(endpoint);
-			return clazz.getConstructor(ConnectorConfig.class).newInstance(config);
+			return clazz.getConstructor().newInstance().initialize(config);
 		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
 				| NoSuchMethodException | SecurityException e) {
 			throw new ConnectorResolutionException("Exception caught while resolving endpoint " + endpoint, e);

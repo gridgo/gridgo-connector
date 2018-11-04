@@ -14,9 +14,15 @@ public class TestConnector implements Connector {
 	
 	@Getter
 	private ConnectorConfig connectorConfig;
-
-	public TestConnector(ConnectorConfig connectorConfig) {
-		this.connectorConfig = connectorConfig;
+	
+	@Override
+	public void start() {
+		
+	}
+	
+	@Override
+	public void stop() {
+		
 	}
 
 	@Override
@@ -27,5 +33,11 @@ public class TestConnector implements Connector {
 	@Override
 	public Optional<Consumer> getConsumer() {
 		return Optional.empty();
+	}
+
+	@Override
+	public Connector initialize(ConnectorConfig config) {
+		this.connectorConfig = config;
+		return this;
 	}
 }
