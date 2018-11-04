@@ -9,7 +9,7 @@ import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.config.ConnectorConfig;
 import lombok.Getter;
 
-@ConnectorEndpoint(scheme="test", syntax="test:name")
+@ConnectorEndpoint(scheme="test", syntax="{type}:{transport}://{host}:{port}")
 public class TestConnector implements Connector {
 	
 	@Getter

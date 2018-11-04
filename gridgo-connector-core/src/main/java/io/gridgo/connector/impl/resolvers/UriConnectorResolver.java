@@ -1,20 +1,33 @@
 package io.gridgo.connector.impl.resolvers;
 
 import java.lang.reflect.InvocationTargetException;
+import java.nio.CharBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.ConnectorResolver;
+import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.config.ConnectorConfig;
+import io.gridgo.connector.support.config.impl.DefaultConnectorConfig;
 import io.gridgo.connector.support.exceptions.ConnectorResolutionException;
+import io.gridgo.connector.support.exceptions.MalformedEndpointException;
 
 public class UriConnectorResolver implements ConnectorResolver {
 
+	private static final int MAX_PLACEHOLDER_NAME = 1024;
 	private final Class<? extends Connector> clazz;
+	private final String syntax;
 
 	public UriConnectorResolver(Class<? extends Connector> clazz) {
 		this.clazz = clazz;
+		this.syntax = extractSyntax(clazz);
+	}
+
+	private String extractSyntax(Class<? extends Connector> clazz) {
+		ConnectorEndpoint[] annotations = clazz.getAnnotationsByType(ConnectorEndpoint.class);
+		return annotations.length > 0 ? clazz.getAnnotationsByType(ConnectorEndpoint.class)[0].syntax() : null;
 	}
 
 	@Override
@@ -39,7 +52,70 @@ public class UriConnectorResolver implements ConnectorResolver {
 		}
 
 		Map<String, Object> params = extractParameters(queryPart);
-		return new DefaultConnectorConfig(schemePart, params);
+		Properties placeholders = extractPlaceholders(schemePart);
+		return new DefaultConnectorConfig(schemePart, params, placeholders);
+	}
+
+	private Properties extractPlaceholders(String schemePart) {
+		return extractPlaceholders(schemePart, syntax);
+	}
+
+	protected Properties extractPlaceholders(String schemePart, String syntax) {
+		Properties props = new Properties();
+		if (syntax == null)
+			return props;
+		CharBuffer buffer = CharBuffer.allocate(MAX_PLACEHOLDER_NAME);
+
+		int i = 0, j = 0;
+		while (i < schemePart.length() && j < syntax.length()) {
+			char schemeChar = schemePart.charAt(i);
+			char syntaxChar = syntax.charAt(j);
+			if (syntaxChar == '{') {
+				String placeholderName = extractPlaceholderKey(syntax, j + 1, buffer);
+				String placeholderValue = extractPlaceholderValue(schemePart, i, buffer);
+				props.put(placeholderName, placeholderValue);
+				j += placeholderName.length() + 2;
+				i += placeholderValue.length();
+			} else {
+				if (syntaxChar != schemeChar) {
+					throw new MalformedEndpointException(String.format(
+							"Malformed endpoint, invalid token at %d, expected '%c', actual '%c': %s", i, syntaxChar, schemeChar, schemePart));
+				}
+				i++;
+				j++;
+			}
+		}
+
+		if (i != schemePart.length())
+			throw new MalformedEndpointException(String.format("Malformed endpoint, unexpected tokens \"%s\": %s", schemePart.substring(i), schemePart));
+		if (j != syntax.length())
+			throw new MalformedEndpointException(String.format("Malformed endpoint, missing values for syntax", syntax.substring(j), schemePart));
+
+		return props;
+	}
+
+	private String extractPlaceholderValue(String schemePart, int i, CharBuffer buffer) {
+		buffer.clear();
+		char c;
+		while (i < schemePart.length() && isPlaceholder(c = schemePart.charAt(i++))) {
+			buffer.put(c);
+		}
+		buffer.flip();
+		return buffer.toString();
+	}
+
+	private boolean isPlaceholder(char c) {
+		return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_' || c == '-';
+	}
+
+	private String extractPlaceholderKey(String syntax, int j, CharBuffer buffer) {
+		buffer.clear();
+		char c;
+		while (j < syntax.length() && (c = syntax.charAt(j++)) != '}') {
+			buffer.put(c);
+		}
+		buffer.flip();
+		return buffer.toString();
 	}
 
 	private Map<String, Object> extractParameters(String queryPath) {
