@@ -1,18 +1,10 @@
 package io.gridgo.connector;
 
+import lombok.NonNull;
+
 public interface ConnectorFactory {
 
-	public default Connector createConnector(String endpoint) {
-		return createConnector(endpoint, false);
-	}
+	public Connector createConnector(final @NonNull String endpoint);
 	
-	public default Connector createConnector(String endpoint, ConnectorResolver resolver) {
-		return createConnector(endpoint, resolver, false);
-	}
-
-	public Connector createConnector(String endpoint, boolean prototype);
-
-	public Connector createConnector(String endpoint, ConnectorResolver resolver, boolean prototype);
-	
-	public ConnectorFactory setDefaultConnectorResolver(ConnectorResolver resolver);
+	public Connector createConnector(final @NonNull String endpoint, final @NonNull ConnectorResolver resolver);
 }

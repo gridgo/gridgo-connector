@@ -3,17 +3,15 @@ package io.gridgo.connector;
 import org.joo.promise4j.Promise;
 
 import io.gridgo.connector.message.Message;
-import io.gridgo.framework.execution.ExecutionStrategy;
+import io.gridgo.connector.support.execution.CallbackExecutionAware;
+import io.gridgo.framework.ComponentLifecycle;
+import lombok.NonNull;
 
-public interface Producer {
+public interface Producer extends ComponentLifecycle, CallbackExecutionAware {
 
-	public void send(Message message);
+	public void send(final @NonNull Message message);
 	
-	public Promise<Message, Throwable> sendWithAck(Message message);
+	public Promise<Message, Exception> sendWithAck(final @NonNull Message message);
 
-	public Promise<Message, Throwable> call(Message request);
-	
-	public void produceOn(ExecutionStrategy strategy);
-	
-	public void invokeCallbackOn(ExecutionStrategy strategy);
+	public Promise<Message, Exception> call(final @NonNull Message request);
 }
