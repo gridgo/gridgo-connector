@@ -1,4 +1,4 @@
-package io.gridgo.connector.annotations;
+package io.gridgo.connector.support.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

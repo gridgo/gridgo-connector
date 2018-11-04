@@ -8,7 +8,7 @@ import org.reflections.Reflections;
 
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.ConnectorResolver;
-import io.gridgo.connector.annotations.ConnectorEndpoint;
+import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.exceptions.UnsupportedSchemeException;
 import lombok.NonNull;
 
