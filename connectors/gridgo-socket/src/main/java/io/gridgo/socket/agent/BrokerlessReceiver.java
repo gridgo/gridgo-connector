@@ -3,7 +3,7 @@ package io.gridgo.socket.agent;
 import java.nio.ByteBuffer;
 import java.util.function.BiConsumer;
 
-public interface SocketReceiver extends BrokerlessAgent {
+public interface BrokerlessReceiver extends BrokerlessAgent {
 
 	void setBufferSize(int bufferSize);
 

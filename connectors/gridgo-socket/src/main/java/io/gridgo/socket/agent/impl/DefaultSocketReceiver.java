@@ -3,13 +3,13 @@ package io.gridgo.socket.agent.impl;
 import java.nio.ByteBuffer;
 import java.util.function.BiConsumer;
 
-import io.gridgo.socket.agent.SocketReceiver;
+import io.gridgo.socket.agent.BrokerlessReceiver;
 import io.gridgo.utils.ThreadUtils;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 
-public class DefaultSocketReceiver extends AbstractSocketAgent implements SocketReceiver {
+public class DefaultSocketReceiver extends AbstractSocketAgent implements BrokerlessReceiver {
 
 	@Getter
 	private long totalRecvBytes = 0;

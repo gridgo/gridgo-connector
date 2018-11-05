@@ -21,4 +21,12 @@
 		<module>gridgo-kafka</module>
 		<module>gridgo-rabbitmq</module>
 	</modules>
+
+	<dependencies>
+		<dependency>
+			<groupId>io.gridgo</groupId>
+			<artifactId>gridgo-connector-core</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+	</dependencies>
 </project>

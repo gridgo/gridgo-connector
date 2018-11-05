@@ -2,10 +2,10 @@ package io.gridgo.socket.agent.impl;
 
 import java.nio.ByteBuffer;
 
-import io.gridgo.socket.agent.BrockerlessSender;
+import io.gridgo.socket.agent.BrokerlessSender;
 import lombok.Getter;
 
-public class DefaultSocketSender extends AbstractSocketAgent implements BrockerlessSender {
+public class DefaultSocketSender extends AbstractSocketAgent implements BrokerlessSender {
 
 	@Getter
 	private long totalSentBytes = 0;
