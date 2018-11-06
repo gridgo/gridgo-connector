@@ -1,20 +1,19 @@
-package io.gridgo.socket.producer;
+package io.gridgo.connector.impl;
 
 import org.joo.promise4j.Deferred;
 
-import io.gridgo.bean.BArray;
 import io.gridgo.framework.support.Message;
 import lombok.Data;
 
 @Data
 final class ProducerEvent {
 
-	private final BArray data = BArray.newDefault();
+	private Message message;
 
 	private Deferred<Message, Exception> deferred;
 
 	void clear() {
-		this.data.clear();
+		this.message = null;
 		this.deferred = null;
 	}
 

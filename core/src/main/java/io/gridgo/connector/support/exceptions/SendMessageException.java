@@ -6,5 +6,9 @@ public class SendMessageException extends Exception {
 		super(e);
 	}
 
+	public SendMessageException() {
+		super();
+	}
+
 	private static final long serialVersionUID = -248588838925175405L;
 }
