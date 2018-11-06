@@ -102,15 +102,32 @@ public class UriConnectorResolver implements ConnectorResolver {
 	private String extractPlaceholderValue(String schemePart, int i, CharBuffer buffer) {
 		buffer.clear();
 		char c;
-		while (i < schemePart.length() && isPlaceholder(c = schemePart.charAt(i++))) {
-			buffer.put(c);
+
+		boolean insideBracket = schemePart.charAt(i) == '[';
+		if (insideBracket) {
+			buffer.put('[');
+			i++;
 		}
+		while (i < schemePart.length() && isPlaceholder(c = schemePart.charAt(i), insideBracket)) {
+			buffer.put(c);
+			i++;
+		}
+		if (insideBracket) {
+			if (schemePart.charAt(i) != ']') {
+				throw new MalformedEndpointException(
+						String.format("Malformed endpoint, invalid token at %d, expected ']', actualy '%c': %s", i,
+								schemePart.charAt(i), schemePart));
+			}
+			buffer.put(']');
+		}
+
 		buffer.flip();
 		return buffer.toString();
 	}
 
-	private boolean isPlaceholder(char c) {
-		return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_' || c == '-';
+	private boolean isPlaceholder(char c, boolean insideBracket) {
+		return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_' || c == '-' || c == '.'
+				|| c == ':' && insideBracket;
 	}
 
 	private String extractPlaceholderKey(String syntax, int j, CharBuffer buffer) {

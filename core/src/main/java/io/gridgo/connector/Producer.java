@@ -7,7 +7,7 @@ import io.gridgo.framework.ComponentLifecycle;
 import io.gridgo.framework.support.Message;
 import lombok.NonNull;
 
-public interface Producer extends ComponentLifecycle, CallbackExecutionAware {
+public interface Producer extends ComponentLifecycle, CallbackExecutionAware<Producer> {
 
 	public void send(final @NonNull Message message);
 	
