@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
-import io.gridgo.socket.BrokerlessSocket;
+import io.gridgo.socket.Socket;
 import io.gridgo.socket.SocketOptions;
 import io.gridgo.socket.agent.impl.DefaultSocketReceiver;
 import io.gridgo.socket.zmq.ZMQSocketFactory;
@@ -95,12 +95,12 @@ public class PullServer extends DefaultSocketReceiver {
 		}
 	}
 
-	private BrokerlessSocket createSocket() {
+	private Socket createSocket() {
 		SocketOptions options = new SocketOptions();
 		options.setType("pull");
 		options.addConfig("receiveTimeout", 100);
 
-		BrokerlessSocket socket = new ZMQSocketFactory().createSocket(options);
+		Socket socket = new ZMQSocketFactory().createSocket(options);
 		String address = "tcp://localhost:8888";
 		socket.bind(address);
 		return socket;

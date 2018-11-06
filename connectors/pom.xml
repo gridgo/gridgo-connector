@@ -17,7 +17,7 @@
 		<module>gridgo-socket</module>
 		<module>gridgo-socket-nanomsg</module>
 		<module>gridgo-socket-zmq</module>
-		<module>gridgo-socket-netty4</module>
+		<module>gridgo-netty4</module>
 		<module>gridgo-kafka</module>
 		<module>gridgo-rabbitmq</module>
 	</modules>

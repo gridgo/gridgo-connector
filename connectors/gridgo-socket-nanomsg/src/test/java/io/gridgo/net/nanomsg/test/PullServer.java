@@ -2,7 +2,7 @@ package io.gridgo.net.nanomsg.test;
 
 import java.util.concurrent.CountDownLatch;
 
-import io.gridgo.socket.BrokerlessSocket;
+import io.gridgo.socket.Socket;
 import io.gridgo.socket.SocketOptions;
 import io.gridgo.socket.agent.impl.DefaultSocketReceiver;
 import io.gridgo.socket.nanomsg.NNSocket;
@@ -74,7 +74,7 @@ public class PullServer extends DefaultSocketReceiver {
 		}
 	}
 
-	private BrokerlessSocket createSocket() {
+	private Socket createSocket() {
 		SocketOptions options = new SocketOptions();
 		options.setType("pull");
 		options.addConfig("recvTimeout", 100);

@@ -2,7 +2,7 @@ package io.gridgo.net.nanomsg.test;
 
 import java.nio.ByteBuffer;
 
-import io.gridgo.socket.BrokerlessSocket;
+import io.gridgo.socket.Socket;
 import io.gridgo.socket.SocketOptions;
 import io.gridgo.socket.agent.impl.DefaultSocketSender;
 import io.gridgo.socket.nanomsg.NNSocket;
@@ -46,7 +46,7 @@ public class PushClient extends DefaultSocketSender {
 		this.setSocket(this.createSocket());
 	}
 
-	protected BrokerlessSocket createSocket() {
+	protected Socket createSocket() {
 		SocketOptions options = new SocketOptions();
 		options.setType("push");
 		NNSocket socket = new NNSocketFactory().createSocket(options);

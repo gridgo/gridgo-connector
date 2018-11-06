@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
 
 import io.gridgo.bean.BObject;
-import io.gridgo.socket.BrokerlessSocket;
+import io.gridgo.socket.Socket;
 import io.gridgo.socket.SocketOptions;
 import io.gridgo.socket.agent.impl.DefaultSocketSender;
 import io.gridgo.socket.zmq.ZMQSocketFactory;
@@ -66,10 +66,10 @@ public class PushClient extends DefaultSocketSender {
 		this.setSocket(this.createSocket());
 	}
 
-	protected BrokerlessSocket createSocket() {
+	protected Socket createSocket() {
 		SocketOptions options = new SocketOptions();
 		options.setType("push");
-		BrokerlessSocket socket = new ZMQSocketFactory().createSocket(options);
+		Socket socket = new ZMQSocketFactory().createSocket(options);
 		String address = "tcp://localhost:8888";
 		socket.connect(address);
 		return socket;

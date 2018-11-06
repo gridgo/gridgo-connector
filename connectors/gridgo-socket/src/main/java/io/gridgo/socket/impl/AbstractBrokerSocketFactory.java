@@ -1,6 +1,5 @@
 package io.gridgo.socket.impl;
 
-import io.gridgo.socket.BrokerlessSocket;
 import io.gridgo.socket.Configurable;
 import io.gridgo.socket.Socket;
 import io.gridgo.socket.SocketOptions;
@@ -10,11 +9,11 @@ public abstract class AbstractBrokerSocketFactory extends AbstractSocketFactory 
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public final <T extends Socket<?>> T createSocket(SocketOptions options) {
+	public final <T extends Socket> T createSocket(SocketOptions options) {
 		Assert.notNull(options, "socket options");
 		Assert.notNull(options.getType(), "socket type");
 
-		Socket<?> socket = this.createCustomSocket(options.getType());
+		Socket socket = this.createCustomSocket(options.getType());
 
 		if (socket == null) {
 			switch (options.getType().toLowerCase()) {
@@ -52,35 +51,35 @@ public abstract class AbstractBrokerSocketFactory extends AbstractSocketFactory 
 		throw new IllegalArgumentException("Socket type " + options.getType() + " is not supported");
 	}
 
-	protected BrokerlessSocket createCustomSocket(String type) {
+	protected Socket createCustomSocket(String type) {
 		return null;
 	}
 
-	protected BrokerlessSocket createPullSocket() {
+	protected Socket createPullSocket() {
 		return null;
 	}
 
-	protected BrokerlessSocket createPushSocket() {
+	protected Socket createPushSocket() {
 		return null;
 	}
 
-	protected BrokerlessSocket createPubSocket() {
+	protected Socket createPubSocket() {
 		return null;
 	}
 
-	protected BrokerlessSocket createSubSocket() {
+	protected Socket createSubSocket() {
 		return null;
 	}
 
-	protected BrokerlessSocket createReqSocket() {
+	protected Socket createReqSocket() {
 		return null;
 	}
 
-	protected BrokerlessSocket createRepSocket() {
+	protected Socket createRepSocket() {
 		return null;
 	}
 
-	protected BrokerlessSocket createPairSocket() {
+	protected Socket createPairSocket() {
 		return null;
 	}
 

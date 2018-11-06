@@ -7,12 +7,13 @@ import java.util.stream.Collectors;
 import org.zeromq.ZMQ;
 
 import io.gridgo.socket.helper.Endpoint;
-import io.gridgo.socket.impl.AbstractBrokerSocket;
+import io.gridgo.socket.impl.AbstractSocket;
 import io.gridgo.utils.ObjectUtils;
 import io.gridgo.utils.ObjectUtils.Setter;
 import io.gridgo.utils.helper.Assert;
+import lombok.NonNull;
 
-final class ZMQSocket extends AbstractBrokerSocket {
+final class ZMQSocket extends AbstractSocket {
 
 	private static final Map<String, Setter> ZMQ_SOCKET_SETTERS = initSetters();
 
@@ -63,8 +64,7 @@ final class ZMQSocket extends AbstractBrokerSocket {
 	}
 
 	@Override
-	public void applyConfig(String name, Object value) {
-		Assert.notNull(name, "Option's name");
+	public void applyConfig(@NonNull String name, Object value) {
 		Setter setter = ZMQ_SOCKET_SETTERS.get(name.toLowerCase());
 		if (setter != null) {
 			System.out.println("Setting: " + name + " = " + value);

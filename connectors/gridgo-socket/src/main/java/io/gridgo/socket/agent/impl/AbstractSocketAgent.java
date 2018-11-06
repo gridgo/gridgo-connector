@@ -1,6 +1,6 @@
 package io.gridgo.socket.agent.impl;
 
-import io.gridgo.socket.BrokerlessSocket;
+import io.gridgo.socket.Socket;
 import io.gridgo.socket.agent.BrokerlessAgent;
 import io.gridgo.utils.helper.AbstractStartable;
 import lombok.AccessLevel;
@@ -11,9 +11,9 @@ public abstract class AbstractSocketAgent extends AbstractStartable implements B
 
 	@Setter
 	@Getter(AccessLevel.PROTECTED)
-	private BrokerlessSocket socket;
+	private Socket socket;
 
-	public AbstractSocketAgent(BrokerlessSocket socket) {
+	public AbstractSocketAgent(Socket socket) {
 		this.socket = socket;
 	}
 

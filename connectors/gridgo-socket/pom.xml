@@ -9,4 +9,12 @@
 		<artifactId>gridgo-connector-base</artifactId>
 		<version>0.1.0-SNAPSHOT</version>
 	</parent>
+
+	<dependencies>
+		<dependency>
+			<groupId>com.lmax</groupId>
+			<artifactId>disruptor</artifactId>
+			<version>3.4.2</version>
+		</dependency>
+	</dependencies>
 </project>

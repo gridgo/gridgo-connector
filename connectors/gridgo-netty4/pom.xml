@@ -12,11 +12,6 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>io.gridgo</groupId>
-			<artifactId>gridgo-socket</artifactId>
-			<version>${gridgo.socket.version}</version>
-		</dependency>
-		<dependency>
 			<groupId>io.netty</groupId>
 			<artifactId>netty-all</artifactId>
 			<version>4.1.30.Final</version>

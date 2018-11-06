@@ -2,7 +2,7 @@ package io.gridgo.socket.zmq;
 
 import org.zeromq.ZMQ;
 
-import io.gridgo.socket.BrokerlessSocket;
+import io.gridgo.socket.Socket;
 import io.gridgo.socket.impl.AbstractBrokerSocketFactory;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -21,11 +21,11 @@ public class ZMQSocketFactory extends AbstractBrokerSocketFactory {
 		this.ctx = ZMQ.context(ioThreads);
 	}
 
-	private BrokerlessSocket createZmqSocket(int type) {
+	private Socket createZmqSocket(int type) {
 		return new ZMQSocket(ctx.socket(type));
 	}
 
-	protected BrokerlessSocket createCustomSocket(String type) {
+	protected Socket createCustomSocket(String type) {
 		Assert.notNull(type, "Socket type");
 		switch (type.toLowerCase()) {
 		case "router":
@@ -36,31 +36,31 @@ public class ZMQSocketFactory extends AbstractBrokerSocketFactory {
 		return null;
 	}
 
-	protected BrokerlessSocket createPullSocket() {
+	protected Socket createPullSocket() {
 		return createZmqSocket(ZMQ.PULL);
 	}
 
-	protected BrokerlessSocket createPushSocket() {
+	protected Socket createPushSocket() {
 		return createZmqSocket(ZMQ.PUSH);
 	}
 
-	protected BrokerlessSocket createPubSocket() {
+	protected Socket createPubSocket() {
 		return createZmqSocket(ZMQ.PUB);
 	}
 
-	protected BrokerlessSocket createSubSocket() {
+	protected Socket createSubSocket() {
 		return createZmqSocket(ZMQ.SUB);
 	}
 
-	protected BrokerlessSocket createReqSocket() {
+	protected Socket createReqSocket() {
 		return createZmqSocket(ZMQ.REQ);
 	}
 
-	protected BrokerlessSocket createRepSocket() {
+	protected Socket createRepSocket() {
 		return createZmqSocket(ZMQ.REP);
 	}
 
-	protected BrokerlessSocket createPairSocket() {
+	protected Socket createPairSocket() {
 		return createZmqSocket(ZMQ.PAIR);
 	}
 }
