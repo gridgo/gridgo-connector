@@ -3,10 +3,10 @@ package io.gridgo.socket.nanomsg;
 import org.nanomsg.NanoLibrary;
 
 import io.gridgo.socket.Socket;
-import io.gridgo.socket.impl.AbstractBrokerSocketFactory;
+import io.gridgo.socket.impl.BaseSocketFactory;
 import io.gridgo.utils.helper.Assert;
 
-public class NNSocketFactory extends AbstractBrokerSocketFactory {
+public class NNSocketFactory extends BaseSocketFactory {
 
 	private final NanoLibrary nanomsg = new NanoLibrary();
 
