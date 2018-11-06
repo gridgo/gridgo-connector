@@ -2,9 +2,9 @@ package io.gridgo.connector;
 
 import org.joo.promise4j.Promise;
 
-import io.gridgo.connector.message.Message;
 import io.gridgo.connector.support.execution.CallbackExecutionAware;
 import io.gridgo.framework.ComponentLifecycle;
+import io.gridgo.framework.support.Message;
 import lombok.NonNull;
 
 public interface Producer extends ComponentLifecycle, CallbackExecutionAware<Producer> {
