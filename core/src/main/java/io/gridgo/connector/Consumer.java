@@ -7,7 +7,7 @@ import io.gridgo.connector.support.execution.CallbackExecutionAware;
 import io.gridgo.framework.ComponentLifecycle;
 import lombok.NonNull;
 
-public interface Consumer extends ComponentLifecycle, CallbackExecutionAware {
+public interface Consumer extends ComponentLifecycle, CallbackExecutionAware<Consumer> {
 
 	public Consumer subscribe(final @NonNull java.util.function.BiConsumer<Message, Deferred<Message, Exception>> subscriber);
 
