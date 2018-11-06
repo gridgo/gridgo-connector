@@ -3,12 +3,12 @@ package io.gridgo.socket.zmq;
 import org.zeromq.ZMQ;
 
 import io.gridgo.socket.Socket;
-import io.gridgo.socket.impl.AbstractBrokerSocketFactory;
+import io.gridgo.socket.impl.BaseSocketFactory;
 import lombok.AccessLevel;
 import lombok.Getter;
 import net.jodah.failsafe.internal.util.Assert;
 
-public class ZMQSocketFactory extends AbstractBrokerSocketFactory {
+public class ZMQSocketFactory extends BaseSocketFactory {
 
 	@Getter(AccessLevel.PROTECTED)
 	private final ZMQ.Context ctx;

@@ -5,7 +5,7 @@ import io.gridgo.socket.Socket;
 import io.gridgo.socket.SocketOptions;
 import io.gridgo.utils.helper.Assert;
 
-public abstract class AbstractBrokerSocketFactory extends AbstractSocketFactory {
+public abstract class BaseSocketFactory extends AbstractSocketFactory {
 
 	@SuppressWarnings("unchecked")
 	@Override
