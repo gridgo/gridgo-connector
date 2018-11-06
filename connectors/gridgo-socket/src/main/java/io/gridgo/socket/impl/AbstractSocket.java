@@ -1,11 +1,8 @@
 package io.gridgo.socket.impl;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import io.gridgo.socket.Bindable;
-import io.gridgo.socket.Configurable;
-import io.gridgo.socket.Connectable;
-import io.gridgo.socket.HasEndpoint;
 import io.gridgo.socket.Socket;
 import io.gridgo.socket.helper.Endpoint;
 import io.gridgo.socket.helper.EndpointParser;
@@ -13,8 +10,7 @@ import io.gridgo.utils.ThreadUtils;
 import io.gridgo.utils.helper.Loggable;
 import lombok.Getter;
 
-public abstract class AbstractSocket<Payload>
-		implements Socket<Payload>, Connectable, Bindable, HasEndpoint, Configurable, Loggable {
+public abstract class AbstractSocket implements Socket, Loggable {
 
 	private final AtomicBoolean startFlag = new AtomicBoolean(false);
 	private volatile boolean started = false;
@@ -78,6 +74,28 @@ public abstract class AbstractSocket<Payload>
 			throw new IllegalStateException("Socket already started");
 		}
 	}
+
+	@Override
+	public final int send(ByteBuffer buffer, boolean block) {
+		if (this.isAlive()) {
+			return doSend(buffer, block);
+		} else {
+			throw new IllegalStateException("Socket isn't alive");
+		}
+	}
+
+	@Override
+	public final int receive(ByteBuffer buffer, boolean block) {
+		if (this.isAlive()) {
+			return doReveive(buffer, block);
+		} else {
+			throw new IllegalStateException("Socket isn't alive");
+		}
+	}
+
+	protected abstract int doSend(ByteBuffer buffer, boolean block);
+
+	protected abstract int doReveive(ByteBuffer buffer, boolean block);
 
 	protected abstract void doClose();
 

@@ -6,13 +6,13 @@ import java.util.Arrays;
 import org.nanomsg.NanoLibrary;
 
 import io.gridgo.socket.helper.Endpoint;
-import io.gridgo.socket.impl.AbstractBrokerSocket;
+import io.gridgo.socket.impl.AbstractSocket;
 import io.gridgo.utils.PrimitiveUtils;
 import io.gridgo.utils.helper.Assert;
 import lombok.AccessLevel;
 import lombok.Getter;
 
-public class NNSocket extends AbstractBrokerSocket {
+public class NNSocket extends AbstractSocket {
 
 	@Getter(AccessLevel.PROTECTED)
 	private final int id;

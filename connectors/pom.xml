@@ -17,8 +17,16 @@
 		<module>gridgo-socket</module>
 		<module>gridgo-socket-nanomsg</module>
 		<module>gridgo-socket-zmq</module>
-		<module>gridgo-socket-netty4</module>
+		<module>gridgo-netty4</module>
 		<module>gridgo-kafka</module>
 		<module>gridgo-rabbitmq</module>
 	</modules>
+
+	<dependencies>
+		<dependency>
+			<groupId>io.gridgo</groupId>
+			<artifactId>gridgo-connector-core</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+	</dependencies>
 </project>
