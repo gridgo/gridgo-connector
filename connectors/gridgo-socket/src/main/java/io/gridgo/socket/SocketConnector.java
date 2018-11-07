@@ -9,6 +9,15 @@ import io.gridgo.connector.Producer;
 import io.gridgo.connector.support.config.ConnectorConfig;
 import lombok.Getter;
 
+/**
+ * The sub-class must annotated by ConnectorResolver which syntax has at least 4
+ * placeholders: {type} (push, pull, pub, sub) {transport} (tcp, pgm, epgm,
+ * inproc, ipc), {host} (allow ipv4, ipv6 (with bracket []), hostname or
+ * interface and {port}
+ *
+ * @author bachden
+ *
+ */
 public class SocketConnector implements Connector {
 
 	private final SocketFactory factory;
@@ -36,7 +45,7 @@ public class SocketConnector implements Connector {
 		this.params = config.getParameters();
 		this.type = type;
 
-		return null;
+		return this;
 	}
 
 	private Socket initSocket() {
@@ -49,9 +58,12 @@ public class SocketConnector implements Connector {
 
 	@Override
 	public Optional<Producer> getProducer() {
-		Socket socket = initSocket();
-		socket.connect(this.address);
-		return Optional.of(SocketProducer.newDefault(socket));
+		if (type.equalsIgnoreCase("push") || type.equalsIgnoreCase("sub")) {
+			Socket socket = initSocket();
+			socket.connect(this.address);
+			return Optional.of(SocketProducer.newDefault(socket));
+		}
+		return Optional.of(null);
 	}
 
 	@Override
