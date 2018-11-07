@@ -22,7 +22,7 @@ public class DefaultConnectorFactory implements ConnectorFactory {
 
 	@Override
 	public Connector createConnector(String endpoint) {
-		return resolver.resolve(endpoint);
+		return createConnector(endpoint, resolver);
 	}
 
 	@Override
