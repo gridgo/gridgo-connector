@@ -60,7 +60,14 @@ public class SocketConnector implements Connector {
 	public Optional<Producer> getProducer() {
 		if (type.equalsIgnoreCase("push") || type.equalsIgnoreCase("pub")) {
 			Socket socket = initSocket();
-			socket.connect(this.address);
+			switch (type) {
+			case "push":
+				socket.connect(address);
+				break;
+			case "pub":
+				socket.bind(address);
+				break;
+			}
 			return Optional.of(SocketProducer.newDefault(socket));
 		}
 		return Optional.ofNullable(null);
@@ -70,7 +77,14 @@ public class SocketConnector implements Connector {
 	public Optional<Consumer> getConsumer() {
 		if (type.equalsIgnoreCase("pull") || type.equalsIgnoreCase("sub")) {
 			Socket socket = initSocket();
-			socket.bind(this.address);
+			switch (type) {
+			case "pull":
+				socket.bind(this.address);
+				break;
+			case "sub":
+				socket.connect(address);
+				break;
+			}
 			return Optional.of(SocketConsumer.newDefault(socket));
 		}
 		return Optional.ofNullable(null);
