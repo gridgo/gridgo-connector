@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URLDecoder;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -141,8 +142,9 @@ public class UriConnectorResolver implements ConnectorResolver {
 	}
 
 	private Map<String, Object> extractParameters(String queryPath) {
+		if (queryPath == null)
+			return Collections.emptyMap();
 		Map<String, Object> params = new HashMap<>();
-
 		String[] queries = queryPath.split("&");
 		for (String query : queries) {
 			String[] keyValuePair = query.split("=");
