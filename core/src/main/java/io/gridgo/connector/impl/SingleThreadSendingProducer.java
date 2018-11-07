@@ -38,7 +38,7 @@ public abstract class SingleThreadSendingProducer extends AbstractProducer {
 		try {
 			this.executeSendOnSingleThread(event.getMessage());
 		} catch (Exception e) {
-			this.callback(event.getDeferred(), e);
+			this.ack(event.getDeferred(), e);
 		}
 	}
 
