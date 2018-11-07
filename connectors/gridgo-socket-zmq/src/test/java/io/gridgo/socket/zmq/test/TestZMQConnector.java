@@ -74,7 +74,9 @@ public class TestZMQConnector {
 	private void warmUp(Consumer consumer, Producer producer) throws PromiseException, InterruptedException {
 		consumer.start();
 		producer.start();
+		System.out.println("Started consumer and producer");
 		producer.sendWithAck(Message.newDefault(Payload.newDefault(BObject.newFromSequence("cmd", "start")))).get();
+		System.out.println("Warmup done");
 	}
 
 	private void doFnFSend(Consumer consumer, Producer producer) throws InterruptedException {
