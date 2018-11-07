@@ -90,12 +90,21 @@ public class UriConnectorResolver implements ConnectorResolver {
 			}
 		}
 
-		if (i != schemePart.length())
+		if (i < schemePart.length()) {
 			throw new MalformedEndpointException(String.format("Malformed endpoint, unexpected tokens \"%s\": %s",
 					schemePart.substring(i), schemePart));
-		if (j != syntax.length())
-			throw new MalformedEndpointException(
-					String.format("Malformed endpoint, missing values for syntax", syntax.substring(j), schemePart));
+		}
+		if (j < syntax.length()) {
+			if (syntax.charAt(j) == '{') {
+				while (j < syntax.length() && syntax.charAt(j) != '}')
+					j++;
+				j++;
+			}
+			if (j < syntax.length()) {
+				throw new MalformedEndpointException(String.format(
+						"Malformed endpoint, missing values for syntax \"%s\": %s", syntax.substring(j), schemePart));
+			}
+		}
 
 		return props;
 	}
