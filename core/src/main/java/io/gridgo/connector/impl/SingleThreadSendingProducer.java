@@ -4,6 +4,7 @@ import java.util.concurrent.ThreadFactory;
 
 import org.joo.promise4j.Deferred;
 import org.joo.promise4j.Promise;
+import org.joo.promise4j.impl.AsyncDeferredObject;
 
 import com.lmax.disruptor.dsl.Disruptor;
 
@@ -38,7 +39,7 @@ public abstract class SingleThreadSendingProducer extends AbstractProducer {
 		try {
 			this.executeSendOnSingleThread(event.getMessage());
 		} catch (Exception e) {
-			this.callback(event.getDeferred(), e);
+			this.ack(event.getDeferred(), e);
 		}
 	}
 
@@ -60,7 +61,9 @@ public abstract class SingleThreadSendingProducer extends AbstractProducer {
 		this._send(message, null);
 	}
 
-	protected abstract Deferred<Message, Exception> createDeferred();
+	protected Deferred<Message, Exception> createDeferred() {
+		return new AsyncDeferredObject<>();
+	}
 
 	@Override
 	public final Promise<Message, Exception> sendWithAck(Message message) {
