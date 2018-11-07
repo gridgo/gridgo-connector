@@ -13,6 +13,7 @@ import io.gridgo.framework.execution.impl.DefaultExecutionStrategy;
 import io.gridgo.framework.support.Message;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NonNull;
 
 public abstract class AbstractConsumer extends AbstractComponentLifecycle implements Consumer {
 
@@ -32,7 +33,7 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 	}
 
 	@Override
-	public Consumer invokeCallbackOn(ExecutionStrategy strategy) {
+	public Consumer invokeCallbackOn(final @NonNull ExecutionStrategy strategy) {
 		this.callbackInvokeExecutor = strategy;
 		return this;
 	}
