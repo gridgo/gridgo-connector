@@ -109,18 +109,28 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer {
 				Message msg = failureHandler.apply(ctx.failure());
 				sendResponse(ctx.response(), msg);
 			});
+		} else {
+			route.failureHandler(this::defaultHandleException);
 		}
+	}
+
+	private void defaultHandleException(RoutingContext ctx) {
+		ctx.response().setStatusCode(ctx.statusCode());
+		if (ctx.failure() != null)
+			ctx.response().end(ctx.failure().getMessage());
+		else
+			ctx.response().end();
 	}
 
 	private void handleRequest(RoutingContext ctx) {
 		Message request = buildMessage(ctx);
 		Deferred<Message, Exception> deferred = new SimpleDeferredObject<>(
-				response -> sendResponse(ctx.response(), response), ex -> sendException(ctx.response(), ex));
+				response -> sendResponse(ctx.response(), response), ex -> sendException(ctx, ex));
 		publish(request, deferred);
 	}
 
-	private void sendException(HttpServerResponse serverResponse, Exception ex) {
-
+	private void sendException(RoutingContext ctx, Exception ex) {
+		ctx.fail(ex);
 	}
 
 	private void sendResponse(HttpServerResponse serverResponse, Message response) {
