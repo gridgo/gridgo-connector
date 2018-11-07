@@ -24,11 +24,11 @@ public class VertxHttpConnector implements Connector {
 	@Override
 	public Connector initialize(ConnectorConfig config) {
 		this.connectorConfig = config;
-		String path = config.getPlaceholders().getProperty("path");
+		String path = config.getPlaceholders().getProperty(VertxHttpConstants.PLACEHOLDER_PATH);
 		if (path != null)
 			path = "/" + path;
-		String method = getParam(config, "method");
-		String format = getParam(config, "format");
+		String method = getParam(config, VertxHttpConstants.PARAM_METHOD);
+		String format = getParam(config, VertxHttpConstants.PARAM_FORMAT);
 		VertxOptions vertxOptions = buildVertxOptions(config);
 		HttpServerOptions httpOptions = buildHttpServerOptions(config);
 		this.consumer = Optional.of(new VertxHttpConsumer(vertxOptions, httpOptions, path, method, format));
@@ -36,8 +36,8 @@ public class VertxHttpConnector implements Connector {
 	}
 
 	private VertxOptions buildVertxOptions(ConnectorConfig config) {
-		String workerPoolSize = getParam(config, "workerPoolSize");
-		String eventLoopPoolSize = getParam(config, "eventLoopPoolSize");
+		String workerPoolSize = getParam(config, VertxHttpConstants.PARAM_WORKER_POOL_SIZE);
+		String eventLoopPoolSize = getParam(config, VertxHttpConstants.PARAM_EVENT_LOOP_POOL_SIZE);
 		VertxOptions options = new VertxOptions();
 		if (workerPoolSize != null)
 			options.setWorkerPoolSize(Integer.parseInt(workerPoolSize));
@@ -47,17 +47,17 @@ public class VertxHttpConnector implements Connector {
 	}
 
 	private HttpServerOptions buildHttpServerOptions(ConnectorConfig config) {
-		boolean useAlpn = Boolean.valueOf(getParam(config, "useAlpn", "false"));
-		boolean ssl = Boolean.valueOf(getParam(config, "ssl", "false"));
-		ClientAuth clientAuth = ClientAuth.valueOf(getParam(config, "clientAuth", ClientAuth.NONE.toString()));
-		String keyStorePath = getParam(config, "keyStorePath");
-		String keyStorePassword = getParam(config, "keyStorePassword");
+		boolean useAlpn = Boolean.valueOf(getParam(config, VertxHttpConstants.PARAM_USE_ALPN, "false"));
+		boolean ssl = Boolean.valueOf(getParam(config, VertxHttpConstants.PARAM_SSL, "false"));
+		ClientAuth clientAuth = ClientAuth.valueOf(getParam(config, VertxHttpConstants.PARAM_CLIENT_AUTH, ClientAuth.NONE.toString()));
+		String keyStorePath = getParam(config, VertxHttpConstants.PARAM_KEY_STORE_PATH);
+		String keyStorePassword = getParam(config, VertxHttpConstants.PARAM_KEY_STORE_PASSWORD);
 		JksOptions keyStoreOptions = keyStorePath != null
 				? new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword)
 				: null;
 		return new HttpServerOptions().setUseAlpn(useAlpn).setSsl(ssl).setClientAuth(clientAuth)
-				.setHost(config.getPlaceholders().getProperty("host"))
-				.setPort(Integer.parseInt(config.getPlaceholders().getProperty("port")))
+				.setHost(config.getPlaceholders().getProperty(VertxHttpConstants.PLACEHOLDER_HOST))
+				.setPort(Integer.parseInt(config.getPlaceholders().getProperty(VertxHttpConstants.PLACEHOLDER_PORT)))
 				.setKeyStoreOptions(keyStoreOptions);
 	}
 
