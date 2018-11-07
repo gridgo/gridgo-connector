@@ -25,7 +25,7 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 		return this;
 	}
 
-	protected void callback(Deferred<Message, Exception> deferred, Exception exception) {
+	protected void ack(Deferred<Message, Exception> deferred, Exception exception) {
 		callbackInvokeExecutor.execute(() -> {
 			if (exception == null) {
 				deferred.resolve(null);
@@ -35,7 +35,7 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 		});
 	}
 
-	protected void callback(Deferred<Message, Exception> deferred, Message response) {
+	protected void ack(Deferred<Message, Exception> deferred, Message response) {
 		callbackInvokeExecutor.execute(() -> deferred.resolve(response));
 	}
 }
