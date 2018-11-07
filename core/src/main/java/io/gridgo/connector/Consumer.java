@@ -8,7 +8,7 @@ import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.generators.IdGeneratorAware;
 import lombok.NonNull;
 
-public interface Consumer extends ComponentLifecycle, CallbackExecutionAware<Consumer>, IdGeneratorAware<Consumer> {
+public interface Consumer extends ComponentLifecycle, CallbackExecutionAware<Consumer>, IdGeneratorAware {
 
 	public Consumer subscribe(
 			final @NonNull java.util.function.BiConsumer<Message, Deferred<Message, Exception>> subscriber);

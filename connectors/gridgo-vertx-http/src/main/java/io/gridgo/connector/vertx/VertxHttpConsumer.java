@@ -129,7 +129,7 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer {
 			return;
 		}
 		if (response.getPayload().getHeaders() != null) {
-			String status = response.getPayload().getHeaders().getString("Status");
+			String status = response.getPayload().getHeaders().getString(VertxHttpConstants.HEADER_STATUS);
 			if (status != null)
 				serverResponse.setStatusMessage(status);
 			for (Entry<String, BElement> entry : response.getPayload().getHeaders().entrySet()) {

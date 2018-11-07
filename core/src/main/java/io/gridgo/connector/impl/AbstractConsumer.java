@@ -19,6 +19,7 @@ import io.gridgo.framework.support.impl.DefaultPayload;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 
 public abstract class AbstractConsumer extends AbstractComponentLifecycle implements Consumer {
 
@@ -27,7 +28,7 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 	@Getter(AccessLevel.PROTECTED)
 	private ExecutionStrategy callbackInvokeExecutor = DEFAULT_CALLBACK_EXECUTOR;
 
-	@Getter
+	@Getter @Setter
 	private IdGenerator idGenerator;
 
 	private final Collection<BiConsumer<Message, Deferred<Message, Exception>>> subscribers = new CopyOnWriteArrayList<>();
@@ -56,10 +57,5 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 		if (idGenerator == null)
 			return Message.newDefault(Payload.newDefault(headers, body));
 		return Message.newDefault(new DefaultPayload(idGenerator.generateId(), headers, body));
-	}
-
-	public Consumer setIdGenerator(IdGenerator idGenerator) {
-		this.idGenerator = idGenerator;
-		return this;
 	}
 }
