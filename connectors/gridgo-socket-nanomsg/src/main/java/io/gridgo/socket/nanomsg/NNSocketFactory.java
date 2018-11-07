@@ -2,19 +2,19 @@ package io.gridgo.socket.nanomsg;
 
 import org.nanomsg.NanoLibrary;
 
-import io.gridgo.socket.BrokerlessSocket;
-import io.gridgo.socket.impl.AbstractBrokerSocketFactory;
+import io.gridgo.socket.Socket;
+import io.gridgo.socket.impl.BaseSocketFactory;
 import io.gridgo.utils.helper.Assert;
 
-public class NNSocketFactory extends AbstractBrokerSocketFactory {
+public class NNSocketFactory extends BaseSocketFactory {
 
 	private final NanoLibrary nanomsg = new NanoLibrary();
 
-	private BrokerlessSocket createNanoSocket(int type) {
+	private Socket createNanoSocket(int type) {
 		return new NNSocket(nanomsg.nn_socket(nanomsg.AF_SP, type), nanomsg);
 	}
 
-	protected BrokerlessSocket createCustomSocket(String type) {
+	protected Socket createCustomSocket(String type) {
 		Assert.notNull(type, "Socket type");
 		switch (type.toLowerCase()) {
 		case "bus":
@@ -27,31 +27,31 @@ public class NNSocketFactory extends AbstractBrokerSocketFactory {
 		return null;
 	}
 
-	protected BrokerlessSocket createPullSocket() {
+	protected Socket createPullSocket() {
 		return createNanoSocket(nanomsg.NN_PULL);
 	}
 
-	protected BrokerlessSocket createPushSocket() {
+	protected Socket createPushSocket() {
 		return createNanoSocket(nanomsg.NN_PUSH);
 	}
 
-	protected BrokerlessSocket createPubSocket() {
+	protected Socket createPubSocket() {
 		return createNanoSocket(nanomsg.NN_PUB);
 	}
 
-	protected BrokerlessSocket createSubSocket() {
+	protected Socket createSubSocket() {
 		return createNanoSocket(nanomsg.NN_SUB);
 	}
 
-	protected BrokerlessSocket createReqSocket() {
+	protected Socket createReqSocket() {
 		return createNanoSocket(nanomsg.NN_REQ);
 	}
 
-	protected BrokerlessSocket createRepSocket() {
+	protected Socket createRepSocket() {
 		return createNanoSocket(nanomsg.NN_REP);
 	}
 
-	protected BrokerlessSocket createPairSocket() {
+	protected Socket createPairSocket() {
 		return createNanoSocket(nanomsg.NN_PAIR);
 	}
 }
