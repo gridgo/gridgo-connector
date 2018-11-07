@@ -58,18 +58,21 @@ public class SocketConnector implements Connector {
 
 	@Override
 	public Optional<Producer> getProducer() {
-		if (type.equalsIgnoreCase("push") || type.equalsIgnoreCase("sub")) {
+		if (type.equalsIgnoreCase("push") || type.equalsIgnoreCase("pub")) {
 			Socket socket = initSocket();
 			socket.connect(this.address);
 			return Optional.of(SocketProducer.newDefault(socket));
 		}
-		return Optional.of(null);
+		return Optional.ofNullable(null);
 	}
 
 	@Override
 	public Optional<Consumer> getConsumer() {
-		Socket socket = initSocket();
-		socket.bind(this.address);
-		return Optional.of(SocketConsumer.newDefault(socket));
+		if (type.equalsIgnoreCase("pull") || type.equalsIgnoreCase("sub")) {
+			Socket socket = initSocket();
+			socket.bind(this.address);
+			return Optional.of(SocketConsumer.newDefault(socket));
+		}
+		return Optional.ofNullable(null);
 	}
 }
