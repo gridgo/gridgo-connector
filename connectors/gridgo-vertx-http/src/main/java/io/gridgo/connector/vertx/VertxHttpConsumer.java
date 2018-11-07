@@ -38,8 +38,6 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer {
 
 	private HttpServerOptions httpOptions;
 
-	private ConnectionRef<ServerRouterTuple> connRef;
-
 	private String path;
 
 	private String method;
@@ -72,7 +70,8 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer {
 
 	@Override
 	protected void onStart() {
-		String connectionKey = httpOptions.getHost() + ":" + httpOptions.getPort();
+		ConnectionRef<ServerRouterTuple> connRef;
+		String connectionKey = buildConnectionKey();
 		synchronized (SERVER_MAP) {
 			if (SERVER_MAP.containsKey(connectionKey)) {
 				connRef = SERVER_MAP.get(connectionKey);
@@ -89,6 +88,10 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer {
 		}
 
 		configureRouter(connRef.getConnection().router);
+	}
+
+	private String buildConnectionKey() {
+		return httpOptions.getHost() + ":" + httpOptions.getPort();
 	}
 
 	private void configureRouter(Router router) {
@@ -183,11 +186,18 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer {
 
 	@Override
 	protected void onStop() {
-		if (connRef.deref() == 0) {
-			try {
-				connRef.getConnection().server.close();
-			} finally {
-				connRef.getConnection().vertx.close();
+		String connectionKey = buildConnectionKey();
+		synchronized (SERVER_MAP) {
+			if (SERVER_MAP.containsKey(connectionKey)) {
+				ConnectionRef<ServerRouterTuple> connRef = SERVER_MAP.get(connectionKey);
+				if (connRef.deref() == 0) {
+					try {
+						connRef.getConnection().server.close();
+					} finally {
+						connRef.getConnection().vertx.close();
+					}
+					SERVER_MAP.remove(connectionKey);
+				}
 			}
 		}
 	}
