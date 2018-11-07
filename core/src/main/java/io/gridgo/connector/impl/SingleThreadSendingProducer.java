@@ -36,10 +36,13 @@ public abstract class SingleThreadSendingProducer extends AbstractProducer {
 	}
 
 	private void handleSend(ProducerEvent event, long sequence, boolean endOfBatch) {
+		Exception exception = null;
 		try {
 			this.executeSendOnSingleThread(event.getMessage());
 		} catch (Exception e) {
-			this.ack(event.getDeferred(), e);
+			exception = e;
+		} finally {
+			this.ack(event.getDeferred(), exception);
 		}
 	}
 
