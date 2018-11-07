@@ -3,6 +3,7 @@ package io.gridgo.connector.vertx;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Function;
 
 import org.joo.promise4j.Deferred;
 import org.joo.promise4j.impl.SimpleDeferredObject;
@@ -16,13 +17,13 @@ import io.gridgo.connector.impl.AbstractConsumer;
 import io.gridgo.connector.support.ConnectionRef;
 import io.gridgo.connector.vertx.support.exceptions.UnsupportedFormatException;
 import io.gridgo.framework.support.Message;
-import io.gridgo.framework.support.Payload;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -44,6 +45,8 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer {
 	private String method;
 
 	private String format;
+
+	private Function<Throwable, Message> failureHandler;
 
 	public VertxHttpConsumer(VertxOptions vertxOptions, HttpServerOptions options) {
 		this.vertxOptions = vertxOptions;
@@ -89,17 +92,23 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer {
 	}
 
 	private void configureRouter(Router router) {
-		router.route("/*").handler(BodyHandler.create());
+		Route route = router.route("/*").handler(BodyHandler.create());
 
 		if (method != null && !method.isEmpty()) {
 			if (path == null || path.isEmpty())
 				path = "/";
-			router.route(HttpMethod.valueOf(method), path).handler(this::handleRequest);
+			route = router.route(HttpMethod.valueOf(method), path).handler(this::handleRequest);
 		} else {
 			if (path == null || path.isEmpty())
-				router.route().handler(this::handleRequest);
+				route = router.route().handler(this::handleRequest);
 			else
-				router.route(path).handler(this::handleRequest);
+				route = router.route(path).handler(this::handleRequest);
+		}
+		if (failureHandler != null) {
+			route.failureHandler(ctx -> {
+				Message msg = failureHandler.apply(ctx.failure());
+				sendResponse(ctx.response(), msg);
+			});
 		}
 	}
 
@@ -120,6 +129,9 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer {
 			return;
 		}
 		if (response.getPayload().getHeaders() != null) {
+			String status = response.getPayload().getHeaders().getString("Status");
+			if (status != null)
+				serverResponse.setStatusMessage(status);
 			for (Entry<String, BElement> entry : response.getPayload().getHeaders().entrySet()) {
 				serverResponse.headers().add(entry.getKey(), entry.getValue().toString());
 			}
@@ -156,7 +168,7 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer {
 			headers.put(entry.getKey(), BValue.newDefault(entry.getValue()));
 		}
 		BElement body = deserialize(ctx.getBodyAsString());
-		return Message.newDefault(Payload.newDefault(headers, body));
+		return createMessage(headers, body);
 	}
 
 	@Override
