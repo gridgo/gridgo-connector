@@ -21,7 +21,7 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 		return this;
 	}
 
-	protected void callback(Deferred<Message, Exception> deferred, Exception exception) {
+	protected void ack(final Deferred<Message, Exception> deferred, final Exception exception) {
 		boolean success = exception == null;
 		Runnable deferredFinisher = () -> {
 			if (success) {

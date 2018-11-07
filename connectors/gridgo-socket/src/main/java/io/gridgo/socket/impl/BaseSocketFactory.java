@@ -43,8 +43,10 @@ public abstract class BaseSocketFactory extends AbstractSocketFactory {
 			}
 		}
 
-		if (socket != null && socket instanceof Configurable) {
-			((Configurable) socket).applyConfig(options.getConfig());
+		if (socket != null) {
+			if (socket instanceof Configurable) {
+				((Configurable) socket).applyConfig(options.getConfig());
+			}
 			return (T) socket;
 		}
 
