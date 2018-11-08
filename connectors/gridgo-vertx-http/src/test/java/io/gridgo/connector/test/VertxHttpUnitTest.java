@@ -51,4 +51,38 @@ public class VertxHttpUnitTest {
 
 		connector.stop();
 	}
+
+	@Test
+	public void testXml() throws ClientProtocolException, IOException {
+		Connector connector = new DefaultConnectorFactory()
+				.createConnector("vertx:http://127.0.0.1:8080/?method=POST&format=xml");
+		connector.start();
+		Consumer consumer = connector.getConsumer().orElseThrow();
+		consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
+
+		String url = "http://localhost:8080";
+		CloseableHttpClient client = HttpClientBuilder.create().build();
+		HttpPost request = new HttpPost(url);
+		request.addHeader("test-header", "XYZ");
+		request.setEntity(new StringEntity("<object><string name=\"abc\" value=\"def\"/></object>"));
+		HttpResponse response = client.execute(request);
+
+		BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+
+		StringBuffer result = new StringBuffer();
+		String line = "";
+		while ((line = rd.readLine()) != null) {
+			result.append(line);
+		}
+
+		Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+		Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
+		Assert.assertEquals("<object><string name=\"abc\" value=\"def\"/></object>", result.toString());
+
+		rd.close();
+
+		client.close();
+
+		connector.stop();
+	}
 }
