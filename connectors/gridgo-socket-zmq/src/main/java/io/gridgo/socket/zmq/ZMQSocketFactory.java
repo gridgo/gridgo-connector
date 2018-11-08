@@ -6,7 +6,7 @@ import io.gridgo.socket.Socket;
 import io.gridgo.socket.impl.BaseSocketFactory;
 import lombok.AccessLevel;
 import lombok.Getter;
-import net.jodah.failsafe.internal.util.Assert;
+import lombok.NonNull;
 
 public class ZMQSocketFactory extends BaseSocketFactory {
 
@@ -25,8 +25,7 @@ public class ZMQSocketFactory extends BaseSocketFactory {
 		return new ZMQSocket(ctx.socket(type));
 	}
 
-	protected Socket createCustomSocket(String type) {
-		Assert.notNull(type, "Socket type");
+	protected Socket createCustomSocket(final @NonNull String type) {
 		switch (type.toLowerCase()) {
 		case "router":
 			return createZmqSocket(ZMQ.ROUTER);
