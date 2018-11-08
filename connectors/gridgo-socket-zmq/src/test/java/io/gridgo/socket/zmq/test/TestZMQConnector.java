@@ -49,21 +49,23 @@ public class TestZMQConnector {
 		assertNotNull(consumer);
 
 		resolver = new ClasspathConnectorResolver("io.gridgo.socket.zmq");
-		connector = resolver.resolve("zmq:push:tcp://localhost:8080?p1=v1&p2=v2");
-		assertNotNull(connector);
-		assertNotNull(connector.getConnectorConfig());
-		assertNotNull(connector.getConnectorConfig().getRemaining());
-		assertNotNull(connector.getConnectorConfig().getParameters());
-		assertTrue(connector instanceof ZMQConnector);
-		assertEquals("push:tcp://localhost:8080", connector.getConnectorConfig().getRemaining());
-		assertEquals("v1", connector.getConnectorConfig().getParameters().get("p1"));
-		assertEquals("v2", connector.getConnectorConfig().getParameters().get("p2"));
-		assertEquals("push", connector.getConnectorConfig().getPlaceholders().get("type"));
-		assertEquals("tcp", connector.getConnectorConfig().getPlaceholders().get("transport"));
-		assertEquals("localhost", connector.getConnectorConfig().getPlaceholders().get("host"));
-		assertEquals("8080", connector.getConnectorConfig().getPlaceholders().get("port"));
+		Connector connector2 = resolver.resolve("zmq:push:tcp://localhost:8080?p1=v1&p2=v2");
+		assertNotNull(connector2);
+		assertNotNull(connector2.getConnectorConfig());
+		assertNotNull(connector2.getConnectorConfig().getRemaining());
+		assertNotNull(connector2.getConnectorConfig().getParameters());
+		assertTrue(connector2 instanceof ZMQConnector);
+		assertEquals("push:tcp://localhost:8080", connector2.getConnectorConfig().getRemaining());
+		assertEquals("v1", connector2.getConnectorConfig().getParameters().get("p1"));
+		assertEquals("v2", connector2.getConnectorConfig().getParameters().get("p2"));
+		assertEquals("push", connector2.getConnectorConfig().getPlaceholders().get("type"));
+		assertEquals("tcp", connector2.getConnectorConfig().getPlaceholders().get("transport"));
+		assertEquals("localhost", connector2.getConnectorConfig().getPlaceholders().get("host"));
+		assertEquals("8080", connector2.getConnectorConfig().getPlaceholders().get("port"));
+		
+		connector2.start();
 
-		Producer producer = connector.getProducer().get();
+		Producer producer = connector2.getProducer().get();
 		assertNotNull(producer);
 
 		warmUp(consumer, producer);
@@ -73,6 +75,7 @@ public class TestZMQConnector {
 			this.doAckSend(consumer, producer);
 		} finally {
 			connector.stop();
+			connector2.stop();
 		}
 	}
 

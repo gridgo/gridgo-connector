@@ -49,21 +49,23 @@ public class TestNNConnector {
 		Consumer consumer = connector.getConsumer().get();
 		assertNotNull(consumer);
 
-		connector = resolver.resolve("nanomsg:push:tcp://localhost:8080?p1=v1&p2=v2");
-		assertNotNull(connector);
-		assertNotNull(connector.getConnectorConfig());
-		assertNotNull(connector.getConnectorConfig().getRemaining());
-		assertNotNull(connector.getConnectorConfig().getParameters());
-		assertTrue(connector instanceof NNConnector);
-		assertEquals("push:tcp://localhost:8080", connector.getConnectorConfig().getRemaining());
-		assertEquals("v1", connector.getConnectorConfig().getParameters().get("p1"));
-		assertEquals("v2", connector.getConnectorConfig().getParameters().get("p2"));
-		assertEquals("push", connector.getConnectorConfig().getPlaceholders().get("type"));
-		assertEquals("tcp", connector.getConnectorConfig().getPlaceholders().get("transport"));
-		assertEquals("localhost", connector.getConnectorConfig().getPlaceholders().get("host"));
-		assertEquals("8080", connector.getConnectorConfig().getPlaceholders().get("port"));
+		Connector connector2 = resolver.resolve("nanomsg:push:tcp://localhost:8080?p1=v1&p2=v2");
+		assertNotNull(connector2);
+		assertNotNull(connector2.getConnectorConfig());
+		assertNotNull(connector2.getConnectorConfig().getRemaining());
+		assertNotNull(connector2.getConnectorConfig().getParameters());
+		assertTrue(connector2 instanceof NNConnector);
+		assertEquals("push:tcp://localhost:8080", connector2.getConnectorConfig().getRemaining());
+		assertEquals("v1", connector2.getConnectorConfig().getParameters().get("p1"));
+		assertEquals("v2", connector2.getConnectorConfig().getParameters().get("p2"));
+		assertEquals("push", connector2.getConnectorConfig().getPlaceholders().get("type"));
+		assertEquals("tcp", connector2.getConnectorConfig().getPlaceholders().get("transport"));
+		assertEquals("localhost", connector2.getConnectorConfig().getPlaceholders().get("host"));
+		assertEquals("8080", connector2.getConnectorConfig().getPlaceholders().get("port"));
 
-		Producer producer = connector.getProducer().get();
+		connector2.start();
+
+		Producer producer = connector2.getProducer().get();
 		assertNotNull(producer);
 
 		warmUp(consumer, producer);
@@ -73,6 +75,7 @@ public class TestNNConnector {
 			this.doAckSend(consumer, producer);
 		} finally {
 			connector.stop();
+			connector2.stop();
 		}
 	}
 
