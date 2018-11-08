@@ -33,6 +33,7 @@ public abstract class SingleThreadSendingProducer extends AbstractProducer {
 	@Override
 	protected void onStop() {
 		this.sendWorker.shutdown();
+
 	}
 
 	private void handleSend(ProducerEvent event, long sequence, boolean endOfBatch) {
@@ -49,6 +50,9 @@ public abstract class SingleThreadSendingProducer extends AbstractProducer {
 	protected abstract void executeSendOnSingleThread(Message message) throws Exception;
 
 	private void _send(Message message, Deferred<Message, Exception> deferred) {
+		if (!this.isStarted()) {
+			return;
+		}
 		this.sendWorker.publishEvent((ProducerEvent event, long sequence) -> {
 			event.clear();
 			event.setDeferred(deferred);
@@ -58,9 +62,6 @@ public abstract class SingleThreadSendingProducer extends AbstractProducer {
 
 	@Override
 	public final void send(Message message) {
-		if (!this.isStarted()) {
-			return;
-		}
 		this._send(message, null);
 	}
 

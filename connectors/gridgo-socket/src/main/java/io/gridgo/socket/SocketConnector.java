@@ -1,6 +1,5 @@
 package io.gridgo.socket;
 
-import java.util.Map;
 import java.util.Optional;
 
 import io.gridgo.connector.Connector;
@@ -20,12 +19,10 @@ import io.gridgo.connector.support.config.ConnectorConfig;
  */
 public class SocketConnector extends AbstractConnector implements Connector {
 
+	private String address;
+	private SocketOptions options;
 	private final SocketFactory factory;
 
-	private String type;
-	private String address;
-	private Map<String, Object> params;
-	
 	protected SocketConnector(SocketFactory factory) {
 		this.factory = factory;
 	}
@@ -39,8 +36,10 @@ public class SocketConnector extends AbstractConnector implements Connector {
 		int port = Integer.parseInt(config.getPlaceholders().getProperty("port"));
 
 		this.address = transport + "://" + host + ":" + port;
-		this.params = config.getParameters();
-		this.type = type;
+
+		this.options = new SocketOptions();
+		this.options.setType(type);
+		this.options.getConfig().putAll(config.getParameters());
 	}
 
 	@Override
@@ -60,32 +59,22 @@ public class SocketConnector extends AbstractConnector implements Connector {
 			this.producer.get().stop();
 		if (this.consumer.isPresent())
 			this.consumer.get().stop();
-		
+
 		this.consumer = Optional.empty();
 		this.producer = Optional.empty();
 	}
 
 	private Optional<Producer> createProducer() {
-		if (type.equalsIgnoreCase("push") || type.equalsIgnoreCase("pub")) {
-			Socket socket = initSocket();
-			return Optional.of(SocketProducer.newDefault(socket, type, address));
+		if (this.options.getType().equalsIgnoreCase("push") || this.options.getType().equalsIgnoreCase("pub")) {
+			return Optional.of(SocketProducer.newDefault(this.factory, this.options, this.address));
 		}
 		return Optional.empty();
 	}
 
 	private Optional<Consumer> createConsumer() {
-		if (type.equalsIgnoreCase("pull") || type.equalsIgnoreCase("sub")) {
-			Socket socket = initSocket();
-			return Optional.of(SocketConsumer.newDefault(socket, type, address));
+		if (this.options.getType().equalsIgnoreCase("pull") || this.options.getType().equalsIgnoreCase("sub")) {
+			return Optional.of(SocketConsumer.newDefault(this.factory, this.options, this.address));
 		}
 		return Optional.empty();
-	}
-
-	private Socket initSocket() {
-		SocketOptions options = new SocketOptions();
-		options.setType(type);
-		options.getConfig().putAll(this.params);
-		Socket socket = factory.createSocket(options);
-		return socket;
 	}
 }

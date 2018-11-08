@@ -9,11 +9,11 @@ public interface SocketConsumer extends Consumer {
 
 	long getTotalRecvMessages();
 
-	static SocketConsumer newDefault(Socket socket, String type, String address) {
-		return new DefaultSocketConsumer(socket, type, address);
+	static SocketConsumer newDefault(SocketFactory factory, SocketOptions options, String address, int bufferSize) {
+		return new DefaultSocketConsumer(factory, options, address, bufferSize);
 	}
 
-	static SocketConsumer newDefault(Socket socket, String type, String address, int bufferSize) {
-		return new DefaultSocketConsumer(socket, type, address, bufferSize);
+	static SocketConsumer newDefault(SocketFactory factory, SocketOptions options, String address) {
+		return new DefaultSocketConsumer(factory, options, address);
 	}
 }

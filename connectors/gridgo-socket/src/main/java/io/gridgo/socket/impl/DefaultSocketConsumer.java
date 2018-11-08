@@ -2,12 +2,15 @@ package io.gridgo.socket.impl;
 
 import java.nio.ByteBuffer;
 
+import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
 import io.gridgo.connector.impl.AbstractConsumer;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 import io.gridgo.socket.Socket;
 import io.gridgo.socket.SocketConsumer;
+import io.gridgo.socket.SocketFactory;
+import io.gridgo.socket.SocketOptions;
 import io.gridgo.utils.ThreadUtils;
 import lombok.Getter;
 
@@ -22,21 +25,20 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 	private Thread poller;
 
 	private final int bufferSize;
-	private final Socket socket;
 
-	private String type;
+	private final SocketFactory factory;
+	private final SocketOptions options;
+	private final String address;
 
-	private String address;
-
-	public DefaultSocketConsumer(Socket socket, String type, String address, int bufferSize) {
-		this.bufferSize = bufferSize;
-		this.socket = socket;
-		this.type = type;
+	public DefaultSocketConsumer(SocketFactory factory, SocketOptions options, String address, int bufferSize) {
+		this.factory = factory;
+		this.options = options;
 		this.address = address;
+		this.bufferSize = bufferSize;
 	}
 
-	public DefaultSocketConsumer(Socket socket, String type, String address) {
-		this(socket, type, address, 1024);
+	public DefaultSocketConsumer(SocketFactory factory, SocketOptions options, String address) {
+		this(factory, options, address, 1024);
 	}
 
 	@Override
@@ -47,6 +49,16 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 	}
 
 	private void poll() {
+		Socket socket = this.factory.createSocket(options);
+		switch (options.getType().toLowerCase()) {
+		case "pull":
+			socket.bind(address);
+			break;
+		case "sub":
+			socket.connect(address);
+			break;
+		}
+
 		Thread.currentThread().setName("[POLLER] " + socket.getEndpoint().getAddress());
 		final ByteBuffer buffer = ByteBuffer.allocateDirect(this.bufferSize);
 		while (!Thread.currentThread().isInterrupted()) {
@@ -62,30 +74,39 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 				totalRecvBytes += rc;
 				totalRecvMessages++;
 				buffer.flip();
+
 				BElement data = BElement.fromRaw(buffer);
-				Payload payload = Payload.newDefault(data);
-				Message message = Message.newDefault(payload);
-				this.publish(message, null);
+				Payload payload = null;
+
+				if (data instanceof BArray && data.asArray().size() == 3) {
+					BArray arr = data.asArray();
+					BElement id = arr.get(0);
+					BElement headers = arr.get(1);
+					if (headers.isValue() && headers.asValue().isNull()) {
+						headers = null;
+					}
+					BElement body = arr.get(2);
+					if (body.isValue() && body.asValue().isNull()) {
+						body = null;
+					}
+					if (id.isValue() && (headers == null || headers.isObject())) {
+						payload = Payload.newDefault(id.asValue(), headers == null ? null : headers.asObject(), body);
+					}
+				}
+
+				if (payload == null) {
+					payload = Payload.newDefault(data);
+				}
+
+				this.publish(Message.newDefault(payload), null);
 			}
 		}
 		socket.close();
+		this.poller = null;
 	}
 
 	@Override
 	protected void onStart() {
-		switch (type) {
-		case "pull":
-			socket.bind(address);
-			break;
-		case "sub":
-			socket.connect(address);
-			break;
-		}
-		
-		if (this.poller != null) {
-			throw new IllegalStateException("Poller cannot exist on start");
-		}
-
 		this.poller = new Thread(this::poll);
 		this.poller.start();
 

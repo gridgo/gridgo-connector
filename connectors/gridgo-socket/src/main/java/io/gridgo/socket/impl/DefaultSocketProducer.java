@@ -8,13 +8,13 @@ import io.gridgo.connector.support.exceptions.SendMessageException;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 import io.gridgo.socket.Socket;
+import io.gridgo.socket.SocketFactory;
+import io.gridgo.socket.SocketOptions;
 import io.gridgo.socket.SocketProducer;
 import io.gridgo.utils.helper.Loggable;
 import lombok.Getter;
 
 public class DefaultSocketProducer extends SingleThreadSendingProducer implements SocketProducer, Loggable {
-
-	private final Socket socket;
 
 	private final ByteBuffer buffer;
 
@@ -24,30 +24,33 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 	@Getter
 	private long totalSentMessages;
 
-	private String type;
+	private final SocketFactory factory;
+	private final SocketOptions options;
+	private final String address;
 
-	private String address;
+	private Socket socket;
 
-	public DefaultSocketProducer(Socket socket, String type, String address, int bufferSize, int ringBufferSize) {
+	public DefaultSocketProducer(SocketFactory factory, SocketOptions options, String address, int bufferSize,
+			int ringBufferSize) {
 		super(ringBufferSize);
-		this.socket = socket;
 		this.buffer = ByteBuffer.allocateDirect(bufferSize);
-		this.type = type;
+		this.options = options;
+		this.factory = factory;
 		this.address = address;
 	}
 
-	public DefaultSocketProducer(Socket socket, String type, String address, int bufferSize) {
-		this(socket, type, address, bufferSize, 1024);
+	public DefaultSocketProducer(SocketFactory factory, SocketOptions options, String address, int bufferSize) {
+		this(factory, options, address, bufferSize, 1024);
 	}
 
-	public DefaultSocketProducer(Socket socket, String type, String address) {
-		this(socket, type, address, 128 * 1024);
+	public DefaultSocketProducer(SocketFactory factory, SocketOptions options, String address) {
+		this(factory, options, address, 128 * 1024);
 	}
 
 	@Override
-	public void onStart() {
-		super.onStart();
-		switch (type) {
+	protected void onStart() {
+		this.socket = this.factory.createSocket(options);
+		switch (options.getType().trim().toLowerCase()) {
 		case "push":
 			socket.connect(address);
 			break;
@@ -55,11 +58,13 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 			socket.bind(address);
 			break;
 		}
+		super.onStart();
 	}
 
 	@Override
-	public void onStop() {
-		// TODO close socket
+	protected void onStop() {
+		super.onStop();
+		this.socket.close();
 	}
 
 	@Override
