@@ -8,7 +8,6 @@ import io.gridgo.connector.Consumer;
 import io.gridgo.connector.Producer;
 import io.gridgo.connector.impl.AbstractConnector;
 import io.gridgo.connector.support.config.ConnectorConfig;
-import lombok.Getter;
 
 /**
  * The sub-class must annotated by ConnectorResolver which syntax has at least 4
@@ -26,14 +25,7 @@ public class SocketConnector extends AbstractConnector implements Connector {
 	private String type;
 	private String address;
 	private Map<String, Object> params;
-	private Optional<Producer> producer = Optional.empty();
-	private Optional<Consumer> consumer = Optional.empty();
-
-	@Getter
-	private ConnectorConfig connectorConfig;
-
-	private Socket socket;
-
+	
 	protected SocketConnector(SocketFactory factory) {
 		this.factory = factory;
 	}
@@ -75,7 +67,7 @@ public class SocketConnector extends AbstractConnector implements Connector {
 
 	private Optional<Producer> createProducer() {
 		if (type.equalsIgnoreCase("push") || type.equalsIgnoreCase("pub")) {
-			this.socket = initSocket();
+			Socket socket = initSocket();
 			return Optional.of(SocketProducer.newDefault(socket, type, address));
 		}
 		return Optional.empty();
@@ -83,7 +75,7 @@ public class SocketConnector extends AbstractConnector implements Connector {
 
 	private Optional<Consumer> createConsumer() {
 		if (type.equalsIgnoreCase("pull") || type.equalsIgnoreCase("sub")) {
-			this.socket = initSocket();
+			Socket socket = initSocket();
 			return Optional.of(SocketConsumer.newDefault(socket, type, address));
 		}
 		return Optional.empty();
