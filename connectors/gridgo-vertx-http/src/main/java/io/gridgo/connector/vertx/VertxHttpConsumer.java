@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.joo.promise4j.Deferred;
@@ -36,8 +35,6 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 	private static final Map<String, ConnectionRef<ServerRouterTuple>> SERVER_MAP = new HashMap<>();
 
 	private static final int DEFAULT_EXCEPTION_STATUS_CODE = 500;
-
-	private static final long DEFAULT_START_TIMEOUT = 10000;
 
 	private VertxOptions vertxOptions;
 
@@ -77,7 +74,7 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 				SERVER_MAP.put(connectionKey, connRef);
 				server.listen(result -> latch.countDown());
 				try {
-					latch.await(DEFAULT_START_TIMEOUT, TimeUnit.MILLISECONDS);
+					latch.await();
 				} catch (InterruptedException e) {
 					throw new RuntimeException(e);
 				}
