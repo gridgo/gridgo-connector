@@ -24,6 +24,10 @@ public class TestNNConnector {
 
 	@Test
 	public void testSimpleTcp() throws InterruptedException, PromiseException {
+		String osName = System.getProperty("os.name");
+		if (osName != null && osName.contains("Windows"))
+			return;
+		
 		ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.socket.nanomsg");
 
 		Connector connector = resolver.resolve("nanomsg:pull:tcp://localhost:8080?p1=v1&p2=v2");
