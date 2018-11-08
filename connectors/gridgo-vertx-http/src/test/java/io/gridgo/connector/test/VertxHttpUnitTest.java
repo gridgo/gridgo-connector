@@ -24,9 +24,7 @@ public class VertxHttpUnitTest {
 		Connector connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8080/?method=POST");
 		connector.start();
 		Consumer consumer = connector.getConsumer().orElseThrow();
-		consumer.subscribe((msg, deferred) -> {
-			deferred.resolve(msg);
-		});
+		consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
 
 		String url = "http://localhost:8080";
 		CloseableHttpClient client = HttpClientBuilder.create().build();
@@ -38,15 +36,15 @@ public class VertxHttpUnitTest {
 		Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
 
 		BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-		
+
 		StringBuffer result = new StringBuffer();
 		String line = "";
 		while ((line = rd.readLine()) != null) {
 			result.append(line);
 		}
-		
+
 		Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
-		
+
 		rd.close();
 
 		client.close();
