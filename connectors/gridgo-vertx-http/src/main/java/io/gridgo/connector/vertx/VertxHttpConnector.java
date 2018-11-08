@@ -19,7 +19,7 @@ public class VertxHttpConnector implements Connector {
 	@Getter
 	private ConnectorConfig connectorConfig;
 
-	private Optional<Consumer> consumer;
+	private Optional<Consumer> consumer = Optional.empty();
 
 	@Override
 	public Connector initialize(ConnectorConfig config) {
