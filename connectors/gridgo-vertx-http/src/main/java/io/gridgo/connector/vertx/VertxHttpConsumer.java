@@ -35,8 +35,6 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 
 	private static final Map<String, ConnectionRef<ServerRouterTuple>> SERVER_MAP = new HashMap<>();
 
-	private static final String DEFAULT_FORMAT = "json";
-
 	private static final int DEFAULT_EXCEPTION_STATUS_CODE = 500;
 
 	private static final long DEFAULT_START_TIMEOUT = 10000;
@@ -52,19 +50,6 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 	private String format;
 
 	private Function<Throwable, Message> failureHandler;
-
-	public VertxHttpConsumer(VertxOptions vertxOptions, HttpServerOptions options) {
-		this.vertxOptions = vertxOptions;
-		this.httpOptions = options;
-	}
-
-	public VertxHttpConsumer(VertxOptions vertxOptions, HttpServerOptions options, String path, String method) {
-		this.vertxOptions = vertxOptions;
-		this.httpOptions = options;
-		this.path = path;
-		this.method = method;
-		this.format = DEFAULT_FORMAT;
-	}
 
 	public VertxHttpConsumer(VertxOptions vertxOptions, HttpServerOptions options, String path, String method,
 			String format) {
