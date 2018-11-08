@@ -13,7 +13,7 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.net.JksOptions;
 import lombok.Getter;
 
-@ConnectorEndpoint(scheme = "vertx", syntax = "http://{host}:{port}/{path}")
+@ConnectorEndpoint(scheme = "vertx", syntax = "http://{host}:{port}/[{path}]")
 public class VertxHttpConnector implements Connector {
 
 	@Getter
