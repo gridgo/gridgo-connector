@@ -44,7 +44,9 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 		this(socket, type, address, 128 * 1024);
 	}
 
+	@Override
 	public void onStart() {
+		super.onStart();
 		switch (type) {
 		case "push":
 			socket.connect(address);
@@ -55,6 +57,7 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 		}
 	}
 
+	@Override
 	public void onStop() {
 		// TODO close socket
 	}
