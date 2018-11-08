@@ -1,5 +1,7 @@
 package io.gridgo.connector.test;
 
+import java.util.Properties;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -11,6 +13,30 @@ import io.gridgo.connector.support.exceptions.UnsupportedSchemeException;
 import io.gridgo.dummy.test.DummyConnector;
 
 public class ResolverUnitTest {
+	
+	@Test
+	public void testResolver() {
+		TestUriResolver resolver = new TestUriResolver(TestConnector.class);
+		Properties props = resolver.testResolver("test://127.0.0.1:80/api", "test://{host}[:{port}][/{path}]");
+		Assert.assertEquals("127.0.0.1", props.get("host"));
+		Assert.assertEquals("80", props.get("port"));
+		Assert.assertEquals("api", props.get("path"));
+
+		props = resolver.testResolver("test://127.0.0.1:80", "test://{host}[:{port}][/{path}]");
+		Assert.assertEquals("127.0.0.1", props.get("host"));
+		Assert.assertEquals("80", props.get("port"));
+		Assert.assertNull(props.get("path"));
+
+		props = resolver.testResolver("test://127.0.0.1", "test://{host}[:{port}][/{path}]");
+		Assert.assertEquals("127.0.0.1", props.get("host"));
+		Assert.assertNull(props.get("port"));
+		Assert.assertNull(props.get("path"));
+
+		props = resolver.testResolver("test://127.0.0.1/api", "test://{host}[:{port}][/{path}]");
+		Assert.assertEquals("127.0.0.1", props.get("host"));
+		Assert.assertNull(props.get("port"));
+		Assert.assertEquals("api", props.get("path"));
+	}
 
 	@Test
 	public void testFactory() {
