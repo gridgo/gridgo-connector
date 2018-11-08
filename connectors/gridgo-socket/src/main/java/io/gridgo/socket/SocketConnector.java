@@ -1,13 +1,12 @@
 package io.gridgo.socket;
 
+import java.util.Arrays;
 import java.util.Map;
-import java.util.Optional;
 
-import io.gridgo.connector.Connector;
 import io.gridgo.connector.Consumer;
 import io.gridgo.connector.Producer;
-import io.gridgo.connector.support.config.ConnectorConfig;
-import lombok.Getter;
+import io.gridgo.connector.impl.AbstractCachedConnector;
+import io.gridgo.connector.support.exceptions.InvalidPlaceholderException;
 
 /**
  * The sub-class must annotated by ConnectorResolver which syntax has at least 4
@@ -18,7 +17,7 @@ import lombok.Getter;
  * @author bachden
  *
  */
-public class SocketConnector implements Connector {
+public class SocketConnector extends AbstractCachedConnector {
 
 	private final SocketFactory factory;
 
@@ -26,26 +25,52 @@ public class SocketConnector implements Connector {
 	private String address;
 	private Map<String, Object> params;
 
-	@Getter
-	private ConnectorConfig connectorConfig;
-
 	protected SocketConnector(SocketFactory factory) {
 		this.factory = factory;
 	}
 
 	@Override
-	public Connector initialize(ConnectorConfig config) {
-		this.connectorConfig = config;
-		String type = config.getPlaceholders().getProperty("type");
-		String transport = config.getPlaceholders().getProperty("transport");
-		String host = config.getPlaceholders().getProperty("host");
-		int port = Integer.parseInt(config.getPlaceholders().getProperty("port"));
+	public void onInit() {
+		String type = getConnectorConfig().getPlaceholders().getProperty("type");
+
+		if (type == null || !Arrays.asList("pull", "push", "pub", "sub").contains(type.toLowerCase().trim())) {
+			throw new InvalidPlaceholderException(
+					"Placeholder type is required and support only 4 values: \"pull\", \"push\", \"pub\", \"sub\"");
+		}
+		type = type.trim().toLowerCase();
+
+		String transport = getConnectorConfig().getPlaceholders().getProperty("transport");
+		if (transport == null
+				|| !Arrays.asList("tcp", "pgm", "epgm", "inproc", "ipc").contains(transport.toLowerCase().trim())) {
+			throw new InvalidPlaceholderException(
+					"Placeholder `transport` is required and support only 5 values: \"tcp\", \"pgm\", \"epgm\", \"inproc\", \"ipc\"");
+		}
+		transport = transport.trim().toLowerCase();
+
+		String host = getConnectorConfig().getPlaceholders().getProperty("host");
+		int port = Integer.parseInt(getConnectorConfig().getPlaceholders().getProperty("port"));
 
 		this.address = transport + "://" + host + ":" + port;
-		this.params = config.getParameters();
+		this.params = getConnectorConfig().getParameters();
 		this.type = type;
 
-		return this;
+		boolean cacheProducer = Boolean.valueOf((String) params.getOrDefault("cacheProducer", "false"));
+		boolean cacheConsumer = Boolean.valueOf((String) params.getOrDefault("cacheConsumer", "false"));
+
+		this.params.remove("cacheProducer");
+		this.params.remove("cacheConsumer");
+
+		switch (type) {
+		case "pull":
+			cacheConsumer = true;
+			break;
+		case "pub":
+			cacheProducer = true;
+			break;
+		}
+
+		this.setCacheProducer(cacheProducer);
+		this.setCacheConsumer(cacheConsumer);
 	}
 
 	private Socket initSocket() {
@@ -57,7 +82,7 @@ public class SocketConnector implements Connector {
 	}
 
 	@Override
-	public Optional<Producer> getProducer() {
+	public Producer newProducer() {
 		if (type.equalsIgnoreCase("push") || type.equalsIgnoreCase("pub")) {
 			Socket socket = initSocket();
 			switch (type) {
@@ -68,13 +93,13 @@ public class SocketConnector implements Connector {
 				socket.bind(address);
 				break;
 			}
-			return Optional.of(SocketProducer.newDefault(socket));
+			return SocketProducer.newDefault(socket);
 		}
-		return Optional.ofNullable(null);
+		return null;
 	}
 
 	@Override
-	public Optional<Consumer> getConsumer() {
+	public Consumer newConsumer() {
 		if (type.equalsIgnoreCase("pull") || type.equalsIgnoreCase("sub")) {
 			Socket socket = initSocket();
 			switch (type) {
@@ -85,8 +110,18 @@ public class SocketConnector implements Connector {
 				socket.connect(address);
 				break;
 			}
-			return Optional.of(SocketConsumer.newDefault(socket));
+			return SocketConsumer.newDefault(socket);
 		}
-		return Optional.ofNullable(null);
+		return null;
+	}
+
+	@Override
+	protected void onStart() {
+		// do nothing
+	}
+
+	@Override
+	protected void onStop() {
+		// do nothing
 	}
 }

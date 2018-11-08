@@ -16,9 +16,9 @@ import io.gridgo.connector.ConnectorResolver;
 import io.gridgo.connector.Consumer;
 import io.gridgo.connector.Producer;
 import io.gridgo.connector.impl.resolvers.ClasspathConnectorResolver;
+import io.gridgo.connector.nanomsg.NNConnector;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
-import io.gridgo.socket.nanomsg.NNConnector;
 
 public class TestNNConnector {
 
