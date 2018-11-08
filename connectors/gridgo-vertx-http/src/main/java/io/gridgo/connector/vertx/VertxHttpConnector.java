@@ -2,28 +2,20 @@ package io.gridgo.connector.vertx;
 
 import java.util.Optional;
 
-import io.gridgo.connector.Connector;
-import io.gridgo.connector.Consumer;
-import io.gridgo.connector.Producer;
+import io.gridgo.connector.impl.AbstractConnector;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.config.ConnectorConfig;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.net.JksOptions;
-import lombok.Getter;
 
 @ConnectorEndpoint(scheme = "vertx", syntax = "http://{host}:{port}/[{path}]")
-public class VertxHttpConnector implements Connector {
-
-	@Getter
-	private ConnectorConfig connectorConfig;
-
-	private Optional<Consumer> consumer = Optional.empty();
+public class VertxHttpConnector extends AbstractConnector {
 
 	@Override
-	public Connector initialize(ConnectorConfig config) {
-		this.connectorConfig = config;
+	public void onInit() {
+		ConnectorConfig config = getConnectorConfig();
 		String path = config.getPlaceholders().getProperty(VertxHttpConstants.PLACEHOLDER_PATH);
 		if (path != null)
 			path = "/" + path;
@@ -32,7 +24,6 @@ public class VertxHttpConnector implements Connector {
 		VertxOptions vertxOptions = buildVertxOptions(config);
 		HttpServerOptions httpOptions = buildHttpServerOptions(config);
 		this.consumer = Optional.of(new VertxHttpConsumer(vertxOptions, httpOptions, path, method, format));
-		return this;
 	}
 
 	private VertxOptions buildVertxOptions(ConnectorConfig config) {
@@ -71,23 +62,13 @@ public class VertxHttpConnector implements Connector {
 		return value != null ? value.toString() : null;
 	}
 
-	public void start() {
+	public void onStart() {
 		if (consumer.isPresent())
 			consumer.get().start();
 	}
 
-	public void stop() {
+	public void onStop() {
 		if (consumer.isPresent())
 			consumer.get().stop();
-	}
-
-	@Override
-	public Optional<Producer> getProducer() {
-		return Optional.empty();
-	}
-
-	@Override
-	public Optional<Consumer> getConsumer() {
-		return consumer;
 	}
 }
