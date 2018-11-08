@@ -13,21 +13,67 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.junit.Assert;
 import org.junit.Test;
 
+import io.gridgo.bean.BObject;
+import io.gridgo.bean.BValue;
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.Consumer;
 import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
+import io.gridgo.connector.support.exceptions.FailureHandlerAware;
+import io.gridgo.framework.support.Message;
+import io.gridgo.framework.support.Payload;
 
 public class VertxHttpUnitTest {
 
 	@Test
+	public void testCustomFailureHandler() throws ClientProtocolException, IOException {
+		Connector connector = new DefaultConnectorFactory()
+				.createConnector("vertx:http://127.0.0.1:8082/?method=POST&format=xml");
+		
+		connector.start();
+
+		Assert.assertNotNull(connector.getProducer());
+		Assert.assertTrue(!connector.getProducer().isPresent());
+		
+		Consumer consumer = connector.getConsumer().orElseThrow();
+		if (consumer instanceof FailureHandlerAware) {
+			((FailureHandlerAware<?>) consumer).setFailureHandler(ex -> {
+				BObject headers = BObject.newDefault().set("error", BValue.newDefault("true")).set("cause",
+						BValue.newDefault(ex.getMessage()));
+				return Message.newDefault(Payload.newDefault(headers, BValue.newDefault("Error")));
+			});
+		}
+		consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
+
+		String url = "http://127.0.0.1:8082";
+		CloseableHttpClient client = HttpClientBuilder.create().build();
+		HttpPost request = new HttpPost(url);
+		request.addHeader("test-header", "XYZ");
+		request.setEntity(new StringEntity("{'abc':'def'}"));
+		HttpResponse response = client.execute(request);
+		Assert.assertEquals(500, response.getStatusLine().getStatusCode());
+		Assert.assertNull(response.getFirstHeader("test-header"));
+		Assert.assertEquals("true", response.getFirstHeader("error").getValue());
+		Assert.assertEquals("Cannot parse xml", response.getFirstHeader("cause").getValue());
+
+		StringBuffer result = readResponse(response);
+
+		Assert.assertEquals("<string value=\"Error\"/>", result.toString());
+
+		client.close();
+
+		connector.stop();
+	}
+
+	@Test
 	public void testFailure() throws ClientProtocolException, IOException {
-		Connector connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8082/?method=POST&format=xml");
+		Connector connector = new DefaultConnectorFactory()
+				.createConnector("vertx:http://127.0.0.1:8082/?method=POST&format=xml");
 		connector.start();
 		Assert.assertNotNull(connector.getProducer());
 		Assert.assertTrue(!connector.getProducer().isPresent());
 		Consumer consumer = connector.getConsumer().orElseThrow();
 		consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
-		
+
 		String url = "http://127.0.0.1:8082";
 		CloseableHttpClient client = HttpClientBuilder.create().build();
 		HttpPost request = new HttpPost(url);

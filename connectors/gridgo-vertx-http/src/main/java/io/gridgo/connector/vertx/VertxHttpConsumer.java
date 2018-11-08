@@ -33,9 +33,9 @@ import io.vertx.ext.web.handler.BodyHandler;
 
 public class VertxHttpConsumer extends AbstractConsumer implements Consumer, FailureHandlerAware<VertxHttpConsumer> {
 
-	private static final String DEFAULT_FORMAT = "json";
-
 	private static final Map<String, ConnectionRef<ServerRouterTuple>> SERVER_MAP = new HashMap<>();
+
+	private static final String DEFAULT_FORMAT = "json";
 
 	private static final int DEFAULT_EXCEPTION_STATUS_CODE = 500;
 
@@ -120,13 +120,17 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 			else
 				route = router.route(path).handler(this::handleRequest);
 		}
+		route.failureHandler(this::handleException);
+	}
+
+	private void handleException(RoutingContext ctx) {
 		if (failureHandler != null) {
-			route.failureHandler(ctx -> {
-				Message msg = failureHandler.apply(ctx.failure());
-				sendResponse(ctx.response(), msg);
-			});
+			Message msg = failureHandler.apply(ctx.failure());
+			msg.getPayload().getHeaders().putIfAbsent(VertxHttpConstants.HEADER_STATUS_CODE,
+					BValue.newDefault(DEFAULT_EXCEPTION_STATUS_CODE));
+			sendResponse(ctx.response(), msg);
 		} else {
-			route.failureHandler(this::defaultHandleException);
+			defaultHandleException(ctx);
 		}
 	}
 
@@ -158,13 +162,15 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 			serverResponse.end();
 			return;
 		}
-		if (response.getPayload().getHeaders() != null) {
-			String status = response.getPayload().getHeaders().getString(VertxHttpConstants.HEADER_STATUS, null);
-			if (status != null)
-				serverResponse.setStatusMessage(status);
-			for (Entry<String, BElement> entry : response.getPayload().getHeaders().entrySet()) {
-				serverResponse.headers().add(entry.getKey(), entry.getValue().toString());
-			}
+		String status = response.getPayload().getHeaders().getString(VertxHttpConstants.HEADER_STATUS, null);
+		if (status != null)
+			serverResponse.setStatusMessage(status);
+		int statusCode = response.getPayload().getHeaders().getInteger(VertxHttpConstants.HEADER_STATUS_CODE, -1);
+		if (statusCode != -1)
+			serverResponse.setStatusCode(statusCode);
+
+		for (Entry<String, BElement> entry : response.getPayload().getHeaders().entrySet()) {
+			serverResponse.headers().add(entry.getKey(), entry.getValue().toString());
 		}
 		if (response.getPayload().getBody() != null)
 			serverResponse.end(serialize(response.getPayload().getBody()));

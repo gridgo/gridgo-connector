@@ -27,4 +27,6 @@ public class VertxHttpConstants {
 	public static final String PARAM_METHOD = "method";
 	
 	public static final String HEADER_STATUS = "Status";
+
+	public static final String HEADER_STATUS_CODE = "Status-Code";
 }
