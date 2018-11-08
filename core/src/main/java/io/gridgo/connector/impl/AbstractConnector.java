@@ -33,10 +33,6 @@ public abstract class AbstractConnector extends AbstractComponentLifecycle imple
 		throw new IllegalStateException("Cannot re-init connector of type " + this.getClass().getName());
 	}
 
-	protected void onInit() {
-		// do nothing
-	}
-
 	@Override
 	public final Optional<Producer> getProducer() {
 		return producer;
@@ -45,6 +41,10 @@ public abstract class AbstractConnector extends AbstractComponentLifecycle imple
 	@Override
 	public final Optional<Consumer> getConsumer() {
 		return consumer;
+	}
+
+	protected void onInit() {
+		// do nothing
 	}
 
 	@Override
