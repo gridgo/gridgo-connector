@@ -1,4 +1,4 @@
-package io.gridgo.connector.test;
+package io.gridgo.connector.vertx.test;
 
 import java.io.BufferedReader;
 import java.io.IOException;

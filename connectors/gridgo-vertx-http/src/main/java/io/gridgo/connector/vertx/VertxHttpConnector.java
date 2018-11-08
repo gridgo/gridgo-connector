@@ -60,16 +60,6 @@ public class VertxHttpConnector extends AbstractConnector {
 		return options;
 	}
 
-	private String getParam(ConnectorConfig config, String name) {
-		Object value = config.getParameters().get(name);
-		return value != null ? value.toString() : null;
-	}
-
-	private String getParam(ConnectorConfig config, String name, String defaultValue) {
-		Object value = config.getParameters().getOrDefault(name, defaultValue);
-		return value != null ? value.toString() : null;
-	}
-
 	public void onStart() {
 		if (consumer.isPresent())
 			consumer.get().start();
