@@ -8,9 +8,11 @@ import io.gridgo.framework.AbstractComponentLifecycle;
 import io.gridgo.framework.execution.ExecutionStrategy;
 import io.gridgo.framework.execution.impl.DefaultExecutionStrategy;
 import io.gridgo.framework.support.Message;
+import io.gridgo.framework.support.generators.IdGenerator;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 
 public abstract class AbstractProducer extends AbstractComponentLifecycle implements Producer {
 
@@ -18,6 +20,9 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 
 	@Getter(AccessLevel.PROTECTED)
 	private ExecutionStrategy callbackInvokeExecutor = DEFAULT_CALLBACK_EXECUTOR;
+	
+	@Getter @Setter
+	private IdGenerator idGenerator;
 
 	@Override
 	public Producer invokeCallbackOn(final @NonNull ExecutionStrategy strategy) {

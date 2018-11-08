@@ -13,7 +13,7 @@
 	<artifactId>gridgo-connector-core</artifactId>
 
 	<properties>
-		<gridgo.framework.version>0.1.0-SNAPSHOT</gridgo.framework.version>
+		<gridgo.framework.version>0.1.2-SNAPSHOT</gridgo.framework.version>
 		<reflections.version>0.9.11</reflections.version>
 		<disruptor.version>3.4.2</disruptor.version>
 	</properties>

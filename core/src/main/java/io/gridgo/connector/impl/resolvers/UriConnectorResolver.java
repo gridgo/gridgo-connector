@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URLDecoder;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -69,17 +70,35 @@ public class UriConnectorResolver implements ConnectorResolver {
 		CharBuffer buffer = CharBuffer.allocate(MAX_PLACEHOLDER_NAME);
 
 		int i = 0, j = 0;
+		boolean optional = false;
+		int optionalIndex = -1;
 		while (i < schemePart.length() && j < syntax.length()) {
-			char schemeChar = schemePart.charAt(i);
 			char syntaxChar = syntax.charAt(j);
-			if (syntaxChar == '{') {
+			if (syntaxChar == '[') {
+				optional = true;
+				optionalIndex = i;
+				j++;
+			} else if (syntaxChar == ']') {
+				optional = false;
+				optionalIndex = -1;
+				j++;
+			} else if (syntaxChar == '{') {
 				String placeholderName = extractPlaceholderKey(syntax, j + 1, buffer);
 				String placeholderValue = extractPlaceholderValue(schemePart, i, buffer);
-				props.put(placeholderName, placeholderValue);
+				if (!placeholderValue.isEmpty())
+					props.put(placeholderName, placeholderValue);
 				j += placeholderName.length() + 2;
 				i += placeholderValue.length();
 			} else {
+				char schemeChar = schemePart.charAt(i);
 				if (syntaxChar != schemeChar) {
+					if (optional) {
+						i = optionalIndex;
+						j = skipOptionalPart(syntax, j);
+						optionalIndex = -1;
+						optional = false;
+						continue;
+					}
 					throw new MalformedEndpointException(
 							String.format("Malformed endpoint, invalid token at %d, expected '%c', actual '%c': %s", i,
 									syntaxChar, schemeChar, schemePart));
@@ -89,14 +108,31 @@ public class UriConnectorResolver implements ConnectorResolver {
 			}
 		}
 
-		if (i != schemePart.length())
+		if (optional) {
+			j = skipOptionalPart(syntax, j);
+		}
+
+		while (j < syntax.length() && syntax.charAt(j) == '[') {
+			j = skipOptionalPart(syntax, j);
+		}
+
+		if (i < schemePart.length()) {
 			throw new MalformedEndpointException(String.format("Malformed endpoint, unexpected tokens \"%s\": %s",
 					schemePart.substring(i), schemePart));
-		if (j != syntax.length())
-			throw new MalformedEndpointException(
-					String.format("Malformed endpoint, missing values for syntax", syntax.substring(j), schemePart));
+		}
+		if (j < syntax.length()) {
+			throw new MalformedEndpointException(String.format(
+					"Malformed endpoint, missing values for syntax \"%s\": %s", syntax.substring(j), schemePart));
+		}
 
 		return props;
+	}
+
+	private int skipOptionalPart(String syntax, int j) {
+		while (j < syntax.length() && syntax.charAt(j) != ']')
+			j++;
+		j++;
+		return j;
 	}
 
 	private String extractPlaceholderValue(String schemePart, int i, CharBuffer buffer) {
@@ -141,8 +177,9 @@ public class UriConnectorResolver implements ConnectorResolver {
 	}
 
 	private Map<String, Object> extractParameters(String queryPath) {
+		if (queryPath == null)
+			return Collections.emptyMap();
 		Map<String, Object> params = new HashMap<>();
-
 		String[] queries = queryPath.split("&");
 		for (String query : queries) {
 			String[] keyValuePair = query.split("=");

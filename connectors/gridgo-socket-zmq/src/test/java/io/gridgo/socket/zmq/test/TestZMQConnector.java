@@ -16,14 +16,18 @@ import io.gridgo.connector.ConnectorResolver;
 import io.gridgo.connector.Consumer;
 import io.gridgo.connector.Producer;
 import io.gridgo.connector.impl.resolvers.ClasspathConnectorResolver;
-import io.gridgo.connector.zmq.ZMQConnector;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
+import io.gridgo.socket.zmq.ZMQConnector;
 
 public class TestZMQConnector {
 
 	@Test
 	public void testSimpleTcp() throws InterruptedException, PromiseException {
+		String osName = System.getProperty("os.name");
+		if (osName != null && osName.contains("Windows"))
+			return;
+		
 		ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.socket.zmq");
 		Connector connector = resolver.resolve("zmq:pull:tcp://localhost:8080?p1=v1&p2=v2");
 		assertNotNull(connector);
@@ -38,26 +42,30 @@ public class TestZMQConnector {
 		assertEquals("tcp", connector.getConnectorConfig().getPlaceholders().get("transport"));
 		assertEquals("localhost", connector.getConnectorConfig().getPlaceholders().get("host"));
 		assertEquals("8080", connector.getConnectorConfig().getPlaceholders().get("port"));
+		
+		connector.start();
 
 		Consumer consumer = connector.getConsumer().get();
 		assertNotNull(consumer);
 
 		resolver = new ClasspathConnectorResolver("io.gridgo.socket.zmq");
-		connector = resolver.resolve("zmq:push:tcp://localhost:8080?p1=v1&p2=v2");
-		assertNotNull(connector);
-		assertNotNull(connector.getConnectorConfig());
-		assertNotNull(connector.getConnectorConfig().getRemaining());
-		assertNotNull(connector.getConnectorConfig().getParameters());
-		assertTrue(connector instanceof ZMQConnector);
-		assertEquals("push:tcp://localhost:8080", connector.getConnectorConfig().getRemaining());
-		assertEquals("v1", connector.getConnectorConfig().getParameters().get("p1"));
-		assertEquals("v2", connector.getConnectorConfig().getParameters().get("p2"));
-		assertEquals("push", connector.getConnectorConfig().getPlaceholders().get("type"));
-		assertEquals("tcp", connector.getConnectorConfig().getPlaceholders().get("transport"));
-		assertEquals("localhost", connector.getConnectorConfig().getPlaceholders().get("host"));
-		assertEquals("8080", connector.getConnectorConfig().getPlaceholders().get("port"));
+		Connector connector2 = resolver.resolve("zmq:push:tcp://localhost:8080?p1=v1&p2=v2");
+		assertNotNull(connector2);
+		assertNotNull(connector2.getConnectorConfig());
+		assertNotNull(connector2.getConnectorConfig().getRemaining());
+		assertNotNull(connector2.getConnectorConfig().getParameters());
+		assertTrue(connector2 instanceof ZMQConnector);
+		assertEquals("push:tcp://localhost:8080", connector2.getConnectorConfig().getRemaining());
+		assertEquals("v1", connector2.getConnectorConfig().getParameters().get("p1"));
+		assertEquals("v2", connector2.getConnectorConfig().getParameters().get("p2"));
+		assertEquals("push", connector2.getConnectorConfig().getPlaceholders().get("type"));
+		assertEquals("tcp", connector2.getConnectorConfig().getPlaceholders().get("transport"));
+		assertEquals("localhost", connector2.getConnectorConfig().getPlaceholders().get("host"));
+		assertEquals("8080", connector2.getConnectorConfig().getPlaceholders().get("port"));
+		
+		connector2.start();
 
-		Producer producer = connector.getProducer().get();
+		Producer producer = connector2.getProducer().get();
 		assertNotNull(producer);
 
 		warmUp(consumer, producer);
@@ -66,14 +74,12 @@ public class TestZMQConnector {
 			this.doFnFSend(consumer, producer);
 			this.doAckSend(consumer, producer);
 		} finally {
-			producer.stop();
-			consumer.stop();
+			connector.stop();
+			connector2.stop();
 		}
 	}
 
 	private void warmUp(Consumer consumer, Producer producer) throws PromiseException, InterruptedException {
-		consumer.start();
-		producer.start();
 		System.out.println("Started consumer and producer");
 		producer.sendWithAck(Message.newDefault(Payload.newDefault(BObject.newFromSequence("cmd", "start")))).get();
 		System.out.println("Warmup done");

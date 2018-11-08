@@ -1,12 +1,15 @@
 package io.gridgo.socket;
 
-import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 
+import io.gridgo.connector.Connector;
 import io.gridgo.connector.Consumer;
 import io.gridgo.connector.Producer;
-import io.gridgo.connector.impl.AbstractCachedConnector;
-import io.gridgo.connector.support.exceptions.InvalidPlaceholderException;
+import io.gridgo.connector.support.config.ConnectorConfig;
+import io.gridgo.framework.AbstractComponentLifecycle;
+import lombok.Getter;
 
 /**
  * The sub-class must annotated by ConnectorResolver which syntax has at least 4
@@ -17,74 +20,92 @@ import io.gridgo.connector.support.exceptions.InvalidPlaceholderException;
  * @author bachden
  *
  */
-public class SocketConnector extends AbstractCachedConnector {
+public class SocketConnector extends AbstractComponentLifecycle implements Connector {
 
 	private final SocketFactory factory;
 
 	private String type;
 	private String address;
 	private Map<String, Object> params;
+	private Optional<Producer> producer = Optional.empty();
+	private Optional<Consumer> consumer = Optional.empty();
+	private Object event = new Object();
+
+	@Getter
+	private ConnectorConfig connectorConfig;
+
+	private Socket socket;
 
 	protected SocketConnector(SocketFactory factory) {
 		this.factory = factory;
 	}
 
 	@Override
-	public void onInit() {
-		String type = getConnectorConfig().getPlaceholders().getProperty("type");
-
-		if (type == null || !Arrays.asList("pull", "push", "pub", "sub").contains(type.toLowerCase().trim())) {
-			throw new InvalidPlaceholderException(
-					"Placeholder type is required and support only 4 values: \"pull\", \"push\", \"pub\", \"sub\"");
-		}
-		type = type.trim().toLowerCase();
-
-		String transport = getConnectorConfig().getPlaceholders().getProperty("transport");
-		if (transport == null
-				|| !Arrays.asList("tcp", "pgm", "epgm", "inproc", "ipc").contains(transport.toLowerCase().trim())) {
-			throw new InvalidPlaceholderException(
-					"Placeholder `transport` is required and support only 5 values: \"tcp\", \"pgm\", \"epgm\", \"inproc\", \"ipc\"");
-		}
-		transport = transport.trim().toLowerCase();
-
-		String host = getConnectorConfig().getPlaceholders().getProperty("host");
-		int port = Integer.parseInt(getConnectorConfig().getPlaceholders().getProperty("port"));
+	public Connector initialize(ConnectorConfig config) {
+		this.connectorConfig = config;
+		String type = config.getPlaceholders().getProperty("type");
+		String transport = config.getPlaceholders().getProperty("transport");
+		String host = config.getPlaceholders().getProperty("host");
+		int port = Integer.parseInt(config.getPlaceholders().getProperty("port"));
 
 		this.address = transport + "://" + host + ":" + port;
-		this.params = getConnectorConfig().getParameters();
+		this.params = config.getParameters();
 		this.type = type;
 
-		boolean cacheProducer = Boolean.valueOf((String) params.getOrDefault("cacheProducer", "false"));
-		boolean cacheConsumer = Boolean.valueOf((String) params.getOrDefault("cacheConsumer", "false"));
-
-		this.params.remove("cacheProducer");
-		this.params.remove("cacheConsumer");
-
-		switch (type) {
-		case "pull":
-			cacheConsumer = true;
-			break;
-		case "pub":
-			cacheProducer = true;
-			break;
-		}
-
-		this.setCacheProducer(cacheProducer);
-		this.setCacheConsumer(cacheConsumer);
-	}
-
-	private Socket initSocket() {
-		SocketOptions options = new SocketOptions();
-		options.setType(type);
-		options.getConfig().putAll(this.params);
-		Socket socket = factory.createSocket(options);
-		return socket;
+		return this;
 	}
 
 	@Override
-	public Producer newProducer() {
+	protected void onStart() {
+		CountDownLatch latch = new CountDownLatch(1);
+		new Thread(() -> startSocket(latch)).start();
+		try {
+			latch.await();
+		} catch (InterruptedException e) {
+		}
+	}
+
+	private void startSocket(CountDownLatch latch) {
+		this.consumer = createConsumer();
+		this.producer = createProducer();
+
+		if (this.consumer.isPresent())
+			this.consumer.get().start();
+		if (this.producer.isPresent())
+			this.producer.get().start();
+		latch.countDown();
+		try {
+			this.event.wait();
+		} catch (InterruptedException e) {
+
+		}
+		if (this.producer.isPresent())
+			this.producer.get().stop();
+		if (this.consumer.isPresent())
+			this.consumer.get().stop();
+
+		if (this.socket != null)
+			this.socket.close();
+	}
+
+	@Override
+	protected void onStop() {
+		this.event.notify();
+	}
+
+	@Override
+	public Optional<Producer> getProducer() {
+		return producer;
+	}
+
+	@Override
+	public Optional<Consumer> getConsumer() {
+		return consumer;
+	}
+
+	private Optional<Producer> createProducer() {
 		if (type.equalsIgnoreCase("push") || type.equalsIgnoreCase("pub")) {
-			Socket socket = initSocket();
+			this.socket = initSocket();
 			switch (type) {
 			case "push":
 				socket.connect(address);
@@ -93,15 +114,14 @@ public class SocketConnector extends AbstractCachedConnector {
 				socket.bind(address);
 				break;
 			}
-			return SocketProducer.newDefault(socket);
+			return Optional.of(SocketProducer.newDefault(socket));
 		}
-		return null;
+		return Optional.empty();
 	}
 
-	@Override
-	public Consumer newConsumer() {
+	private Optional<Consumer> createConsumer() {
 		if (type.equalsIgnoreCase("pull") || type.equalsIgnoreCase("sub")) {
-			Socket socket = initSocket();
+			this.socket = initSocket();
 			switch (type) {
 			case "pull":
 				socket.bind(this.address);
@@ -110,18 +130,16 @@ public class SocketConnector extends AbstractCachedConnector {
 				socket.connect(address);
 				break;
 			}
-			return SocketConsumer.newDefault(socket);
+			return Optional.of(SocketConsumer.newDefault(socket));
 		}
-		return null;
+		return Optional.empty();
 	}
 
-	@Override
-	protected void onStart() {
-		// do nothing
-	}
-
-	@Override
-	protected void onStop() {
-		// do nothing
+	private Socket initSocket() {
+		SocketOptions options = new SocketOptions();
+		options.setType(type);
+		options.getConfig().putAll(this.params);
+		Socket socket = factory.createSocket(options);
+		return socket;
 	}
 }

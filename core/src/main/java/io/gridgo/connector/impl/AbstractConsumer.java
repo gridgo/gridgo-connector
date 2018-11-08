@@ -6,14 +6,20 @@ import java.util.function.BiConsumer;
 
 import org.joo.promise4j.Deferred;
 
+import io.gridgo.bean.BElement;
+import io.gridgo.bean.BObject;
 import io.gridgo.connector.Consumer;
 import io.gridgo.framework.AbstractComponentLifecycle;
 import io.gridgo.framework.execution.ExecutionStrategy;
 import io.gridgo.framework.execution.impl.DefaultExecutionStrategy;
 import io.gridgo.framework.support.Message;
+import io.gridgo.framework.support.Payload;
+import io.gridgo.framework.support.generators.IdGenerator;
+import io.gridgo.framework.support.impl.DefaultPayload;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 
 public abstract class AbstractConsumer extends AbstractComponentLifecycle implements Consumer {
 
@@ -21,6 +27,9 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 
 	@Getter(AccessLevel.PROTECTED)
 	private ExecutionStrategy callbackInvokeExecutor = DEFAULT_CALLBACK_EXECUTOR;
+
+	@Getter @Setter
+	private IdGenerator idGenerator;
 
 	private final Collection<BiConsumer<Message, Deferred<Message, Exception>>> subscribers = new CopyOnWriteArrayList<>();
 
@@ -42,5 +51,11 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 		for (BiConsumer<Message, Deferred<Message, Exception>> subscriber : this.subscribers) {
 			callbackInvokeExecutor.execute(() -> subscriber.accept(message, deferred));
 		}
+	}
+
+	protected Message createMessage(BObject headers, BElement body) {
+		if (idGenerator == null)
+			return Message.newDefault(Payload.newDefault(headers, body));
+		return Message.newDefault(new DefaultPayload(idGenerator.generateId(), headers, body));
 	}
 }
