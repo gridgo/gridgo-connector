@@ -6,5 +6,5 @@ import io.gridgo.framework.support.Message;
 
 public interface FailureHandlerAware<T> {
 
-	public T setFailureHandler(Function<Exception, Message> failureHandler);
+	public T setFailureHandler(Function<Throwable, Message> failureHandler);
 }
