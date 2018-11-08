@@ -36,6 +36,16 @@ public class ResolverUnitTest {
 		Assert.assertEquals("127.0.0.1", props.get("host"));
 		Assert.assertNull(props.get("port"));
 		Assert.assertEquals("api", props.get("path"));
+
+		props = resolver.testResolver("test://127.0.0.1:/api", "test://{host}[:{port}][/{path}]");
+		Assert.assertEquals("127.0.0.1", props.get("host"));
+		Assert.assertNull(props.get("port"));
+		Assert.assertEquals("api", props.get("path"));
+
+		props = resolver.testResolver("test://127.0.0.1:/", "test://{host}[:{port}][/{path}]");
+		Assert.assertEquals("127.0.0.1", props.get("host"));
+		Assert.assertNull(props.get("port"));
+		Assert.assertNull(props.get("path"));
 	}
 
 	@Test

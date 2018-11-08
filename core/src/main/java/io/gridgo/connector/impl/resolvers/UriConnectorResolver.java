@@ -85,7 +85,8 @@ public class UriConnectorResolver implements ConnectorResolver {
 			} else if (syntaxChar == '{') {
 				String placeholderName = extractPlaceholderKey(syntax, j + 1, buffer);
 				String placeholderValue = extractPlaceholderValue(schemePart, i, buffer);
-				props.put(placeholderName, placeholderValue);
+				if (!placeholderValue.isEmpty())
+					props.put(placeholderName, placeholderValue);
 				j += placeholderName.length() + 2;
 				i += placeholderValue.length();
 			} else {
@@ -93,9 +94,7 @@ public class UriConnectorResolver implements ConnectorResolver {
 				if (syntaxChar != schemeChar) {
 					if (optional) {
 						i = optionalIndex;
-						while (j < syntax.length() && syntax.charAt(j) != ']')
-							j++;
-						j++;
+						j = skipOptionalPart(syntax, j);
 						optionalIndex = -1;
 						optional = false;
 						continue;
@@ -109,12 +108,12 @@ public class UriConnectorResolver implements ConnectorResolver {
 			}
 		}
 
-		if (j < syntax.length() && syntax.charAt(j) == ']')
-			j++;
+		if (optional) {
+			j = skipOptionalPart(syntax, j);
+		}
+
 		while (j < syntax.length() && syntax.charAt(j) == '[') {
-			while (j < syntax.length() && syntax.charAt(j) != ']')
-				j++;
-			j++;
+			j = skipOptionalPart(syntax, j);
 		}
 
 		if (i < schemePart.length()) {
@@ -127,6 +126,13 @@ public class UriConnectorResolver implements ConnectorResolver {
 		}
 
 		return props;
+	}
+
+	private int skipOptionalPart(String syntax, int j) {
+		while (j < syntax.length() && syntax.charAt(j) != ']')
+			j++;
+		j++;
+		return j;
 	}
 
 	private String extractPlaceholderValue(String schemePart, int i, CharBuffer buffer) {
