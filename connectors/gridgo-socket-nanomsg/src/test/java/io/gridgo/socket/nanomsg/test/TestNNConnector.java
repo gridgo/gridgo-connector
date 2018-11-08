@@ -43,6 +43,8 @@ public class TestNNConnector {
 		assertEquals("tcp", connector.getConnectorConfig().getPlaceholders().get("transport"));
 		assertEquals("localhost", connector.getConnectorConfig().getPlaceholders().get("host"));
 		assertEquals("8080", connector.getConnectorConfig().getPlaceholders().get("port"));
+		
+		connector.start();
 
 		Consumer consumer = connector.getConsumer().get();
 		assertNotNull(consumer);
@@ -70,14 +72,11 @@ public class TestNNConnector {
 			this.doFnFSend(consumer, producer);
 			this.doAckSend(consumer, producer);
 		} finally {
-			producer.stop();
-			consumer.stop();
+			connector.stop();
 		}
 	}
 
 	private void warmUp(Consumer consumer, Producer producer) throws PromiseException, InterruptedException {
-		consumer.start();
-		producer.start();
 		producer.sendWithAck(Message.newDefault(Payload.newDefault(BObject.newFromSequence("cmd", "start")))).get();
 	}
 
