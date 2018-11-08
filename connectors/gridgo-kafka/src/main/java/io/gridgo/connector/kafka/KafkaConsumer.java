@@ -80,6 +80,8 @@ public class KafkaConsumer extends AbstractConsumer implements ConsumerExecution
 		private final Properties kafkaProps;
 
 		private String id;
+		
+		private volatile boolean stopped = false;
 
 		public KafkaFetchRecords(String topicName, String id, Properties kafkaProps) {
 			this.topicName = topicName;
@@ -89,6 +91,7 @@ public class KafkaConsumer extends AbstractConsumer implements ConsumerExecution
 
 		@Override
 		public void run() {
+			stopped = false;
 			Thread.currentThread().setName("KAFKA-CONSUMER-" + topicName + "-" + id);
 
 			Duration pollDuration = Duration.ofMillis(100);
@@ -111,32 +114,35 @@ public class KafkaConsumer extends AbstractConsumer implements ConsumerExecution
 					}
 				}
 
-				while (Thread.currentThread().isInterrupted()) {
+				while (!stopped && !Thread.currentThread().isInterrupted()) {
 					// flag to break out processing on the first exception
-					boolean breakOnErrorHit = false;
 					ConsumerRecords<Object, Object> allRecords = consumer.poll(pollDuration);
 
 					for (TopicPartition partition : allRecords.partitions()) {
 
 						Iterator<ConsumerRecord<Object, Object>> recordIterator = allRecords.records(partition)
 								.iterator();
-						if (!breakOnErrorHit && recordIterator.hasNext()) {
+						if (recordIterator.hasNext()) {
 							ConsumerRecord<Object, Object> record;
 
-							while (!breakOnErrorHit && recordIterator.hasNext()) {
+							while (recordIterator.hasNext()) {
 								record = recordIterator.next();
 
 								Message msg = buildMessage(record);
 
-								// if not auto commit then we have additional information on the exchange
 								if (!configuration.isAutoCommitEnable()) {
 									msg.getMisc().put(KafkaConstants.LAST_RECORD_BEFORE_COMMIT,
 											!recordIterator.hasNext());
+									msg.getMisc().put(KafkaConstants.RECORD, record);
 								}
 
+								// TODO catch exception
 								publish(msg, null);
 							}
 						}
+					}
+					if (!configuration.isAutoCommitEnable()) {
+						consumer.commitSync();
 					}
 				}
 
@@ -175,10 +181,9 @@ public class KafkaConsumer extends AbstractConsumer implements ConsumerExecution
 		}
 
 		private void shutdown() {
-			// As advised in the KAFKA-1894 ticket, calling this wakeup method breaks the
-			// infinite loop
 			if (consumer != null)
 				consumer.wakeup();
+			stopped = true;
 		}
 	}
 }

@@ -14,13 +14,15 @@ public class KafkaConstants {
 	
 	public static final String KAFKA_DEFAULT_PARTITIONER = "org.apache.kafka.clients.producer.internals.DefaultPartitioner";
 
-	public static final String KEY = null;
+	public static final String KEY = "kafka.KEY";
 
-	public static final String PARTITION = null;
+	public static final String PARTITION = "kafka.PARTITION";
 
-	public static final String TOPIC = null;
+	public static final String TOPIC = "kafka.TOPIC";
 
-	public static final String OFFSET = null;
+	public static final String OFFSET = "kafka.OFFSET";
 
-	public static final String TIMESTAMP = null;
+	public static final String TIMESTAMP = "kafka.TIMESTAMP";
+
+	public static final String RECORD = "kafka.RECORD";
 }
