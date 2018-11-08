@@ -25,6 +25,10 @@ public class VertxHttpConstants {
 	public static final String PARAM_FORMAT = "format";
 
 	public static final String PARAM_METHOD = "method";
+
+	public static final String PARAM_COMPRESSION_SUPPORTED = "compressionSupported";
+
+	public static final String PARAM_COMPRESSION_LEVEL = "compressionLevel";
 	
 	public static final String HEADER_STATUS = "Status";
 

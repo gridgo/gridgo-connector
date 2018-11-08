@@ -38,18 +38,26 @@ public class VertxHttpConnector extends AbstractConnector {
 	}
 
 	private HttpServerOptions buildHttpServerOptions(ConnectorConfig config) {
+		String compressionLevel = getParam(config, VertxHttpConstants.PARAM_COMPRESSION_LEVEL);
+		String compressionSupported = getParam(config, VertxHttpConstants.PARAM_COMPRESSION_SUPPORTED);
 		boolean useAlpn = Boolean.valueOf(getParam(config, VertxHttpConstants.PARAM_USE_ALPN, "false"));
 		boolean ssl = Boolean.valueOf(getParam(config, VertxHttpConstants.PARAM_SSL, "false"));
-		ClientAuth clientAuth = ClientAuth.valueOf(getParam(config, VertxHttpConstants.PARAM_CLIENT_AUTH, ClientAuth.NONE.toString()));
+		ClientAuth clientAuth = ClientAuth
+				.valueOf(getParam(config, VertxHttpConstants.PARAM_CLIENT_AUTH, ClientAuth.NONE.toString()));
 		String keyStorePath = getParam(config, VertxHttpConstants.PARAM_KEY_STORE_PATH);
 		String keyStorePassword = getParam(config, VertxHttpConstants.PARAM_KEY_STORE_PASSWORD);
 		JksOptions keyStoreOptions = keyStorePath != null
 				? new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword)
 				: null;
-		return new HttpServerOptions().setUseAlpn(useAlpn).setSsl(ssl).setClientAuth(clientAuth)
+		HttpServerOptions options = new HttpServerOptions().setUseAlpn(useAlpn).setSsl(ssl).setClientAuth(clientAuth)
 				.setHost(config.getPlaceholders().getProperty(VertxHttpConstants.PLACEHOLDER_HOST))
 				.setPort(Integer.parseInt(config.getPlaceholders().getProperty(VertxHttpConstants.PLACEHOLDER_PORT)))
 				.setKeyStoreOptions(keyStoreOptions);
+		if (compressionLevel != null)
+			options.setCompressionLevel(Integer.parseInt(compressionLevel));
+		if (compressionSupported != null)
+			options.setCompressionSupported(Boolean.valueOf(compressionSupported));
+		return options;
 	}
 
 	private String getParam(ConnectorConfig config, String name) {

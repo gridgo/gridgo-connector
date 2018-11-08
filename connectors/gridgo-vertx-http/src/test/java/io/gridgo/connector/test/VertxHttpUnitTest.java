@@ -28,17 +28,16 @@ public class VertxHttpUnitTest {
 	public void testCustomFailureHandler() throws ClientProtocolException, IOException {
 		Connector connector = new DefaultConnectorFactory()
 				.createConnector("vertx:http://127.0.0.1:8082/?method=POST&format=xml");
-		
+
 		connector.start();
 
 		Assert.assertNotNull(connector.getProducer());
 		Assert.assertTrue(!connector.getProducer().isPresent());
-		
+
 		Consumer consumer = connector.getConsumer().orElseThrow();
 		if (consumer instanceof FailureHandlerAware) {
 			((FailureHandlerAware<?>) consumer).setFailureHandler(ex -> {
-				BObject headers = BObject.newDefault().set("error", BValue.newDefault("true")).set("cause",
-						BValue.newDefault(ex.getMessage()));
+				BObject headers = BObject.newDefault().setAny("error", true).setAny("cause", ex.getMessage());
 				return Message.newDefault(Payload.newDefault(headers, BValue.newDefault("Error")));
 			});
 		}
@@ -107,6 +106,32 @@ public class VertxHttpUnitTest {
 		HttpResponse response = client.execute(request);
 		Assert.assertEquals(200, response.getStatusLine().getStatusCode());
 		Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
+
+		StringBuffer result = readResponse(response);
+
+		Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
+
+		client.close();
+
+		connector.stop();
+	}
+	
+	@Test
+	public void testCompression() throws ClientProtocolException, IOException {
+		Connector connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8080/?method=POST&compressionSupported=true&compressionLevel=5");
+		connector.start();
+		Consumer consumer = connector.getConsumer().orElseThrow();
+		consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
+
+		String url = "http://127.0.0.1:8080";
+		CloseableHttpClient client = HttpClientBuilder.create().build();
+		HttpPost request = new HttpPost(url);
+		request.addHeader("test-header", "XYZ");
+		request.setEntity(new StringEntity("{'abc':'def'}"));
+		HttpResponse response = client.execute(request);
+		Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+		Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
+		Assert.assertEquals("gzip,deflate", response.getFirstHeader("Accept-Encoding").getValue());
 
 		StringBuffer result = readResponse(response);
 
