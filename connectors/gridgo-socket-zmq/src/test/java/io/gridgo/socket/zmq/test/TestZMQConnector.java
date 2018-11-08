@@ -16,9 +16,9 @@ import io.gridgo.connector.ConnectorResolver;
 import io.gridgo.connector.Consumer;
 import io.gridgo.connector.Producer;
 import io.gridgo.connector.impl.resolvers.ClasspathConnectorResolver;
+import io.gridgo.connector.zmq.ZMQConnector;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
-import io.gridgo.socket.zmq.ZMQConnector;
 
 public class TestZMQConnector {
 
@@ -27,7 +27,7 @@ public class TestZMQConnector {
 		String osName = System.getProperty("os.name");
 		if (osName != null && osName.contains("Windows"))
 			return;
-		
+
 		ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.socket.zmq");
 		Connector connector = resolver.resolve("zmq:pull:tcp://localhost:8080?p1=v1&p2=v2");
 		assertNotNull(connector);
@@ -42,7 +42,7 @@ public class TestZMQConnector {
 		assertEquals("tcp", connector.getConnectorConfig().getPlaceholders().get("transport"));
 		assertEquals("localhost", connector.getConnectorConfig().getPlaceholders().get("host"));
 		assertEquals("8080", connector.getConnectorConfig().getPlaceholders().get("port"));
-		
+
 		connector.start();
 
 		Consumer consumer = connector.getConsumer().get();
@@ -62,7 +62,7 @@ public class TestZMQConnector {
 		assertEquals("tcp", connector2.getConnectorConfig().getPlaceholders().get("transport"));
 		assertEquals("localhost", connector2.getConnectorConfig().getPlaceholders().get("host"));
 		assertEquals("8080", connector2.getConnectorConfig().getPlaceholders().get("port"));
-		
+
 		connector2.start();
 
 		Producer producer = connector2.getProducer().get();
