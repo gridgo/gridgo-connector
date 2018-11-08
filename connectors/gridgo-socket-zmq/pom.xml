@@ -19,12 +19,5 @@
 			<artifactId>gridgo-socket</artifactId>
 			<version>${gridgo.socket.version}</version>
 		</dependency>
-		<dependency>
-			<groupId>org.zeromq</groupId>
-			<artifactId>zeromq</artifactId>
-			<version>1</version>
-			<scope>system</scope>
-			<systemPath>${basedir}/libs/org.zmq.jar</systemPath>
-		</dependency>
 	</dependencies>
 </project>
