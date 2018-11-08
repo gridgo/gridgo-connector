@@ -34,6 +34,8 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer {
 
 	private static final Map<String, ConnectionRef<ServerRouterTuple>> SERVER_MAP = new HashMap<>();
 
+	private static final int DEFAULT_EXCEPTION_STATUS_CODE = 500;
+
 	private VertxOptions vertxOptions;
 
 	private HttpServerOptions httpOptions;
@@ -118,7 +120,11 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer {
 	}
 
 	private void defaultHandleException(RoutingContext ctx) {
-		ctx.response().setStatusCode(ctx.statusCode());
+		if (ctx.statusCode() != -1)
+			ctx.response().setStatusCode(ctx.statusCode());
+		else
+			ctx.response().setStatusCode(DEFAULT_EXCEPTION_STATUS_CODE);
+
 		if (ctx.failure() != null)
 			ctx.response().end(ctx.failure().getMessage());
 		else
