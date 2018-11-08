@@ -29,7 +29,7 @@ public class SocketConnector extends AbstractComponentLifecycle implements Conne
 	private Map<String, Object> params;
 	private Optional<Producer> producer = Optional.empty();
 	private Optional<Consumer> consumer = Optional.empty();
-	private Object event = new Object();
+	private CountDownLatch event = null;
 
 	@Getter
 	private ConnectorConfig connectorConfig;
@@ -57,6 +57,7 @@ public class SocketConnector extends AbstractComponentLifecycle implements Conne
 
 	@Override
 	protected void onStart() {
+		event = new CountDownLatch(1);
 		CountDownLatch latch = new CountDownLatch(1);
 		new Thread(() -> startSocket(latch)).start();
 		try {
@@ -75,7 +76,7 @@ public class SocketConnector extends AbstractComponentLifecycle implements Conne
 			this.producer.get().start();
 		latch.countDown();
 		try {
-			this.event.wait();
+			this.event.await();
 		} catch (InterruptedException e) {
 
 		}
@@ -90,7 +91,7 @@ public class SocketConnector extends AbstractComponentLifecycle implements Conne
 
 	@Override
 	protected void onStop() {
-		this.event.notify();
+		this.event.countDown();
 	}
 
 	@Override
