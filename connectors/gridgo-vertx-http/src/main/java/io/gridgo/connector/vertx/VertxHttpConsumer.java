@@ -17,6 +17,7 @@ import io.gridgo.bean.impl.BFactory;
 import io.gridgo.connector.Consumer;
 import io.gridgo.connector.impl.AbstractConsumer;
 import io.gridgo.connector.support.ConnectionRef;
+import io.gridgo.connector.support.exceptions.FailureHandlerAware;
 import io.gridgo.connector.vertx.support.exceptions.UnsupportedFormatException;
 import io.gridgo.framework.support.Message;
 import io.vertx.core.Vertx;
@@ -30,7 +31,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
-public class VertxHttpConsumer extends AbstractConsumer implements Consumer {
+public class VertxHttpConsumer extends AbstractConsumer implements Consumer, FailureHandlerAware<VertxHttpConsumer> {
 
 	private static final String DEFAULT_FORMAT = "json";
 
@@ -231,5 +232,11 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer {
 			this.server = server;
 			this.router = router;
 		}
+	}
+
+	@Override
+	public VertxHttpConsumer setFailureHandler(Function<Throwable, Message> failureHandler) {
+		this.failureHandler = failureHandler;
+		return this;
 	}
 }
