@@ -2,6 +2,7 @@ package io.gridgo.socket.impl;
 
 import java.nio.ByteBuffer;
 
+import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
 import io.gridgo.connector.impl.AbstractConsumer;
 import io.gridgo.framework.support.Message;
@@ -73,10 +74,31 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 				totalRecvBytes += rc;
 				totalRecvMessages++;
 				buffer.flip();
+
 				BElement data = BElement.fromRaw(buffer);
-				Payload payload = Payload.newDefault(data);
-				Message message = Message.newDefault(payload);
-				this.publish(message, null);
+				Payload payload = null;
+
+				if (data instanceof BArray && data.asArray().size() == 3) {
+					BArray arr = data.asArray();
+					BElement id = arr.get(0);
+					BElement headers = arr.get(1);
+					if (headers.isValue() && headers.asValue().isNull()) {
+						headers = null;
+					}
+					BElement body = arr.get(2);
+					if (body.isValue() && body.asValue().isNull()) {
+						body = null;
+					}
+					if (id.isValue() && (headers == null || headers.isObject())) {
+						payload = Payload.newDefault(id.asValue(), headers == null ? null : headers.asObject(), body);
+					}
+				}
+
+				if (payload == null) {
+					payload = Payload.newDefault(data);
+				}
+
+				this.publish(Message.newDefault(payload), null);
 			}
 		}
 		socket.close();
