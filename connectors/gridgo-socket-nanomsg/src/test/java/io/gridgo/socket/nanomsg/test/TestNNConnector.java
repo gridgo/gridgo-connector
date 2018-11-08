@@ -28,7 +28,7 @@ public class TestNNConnector {
 		if (osName != null && osName.contains("Windows"))
 			return;
 		
-		ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.socket.nanomsg");
+		ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.connector");
 
 		Connector connector = resolver.resolve("nanomsg:pull:tcp://localhost:8080?p1=v1&p2=v2");
 		assertNotNull(connector);

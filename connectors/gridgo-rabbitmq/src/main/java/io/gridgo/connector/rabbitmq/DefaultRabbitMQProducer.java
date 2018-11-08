@@ -5,7 +5,7 @@ import org.joo.promise4j.Promise;
 import io.gridgo.connector.impl.AbstractProducer;
 import io.gridgo.framework.support.Message;
 
-public class DefaultRabbitMQProducer extends AbstractProducer {
+class DefaultRabbitMQProducer extends AbstractProducer {
 
 	@Override
 	public void send(Message message) {

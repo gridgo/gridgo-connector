@@ -16,7 +16,7 @@ import io.gridgo.connector.support.config.ConnectorConfig;
 import io.gridgo.connector.support.exceptions.InvalidPlaceholderException;
 import io.gridgo.utils.support.HostAndPortSet;
 
-@ConnectorEndpoint(scheme = "rabbitmq", syntax = "{address}/{exchangeName}")
+@ConnectorEndpoint(scheme = "rabbitmq", syntax = "{address}[/{exchangeName}]")
 public class RabbitMQConnector extends AbstractConnector {
 
 	private static final int DEFAULT_PORT = 5672;
@@ -38,7 +38,7 @@ public class RabbitMQConnector extends AbstractConnector {
 		ConnectorConfig config = this.getConnectorConfig();
 		HostAndPortSet hostAndPortSet = new HostAndPortSet(config.getPlaceholders().getProperty("address"));
 		if (hostAndPortSet.isEmpty()) {
-			throw new InvalidPlaceholderException("Broker addresses must be provided");
+			throw new InvalidPlaceholderException("Broker address(es) must be provided");
 		}
 
 		this.address = hostAndPortSet.convert((entry) -> {
@@ -55,10 +55,10 @@ public class RabbitMQConnector extends AbstractConnector {
 				.parseLong((String) config.getParameters().getOrDefault("autoRecoveryInterval", "1000"));
 		this.factory.setNetworkRecoveryInterval(autoRecoveryInterval);
 	}
-	
+
 	@Override
 	protected Producer createProducer() {
-		
-		return null;
+		DefaultRabbitMQProducer producer = new DefaultRabbitMQProducer();
+		return producer;
 	}
 }

@@ -28,7 +28,7 @@ public class TestZMQConnector {
 		if (osName != null && osName.contains("Windows"))
 			return;
 
-		ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.socket.zmq");
+		ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.connector.zmq");
 		Connector connector = resolver.resolve("zmq:pull:tcp://localhost:8080?p1=v1&p2=v2");
 		assertNotNull(connector);
 		assertNotNull(connector.getConnectorConfig());
