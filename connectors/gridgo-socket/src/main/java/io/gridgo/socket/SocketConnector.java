@@ -2,13 +2,12 @@ package io.gridgo.socket;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
 
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.Consumer;
 import io.gridgo.connector.Producer;
+import io.gridgo.connector.impl.AbstractConnector;
 import io.gridgo.connector.support.config.ConnectorConfig;
-import io.gridgo.framework.AbstractComponentLifecycle;
 import lombok.Getter;
 
 /**
@@ -20,7 +19,7 @@ import lombok.Getter;
  * @author bachden
  *
  */
-public class SocketConnector extends AbstractComponentLifecycle implements Connector {
+public class SocketConnector extends AbstractConnector implements Connector {
 
 	private final SocketFactory factory;
 
@@ -29,7 +28,6 @@ public class SocketConnector extends AbstractComponentLifecycle implements Conne
 	private Map<String, Object> params;
 	private Optional<Producer> producer = Optional.empty();
 	private Optional<Consumer> consumer = Optional.empty();
-	private CountDownLatch event = null;
 
 	@Getter
 	private ConnectorConfig connectorConfig;
@@ -41,8 +39,8 @@ public class SocketConnector extends AbstractComponentLifecycle implements Conne
 	}
 
 	@Override
-	public Connector initialize(ConnectorConfig config) {
-		this.connectorConfig = config;
+	public void onInit() {
+		ConnectorConfig config = getConnectorConfig();
 		String type = config.getPlaceholders().getProperty("type");
 		String transport = config.getPlaceholders().getProperty("transport");
 		String host = config.getPlaceholders().getProperty("host");
@@ -51,22 +49,10 @@ public class SocketConnector extends AbstractComponentLifecycle implements Conne
 		this.address = transport + "://" + host + ":" + port;
 		this.params = config.getParameters();
 		this.type = type;
-
-		return this;
 	}
 
 	@Override
 	protected void onStart() {
-		event = new CountDownLatch(1);
-		CountDownLatch latch = new CountDownLatch(1);
-		new Thread(() -> startSocket(latch)).start();
-		try {
-			latch.await();
-		} catch (InterruptedException e) {
-		}
-	}
-
-	private void startSocket(CountDownLatch latch) {
 		this.consumer = createConsumer();
 		this.producer = createProducer();
 
@@ -74,48 +60,23 @@ public class SocketConnector extends AbstractComponentLifecycle implements Conne
 			this.consumer.get().start();
 		if (this.producer.isPresent())
 			this.producer.get().start();
-		latch.countDown();
-		try {
-			this.event.await();
-		} catch (InterruptedException e) {
-
-		}
-		if (this.producer.isPresent())
-			this.producer.get().stop();
-		if (this.consumer.isPresent())
-			this.consumer.get().stop();
-
-		if (this.socket != null)
-			this.socket.close();
 	}
 
 	@Override
 	protected void onStop() {
-		this.event.countDown();
-	}
-
-	@Override
-	public Optional<Producer> getProducer() {
-		return producer;
-	}
-
-	@Override
-	public Optional<Consumer> getConsumer() {
-		return consumer;
+		if (this.producer.isPresent())
+			this.producer.get().stop();
+		if (this.consumer.isPresent())
+			this.consumer.get().stop();
+		
+		this.consumer = Optional.empty();
+		this.producer = Optional.empty();
 	}
 
 	private Optional<Producer> createProducer() {
 		if (type.equalsIgnoreCase("push") || type.equalsIgnoreCase("pub")) {
 			this.socket = initSocket();
-			switch (type) {
-			case "push":
-				socket.connect(address);
-				break;
-			case "pub":
-				socket.bind(address);
-				break;
-			}
-			return Optional.of(SocketProducer.newDefault(socket));
+			return Optional.of(SocketProducer.newDefault(socket, type, address));
 		}
 		return Optional.empty();
 	}
@@ -123,15 +84,7 @@ public class SocketConnector extends AbstractComponentLifecycle implements Conne
 	private Optional<Consumer> createConsumer() {
 		if (type.equalsIgnoreCase("pull") || type.equalsIgnoreCase("sub")) {
 			this.socket = initSocket();
-			switch (type) {
-			case "pull":
-				socket.bind(this.address);
-				break;
-			case "sub":
-				socket.connect(address);
-				break;
-			}
-			return Optional.of(SocketConsumer.newDefault(socket));
+			return Optional.of(SocketConsumer.newDefault(socket, type, address));
 		}
 		return Optional.empty();
 	}

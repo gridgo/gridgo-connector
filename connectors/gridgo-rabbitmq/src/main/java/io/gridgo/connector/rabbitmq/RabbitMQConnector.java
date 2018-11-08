@@ -2,6 +2,7 @@ package io.gridgo.connector.rabbitmq;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 
 import com.rabbitmq.client.Address;
@@ -9,7 +10,6 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.impl.DefaultCredentialsProvider;
 
-import io.gridgo.connector.Producer;
 import io.gridgo.connector.impl.AbstractConnector;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.config.ConnectorConfig;
@@ -54,11 +54,7 @@ public class RabbitMQConnector extends AbstractConnector {
 		long autoRecoveryInterval = Long
 				.parseLong((String) config.getParameters().getOrDefault("autoRecoveryInterval", "1000"));
 		this.factory.setNetworkRecoveryInterval(autoRecoveryInterval);
-	}
 
-	@Override
-	protected Producer createProducer() {
-		DefaultRabbitMQProducer producer = new DefaultRabbitMQProducer();
-		return producer;
+		this.producer = Optional.of(new DefaultRabbitMQProducer());
 	}
 }

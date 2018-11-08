@@ -24,18 +24,39 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 	@Getter
 	private long totalSentMessages;
 
-	public DefaultSocketProducer(Socket socket, int bufferSize, int ringBufferSize) {
+	private String type;
+
+	private String address;
+
+	public DefaultSocketProducer(Socket socket, String type, String address, int bufferSize, int ringBufferSize) {
 		super(ringBufferSize);
 		this.socket = socket;
 		this.buffer = ByteBuffer.allocateDirect(bufferSize);
+		this.type = type;
+		this.address = address;
 	}
 
-	public DefaultSocketProducer(Socket socket, int bufferSize) {
-		this(socket, bufferSize, 1024);
+	public DefaultSocketProducer(Socket socket, String type, String address, int bufferSize) {
+		this(socket, type, address, bufferSize, 1024);
 	}
 
-	public DefaultSocketProducer(Socket socket) {
-		this(socket, 128 * 1024);
+	public DefaultSocketProducer(Socket socket, String type, String address) {
+		this(socket, type, address, 128 * 1024);
+	}
+
+	public void onStart() {
+		switch (type) {
+		case "push":
+			socket.connect(address);
+			break;
+		case "pub":
+			socket.bind(address);
+			break;
+		}
+	}
+
+	public void onStop() {
+		// TODO close socket
 	}
 
 	@Override
@@ -51,5 +72,4 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 		totalSentBytes += sentBytes;
 		totalSentMessages++;
 	}
-
 }

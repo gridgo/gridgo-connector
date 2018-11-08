@@ -24,13 +24,19 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 	private final int bufferSize;
 	private final Socket socket;
 
-	public DefaultSocketConsumer(Socket socket, int bufferSize) {
+	private String type;
+
+	private String address;
+
+	public DefaultSocketConsumer(Socket socket, String type, String address, int bufferSize) {
 		this.bufferSize = bufferSize;
 		this.socket = socket;
+		this.type = type;
+		this.address = address;
 	}
 
-	public DefaultSocketConsumer(Socket socket) {
-		this(socket, 1024);
+	public DefaultSocketConsumer(Socket socket, String type, String address) {
+		this(socket, type, address, 1024);
 	}
 
 	@Override
@@ -67,10 +73,15 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 
 	@Override
 	protected void onStart() {
-		if (!this.socket.isAlive()) {
-			throw new IllegalStateException("Cannot start receiver while socket is not alive");
+		switch (type) {
+		case "pull":
+			socket.bind(address);
+			break;
+		case "sub":
+			socket.connect(address);
+			break;
 		}
-
+		
 		if (this.poller != null) {
 			throw new IllegalStateException("Poller cannot exist on start");
 		}

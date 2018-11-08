@@ -17,15 +17,15 @@ public interface SocketProducer extends Producer {
 		throw new UnsupportedOperationException();
 	}
 
-	static SocketProducer newDefault(Socket socket) {
-		return new DefaultSocketProducer(socket);
+	static SocketProducer newDefault(Socket socket, String type, String address) {
+		return new DefaultSocketProducer(socket, type, address);
 	}
 
-	static SocketProducer newDefault(Socket socket, int bufferSize) {
-		return new DefaultSocketProducer(socket, bufferSize);
+	static SocketProducer newDefault(Socket socket, String type, String address, int bufferSize) {
+		return new DefaultSocketProducer(socket, type, address, bufferSize);
 	}
 
-	static SocketProducer newDefault(Socket socket, int bufferSize, int ringBufferSize) {
-		return new DefaultSocketProducer(socket, bufferSize, ringBufferSize);
+	static SocketProducer newDefault(Socket socket, String type, String address, int bufferSize, int ringBufferSize) {
+		return new DefaultSocketProducer(socket, type, address, bufferSize, ringBufferSize);
 	}
 }

@@ -15,9 +15,13 @@ public abstract class AbstractConnector extends AbstractComponentLifecycle imple
 	protected static final String LOCALHOST = "localhost";
 
 	private final AtomicBoolean initialized = new AtomicBoolean(false);
-
+	
 	@Getter
 	private ConnectorConfig connectorConfig;
+	
+	protected Optional<Consumer> consumer = Optional.empty();
+
+	protected Optional<Producer> producer = Optional.empty();
 
 	@Override
 	public final Connector initialize(ConnectorConfig config) {
@@ -30,25 +34,17 @@ public abstract class AbstractConnector extends AbstractComponentLifecycle imple
 	}
 
 	protected void onInit() {
-
+		// do nothing
 	}
 
 	@Override
 	public final Optional<Producer> getProducer() {
-		return Optional.ofNullable(this.createProducer());
-	}
-
-	protected Producer createProducer() {
-		return null;
+		return producer;
 	}
 
 	@Override
 	public final Optional<Consumer> getConsumer() {
-		return Optional.ofNullable(this.createConsumer());
-	}
-
-	protected Consumer createConsumer() {
-		return null;
+		return consumer;
 	}
 
 	@Override
