@@ -2,6 +2,7 @@ package io.gridgo.socket;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.Consumer;
@@ -28,6 +29,7 @@ public class SocketConnector extends AbstractComponentLifecycle implements Conne
 	private Map<String, Object> params;
 	private Optional<Producer> producer = Optional.empty();
 	private Optional<Consumer> consumer = Optional.empty();
+	private Object event = new Object();
 
 	@Getter
 	private ConnectorConfig connectorConfig;
@@ -49,30 +51,46 @@ public class SocketConnector extends AbstractComponentLifecycle implements Conne
 		this.address = transport + "://" + host + ":" + port;
 		this.params = config.getParameters();
 		this.type = type;
-		
+
 		return this;
 	}
-	
+
 	@Override
 	protected void onStart() {
+		CountDownLatch latch = new CountDownLatch(1);
+		new Thread(() -> startSocket(latch)).start();
+		try {
+			latch.await();
+		} catch (InterruptedException e) {
+		}
+	}
+
+	private void startSocket(CountDownLatch latch) {
 		this.consumer = createConsumer();
 		this.producer = createProducer();
-		
+
 		if (this.consumer.isPresent())
 			this.consumer.get().start();
 		if (this.producer.isPresent())
 			this.producer.get().start();
+		latch.countDown();
+		try {
+			this.event.wait();
+		} catch (InterruptedException e) {
+
+		}
+		if (this.producer.isPresent())
+			this.producer.get().stop();
+		if (this.consumer.isPresent())
+			this.consumer.get().stop();
+
+		if (this.socket != null)
+			this.socket.close();
 	}
 
 	@Override
 	protected void onStop() {
-		if (this.consumer.isPresent())
-			this.consumer.get().stop();
-		if (this.producer.isPresent())
-			this.producer.get().stop();
-		
-		if (this.socket != null)
-			this.socket.close();
+		this.event.notify();
 	}
 
 	@Override
@@ -84,7 +102,7 @@ public class SocketConnector extends AbstractComponentLifecycle implements Conne
 	public Optional<Consumer> getConsumer() {
 		return consumer;
 	}
-	
+
 	private Optional<Producer> createProducer() {
 		if (type.equalsIgnoreCase("push") || type.equalsIgnoreCase("pub")) {
 			this.socket = initSocket();
