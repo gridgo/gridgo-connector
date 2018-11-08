@@ -55,12 +55,12 @@ public class VertxHttpUnitTest {
 	@Test
 	public void testXml() throws ClientProtocolException, IOException {
 		Connector connector = new DefaultConnectorFactory()
-				.createConnector("vertx:http://127.0.0.1:8080/?method=POST&format=xml");
+				.createConnector("vertx:http://127.0.0.1:8081/?method=POST&format=xml");
 		connector.start();
 		Consumer consumer = connector.getConsumer().orElseThrow();
 		consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
 
-		String url = "http://localhost:8080";
+		String url = "http://localhost:8081";
 		CloseableHttpClient client = HttpClientBuilder.create().build();
 		HttpPost request = new HttpPost(url);
 		request.addHeader("test-header", "XYZ");
