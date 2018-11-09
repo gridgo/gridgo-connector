@@ -20,21 +20,17 @@ import org.joo.promise4j.impl.SimpleFailurePromise;
 import io.gridgo.bean.BArray;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.impl.BFactory;
-import io.gridgo.connector.Consumer;
 import io.gridgo.connector.impl.AbstractConsumer;
-import io.gridgo.connector.support.execution.ConsumerExecutionAware;
 import io.gridgo.framework.execution.ExecutionStrategy;
 import io.gridgo.framework.execution.impl.ExecutorExecutionStrategy;
 import io.gridgo.framework.support.Message;
 import lombok.NonNull;
 
-public class KafkaConsumer extends AbstractConsumer implements ConsumerExecutionAware<Consumer> {
+public class KafkaConsumer extends AbstractConsumer {
 
 	private static final int DEFAULT_THREADS = 8;
 
 	private static final ExecutionStrategy DEFAULT_EXECUTION_STRATEGY = new ExecutorExecutionStrategy(DEFAULT_THREADS);
-
-	private ExecutionStrategy consumerExecutionStrategy = DEFAULT_EXECUTION_STRATEGY;
 
 	private final KafkaConfiguration configuration;
 
@@ -42,10 +38,12 @@ public class KafkaConsumer extends AbstractConsumer implements ConsumerExecution
 
 	public KafkaConsumer(final @NonNull KafkaConfiguration configuration) {
 		this.configuration = configuration;
+		setConsumerExecutionStrategy(DEFAULT_EXECUTION_STRATEGY);
 	}
 
 	@Override
 	protected void onStart() {
+		var consumerExecutionStrategy = getConsumerExecutionStrategy();
 		consumerExecutionStrategy.start();
 
 		tasks = new ArrayList<>();
@@ -69,14 +67,9 @@ public class KafkaConsumer extends AbstractConsumer implements ConsumerExecution
 		for (KafkaFetchRecords task : tasks) {
 			task.shutdown();
 		}
+		var consumerExecutionStrategy = getCallbackInvokeExecutor();
 		if (consumerExecutionStrategy != DEFAULT_EXECUTION_STRATEGY)
 			consumerExecutionStrategy.stop();
-	}
-
-	@Override
-	public Consumer consumeOn(final @NonNull ExecutionStrategy strategy) {
-		this.consumerExecutionStrategy = strategy;
-		return this;
 	}
 
 	class KafkaFetchRecords implements Runnable {

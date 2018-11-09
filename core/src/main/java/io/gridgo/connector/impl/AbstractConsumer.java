@@ -29,6 +29,10 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 	};
 
 	@Getter(AccessLevel.PROTECTED)
+	@Setter(AccessLevel.PROTECTED)
+	private ExecutionStrategy consumerExecutionStrategy;
+
+	@Getter(AccessLevel.PROTECTED)
 	private ExecutionStrategy callbackInvokeExecutor = DEFAULT_CALLBACK_EXECUTOR;
 
 	@Getter
@@ -68,6 +72,12 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 		if (idGenerator == null)
 			return Message.newDefault(Payload.newDefault(headers, body));
 		return Message.newDefault(new DefaultPayload(idGenerator.generateId(), headers, body));
+	}
+
+	@Override
+	public Consumer consumeOn(final @NonNull ExecutionStrategy strategy) {
+		this.consumerExecutionStrategy = strategy;
+		return this;
 	}
 
 	@Override
