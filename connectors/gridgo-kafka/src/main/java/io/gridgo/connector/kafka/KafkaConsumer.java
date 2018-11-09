@@ -194,11 +194,18 @@ public class KafkaConsumer extends AbstractConsumer {
 				e.printStackTrace();
 				getExceptionHandler().accept(e);
 			} finally {
-				consumer.unsubscribe();
-				consumer.close();
+				cleanUpConsumer();
 			}
 
 			return reConnect;
+		}
+
+		private void cleanUpConsumer() {
+			try {
+				consumer.unsubscribe();
+			} finally {
+				consumer.close();
+			}
 		}
 
 		private void commitOffset(long offset, TopicPartition partition) {
