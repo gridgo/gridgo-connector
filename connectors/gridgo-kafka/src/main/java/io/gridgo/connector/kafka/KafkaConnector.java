@@ -2,7 +2,6 @@ package io.gridgo.connector.kafka;
 
 import java.beans.Statement;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -14,7 +13,7 @@ import io.gridgo.connector.support.config.ConnectorConfig;
 public class KafkaConnector extends AbstractConnector {
 
 	protected void onInit() {
-		ConnectorConfig config = getConnectorConfig();
+		var config = getConnectorConfig();
 		String mode = getParam(config, "mode", "both");
 		boolean createConsumer = true, createProducer = true;
 		if (mode.equals("consumer")) {
@@ -22,7 +21,7 @@ public class KafkaConnector extends AbstractConnector {
 		} else if (mode.equals("producer")) {
 			createConsumer = false;
 		}
-		KafkaConfiguration kafkaConfig = createKafkaConfig(config);
+		var kafkaConfig = createKafkaConfig(config);
 		if (createConsumer)
 			consumer = Optional.of(new KafkaConsumer(kafkaConfig));
 		if (createProducer)
@@ -30,16 +29,15 @@ public class KafkaConnector extends AbstractConnector {
 	}
 
 	private KafkaConfiguration createKafkaConfig(ConnectorConfig config) {
-		KafkaConfiguration kafkaConfig = new KafkaConfiguration();
-		Statement stmt;
-		Map<String, Class<?>> fieldMap = Arrays.stream(KafkaConfiguration.class.getDeclaredFields())
+		var kafkaConfig = new KafkaConfiguration();
+		var fieldMap = Arrays.stream(KafkaConfiguration.class.getDeclaredFields())
 				.collect(Collectors.toMap(field -> field.getName(), field -> field.getType()));
 		for (String attr : config.getParameters().keySet()) {
 			if (!fieldMap.containsKey(attr))
 				continue;
 			Object value = convertValue(config.getParameters().get(attr), fieldMap.get(attr));
 			String setter = "set" + attr.substring(0, 1).toUpperCase() + attr.substring(1);
-			stmt = new Statement(kafkaConfig, setter, new Object[] { value });
+			var stmt = new Statement(kafkaConfig, setter, new Object[] { value });
 			try {
 				stmt.execute();
 			} catch (Exception e) {

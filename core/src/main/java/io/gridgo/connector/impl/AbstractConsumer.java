@@ -48,7 +48,7 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 	}
 
 	protected void publish(Message message, Deferred<Message, Exception> deferred) {
-		for (BiConsumer<Message, Deferred<Message, Exception>> subscriber : this.subscribers) {
+		for (var subscriber : this.subscribers) {
 			callbackInvokeExecutor.execute(() -> subscriber.accept(message, deferred));
 		}
 	}

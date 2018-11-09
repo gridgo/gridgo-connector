@@ -2,17 +2,14 @@ package io.gridgo.connector.vertx;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 
-import org.joo.promise4j.Deferred;
 import org.joo.promise4j.impl.SimpleDeferredObject;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
-import io.gridgo.bean.impl.BFactory;
 import io.gridgo.connector.Consumer;
 import io.gridgo.connector.impl.AbstractConsumer;
 import io.gridgo.connector.support.ConnectionRef;
@@ -25,7 +22,6 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -65,10 +61,10 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 			if (SERVER_MAP.containsKey(connectionKey)) {
 				connRef = SERVER_MAP.get(connectionKey);
 			} else {
-				CountDownLatch latch = new CountDownLatch(1);
-				Vertx vertx = Vertx.vertx(vertxOptions);
-				HttpServer server = vertx.createHttpServer(httpOptions);
-				Router router = Router.router(vertx);
+				var latch = new CountDownLatch(1);
+				var vertx = Vertx.vertx(vertxOptions);
+				var server = vertx.createHttpServer(httpOptions);
+				var router = Router.router(vertx);
 				server.requestHandler(router::accept);
 				connRef = new ConnectionRef<>(new ServerRouterTuple(vertx, server, router));
 				SERVER_MAP.put(connectionKey, connRef);
@@ -90,7 +86,7 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 	}
 
 	private void configureRouter(Router router) {
-		Route route = router.route("/*").handler(BodyHandler.create());
+		var route = router.route("/*").handler(BodyHandler.create());
 
 		if (method != null && !method.isEmpty()) {
 			if (path == null || path.isEmpty())
@@ -107,7 +103,7 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 
 	private void handleException(RoutingContext ctx) {
 		if (failureHandler != null) {
-			Message msg = failureHandler.apply(ctx.failure());
+			var msg = failureHandler.apply(ctx.failure());
 			msg.getPayload().getHeaders().putIfAbsent(VertxHttpConstants.HEADER_STATUS_CODE,
 					BValue.newDefault(DEFAULT_EXCEPTION_STATUS_CODE));
 			sendResponse(ctx.response(), msg);
@@ -129,9 +125,9 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 	}
 
 	private void handleRequest(RoutingContext ctx) {
-		Message request = buildMessage(ctx);
-		Deferred<Message, Exception> deferred = new SimpleDeferredObject<>(
-				response -> sendResponse(ctx.response(), response), ex -> sendException(ctx, ex));
+		var request = buildMessage(ctx);
+		var deferred = new SimpleDeferredObject<Message, Exception>(response -> sendResponse(ctx.response(), response),
+				ex -> sendException(ctx, ex));
 		publish(request, deferred);
 	}
 
@@ -151,7 +147,7 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 		if (statusCode != -1)
 			serverResponse.setStatusCode(statusCode);
 
-		for (Entry<String, BElement> entry : response.getPayload().getHeaders().entrySet()) {
+		for (var entry : response.getPayload().getHeaders().entrySet()) {
 			serverResponse.headers().add(entry.getKey(), entry.getValue().toString());
 		}
 		if (response.getPayload().getBody() != null)
@@ -181,11 +177,11 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 	}
 
 	private Message buildMessage(RoutingContext ctx) {
-		BObject headers = BFactory.DEFAULT.newObject();
-		for (Entry<String, String> entry : ctx.request().headers()) {
+		var headers = BObject.newDefault();
+		for (var entry : ctx.request().headers()) {
 			headers.put(entry.getKey(), BValue.newDefault(entry.getValue()));
 		}
-		BElement body = deserialize(ctx.getBodyAsString());
+		var body = deserialize(ctx.getBodyAsString());
 		return createMessage(headers, body);
 	}
 
@@ -194,14 +190,14 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 		String connectionKey = buildConnectionKey();
 		synchronized (SERVER_MAP) {
 			if (SERVER_MAP.containsKey(connectionKey)) {
-				ConnectionRef<ServerRouterTuple> connRef = SERVER_MAP.get(connectionKey);
+				var connRef = SERVER_MAP.get(connectionKey);
 				if (connRef.deref() == 0) {
+					SERVER_MAP.remove(connectionKey);
 					try {
 						connRef.getConnection().server.close();
 					} finally {
 						connRef.getConnection().vertx.close();
 					}
-					SERVER_MAP.remove(connectionKey);
 				}
 			}
 		}

@@ -118,7 +118,8 @@ public class KafkaConfiguration {
     }
 
     public Properties createProducerProperties() {
-        Properties props = new Properties();
+        var props = new Properties();
+        
         addPropertyIfNotNull(props, ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getBrokers());
         addPropertyIfNotNull(props, ConsumerConfig.GROUP_ID_CONFIG, getGroupId());
         addPropertyIfNotNull(props, ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, getKeySerializerClass());
@@ -153,7 +154,8 @@ public class KafkaConfiguration {
     }
 
     public Properties createConsumerProperties() {
-        Properties props = new Properties();
+        var props = new Properties();
+        
         addPropertyIfNotNull(props, ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getBrokers());
         addPropertyIfNotNull(props, ConsumerConfig.GROUP_ID_CONFIG, getGroupId());
         addPropertyIfNotNull(props, ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, getKeyDeserializer());

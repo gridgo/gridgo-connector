@@ -3,16 +3,13 @@ package io.gridgo.connector.kafka;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.Header;
 
-import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.Consumer;
 import io.gridgo.connector.impl.AbstractConsumer;
@@ -44,7 +41,7 @@ public class KafkaConsumer extends AbstractConsumer implements ConsumerExecution
 
 		tasks = new ArrayList<>();
 
-		Properties props = getProps();
+		var props = getProps();
 
 		for (int i = 0; i < configuration.getConsumersCount(); i++) {
 			KafkaFetchRecords task = new KafkaFetchRecords(configuration.getTopic(), i + "", props);
@@ -80,7 +77,7 @@ public class KafkaConsumer extends AbstractConsumer implements ConsumerExecution
 		private final Properties kafkaProps;
 
 		private String id;
-		
+
 		private volatile boolean stopped = false;
 
 		public KafkaFetchRecords(String topicName, String id, Properties kafkaProps) {
@@ -94,7 +91,7 @@ public class KafkaConsumer extends AbstractConsumer implements ConsumerExecution
 			stopped = false;
 			Thread.currentThread().setName("KAFKA-CONSUMER-" + topicName + "-" + id);
 
-			Duration pollDuration = Duration.ofMillis(100);
+			var pollDuration = Duration.ofMillis(100);
 
 			try {
 				consumer = new org.apache.kafka.clients.consumer.KafkaConsumer<>(kafkaProps);
@@ -116,28 +113,15 @@ public class KafkaConsumer extends AbstractConsumer implements ConsumerExecution
 
 				while (!stopped && !Thread.currentThread().isInterrupted()) {
 					// flag to break out processing on the first exception
-					ConsumerRecords<Object, Object> allRecords = consumer.poll(pollDuration);
+					var allRecords = consumer.poll(pollDuration);
 
 					for (TopicPartition partition : allRecords.partitions()) {
 
-						Iterator<ConsumerRecord<Object, Object>> recordIterator = allRecords.records(partition)
-								.iterator();
+						var recordIterator = allRecords.records(partition).iterator();
 						if (recordIterator.hasNext()) {
-							ConsumerRecord<Object, Object> record;
-
 							while (recordIterator.hasNext()) {
-								record = recordIterator.next();
-
-								Message msg = buildMessage(record);
-
-								if (!configuration.isAutoCommitEnable()) {
-									msg.getMisc().put(KafkaConstants.LAST_RECORD_BEFORE_COMMIT,
-											!recordIterator.hasNext());
-									msg.getMisc().put(KafkaConstants.RECORD, record);
-								}
-
-								// TODO catch exception
-								publish(msg, null);
+								var record = recordIterator.next();
+								processRecord(record);
 							}
 						}
 					}
@@ -161,8 +145,19 @@ public class KafkaConsumer extends AbstractConsumer implements ConsumerExecution
 			}
 		}
 
+		private void processRecord(ConsumerRecord<Object, Object> record) {
+			var msg = buildMessage(record);
+
+			if (!configuration.isAutoCommitEnable()) {
+				msg.getMisc().put(KafkaConstants.RECORD, record);
+			}
+
+			// TODO catch exception
+			publish(msg, null);
+		}
+
 		private Message buildMessage(ConsumerRecord<Object, Object> record) {
-			BObject headers = BObject.newDefault();
+			var headers = BObject.newDefault();
 
 			headers.putAny(KafkaConstants.PARTITION, record.partition());
 			headers.putAny(KafkaConstants.TOPIC, record.topic());
@@ -176,14 +171,14 @@ public class KafkaConsumer extends AbstractConsumer implements ConsumerExecution
 				headers.putAny(header.key(), header.value());
 			}
 
-			BElement body = BObject.newDefault(record.value());
+			var body = BObject.newDefault(record.value());
 			return createMessage(headers, body);
 		}
 
 		private void shutdown() {
+			stopped = true;
 			if (consumer != null)
 				consumer.wakeup();
-			stopped = true;
 		}
 	}
 }

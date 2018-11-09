@@ -29,14 +29,14 @@ public class UriConnectorResolver implements ConnectorResolver {
 	}
 
 	private String extractSyntax(Class<? extends Connector> clazz) {
-		ConnectorEndpoint[] annotations = clazz.getAnnotationsByType(ConnectorEndpoint.class);
+		var annotations = clazz.getAnnotationsByType(ConnectorEndpoint.class);
 		return annotations.length > 0 ? clazz.getAnnotationsByType(ConnectorEndpoint.class)[0].syntax() : null;
 	}
 
 	@Override
 	public Connector resolve(String endpoint) {
 		try {
-			ConnectorConfig config = resolveProperties(endpoint);
+			var config = resolveConfig(endpoint);
 			return clazz.getConstructor().newInstance().initialize(config);
 		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
 				| NoSuchMethodException | SecurityException e) {
@@ -44,7 +44,7 @@ public class UriConnectorResolver implements ConnectorResolver {
 		}
 	}
 
-	private ConnectorConfig resolveProperties(String endpoint) {
+	private ConnectorConfig resolveConfig(String endpoint) {
 		String schemePart = endpoint;
 		String queryPart = null;
 
@@ -54,8 +54,8 @@ public class UriConnectorResolver implements ConnectorResolver {
 			schemePart = endpoint.substring(0, queryPartIdx);
 		}
 
-		Map<String, Object> params = extractParameters(queryPart);
-		Properties placeholders = extractPlaceholders(schemePart);
+		var params = extractParameters(queryPart);
+		var placeholders = extractPlaceholders(schemePart);
 		return new DefaultConnectorConfig(schemePart, params, placeholders);
 	}
 
@@ -64,10 +64,10 @@ public class UriConnectorResolver implements ConnectorResolver {
 	}
 
 	protected Properties extractPlaceholders(String schemePart, String syntax) {
-		Properties props = new Properties();
+		var props = new Properties();
 		if (syntax == null)
 			return props;
-		CharBuffer buffer = CharBuffer.allocate(MAX_PLACEHOLDER_NAME);
+		var buffer = CharBuffer.allocate(MAX_PLACEHOLDER_NAME);
 
 		int i = 0, j = 0;
 		boolean optional = false;
@@ -179,10 +179,10 @@ public class UriConnectorResolver implements ConnectorResolver {
 	private Map<String, Object> extractParameters(String queryPath) {
 		if (queryPath == null)
 			return Collections.emptyMap();
-		Map<String, Object> params = new HashMap<>();
-		String[] queries = queryPath.split("&");
+		var params = new HashMap<String, Object>();
+		var queries = queryPath.split("&");
 		for (String query : queries) {
-			String[] keyValuePair = query.split("=");
+			var keyValuePair = query.split("=");
 			if (keyValuePair.length == 2)
 				params.put(keyValuePair[0], URLDecoder.decode(keyValuePair[1], Charset.forName("utf-8")));
 		}
