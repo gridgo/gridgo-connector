@@ -56,6 +56,10 @@ public class KafkaConfiguration {
     private int fetchWaitMaxMs = 500;
 
     private String seekTo;
+    
+    private boolean batchEnabled = false;
+    
+    private boolean breakOnFirstError = true;
 
     // consumer
     private boolean autoCommitEnable = true;

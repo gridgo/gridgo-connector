@@ -25,4 +25,6 @@ public class KafkaConstants {
 	public static final String TIMESTAMP = "kafka.TIMESTAMP";
 
 	public static final String RECORD = "kafka.RECORD";
+
+	public static final String BATCH = "kafka.BATCH";
 }
