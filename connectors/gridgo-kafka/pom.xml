@@ -11,11 +11,36 @@
 
 	<artifactId>gridgo-kafka</artifactId>
 
+	<properties>
+		<kafka.clients.version>2.0.0</kafka.clients.version>
+		<kafka.junit4.version>3.0.1</kafka.junit4.version>
+		<kafka_2.11.version>2.0.0</kafka_2.11.version>
+		<guava.version>20.0</guava.version>
+	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.apache.kafka</groupId>
 			<artifactId>kafka-clients</artifactId>
-			<version>2.0.0</version>
+			<version>${kafka.clients.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.salesforce.kafka.test</groupId>
+			<artifactId>kafka-junit4</artifactId>
+			<version>${kafka.junit4.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.kafka</groupId>
+			<artifactId>kafka_2.11</artifactId>
+			<version>${kafka_2.11.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>${guava.version}</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 </project>
