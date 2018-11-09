@@ -27,7 +27,7 @@ public class TestNNConnector {
 		String osName = System.getProperty("os.name");
 		if (osName != null && osName.contains("Windows"))
 			return;
-		
+
 		ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.connector");
 
 		Connector connector = resolver.resolve("nanomsg:pull:tcp://localhost:8080?p1=v1&p2=v2");
@@ -43,7 +43,7 @@ public class TestNNConnector {
 		assertEquals("tcp", connector.getConnectorConfig().getPlaceholders().get("transport"));
 		assertEquals("localhost", connector.getConnectorConfig().getPlaceholders().get("host"));
 		assertEquals("8080", connector.getConnectorConfig().getPlaceholders().get("port"));
-		
+
 		connector.start();
 
 		Consumer consumer = connector.getConsumer().get();
