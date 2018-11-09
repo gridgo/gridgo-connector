@@ -9,6 +9,7 @@ import java.util.Properties;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.Header;
 import org.joo.promise4j.Promise;
@@ -53,6 +54,7 @@ public class KafkaConsumer extends AbstractConsumer implements ConsumerExecution
 
 		for (int i = 0; i < configuration.getConsumersCount(); i++) {
 			KafkaFetchRecords task = new KafkaFetchRecords(configuration.getTopic(), i + "", props);
+			task.doInit();
 			consumerExecutionStrategy.execute(task);
 			tasks.add(task);
 		}
@@ -97,19 +99,62 @@ public class KafkaConsumer extends AbstractConsumer implements ConsumerExecution
 
 		@Override
 		public void run() {
+			boolean first = true;
+			boolean reConnect = true;
+
+			while (reConnect) {
+				try {
+					if (!first) {
+						// re-initialize on re-connect so we have a fresh consumer
+						doInit();
+					}
+				} catch (Throwable e) {
+					// TODO log
+				}
+
+				if (!first) {
+					// skip one poll timeout before trying again
+					long delay = configuration.getPollTimeoutMs();
+					try {
+						Thread.sleep(delay);
+					} catch (InterruptedException e) {
+						Thread.currentThread().interrupt();
+					}
+				}
+
+				first = false;
+
+				// doRun keeps running until we either shutdown or is told to re-connect
+				reConnect = doRun();
+			}
+		}
+
+		protected void doInit() {
+			ClassLoader threadClassLoader = Thread.currentThread().getContextClassLoader();
+			try {
+				Thread.currentThread()
+						.setContextClassLoader(org.apache.kafka.clients.consumer.KafkaConsumer.class.getClassLoader());
+				this.consumer = new org.apache.kafka.clients.consumer.KafkaConsumer<>(kafkaProps);
+			} finally {
+				Thread.currentThread().setContextClassLoader(threadClassLoader);
+			}
+		}
+
+		public boolean doRun() {
 			stopped = false;
-			Thread.currentThread().setName("KAFKA-CONSUMER-" + topicName + "-" + id);
+			boolean reConnect = false;
 
 			var pollDuration = Duration.ofMillis(100);
 			var batchProcessing = configuration.isBatchEnabled();
 
+			Thread.currentThread().setName("KAFKA-CONSUMER-" + topicName + "-" + id);
+
 			try {
-				consumer = new org.apache.kafka.clients.consumer.KafkaConsumer<>(kafkaProps);
 				consumer.subscribe(Arrays.asList(topicName.split(",")));
 
 				seekOffset(pollDuration);
 
-				while (!stopped && !Thread.currentThread().isInterrupted()) {
+				while (!stopped && !reConnect && !Thread.currentThread().isInterrupted()) {
 
 					var allRecords = consumer.poll(pollDuration);
 
@@ -133,17 +178,24 @@ public class KafkaConsumer extends AbstractConsumer implements ConsumerExecution
 							commitOffset(offset, partition);
 						} catch (Exception ex) {
 							getExceptionHandler().accept(ex);
+							reConnect = true;
 						}
 					}
 				}
 
-				if (configuration.isAutoCommitEnable()) {
-					if ("async".equals(configuration.getAutoCommitOnStop())) {
-						consumer.commitAsync();
-					} else if ("sync".equals(configuration.getAutoCommitOnStop())) {
-						consumer.commitSync();
+				if (!reConnect) {
+					if (configuration.isAutoCommitEnable()) {
+						if ("async".equals(configuration.getAutoCommitOnStop())) {
+							consumer.commitAsync();
+						} else if ("sync".equals(configuration.getAutoCommitOnStop())) {
+							consumer.commitSync();
+						}
 					}
 				}
+			} catch (KafkaException e) {
+				// TODO log error
+				e.printStackTrace();
+				reConnect = true;
 			} catch (Exception e) {
 				// TODO log error
 				e.printStackTrace();
@@ -152,6 +204,8 @@ public class KafkaConsumer extends AbstractConsumer implements ConsumerExecution
 				consumer.unsubscribe();
 				consumer.close();
 			}
+
+			return reConnect;
 		}
 
 		private void commitOffset(long offset, TopicPartition partition) {
@@ -191,10 +245,9 @@ public class KafkaConsumer extends AbstractConsumer implements ConsumerExecution
 
 			populateCommonHeaders(headers, lastRecord);
 
-			var offsets = records.stream().map(record -> record.offset()).toArray(size -> new Long[size]);
-
 			headers.putAny(KafkaConstants.BATCH, true);
-			headers.putAny(KafkaConstants.OFFSET, offsets);
+			headers.putAny(KafkaConstants.BATCH_SIZE, records.size());
+			headers.putAny(KafkaConstants.OFFSET, lastRecord.offset());
 
 			var body = BArray.newFromSequence(records);
 			return createMessage(headers, body);
