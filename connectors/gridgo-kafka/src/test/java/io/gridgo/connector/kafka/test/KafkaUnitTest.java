@@ -2,6 +2,7 @@ package io.gridgo.connector.kafka.test;
 
 import java.text.DecimalFormat;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -20,11 +21,17 @@ import io.gridgo.connector.kafka.KafkaConstants;
 
 public class KafkaUnitTest {
 
+	private static final short REPLICATION_FACTOR = (short) 1;
+
+	private static final int NUM_PARTITIONS = 1;
+
 	private static final int NUM_MESSAGES = 1000;
 
 	@ClassRule
 	public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(1)
 			.withBrokerProperty("auto.create.topics.enable", "false");
+
+	private static final double ERROR_RATE = 0.5;
 
 	@Test
 	public void testConsumer() {
@@ -32,7 +39,7 @@ public class KafkaUnitTest {
 		String topicName = UUID.randomUUID().toString();
 
 		var kafkaTestUtils = sharedKafkaTestResource.getKafkaTestUtils();
-		kafkaTestUtils.createTopic(topicName, 1, (short) 1);
+		kafkaTestUtils.createTopic(topicName, 1, REPLICATION_FACTOR);
 
 		String brokers = sharedKafkaTestResource.getKafkaConnectString();
 
@@ -67,12 +74,74 @@ public class KafkaUnitTest {
 	}
 
 	@Test
+	public void testConsumerWithError() {
+
+		doTestConsumerWithError(1);
+	}
+
+	@Test
+	public void testMultiConsumerWithError() {
+		
+		doTestConsumerWithError(2);
+	}
+
+	private void doTestConsumerWithError(int consumersCount) {
+		String topicName = UUID.randomUUID().toString();
+
+		var kafkaTestUtils = sharedKafkaTestResource.getKafkaTestUtils();
+		kafkaTestUtils.createTopic(topicName, NUM_PARTITIONS, REPLICATION_FACTOR);
+
+		String brokers = sharedKafkaTestResource.getKafkaConnectString();
+
+		var connectString = "kafka:" + topicName + "?brokers=" + brokers
+				+ "&consumersCount=" + consumersCount + "&autoCommitEnable=false&mode=consumer&groupId=test&autoOffsetReset=earliest";
+		var connector = createKafkaConnector(connectString);
+
+		var consumer = connector.getConsumer().orElseThrow();
+
+		var latch = ConcurrentHashMap.<Integer>newKeySet();
+		AtomicInteger atomic = new AtomicInteger(0);
+		for (int i = 0; i < NUM_MESSAGES; i++) {
+			latch.add(i);
+		}
+
+		consumer.clearSubscribers();
+		consumer.subscribe((msg, deferred) -> {
+			int body = msg.getPayload().getBody().asValue().getInteger();
+			int counter = atomic.incrementAndGet();
+			if (counter % (NUM_MESSAGES * ERROR_RATE) == 0) {
+				deferred.reject(new RuntimeException("just fail (" + body + ")"));
+				return;
+			}
+			if (!latch.contains(body)) {
+				System.out.println("Duplicate message: " + body);
+			} else {
+				latch.remove(body);
+			}
+			deferred.resolve(null);
+		});
+
+		sendTestRecords(topicName, NUM_MESSAGES);
+
+		connector.start();
+
+		long started = System.nanoTime();
+		while (!latch.isEmpty()) {
+			Thread.onSpinWait();
+		}
+		long elapsed = System.nanoTime() - started;
+		printPace("KafkaConsumer", NUM_MESSAGES, elapsed);
+
+		connector.stop();
+	}
+	
+	@Test
 	public void testBatchConsumer() {
 
 		String topicName = UUID.randomUUID().toString();
 
 		var kafkaTestUtils = sharedKafkaTestResource.getKafkaTestUtils();
-		kafkaTestUtils.createTopic(topicName, 1, (short) 1);
+		kafkaTestUtils.createTopic(topicName, 1, REPLICATION_FACTOR);
 
 		String brokers = sharedKafkaTestResource.getKafkaConnectString();
 
@@ -118,20 +187,18 @@ public class KafkaUnitTest {
 
 		System.out.println("Sending records...");
 		// Define our message
-		final int partitionId = 0;
 		final String expectedKey = "my-key";
-		final String expectedValue = "my test message";
-
-		var producerRecord = new ProducerRecord<String, String>(topicName, partitionId, expectedKey, expectedValue);
 
 		long started = System.nanoTime();
 		// Create a new producer
 		try (var producer = kafkaTestUtils.getKafkaProducer(StringSerializer.class, StringSerializer.class)) {
 
 			// Produce it & wait for it to complete.
-			for (int i = 0; i < numMessages; i++)
+			for (int i = 0; i < numMessages; i++) {
+				var producerRecord = new ProducerRecord<String, String>(topicName, expectedKey, i + "");
 				producer.send(producerRecord);
-			// producer.flush();
+			}
+			producer.flush();
 		}
 		long elapsed = System.nanoTime() - started;
 		printPace("KafkaEmbeddedProducer", numMessages, elapsed);

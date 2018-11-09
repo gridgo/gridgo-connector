@@ -203,7 +203,7 @@ public class KafkaConsumer extends AbstractConsumer {
 
 		private void commitOffset(long offset, TopicPartition partition) {
 			if (offset != -1)
-				consumer.commitSync(Collections.singletonMap(partition, new OffsetAndMetadata(offset)));
+				consumer.commitSync(Collections.singletonMap(partition, new OffsetAndMetadata(offset + 1)));
 		}
 
 		private void seekOffset(Duration pollDuration) {
@@ -259,7 +259,7 @@ public class KafkaConsumer extends AbstractConsumer {
 					deferred.promise().get();
 					lastRecord = record.offset();
 				} catch (Exception ex) {
-					ex.printStackTrace();
+					System.err.println(ex.getMessage());
 					if (breakOnFirstError) {
 						commitOffset(lastRecord, partition);
 						return new SimpleFailurePromise<>(ex);
