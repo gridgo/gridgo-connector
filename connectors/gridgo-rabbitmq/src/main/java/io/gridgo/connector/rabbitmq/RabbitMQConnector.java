@@ -10,13 +10,17 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.impl.DefaultCredentialsProvider;
 
+import io.gridgo.bean.BElement;
+import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.AbstractConnector;
+import io.gridgo.connector.rabbitmq.impl.DefaultRabbitMQConsumer;
+import io.gridgo.connector.rabbitmq.impl.DefaultRabbitMQProducer;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.config.ConnectorConfig;
 import io.gridgo.connector.support.exceptions.InvalidPlaceholderException;
 import io.gridgo.utils.support.HostAndPortSet;
 
-@ConnectorEndpoint(scheme = "rabbitmq", syntax = "{address}[/{exchangeName}]")
+@ConnectorEndpoint(scheme = "rabbitmq", syntax = "//{address}[/{exchangeName}]")
 public class RabbitMQConnector extends AbstractConnector {
 
 	private static final int DEFAULT_PORT = 5672;
@@ -24,6 +28,8 @@ public class RabbitMQConnector extends AbstractConnector {
 	private List<Address> address;
 
 	private final ConnectionFactory factory = new ConnectionFactory();
+
+	private RabbitMQQueueConfig queueConfig;
 
 	protected Connection newConnection() {
 		try {
@@ -55,6 +61,18 @@ public class RabbitMQConnector extends AbstractConnector {
 				.parseLong((String) config.getParameters().getOrDefault("autoRecoveryInterval", "1000"));
 		this.factory.setNetworkRecoveryInterval(autoRecoveryInterval);
 
-		this.producer = Optional.of(new DefaultRabbitMQProducer());
+		String exchangeName = (String) this.getConnectorConfig().getPlaceholders().getOrDefault("exchangeName", "");
+
+		BObject configObject = BElement.fromAny(getConnectorConfig().getParameters());
+		configObject.setAny("exchangeName", exchangeName);
+
+		queueConfig = new RabbitMQQueueConfig(configObject);
 	}
+
+	@Override
+	protected void onStart() {
+		this.consumer = Optional.of(new DefaultRabbitMQConsumer(newConnection(), queueConfig));
+		this.producer = Optional.of(new DefaultRabbitMQProducer(newConnection(), queueConfig));
+	}
+
 }

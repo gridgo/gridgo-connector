@@ -20,8 +20,9 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 
 	@Getter(AccessLevel.PROTECTED)
 	private ExecutionStrategy callbackInvokeExecutor = DEFAULT_CALLBACK_EXECUTOR;
-	
-	@Getter @Setter
+
+	@Getter
+	@Setter
 	private IdGenerator idGenerator;
 
 	@Override

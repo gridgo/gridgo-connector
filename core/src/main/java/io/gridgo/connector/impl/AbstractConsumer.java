@@ -28,7 +28,8 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 	@Getter(AccessLevel.PROTECTED)
 	private ExecutionStrategy callbackInvokeExecutor = DEFAULT_CALLBACK_EXECUTOR;
 
-	@Getter @Setter
+	@Getter
+	@Setter
 	private IdGenerator idGenerator;
 
 	private final Collection<BiConsumer<Message, Deferred<Message, Exception>>> subscribers = new CopyOnWriteArrayList<>();
