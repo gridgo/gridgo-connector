@@ -15,7 +15,6 @@
 	<properties>
 		<gridgo.framework.version>0.1.2-SNAPSHOT</gridgo.framework.version>
 		<reflections.version>0.9.11</reflections.version>
-		<disruptor.version>3.4.2</disruptor.version>
 	</properties>
 
 	<dependencies>
@@ -28,11 +27,6 @@
 			<groupId>org.reflections</groupId>
 			<artifactId>reflections</artifactId>
 			<version>${reflections.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.lmax</groupId>
-			<artifactId>disruptor</artifactId>
-			<version>${disruptor.version}</version>
 		</dependency>
 	</dependencies>
 </project>

@@ -42,6 +42,16 @@ public abstract class AbstractConnector extends AbstractComponentLifecycle imple
 	public final Optional<Consumer> getConsumer() {
 		return consumer;
 	}
+	
+	protected String getParam(ConnectorConfig config, String name) {
+		Object value = config.getParameters().get(name);
+		return value != null ? value.toString() : null;
+	}
+
+	protected String getParam(ConnectorConfig config, String name, String defaultValue) {
+		Object value = config.getParameters().getOrDefault(name, defaultValue);
+		return value != null ? value.toString() : null;
+	}
 
 	protected void onInit() {
 		// do nothing

@@ -15,21 +15,21 @@ public class VertxHttpConnector extends AbstractConnector {
 
 	@Override
 	public void onInit() {
-		ConnectorConfig config = getConnectorConfig();
+		var config = getConnectorConfig();
 		String path = config.getPlaceholders().getProperty(VertxHttpConstants.PLACEHOLDER_PATH);
 		if (path != null)
 			path = "/" + path;
 		String method = getParam(config, VertxHttpConstants.PARAM_METHOD);
 		String format = getParam(config, VertxHttpConstants.PARAM_FORMAT);
-		VertxOptions vertxOptions = buildVertxOptions(config);
-		HttpServerOptions httpOptions = buildHttpServerOptions(config);
+		var vertxOptions = buildVertxOptions(config);
+		var httpOptions = buildHttpServerOptions(config);
 		this.consumer = Optional.of(new VertxHttpConsumer(vertxOptions, httpOptions, path, method, format));
 	}
 
 	private VertxOptions buildVertxOptions(ConnectorConfig config) {
 		String workerPoolSize = getParam(config, VertxHttpConstants.PARAM_WORKER_POOL_SIZE);
 		String eventLoopPoolSize = getParam(config, VertxHttpConstants.PARAM_EVENT_LOOP_POOL_SIZE);
-		VertxOptions options = new VertxOptions();
+		var options = new VertxOptions();
 		if (workerPoolSize != null)
 			options.setWorkerPoolSize(Integer.parseInt(workerPoolSize));
 		if (eventLoopPoolSize != null)
@@ -38,28 +38,26 @@ public class VertxHttpConnector extends AbstractConnector {
 	}
 
 	private HttpServerOptions buildHttpServerOptions(ConnectorConfig config) {
+		String compressionLevel = getParam(config, VertxHttpConstants.PARAM_COMPRESSION_LEVEL);
+		String compressionSupported = getParam(config, VertxHttpConstants.PARAM_COMPRESSION_SUPPORTED);
 		boolean useAlpn = Boolean.valueOf(getParam(config, VertxHttpConstants.PARAM_USE_ALPN, "false"));
 		boolean ssl = Boolean.valueOf(getParam(config, VertxHttpConstants.PARAM_SSL, "false"));
-		ClientAuth clientAuth = ClientAuth.valueOf(getParam(config, VertxHttpConstants.PARAM_CLIENT_AUTH, ClientAuth.NONE.toString()));
+		var clientAuth = ClientAuth
+				.valueOf(getParam(config, VertxHttpConstants.PARAM_CLIENT_AUTH, ClientAuth.NONE.toString()));
 		String keyStorePath = getParam(config, VertxHttpConstants.PARAM_KEY_STORE_PATH);
 		String keyStorePassword = getParam(config, VertxHttpConstants.PARAM_KEY_STORE_PASSWORD);
-		JksOptions keyStoreOptions = keyStorePath != null
+		var keyStoreOptions = keyStorePath != null
 				? new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword)
 				: null;
-		return new HttpServerOptions().setUseAlpn(useAlpn).setSsl(ssl).setClientAuth(clientAuth)
+		var options = new HttpServerOptions().setUseAlpn(useAlpn).setSsl(ssl).setClientAuth(clientAuth)
 				.setHost(config.getPlaceholders().getProperty(VertxHttpConstants.PLACEHOLDER_HOST))
 				.setPort(Integer.parseInt(config.getPlaceholders().getProperty(VertxHttpConstants.PLACEHOLDER_PORT)))
 				.setKeyStoreOptions(keyStoreOptions);
-	}
-
-	private String getParam(ConnectorConfig config, String name) {
-		Object value = config.getParameters().get(name);
-		return value != null ? value.toString() : null;
-	}
-
-	private String getParam(ConnectorConfig config, String name, String defaultValue) {
-		Object value = config.getParameters().getOrDefault(name, defaultValue);
-		return value != null ? value.toString() : null;
+		if (compressionLevel != null)
+			options.setCompressionLevel(Integer.parseInt(compressionLevel));
+		if (compressionSupported != null)
+			options.setCompressionSupported(Boolean.valueOf(compressionSupported));
+		return options;
 	}
 
 	public void onStart() {

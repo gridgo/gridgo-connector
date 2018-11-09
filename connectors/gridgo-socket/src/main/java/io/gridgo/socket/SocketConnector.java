@@ -40,13 +40,13 @@ public class SocketConnector extends AbstractConnector implements Connector {
 		this.options = new SocketOptions();
 		this.options.setType(type);
 		this.options.getConfig().putAll(config.getParameters());
+
+		this.consumer = createConsumer();
+		this.producer = createProducer();
 	}
 
 	@Override
 	protected void onStart() {
-		this.consumer = createConsumer();
-		this.producer = createProducer();
-
 		if (this.consumer.isPresent())
 			this.consumer.get().start();
 		if (this.producer.isPresent())
@@ -59,9 +59,6 @@ public class SocketConnector extends AbstractConnector implements Connector {
 			this.producer.get().stop();
 		if (this.consumer.isPresent())
 			this.consumer.get().stop();
-
-		this.consumer = Optional.empty();
-		this.producer = Optional.empty();
 	}
 
 	private Optional<Producer> createProducer() {

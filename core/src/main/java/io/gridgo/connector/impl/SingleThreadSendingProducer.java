@@ -71,7 +71,7 @@ public abstract class SingleThreadSendingProducer extends AbstractProducer {
 
 	@Override
 	public final Promise<Message, Exception> sendWithAck(Message message) {
-		Deferred<Message, Exception> deferred = createDeferred();
+		var deferred = createDeferred();
 		this._send(message, deferred);
 		return deferred.promise();
 	}

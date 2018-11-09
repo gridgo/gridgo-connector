@@ -25,12 +25,22 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 
 	private static final ExecutionStrategy DEFAULT_CALLBACK_EXECUTOR = new DefaultExecutionStrategy();
 
+	private static final java.util.function.Consumer<Throwable> DEFAULT_EXCEPTION_HANDLER = ex -> {
+	};
+
+	@Getter(AccessLevel.PROTECTED)
+	@Setter(AccessLevel.PROTECTED)
+	private ExecutionStrategy consumerExecutionStrategy;
+
 	@Getter(AccessLevel.PROTECTED)
 	private ExecutionStrategy callbackInvokeExecutor = DEFAULT_CALLBACK_EXECUTOR;
 
 	@Getter
 	@Setter
 	private IdGenerator idGenerator;
+
+	@Getter
+	private java.util.function.Consumer<Throwable> exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
 
 	private final Collection<BiConsumer<Message, Deferred<Message, Exception>>> subscribers = new CopyOnWriteArrayList<>();
 
@@ -43,14 +53,18 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 	}
 
 	@Override
-	public Consumer invokeCallbackOn(final @NonNull ExecutionStrategy strategy) {
-		this.callbackInvokeExecutor = strategy;
-		return this;
+	public void clearSubscribers() {
+		this.subscribers.clear();
 	}
 
 	protected void publish(Message message, Deferred<Message, Exception> deferred) {
-		for (BiConsumer<Message, Deferred<Message, Exception>> subscriber : this.subscribers) {
-			callbackInvokeExecutor.execute(() -> subscriber.accept(message, deferred));
+		for (var subscriber : this.subscribers) {
+			try {
+				callbackInvokeExecutor.execute(() -> subscriber.accept(message, deferred));
+			} catch (Exception ex) {
+				if (deferred != null)
+					deferred.reject(ex);
+			}
 		}
 	}
 
@@ -58,5 +72,23 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 		if (idGenerator == null)
 			return Message.newDefault(Payload.newDefault(headers, body));
 		return Message.newDefault(new DefaultPayload(idGenerator.generateId(), headers, body));
+	}
+
+	@Override
+	public Consumer consumeOn(final @NonNull ExecutionStrategy strategy) {
+		this.consumerExecutionStrategy = strategy;
+		return this;
+	}
+
+	@Override
+	public Consumer invokeCallbackOn(final @NonNull ExecutionStrategy strategy) {
+		this.callbackInvokeExecutor = strategy;
+		return this;
+	}
+
+	@Override
+	public Consumer setExceptionHandler(final @NonNull java.util.function.Consumer<Throwable> exceptionHandler) {
+		this.exceptionHandler = exceptionHandler;
+		return this;
 	}
 }

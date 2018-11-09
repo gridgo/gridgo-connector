@@ -3,7 +3,6 @@ package io.gridgo.connector.impl;
 import org.joo.promise4j.Deferred;
 
 import io.gridgo.connector.Producer;
-import io.gridgo.connector.support.exceptions.SendMessageException;
 import io.gridgo.framework.AbstractComponentLifecycle;
 import io.gridgo.framework.execution.ExecutionStrategy;
 import io.gridgo.framework.execution.impl.DefaultExecutionStrategy;
@@ -32,19 +31,20 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 	}
 
 	protected void ack(Deferred<Message, Exception> deferred, Exception exception) {
-		if (deferred == null) {
+		if (deferred == null)
 			return;
-		}
 		callbackInvokeExecutor.execute(() -> {
 			if (exception == null) {
 				deferred.resolve(null);
 			} else {
-				deferred.reject(exception != null ? exception : new SendMessageException(exception));
+				deferred.reject(exception);
 			}
 		});
 	}
 
 	protected void ack(Deferred<Message, Exception> deferred, Message response) {
+		if (deferred == null)
+			return;
 		callbackInvokeExecutor.execute(() -> deferred.resolve(response));
 	}
 }
