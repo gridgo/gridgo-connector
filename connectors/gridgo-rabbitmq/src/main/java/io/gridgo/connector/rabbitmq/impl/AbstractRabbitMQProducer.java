@@ -7,7 +7,6 @@ import org.cliffc.high_scale_lib.NonBlockingHashMap;
 import org.joo.promise4j.Deferred;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.AsyncDeferredObject;
-import org.joo.promise4j.impl.SimpleDeferredObject;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -18,6 +17,7 @@ import io.gridgo.bean.BArray;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.AbstractProducer;
 import io.gridgo.connector.rabbitmq.RabbitMQChannelPublisher;
+import io.gridgo.connector.rabbitmq.RabbitMQProducer;
 import io.gridgo.connector.rabbitmq.RabbitMQQueueConfig;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.MessageParser;
@@ -25,7 +25,8 @@ import io.gridgo.framework.support.Payload;
 import io.gridgo.framework.support.generators.impl.TimeBasedIdGenerator;
 import lombok.Getter;
 
-public abstract class AbstractRabbitMQProducer extends AbstractProducer implements RabbitMQChannelPublisher {
+public abstract class AbstractRabbitMQProducer extends AbstractProducer
+		implements RabbitMQProducer, RabbitMQChannelPublisher {
 
 	private static final TimeBasedIdGenerator TIME_BASED_ID_GENERATOR = new TimeBasedIdGenerator();
 
@@ -71,7 +72,7 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 
 	@Override
 	public final Promise<Message, Exception> sendWithAck(Message message) {
-		Deferred<Message, Exception> deferred = new SimpleDeferredObject<>(null, null);
+		Deferred<Message, Exception> deferred = new AsyncDeferredObject<>();
 		this.send(message);
 		deferred.resolve(null);
 		return deferred.promise();
@@ -111,7 +112,7 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 	}
 
 	protected byte[] buildBody(Payload payload) {
-		return BArray.newFromSequence(payload.getId(), payload.getHeaders(), payload.getBody()).toBytes();
+		return BArray.newFromSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody()).toBytes();
 	}
 
 	protected BasicProperties createBasicProperties(String correlationId) {
