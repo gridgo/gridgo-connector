@@ -26,11 +26,13 @@ public class RabbitMQQueueConfig {
 
 	private boolean exclusive = false;
 
-	private boolean autoDelete = true;
+	private boolean autoDelete = false;
 
 	private boolean rpc = false;
 
 	private boolean autoAck = false;
+
+	private boolean multipleAck = false;
 
 	private final List<String> routingKeys = new LinkedList<>();
 
@@ -70,6 +72,8 @@ public class RabbitMQQueueConfig {
 		this.autoDelete = sourceConfig.getBoolean("autoDelete", this.autoDelete);
 
 		this.autoAck = sourceConfig.getBoolean("autoAck", this.autoAck);
+		this.multipleAck = sourceConfig.getBoolean("multipleAck", this.multipleAck);
+
 		this.rpc = sourceConfig.getBoolean("rpc", this.rpc);
 
 		String routingKey = sourceConfig.getString("routingKey", null);

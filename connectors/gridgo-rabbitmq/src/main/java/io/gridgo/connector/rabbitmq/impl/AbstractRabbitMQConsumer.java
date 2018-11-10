@@ -103,7 +103,7 @@ public abstract class AbstractRabbitMQConsumer extends AbstractConsumer implemen
 
 	private void sendAck(long deliveryTag) {
 		try {
-			this.getChannel().basicAck(deliveryTag, false);
+			this.getChannel().basicAck(deliveryTag, getQueueConfig().isMultipleAck());
 		} catch (IOException e) {
 			throw new RuntimeException("Cannot send ack for delivery tag: " + deliveryTag, e);
 		}
