@@ -59,6 +59,8 @@ public class KafkaProducerUnitTest {
 
 		long elapsed = System.nanoTime() - started;
 		printPace("KafkaProducerSend", NUM_MESSAGES, elapsed);
+
+		connector.stop();
 	}
 
 	@Test
@@ -96,6 +98,8 @@ public class KafkaProducerUnitTest {
 
 		long elapsed = System.nanoTime() - started;
 		printPace("KafkaProducerSendWithAck", NUM_MESSAGES, elapsed);
+
+		connector.stop();
 	}
 
 	private Connector createKafkaConnector(String connectString) {
