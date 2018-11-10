@@ -24,6 +24,7 @@ import io.gridgo.framework.support.MessageParser;
 import io.gridgo.framework.support.Payload;
 import io.gridgo.framework.support.generators.impl.TimeBasedIdGenerator;
 import lombok.Getter;
+import lombok.NonNull;
 
 public abstract class AbstractRabbitMQProducer extends AbstractProducer implements RabbitMQProducer {
 
@@ -60,20 +61,29 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 		this.closeChannel();
 	}
 
-	@Override
-	public final void send(Message request) {
-		Optional<BValue> routingId = request.getRoutingId();
-		String routingKey = routingId.or(() -> {
+	private void _send(final Message request, final Deferred<Message, Exception> deferred) {
+		final Optional<BValue> routingId = request.getRoutingId();
+		final String routingKey = routingId.or(() -> {
 			return Optional.of(BValue.newDefault());
 		}).get().getString();
-		this.publish(buildBody(request.getPayload()), null, routingKey);
+
+		this.getProducerExecutionStrategy().execute(() -> {
+			this.publish(buildBody(request.getPayload()), null, routingKey);
+			if (deferred != null) {
+				deferred.resolve(null);
+			}
+		});
 	}
 
 	@Override
-	public final Promise<Message, Exception> sendWithAck(Message message) {
+	public final void send(@NonNull Message request) {
+		this._send(request, null);
+	}
+
+	@Override
+	public final Promise<Message, Exception> sendWithAck(@NonNull Message message) {
 		Deferred<Message, Exception> deferred = new AsyncDeferredObject<>();
-		this.send(message);
-		deferred.resolve(null);
+		this._send(message, deferred);
 		return deferred.promise();
 	}
 
@@ -81,15 +91,17 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 		String id = delivery.getProperties().getCorrelationId();
 		Deferred<Message, Exception> deferred = this.correlationIdToDeferredMap.get(id);
 		if (deferred != null) {
-			Message result = null;
-			try {
-				result = MessageParser.DEFAULT.parse(delivery.getBody());
-			} catch (Exception e) {
-				deferred.reject(e);
-			}
-			if (result != null) {
-				deferred.resolve(result);
-			}
+			this.getCallbackInvokeExecutor().execute(() -> {
+				Message result = null;
+				try {
+					result = MessageParser.DEFAULT.parse(delivery.getBody());
+				} catch (Exception e) {
+					deferred.reject(e);
+				}
+				if (result != null) {
+					deferred.resolve(result);
+				}
+			});
 		}
 	}
 
@@ -105,19 +117,25 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 			byte[] bytes = buildBody(request.getPayload());
 
 			final Deferred<Message, Exception> deferred = createDeferred();
-			try {
-				this.publish(bytes, props, routingKey);
-				this.correlationIdToDeferredMap.put(corrId, deferred);
-				deferred.promise().always((status, message, ex) -> {
-					correlationIdToDeferredMap.remove(corrId);
-				});
-			} catch (Exception e) {
-				deferred.reject(e);
-			}
+
+			this.correlationIdToDeferredMap.put(corrId, deferred);
+			deferred.promise().always((status, message, ex) -> {
+				correlationIdToDeferredMap.remove(corrId);
+			});
+
+			this.getProducerExecutionStrategy().execute(() -> {
+				try {
+					this.publish(bytes, props, routingKey);
+				} catch (Exception e) {
+					deferred.reject(e);
+				}
+			});
+
 			return deferred.promise();
 		}
 
-		throw new UnsupportedOperationException("Cannot make a call on non-rpc rabbitmq producer");
+		throw new UnsupportedOperationException(
+				"Cannot make a call on non-rpc rabbitmq producer, use rpc=true in connector endpoint");
 	}
 
 	protected byte[] buildBody(Payload payload) {
