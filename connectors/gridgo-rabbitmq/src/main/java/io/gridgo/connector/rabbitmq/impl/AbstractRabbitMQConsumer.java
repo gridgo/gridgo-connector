@@ -83,12 +83,23 @@ public abstract class AbstractRabbitMQConsumer extends AbstractConsumer implemen
 			Deferred<Message, Exception> deferred = createDeferred();
 			deferred.promise().done((response) -> {
 				response(message, props);
+				if (!getQueueConfig().isAutoAck()) {
+					this.sendAck(delivery.getEnvelope().getDeliveryTag());
+				}
 			}).fail((exception) -> {
 				response(exception, props);
 			});
 			this.publish(message, deferred);
 		} else {
 			this.publish(message, null);
+		}
+	}
+
+	private void sendAck(long deliveryTag) {
+		try {
+			this.getChannel().basicAck(deliveryTag, false);
+		} catch (IOException e) {
+			throw new RuntimeException("Cannot send ack for delivery tag: " + deliveryTag, e);
 		}
 	}
 }
