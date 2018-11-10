@@ -19,7 +19,7 @@ import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
 import io.gridgo.connector.kafka.KafkaConnector;
 import io.gridgo.connector.kafka.KafkaConstants;
 
-public class KafkaUnitTest {
+public class KafkaConsumerUnitTest {
 
 	private static final short REPLICATION_FACTOR = (short) 1;
 
