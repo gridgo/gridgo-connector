@@ -79,8 +79,8 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 
 	private void onResponse(String consumerTag, Delivery delivery) {
 		String id = delivery.getProperties().getCorrelationId();
-		Deferred<Message, Exception> deferred;
-		if ((deferred = this.correlationIdToDeferredMap.remove(id)) != null) {
+		Deferred<Message, Exception> deferred = this.correlationIdToDeferredMap.remove(id);
+		if (deferred != null) {
 			Message result = MessageParser.DEFAULT.parse(delivery.getBody());
 			deferred.resolve(result);
 		}

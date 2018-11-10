@@ -20,20 +20,50 @@ public class RabbitMQQueueConfig {
 
 	private String exchangeType = "direct";
 
+	/**
+	 * affect when the exchangeName is blank, create queue on default nameless
+	 * exchange
+	 */
 	private String queueName = null;
 
+	/**
+	 * is queue durable?
+	 */
 	private boolean durable = false;
 
+	/**
+	 * make the queue visible only on the current connection
+	 */
 	private boolean exclusive = false;
 
+	/**
+	 * set auto delete when declaring queue
+	 */
 	private boolean autoDelete = false;
 
+	/**
+	 * auto create response queue for producer, not affect on consumer
+	 */
 	private boolean rpc = false;
 
+	/**
+	 * only affect on consumer, set autoAck value in channel.basicConsume
+	 */
 	private boolean autoAck = false;
 
+	/**
+	 * affect on consumer only, the second arg in channel.basicAck method
+	 */
 	private boolean multipleAck = false;
 
+	/**
+	 * if true, consumer send ack event the process is failed
+	 */
+	private boolean ackOnFail = false;
+
+	/**
+	 * affect on consumer, bind queue to all the configured routing keys
+	 */
 	private final List<String> routingKeys = new LinkedList<>();
 
 	public RabbitMQQueueConfig(BObject sourceConfig) {
@@ -73,6 +103,7 @@ public class RabbitMQQueueConfig {
 
 		this.autoAck = sourceConfig.getBoolean("autoAck", this.autoAck);
 		this.multipleAck = sourceConfig.getBoolean("multipleAck", this.multipleAck);
+		this.ackOnFail = sourceConfig.getBoolean("ackOnFail", this.ackOnFail);
 
 		this.rpc = sourceConfig.getBoolean("rpc", this.rpc);
 

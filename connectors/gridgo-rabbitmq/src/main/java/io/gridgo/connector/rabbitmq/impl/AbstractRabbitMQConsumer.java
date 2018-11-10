@@ -3,6 +3,7 @@ package io.gridgo.connector.rabbitmq.impl;
 import java.io.IOException;
 
 import org.joo.promise4j.Deferred;
+import org.joo.promise4j.DeferredStatus;
 import org.joo.promise4j.impl.CompletableDeferredObject;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
@@ -11,6 +12,7 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Delivery;
 
 import io.gridgo.bean.BArray;
+import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.AbstractConsumer;
@@ -53,22 +55,28 @@ public abstract class AbstractRabbitMQConsumer extends AbstractConsumer implemen
 		getLogger().info("Cancelled " + consumerTag);
 	}
 
-	private void response(Exception ex, BasicProperties props) {
+	private void sendResponse(Exception ex, BasicProperties props) {
 		BObject headers = BObject.newDefault();
 		headers.setAny("status", 500);
 		BValue body = BValue
 				.newDefault("Internal server error: " + ex.getMessage() == null ? "unknown message" : ex.getMessage());
-		this.response(createMessage(headers, body), props);
+		this.sendResponse(createMessage(headers, body), props);
 	}
 
-	private void response(Message response, BasicProperties props) {
-		Payload payload = response.getPayload();
-		byte[] body = BArray.newFromSequence(payload.getId().get(), payload.getHeaders(), payload.getBody()).toBytes();
+	private void sendResponse(Message response, BasicProperties props) {
+		final Payload payload = response.getPayload();
+
+		final BValue id = payload.getId().orElse(null);
+		final BObject headers = payload.getHeaders();
+		final BElement body = payload.getBody();
+
+		final String responseQueue = props.getReplyTo();
+		final byte[] bytes = BArray.newFromSequence(id, headers, body).toBytes();
+
 		try {
-			String responseQueue = props.getReplyTo();
-			this.channel.basicPublish("", responseQueue, props, body);
+			this.getChannel().basicPublish("", responseQueue, props, bytes);
 		} catch (IOException e) {
-			getLogger().error("Cannot send response to caller: " + response);
+			getLogger().error("Cannot send response to caller: " + response, e);
 		}
 	}
 
@@ -76,29 +84,48 @@ public abstract class AbstractRabbitMQConsumer extends AbstractConsumer implemen
 		return new CompletableDeferredObject<>();
 	}
 
-	private void onDelivery(String consumerTag, Delivery delivery) {
-		Message message = MessageParser.DEFAULT.parse(delivery.getBody());
-		BasicProperties props = delivery.getProperties();
-		if (props != null && props.getCorrelationId() != null) {
-			Deferred<Message, Exception> deferred = createDeferred();
-			deferred.promise().done((response) -> {
-				if (!getQueueConfig().isAutoAck()) {
-					this.sendAck(delivery.getEnvelope().getDeliveryTag());
-				}
-				response(message, props);
-			}).fail((exception) -> {
-				response(exception, props);
-			});
-			this.publish(message, deferred);
-		} else if (!getQueueConfig().isAutoAck()) {
-			Deferred<Message, Exception> deferred = createDeferred();
-			deferred.promise().done((response) -> {
-				this.sendAck(delivery.getEnvelope().getDeliveryTag());
-			});
-			this.publish(message, deferred);
-		} else {
-			this.publish(message, null);
+	private void onDelivery(String consumerTag, @NonNull Delivery delivery) {
+		final BasicProperties props = delivery.getProperties();
+		final long deliveryTag = delivery.getEnvelope().getDeliveryTag();
+
+		final Message message;
+
+		try {
+			message = MessageParser.DEFAULT.parse(delivery.getBody());
+		} catch (Exception e) {
+			getLogger().error("Error while parse delivery body into message (ack will be sent automatically)", e);
+			sendAck(deliveryTag);
+			sendResponse(e, props);
+			return;
 		}
+
+		final String correlationId = props == null ? null : props.getCorrelationId();
+		final Deferred<Message, Exception> deferred;
+
+		if (correlationId != null || !getQueueConfig().isAutoAck()) {
+			deferred = createDeferred();
+
+			if (!queueConfig.isAutoAck()) {
+				final boolean ackOnFail = getQueueConfig().isAckOnFail();
+				deferred.promise().always((status, response, exception) -> {
+					if (status == DeferredStatus.RESOLVED || ackOnFail) {
+						this.sendAck(deliveryTag);
+					}
+				});
+			}
+
+			if (correlationId != null) {
+				deferred.promise().done((response) -> {
+					sendResponse(response, props);
+				}).fail((exception) -> {
+					sendResponse(exception, props);
+				});
+			}
+		} else {
+			deferred = null;
+		}
+
+		this.publish(message, deferred);
 	}
 
 	private void sendAck(long deliveryTag) {
