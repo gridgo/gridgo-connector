@@ -32,7 +32,9 @@ public interface RabbitMQConsumer extends Consumer, RabbitMQChannelLifeCycle {
 				}
 			}
 
-			this.getChannel().basicConsume(queueName, false, onMessageCallback, onCancelCallback);
+			boolean autoAck = getQueueConfig().isAutoAck();
+			this.getChannel().basicConsume(queueName, autoAck, onMessageCallback, onCancelCallback);
+
 		} catch (IOException e) {
 			throw new RuntimeException("Cannot init basic consume", e);
 		}
