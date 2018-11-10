@@ -230,7 +230,7 @@ public class TestRabbitMQ {
 
 	@Test
 	public void testRoutingKeyRPC() throws InterruptedException, PromiseException {
-		System.out.println("Test routing key");
+		System.out.println("Test routing key rpc");
 		Connector connector1 = RESOLVER
 				.resolve("rabbitmq://localhost/testDirectExchange?exchangeType=direct&routingKey=key1&rpc=true");
 		connector1.start();

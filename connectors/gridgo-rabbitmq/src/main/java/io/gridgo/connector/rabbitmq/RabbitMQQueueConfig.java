@@ -16,8 +16,13 @@ public class RabbitMQQueueConfig {
 
 	public static final Collection<String> EXCHANGE_TYPES = Arrays.asList("direct", "fanout", "topic", "headers");
 
+	/**
+	 * exchange name, default is nameless rabbitMQ default exchange
+	 */
 	private String exchangeName = "";
-
+	/**
+	 * exchange tpe, accept 4 values: "direct", "fanout", "topic", "headers"
+	 */
 	private String exchangeType = "direct";
 
 	/**
