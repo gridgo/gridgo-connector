@@ -18,8 +18,8 @@ import org.joo.promise4j.impl.SimpleDonePromise;
 import org.joo.promise4j.impl.SimpleFailurePromise;
 
 import io.gridgo.bean.BArray;
+import io.gridgo.bean.BFactory;
 import io.gridgo.bean.BObject;
-import io.gridgo.bean.impl.BFactory;
 import io.gridgo.connector.impl.AbstractConsumer;
 import io.gridgo.framework.execution.ExecutionStrategy;
 import io.gridgo.framework.execution.impl.ExecutorExecutionStrategy;
