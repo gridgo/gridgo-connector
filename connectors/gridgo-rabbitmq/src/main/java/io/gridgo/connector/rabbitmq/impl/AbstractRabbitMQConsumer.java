@@ -3,7 +3,7 @@ package io.gridgo.connector.rabbitmq.impl;
 import java.io.IOException;
 
 import org.joo.promise4j.Deferred;
-import org.joo.promise4j.impl.AsyncDeferredObject;
+import org.joo.promise4j.impl.CompletableDeferredObject;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -22,8 +22,7 @@ import io.gridgo.framework.support.Payload;
 import lombok.Getter;
 import lombok.NonNull;
 
-public abstract class AbstractRabbitMQConsumer extends AbstractConsumer
-		implements RabbitMQConsumer {
+public abstract class AbstractRabbitMQConsumer extends AbstractConsumer implements RabbitMQConsumer {
 
 	private final Connection connection;
 
@@ -73,11 +72,15 @@ public abstract class AbstractRabbitMQConsumer extends AbstractConsumer
 		}
 	}
 
+	protected Deferred<Message, Exception> createDeferred() {
+		return new CompletableDeferredObject<>();
+	}
+
 	private void onDelivery(String consumerTag, Delivery delivery) {
 		Message message = MessageParser.DEFAULT.parse(delivery.getBody());
 		BasicProperties props = delivery.getProperties();
 		if (props != null && props.getCorrelationId() != null) {
-			Deferred<Message, Exception> deferred = new AsyncDeferredObject<>();
+			Deferred<Message, Exception> deferred = createDeferred();
 			deferred.promise().done((response) -> {
 				response(message, props);
 			}).fail((exception) -> {
