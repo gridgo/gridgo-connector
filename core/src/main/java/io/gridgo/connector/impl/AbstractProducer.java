@@ -23,7 +23,7 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 
 	@Getter(AccessLevel.PROTECTED)
 	@Setter(AccessLevel.PROTECTED)
-	private ExecutionStrategy producerExecutionStrategy;
+	private ExecutionStrategy producerExecutionStrategy = DEFAULT_CALLBACK_EXECUTOR;
 
 	@Getter(AccessLevel.PROTECTED)
 	private ExecutionStrategy callbackInvokeExecutor = DEFAULT_CALLBACK_EXECUTOR;
@@ -43,7 +43,7 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 		this.producerExecutionStrategy = strategy;
 		return this;
 	}
-	
+
 	protected Message createMessage(BObject headers, BElement body) {
 		if (idGenerator == null)
 			return Message.newDefault(Payload.newDefault(headers, body));
