@@ -30,15 +30,13 @@ public class NNConnectorUnitTest {
 
 		ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.connector");
 
-		Connector connector = resolver.resolve("nanomsg:pull:tcp://localhost:8080?p1=v1&p2=v2");
+		Connector connector = resolver.resolve("nanomsg:pull:tcp://localhost:8080");
 		assertNotNull(connector);
 		assertNotNull(connector.getConnectorConfig());
 		assertNotNull(connector.getConnectorConfig().getRemaining());
 		assertNotNull(connector.getConnectorConfig().getParameters());
 		assertTrue(connector instanceof NNConnector);
 		assertEquals("pull:tcp://localhost:8080", connector.getConnectorConfig().getRemaining());
-		assertEquals("v1", connector.getConnectorConfig().getParameters().get("p1"));
-		assertEquals("v2", connector.getConnectorConfig().getParameters().get("p2"));
 		assertEquals("pull", connector.getConnectorConfig().getPlaceholders().get("type"));
 		assertEquals("tcp", connector.getConnectorConfig().getPlaceholders().get("transport"));
 		assertEquals("localhost", connector.getConnectorConfig().getPlaceholders().get("host"));
@@ -49,19 +47,23 @@ public class NNConnectorUnitTest {
 		Consumer consumer = connector.getConsumer().get();
 		assertNotNull(consumer);
 
-		Connector connector2 = resolver.resolve("nanomsg:push:tcp://localhost:8080?p1=v1&p2=v2");
+		Connector connector2 = resolver.resolve(
+				"nanomsg:push:tcp://localhost:8080?batchingEnabled=true&maxBatchSize=2000&ringBufferSize=2048");
 		assertNotNull(connector2);
 		assertNotNull(connector2.getConnectorConfig());
 		assertNotNull(connector2.getConnectorConfig().getRemaining());
 		assertNotNull(connector2.getConnectorConfig().getParameters());
 		assertTrue(connector2 instanceof NNConnector);
+		
 		assertEquals("push:tcp://localhost:8080", connector2.getConnectorConfig().getRemaining());
-		assertEquals("v1", connector2.getConnectorConfig().getParameters().get("p1"));
-		assertEquals("v2", connector2.getConnectorConfig().getParameters().get("p2"));
 		assertEquals("push", connector2.getConnectorConfig().getPlaceholders().get("type"));
 		assertEquals("tcp", connector2.getConnectorConfig().getPlaceholders().get("transport"));
 		assertEquals("localhost", connector2.getConnectorConfig().getPlaceholders().get("host"));
 		assertEquals("8080", connector2.getConnectorConfig().getPlaceholders().get("port"));
+
+		assertEquals("true", connector2.getConnectorConfig().getParameters().get("batchingEnabled"));
+		assertEquals("2000", connector2.getConnectorConfig().getParameters().get("maxBatchSize"));
+		assertEquals("2048", connector2.getConnectorConfig().getParameters().get("ringBufferSize"));
 
 		connector2.start();
 
@@ -84,7 +86,7 @@ public class NNConnectorUnitTest {
 	}
 
 	private void doFnFSend(Consumer consumer, Producer producer) throws InterruptedException {
-		int numMessages = (int) 1e5;
+		int numMessages = (int) 1e6;
 		CountDownLatch doneSignal = new CountDownLatch(numMessages);
 
 		consumer.subscribe((message) -> {
@@ -103,7 +105,7 @@ public class NNConnectorUnitTest {
 	}
 
 	private void doAckSend(Consumer consumer, Producer producer) throws InterruptedException, PromiseException {
-		int numMessages = (int) 1e3;
+		int numMessages = (int) 1e6;
 		CountDownLatch doneSignal = new CountDownLatch(numMessages);
 
 		consumer.subscribe((message) -> {

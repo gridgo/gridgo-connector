@@ -1,29 +1,83 @@
 package io.gridgo.connector.impl;
 
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ThreadFactory;
 
 import org.joo.promise4j.Deferred;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.AsyncDeferredObject;
 
+import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.dsl.Disruptor;
 
 import io.gridgo.framework.support.Message;
+import lombok.Getter;
 
 public abstract class SingleThreadSendingProducer extends AbstractProducer {
 
 	private final Disruptor<ProducerEvent> sendWorker;
 
-	protected SingleThreadSendingProducer(int ringBufferSize, ThreadFactory threadFactory) {
+	@Getter
+	private final boolean batchingEnabled;
+
+	private final int maxBatchSize;
+
+	private final EventHandler<ProducerEvent> sender = new EventHandler<ProducerEvent>() {
+
+		private final List<Message> batch = new LinkedList<>();
+
+		@Override
+		public void onEvent(ProducerEvent event, long sequence, boolean endOfBatch) throws Exception {
+			Message message = null;
+
+			if (isBatchingEnabled()) {
+				batch.add(event.getMessage());
+				ack(event.getDeferred());
+				if (endOfBatch || (batch.size() >= maxBatchSize)) {
+					message = accumulateBatch(batch);
+					batch.clear();
+				}
+			} else {
+				message = event.getMessage();
+			}
+
+			if (message != null) {
+				Exception exception = null;
+				try {
+					executeSendOnSingleThread(message);
+				} catch (Exception e) {
+					exception = e;
+				} finally {
+					if (!isBatchingEnabled()) {
+						ack(event.getDeferred(), exception);
+					}
+				}
+			}
+		}
+	};
+
+	protected SingleThreadSendingProducer(int ringBufferSize, ThreadFactory threadFactory, boolean batchingEnabled,
+			int maxBatchSize) {
+
 		this.sendWorker = new Disruptor<>(ProducerEvent::new, ringBufferSize, threadFactory);
-		this.sendWorker.handleEventsWith(this::handleSend);
+		this.sendWorker.handleEventsWith(sender);
+		this.batchingEnabled = batchingEnabled;
+		this.maxBatchSize = maxBatchSize;
 	}
 
-	protected SingleThreadSendingProducer(int ringBufferSize) {
-		this(ringBufferSize, (runnable) -> {
-			return new Thread(runnable);
-		});
+	/**
+	 * called when batchingEnabled
+	 * 
+	 * @param messages list of sub-messages
+	 * @return batched message
+	 */
+	protected Message accumulateBatch(Collection<Message> messages) {
+		throw new UnsupportedOperationException("Method must be overrided by sub class");
 	}
+
+	protected abstract void executeSendOnSingleThread(Message message) throws Exception;
 
 	@Override
 	protected void onStart() {
@@ -35,19 +89,6 @@ public abstract class SingleThreadSendingProducer extends AbstractProducer {
 		this.sendWorker.shutdown();
 
 	}
-
-	private void handleSend(ProducerEvent event, long sequence, boolean endOfBatch) {
-		Exception exception = null;
-		try {
-			this.executeSendOnSingleThread(event.getMessage());
-		} catch (Exception e) {
-			exception = e;
-		} finally {
-			this.ack(event.getDeferred(), exception);
-		}
-	}
-
-	protected abstract void executeSendOnSingleThread(Message message) throws Exception;
 
 	private void _send(Message message, Deferred<Message, Exception> deferred) {
 		if (!this.isStarted()) {

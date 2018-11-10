@@ -13,7 +13,4 @@ public interface SocketConsumer extends Consumer {
 		return new DefaultSocketConsumer(factory, options, address, bufferSize);
 	}
 
-	static SocketConsumer newDefault(SocketFactory factory, SocketOptions options, String address) {
-		return new DefaultSocketConsumer(factory, options, address);
-	}
 }

@@ -2,6 +2,9 @@ package io.gridgo.socket.impl;
 
 import java.nio.ByteBuffer;
 
+import io.gridgo.bean.BArray;
+import io.gridgo.bean.BElement;
+import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.AbstractConsumer;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.MessageParser;
@@ -33,10 +36,6 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 		this.options = options;
 		this.address = address;
 		this.bufferSize = bufferSize;
-	}
-
-	public DefaultSocketConsumer(SocketFactory factory, SocketOptions options, String address) {
-		this(factory, options, address, 1024);
 	}
 
 	@Override
@@ -71,8 +70,23 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 			} else {
 				totalRecvBytes += rc;
 				totalRecvMessages++;
-				Message message = MessageParser.DEFAULT.parse(buffer.flip());
-				this.publish(message, null);
+
+				Message message = null;
+				try {
+					message = MessageParser.DEFAULT.parse(buffer.flip());
+					BObject headers = message.getPayload().getHeaders();
+					if (headers != null && headers.getBoolean("isBatch", false)) {
+						BArray subMessages = message.getPayload().getBody().asArray();
+						for (BElement payload : subMessages) {
+							Message subMessage = MessageParser.DEFAULT.parse(payload);
+							this.publish(subMessage, null);
+						}
+					} else {
+						this.publish(message, null);
+					}
+				} catch (Exception e) {
+					getLogger().error("Error while parse buffer to message", e);
+				}
 			}
 		}
 		socket.close();

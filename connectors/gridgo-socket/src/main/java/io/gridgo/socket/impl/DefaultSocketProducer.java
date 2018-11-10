@@ -1,6 +1,7 @@
 package io.gridgo.socket.impl;
 
 import java.nio.ByteBuffer;
+import java.util.Collection;
 
 import io.gridgo.bean.BArray;
 import io.gridgo.connector.impl.SingleThreadSendingProducer;
@@ -13,6 +14,7 @@ import io.gridgo.socket.SocketOptions;
 import io.gridgo.socket.SocketProducer;
 import io.gridgo.utils.helper.Loggable;
 import lombok.Getter;
+import lombok.NonNull;
 
 public class DefaultSocketProducer extends SingleThreadSendingProducer implements SocketProducer, Loggable {
 
@@ -30,21 +32,22 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 
 	private Socket socket;
 
-	public DefaultSocketProducer(SocketFactory factory, SocketOptions options, String address, int bufferSize,
-			int ringBufferSize) {
-		super(ringBufferSize);
+	public DefaultSocketProducer(//
+			SocketFactory factory, //
+			SocketOptions options, //
+			String address, //
+			int bufferSize, //
+			int ringBufferSize, //
+			boolean batchingEnabled, int maxBatchingSize) {
+
+		super(ringBufferSize, (runnable) -> {
+			return new Thread(runnable);
+		}, batchingEnabled, maxBatchingSize);
+
 		this.buffer = ByteBuffer.allocateDirect(bufferSize);
 		this.options = options;
 		this.factory = factory;
 		this.address = address;
-	}
-
-	public DefaultSocketProducer(SocketFactory factory, SocketOptions options, String address, int bufferSize) {
-		this(factory, options, address, bufferSize, 1024);
-	}
-
-	public DefaultSocketProducer(SocketFactory factory, SocketOptions options, String address) {
-		this(factory, options, address, 128 * 1024);
 	}
 
 	@Override
@@ -68,10 +71,32 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 	}
 
 	@Override
+	protected Message accumulateBatch(@NonNull Collection<Message> messages) {
+		if (messages.size() == 1) {
+			return messages.iterator().next();
+		}
+
+		if (this.isBatchingEnabled()) {
+			BArray body = BArray.newDefault();
+			for (Message mess : messages) {
+				Payload payload = mess.getPayload();
+				body.add(BArray.newFromSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody()));
+			}
+			Payload payload = Payload.newDefault(body)//
+					.addHeader("isBatch", true) //
+					.addHeader("batchSize", messages.size());
+
+			return Message.newDefault(payload);
+		}
+		throw new IllegalStateException("Batching is disabled");
+	}
+
+	@Override
 	protected void executeSendOnSingleThread(Message message) throws Exception {
 		buffer.clear();
 		Payload payload = message.getPayload();
-		BArray.newFromSequence(payload.getId(), payload.getHeaders(), payload.getBody()).writeBytes(buffer);
+		BArray.newFromSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody())
+				.writeBytes(buffer);
 		buffer.flip();
 		int sentBytes = this.socket.send(buffer);
 		if (sentBytes == -1) {

@@ -57,21 +57,29 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 			ack(deferred, response);
 	}
 
-	protected void ack(Deferred<Message, Exception> deferred, Exception exception) {
-		if (deferred == null)
-			return;
-		callbackInvokeExecutor.execute(() -> {
-			if (exception == null) {
+	protected void ack(Deferred<Message, Exception> deferred) {
+		if (deferred != null) {
+			callbackInvokeExecutor.execute(() -> {
 				deferred.resolve(null);
-			} else {
-				deferred.reject(exception);
-			}
-		});
+			});
+		}
+	}
+
+	protected void ack(Deferred<Message, Exception> deferred, Exception exception) {
+		if (deferred != null) {
+			callbackInvokeExecutor.execute(() -> {
+				if (exception == null) {
+					deferred.resolve(null);
+				} else {
+					deferred.reject(exception);
+				}
+			});
+		}
 	}
 
 	protected void ack(Deferred<Message, Exception> deferred, Message response) {
-		if (deferred == null)
-			return;
-		callbackInvokeExecutor.execute(() -> deferred.resolve(response));
+		if (deferred != null) {
+			callbackInvokeExecutor.execute(() -> deferred.resolve(response));
+		}
 	}
 }
