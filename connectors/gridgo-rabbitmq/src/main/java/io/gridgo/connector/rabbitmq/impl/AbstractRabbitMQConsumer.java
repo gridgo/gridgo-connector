@@ -82,12 +82,18 @@ public abstract class AbstractRabbitMQConsumer extends AbstractConsumer implemen
 		if (props != null && props.getCorrelationId() != null) {
 			Deferred<Message, Exception> deferred = createDeferred();
 			deferred.promise().done((response) -> {
-				response(message, props);
 				if (!getQueueConfig().isAutoAck()) {
 					this.sendAck(delivery.getEnvelope().getDeliveryTag());
 				}
+				response(message, props);
 			}).fail((exception) -> {
 				response(exception, props);
+			});
+			this.publish(message, deferred);
+		} else if (!getQueueConfig().isAutoAck()) {
+			Deferred<Message, Exception> deferred = createDeferred();
+			deferred.promise().done((response) -> {
+				this.sendAck(delivery.getEnvelope().getDeliveryTag());
 			});
 			this.publish(message, deferred);
 		} else {
