@@ -1,7 +1,7 @@
 package io.gridgo.connector.test.support;
 
 import org.joo.promise4j.Promise;
-import org.joo.promise4j.impl.SimpleDonePromise;
+import org.joo.promise4j.impl.CompletableDeferredObject;
 import org.junit.Assert;
 
 import io.gridgo.bean.BValue;
@@ -20,13 +20,18 @@ public class TestProducer extends AbstractProducer {
 
 	@Override
 	public Promise<Message, Exception> sendWithAck(Message message) {
-		return new SimpleDonePromise<>(null);
+		var deferred = new CompletableDeferredObject<Message, Exception>();
+		ack(deferred, null, new RuntimeException("test exception"));
+		return deferred.promise();
 	}
 
 	@Override
 	public Promise<Message, Exception> call(Message request) {
+		var deferred = new CompletableDeferredObject<Message, Exception>();
 		int body = request.getPayload().getBody().asValue().getInteger();
-		return new SimpleDonePromise<>(Message.newDefault(Payload.newDefault(BValue.newDefault(body + 1))));
+		var message = Message.newDefault(Payload.newDefault(BValue.newDefault(body + 1)));
+		ack(deferred, message, null);
+		return deferred.promise();
 	}
 
 	@Override

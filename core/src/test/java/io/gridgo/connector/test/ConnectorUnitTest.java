@@ -42,7 +42,10 @@ public class ConnectorUnitTest {
 		producer.send(null);
 
 		var sendLatch = new CountDownLatch(1);
-		producer.sendWithAck(null).done(ack -> sendLatch.countDown());
+		producer.sendWithAck(null).fail(ex -> {
+			if ("test exception".equals(ex.getMessage()))
+				sendLatch.countDown();
+		});
 		try {
 			sendLatch.await();
 		} catch (InterruptedException e) {
