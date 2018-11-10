@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.junit.Assert;
@@ -112,10 +113,77 @@ public class VertxHttpUnitTest {
 
 		connector.stop();
 	}
+
+	@Test
+	public void testAllMethods() throws ClientProtocolException, IOException {
+		var connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8080/");
+		connector.start();
+		var consumer = connector.getConsumer().orElseThrow();
+		consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
+
+		String url = "http://127.0.0.1:8080";
+		var client = HttpClientBuilder.create().build();
+
+		var request = new HttpPost(url);
+		request.addHeader("test-header", "XYZ");
+		request.setEntity(new StringEntity("{'abc':'def'}"));
+		var response = client.execute(request);
+		Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+		Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
+		var result = readResponse(response);
+		Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
+		
+		var putRequest = new HttpPut(url);
+		putRequest.addHeader("test-header", "XYZ");
+		putRequest.setEntity(new StringEntity("{'abc':'def'}"));
+		response = client.execute(putRequest);
+		Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+		Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
+		result = readResponse(response);
+		Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
+
+		client.close();
+
+		connector.stop();
+	}
 	
 	@Test
+	public void testAllMethodsWithPath() throws ClientProtocolException, IOException {
+		var connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8080/api");
+		connector.start();
+		var consumer = connector.getConsumer().orElseThrow();
+		consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
+
+		String url = "http://127.0.0.1:8080/api";
+		var client = HttpClientBuilder.create().build();
+
+		var request = new HttpPost(url);
+		request.addHeader("test-header", "XYZ");
+		request.setEntity(new StringEntity("{'abc':'def'}"));
+		var response = client.execute(request);
+		Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+		Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
+		var result = readResponse(response);
+		Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
+		
+		var putRequest = new HttpPut(url);
+		putRequest.addHeader("test-header", "XYZ");
+		putRequest.setEntity(new StringEntity("{'abc':'def'}"));
+		response = client.execute(putRequest);
+		Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+		Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
+		result = readResponse(response);
+		Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
+
+		client.close();
+
+		connector.stop();
+	}
+
+	@Test
 	public void testCompression() throws ClientProtocolException, IOException {
-		var connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8080/?method=POST&compressionSupported=true&compressionLevel=5");
+		var connector = new DefaultConnectorFactory().createConnector(
+				"vertx:http://127.0.0.1:8080/?method=POST&compressionSupported=true&compressionLevel=5");
 		connector.start();
 		var consumer = connector.getConsumer().orElseThrow();
 		consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
