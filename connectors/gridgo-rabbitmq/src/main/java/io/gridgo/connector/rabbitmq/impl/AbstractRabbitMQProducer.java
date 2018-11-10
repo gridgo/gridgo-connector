@@ -63,9 +63,7 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 
 	private void _send(final Message request, final Deferred<Message, Exception> deferred) {
 		final Optional<BValue> routingId = request.getRoutingId();
-		final String routingKey = routingId.or(() -> {
-			return Optional.of(BValue.newDefault());
-		}).get().getString();
+		final String routingKey = routingId == null ? null : routingId.orElse(BValue.newDefault()).getString();
 
 		this.getProducerExecutionStrategy().execute(() -> {
 			this.publish(buildBody(request.getPayload()), null, routingKey);
