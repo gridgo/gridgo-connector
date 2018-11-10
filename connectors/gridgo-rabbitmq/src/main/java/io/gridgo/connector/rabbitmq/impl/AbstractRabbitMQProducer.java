@@ -79,10 +79,17 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 
 	private void onResponse(String consumerTag, Delivery delivery) {
 		String id = delivery.getProperties().getCorrelationId();
-		Deferred<Message, Exception> deferred = this.correlationIdToDeferredMap.remove(id);
+		Deferred<Message, Exception> deferred = this.correlationIdToDeferredMap.get(id);
 		if (deferred != null) {
-			Message result = MessageParser.DEFAULT.parse(delivery.getBody());
-			deferred.resolve(result);
+			Message result = null;
+			try {
+				result = MessageParser.DEFAULT.parse(delivery.getBody());
+			} catch (Exception e) {
+				deferred.reject(e);
+			}
+			if (result != null) {
+				deferred.resolve(result);
+			}
 		}
 	}
 
@@ -101,7 +108,7 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 			try {
 				this.publish(bytes, props, routingKey);
 				this.correlationIdToDeferredMap.put(corrId, deferred);
-				deferred.promise().fail((ex) -> {
+				deferred.promise().always((status, message, ex) -> {
 					correlationIdToDeferredMap.remove(corrId);
 				});
 			} catch (Exception e) {
