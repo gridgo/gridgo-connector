@@ -134,7 +134,7 @@ public class TestRabbitMQ {
 		Connector connector1 = RESOLVER.resolve("rabbitmq://localhost/testFanoutExchange?exchangeType=fanout");
 		connector1.start();
 
-		Producer producer1 = connector1.getProducer().get();
+		Producer producer = connector1.getProducer().get();
 		Consumer consumer1 = connector1.getConsumer().get();
 
 		Connector connector2 = RESOLVER.resolve("rabbitmq://localhost/testFanoutExchange?exchangeType=fanout");
@@ -142,7 +142,7 @@ public class TestRabbitMQ {
 
 		Consumer consumer2 = connector2.getConsumer().get();
 
-		producer1.start();
+		producer.start();
 		consumer1.start();
 		consumer2.start();
 
@@ -161,13 +161,13 @@ public class TestRabbitMQ {
 			doneSignal.countDown();
 		});
 
-		producer1.send(Message.newDefault(Payload.newDefault(BElement.fromAny(TEXT))));
+		producer.send(Message.newDefault(Payload.newDefault(BElement.fromAny(TEXT))));
 
 		doneSignal.await();
 		assertEquals(TEXT, receivedTextRef1.get());
 		assertEquals(TEXT, receivedTextRef2.get());
 
-		producer1.stop();
+		producer.stop();
 		consumer1.stop();
 		connector1.stop();
 
