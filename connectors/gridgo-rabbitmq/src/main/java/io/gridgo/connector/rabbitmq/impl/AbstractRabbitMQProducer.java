@@ -7,6 +7,7 @@ import org.cliffc.high_scale_lib.NonBlockingHashMap;
 import org.joo.promise4j.Deferred;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.AsyncDeferredObject;
+import org.joo.promise4j.impl.CompletableDeferredObject;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -16,7 +17,6 @@ import com.rabbitmq.client.Delivery;
 import io.gridgo.bean.BArray;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.AbstractProducer;
-import io.gridgo.connector.rabbitmq.RabbitMQChannelPublisher;
 import io.gridgo.connector.rabbitmq.RabbitMQProducer;
 import io.gridgo.connector.rabbitmq.RabbitMQQueueConfig;
 import io.gridgo.framework.support.Message;
@@ -25,8 +25,7 @@ import io.gridgo.framework.support.Payload;
 import io.gridgo.framework.support.generators.impl.TimeBasedIdGenerator;
 import lombok.Getter;
 
-public abstract class AbstractRabbitMQProducer extends AbstractProducer
-		implements RabbitMQProducer, RabbitMQChannelPublisher {
+public abstract class AbstractRabbitMQProducer extends AbstractProducer implements RabbitMQProducer {
 
 	private static final TimeBasedIdGenerator TIME_BASED_ID_GENERATOR = new TimeBasedIdGenerator();
 
@@ -81,7 +80,7 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer
 	private void onResponse(String consumerTag, Delivery delivery) {
 		String id = delivery.getProperties().getCorrelationId();
 		Deferred<Message, Exception> deferred;
-		if ((deferred = this.correlationIdToDeferredMap.get(id)) != null) {
+		if ((deferred = this.correlationIdToDeferredMap.remove(id)) != null) {
 			Message result = MessageParser.DEFAULT.parse(delivery.getBody());
 			deferred.resolve(result);
 		}
@@ -94,7 +93,7 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer
 			Optional<BValue> routingId = request.getRoutingId();
 			String routingKey = routingId.isPresent() ? routingId.get().getString() : null;
 
-			String corrId = TIME_BASED_ID_GENERATOR.generateId().get().getString();
+			final String corrId = TIME_BASED_ID_GENERATOR.generateId().get().getString();
 			final BasicProperties props = createBasicProperties(corrId);
 			byte[] bytes = buildBody(request.getPayload());
 
@@ -102,6 +101,9 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer
 			try {
 				this.publish(bytes, props, routingKey);
 				this.correlationIdToDeferredMap.put(corrId, deferred);
+				deferred.promise().fail((ex) -> {
+					correlationIdToDeferredMap.remove(corrId);
+				});
 			} catch (Exception e) {
 				deferred.reject(e);
 			}
@@ -123,7 +125,7 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer
 	}
 
 	protected Deferred<Message, Exception> createDeferred() {
-		return new AsyncDeferredObject<>();
+		return new CompletableDeferredObject<>();
 	}
 
 }

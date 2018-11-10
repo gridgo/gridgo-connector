@@ -31,7 +31,7 @@ public class TestRabbitMQ {
 		public void accept(One one, Two two, Three three, Four four);
 	}
 
-	private static final String text = "This is message";
+	private static final String TEXT = "This is message";
 
 	private void init(Connector connector, Consumer4Args<Producer, Consumer, Runnable, Runnable> output) {
 		assertNotNull(connector);
@@ -68,6 +68,7 @@ public class TestRabbitMQ {
 
 	@Test
 	public void testDirectQueue() throws InterruptedException {
+		System.out.println("Test direct queue");
 		final Connector connector = RESOLVER.resolve("rabbitmq://localhost?queueName=test");
 		init(connector, (producer, consumer, triggerDone, waitForDone) -> {
 
@@ -78,10 +79,10 @@ public class TestRabbitMQ {
 				triggerDone.run();
 			});
 
-			producer.send(Message.newDefault(Payload.newDefault(BElement.fromAny(text))));
+			producer.send(Message.newDefault(Payload.newDefault(BElement.fromAny(TEXT))));
 
 			waitForDone.run();
-			assertEquals(text, receivedTextRef.get());
+			assertEquals(TEXT, receivedTextRef.get());
 
 			producer.stop();
 			consumer.stop();
@@ -92,6 +93,7 @@ public class TestRabbitMQ {
 
 	@Test
 	public void testRPC() throws InterruptedException {
+		System.out.println("Test RPC");
 		final Connector connector = RESOLVER.resolve("rabbitmq://localhost?queueName=test&rpc=true");
 		init(connector, (producer, consumer, triggerDone, waitForDone) -> {
 
@@ -105,7 +107,7 @@ public class TestRabbitMQ {
 			});
 
 			final AtomicReference<String> receivedTextRef = new AtomicReference<String>(null);
-			Message msg = Message.newDefault(Payload.newDefault(BElement.fromAny(text)));
+			Message msg = Message.newDefault(Payload.newDefault(BElement.fromAny(TEXT)));
 			Promise<Message, Exception> promise = producer.call(msg);
 			promise.done((message) -> {
 				receivedTextRef.set(message.getPayload().getBody().asValue().getString());
@@ -113,12 +115,51 @@ public class TestRabbitMQ {
 			});
 
 			waitForDone.run();
-			assertEquals(text, receivedTextRef.get());
+			assertEquals(TEXT, receivedTextRef.get());
 
 			producer.stop();
 			consumer.stop();
 
 			connector.stop();
 		});
+	}
+
+	@Test
+	public void testPubSub() throws InterruptedException {
+		System.out.println("Test pub/sub");
+		Connector connector1 = RESOLVER.resolve("rabbitmq://localhost/testExchange?exchangeType=fanout");
+		Producer producer1 = connector1.getProducer().get();
+		Consumer consumer1 = connector1.getConsumer().get();
+
+		Connector connector2 = RESOLVER.resolve("rabbitmq://localhost/testExchange?exchangeType=fanout");
+		Consumer consumer2 = connector2.getConsumer().get();
+
+		final AtomicReference<String> receivedTextRef1 = new AtomicReference<String>(null);
+		final AtomicReference<String> receivedTextRef2 = new AtomicReference<String>(null);
+
+		CountDownLatch doneSignal = new CountDownLatch(2);
+
+		consumer1.subscribe((message, deferred) -> {
+			receivedTextRef1.set(message.getPayload().getBody().asValue().getString());
+			doneSignal.countDown();
+		});
+
+		consumer2.subscribe((message, deferred) -> {
+			receivedTextRef2.set(message.getPayload().getBody().asValue().getString());
+			doneSignal.countDown();
+		});
+
+		producer1.send(Message.newDefault(Payload.newDefault(BElement.fromAny(TEXT))));
+
+		doneSignal.await();
+		assertEquals(TEXT, receivedTextRef1.get());
+		assertEquals(TEXT, receivedTextRef2.get());
+
+		producer1.stop();
+		consumer1.stop();
+		connector1.stop();
+
+		consumer2.stop();
+		connector2.stop();
 	}
 }

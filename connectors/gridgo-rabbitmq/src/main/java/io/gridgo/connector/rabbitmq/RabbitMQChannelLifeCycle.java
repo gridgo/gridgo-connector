@@ -17,16 +17,18 @@ public interface RabbitMQChannelLifeCycle extends Loggable {
 	default Channel initChannel(Connection connection) {
 		try {
 			Channel channel = connection.createChannel();
-			if (getQueueConfig().getExchangeName() != null && !getQueueConfig().getExchangeName().isBlank()) {
+
+			String exchangeName = getQueueConfig().getExchangeName();
+			if (exchangeName != null && !exchangeName.isBlank()) {
 				channel.exchangeDeclare(getQueueConfig().getExchangeName(), getQueueConfig().getExchangeType());
 			}
 
-			channel.queueDeclare(getQueueConfig().getQueueName(), getQueueConfig().isDurable(),
-					getQueueConfig().isExclusive(), getQueueConfig().isAutoDelete(), null);
-
-			for (String routingKey : getQueueConfig().getRoutingKeys()) {
-				channel.queueBind(getQueueConfig().getQueueName(), getQueueConfig().getExchangeName(), routingKey);
+			String queueName = getQueueConfig().getQueueName();
+			if (queueName != null && !queueName.isBlank()) {
+				channel.queueDeclare(queueName, getQueueConfig().isDurable(), getQueueConfig().isExclusive(),
+						getQueueConfig().isAutoDelete(), null);
 			}
+
 			return channel;
 		} catch (Exception e) {
 			throw new RuntimeException("Init channel error", e);

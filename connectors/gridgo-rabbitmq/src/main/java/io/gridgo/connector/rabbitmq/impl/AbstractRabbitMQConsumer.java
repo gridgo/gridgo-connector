@@ -5,16 +5,15 @@ import java.io.IOException;
 import org.joo.promise4j.Deferred;
 import org.joo.promise4j.impl.AsyncDeferredObject;
 
+import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Delivery;
-import com.rabbitmq.client.AMQP.BasicProperties;
 
 import io.gridgo.bean.BArray;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.AbstractConsumer;
-import io.gridgo.connector.rabbitmq.RabbitMQChannelSubscriber;
 import io.gridgo.connector.rabbitmq.RabbitMQConsumer;
 import io.gridgo.connector.rabbitmq.RabbitMQQueueConfig;
 import io.gridgo.framework.support.Message;
@@ -24,7 +23,7 @@ import lombok.Getter;
 import lombok.NonNull;
 
 public abstract class AbstractRabbitMQConsumer extends AbstractConsumer
-		implements RabbitMQConsumer, RabbitMQChannelSubscriber {
+		implements RabbitMQConsumer {
 
 	private final Connection connection;
 

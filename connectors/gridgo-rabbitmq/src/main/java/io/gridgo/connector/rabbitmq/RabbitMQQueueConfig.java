@@ -30,6 +30,8 @@ public class RabbitMQQueueConfig {
 
 	private boolean rpc = false;
 
+	private boolean autoAck = false;
+
 	private final List<String> routingKeys = new LinkedList<>();
 
 	public RabbitMQQueueConfig(BObject sourceConfig) {
@@ -49,23 +51,25 @@ public class RabbitMQQueueConfig {
 		return routingKeys.isEmpty() ? null : routingKeys.get(0);
 	}
 
-	public void readFromBObject(BObject sourceConfig) {
+	public void readFromBObject(final BObject sourceConfig) {
 		this.exchangeName = sourceConfig.getString("exchangeName", this.exchangeName);
 		if (this.exchangeName == null) {
 			this.exchangeName = "";
 		}
 		this.exchangeName = this.exchangeName.trim();
 
-		this.queueName = sourceConfig.getString("queueName", this.queueName);
-
 		this.exchangeType = sourceConfig.getString("exchangeType", this.exchangeType);
 		if (exchangeType == null || !EXCHANGE_TYPES.contains(exchangeType.trim())) {
 			throw new InvalidParamException("Exchange type invalid, expect one of " + EXCHANGE_TYPES);
 		}
 
+		this.queueName = sourceConfig.getString("queueName", this.queueName);
+
 		this.durable = sourceConfig.getBoolean("durable", this.durable);
 		this.exclusive = sourceConfig.getBoolean("exclusive", this.exclusive);
 		this.autoDelete = sourceConfig.getBoolean("autoDelete", this.autoDelete);
+
+		this.autoAck = sourceConfig.getBoolean("autoAck", this.autoAck);
 		this.rpc = sourceConfig.getBoolean("rpc", this.rpc);
 
 		String routingKey = sourceConfig.getString("routingKey", null);
@@ -75,14 +79,6 @@ public class RabbitMQQueueConfig {
 			String[] arr = routingKey.split(",");
 			for (String str : arr) {
 				this.routingKeys.add(str.trim());
-			}
-		}
-
-		if (exchangeName.isBlank()) {
-			if (this.queueName == null || this.queueName.isBlank()) {
-				if (this.routingKeys.size() > 0) {
-					this.queueName = this.routingKeys.get(0);
-				}
 			}
 		}
 	}
