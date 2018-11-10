@@ -9,7 +9,7 @@ public class ConnectionRefUnitTest {
 
 	@Test
 	public void testSingleThread() {
-		ConnectionRef<Object> ref = new ConnectionRef<Object>(new Object());
+		var ref = new ConnectionRef<Object>(new Object());
 		Assert.assertNotNull(ref.getConnection());
 		ref.ref();
 		Assert.assertEquals(1, ref.getRefCount());
@@ -24,7 +24,7 @@ public class ConnectionRefUnitTest {
 
 	@Test
 	public void testMultiThread() throws InterruptedException {
-		ConnectionRef<Object> ref = new ConnectionRef<Object>(new Object());
+		var ref = new ConnectionRef<Object>(new Object());
 		var t1 = new Thread(() -> {
 			for (int i = 0; i < 500; i++) {
 				ref.ref();
@@ -57,10 +57,10 @@ public class ConnectionRefUnitTest {
 		t2.join();
 		Assert.assertEquals(200, ref.getRefCount());
 	}
-	
+
 	@Test
 	public void testMultiThreadExcess() throws InterruptedException {
-		ConnectionRef<Object> ref = new ConnectionRef<Object>(new Object());
+		var ref = new ConnectionRef<Object>(new Object());
 		var t1 = new Thread(() -> {
 			for (int i = 0; i < 500; i++) {
 				ref.ref();

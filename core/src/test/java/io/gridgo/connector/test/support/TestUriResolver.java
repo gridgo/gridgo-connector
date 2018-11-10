@@ -1,4 +1,4 @@
-package io.gridgo.connector.test;
+package io.gridgo.connector.test.support;
 
 import java.util.Properties;
 
