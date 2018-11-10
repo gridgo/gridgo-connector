@@ -2,11 +2,14 @@ package io.gridgo.connector.test.support;
 
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.SimpleDonePromise;
+import org.junit.Assert;
 
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.AbstractProducer;
+import io.gridgo.framework.execution.impl.DefaultExecutionStrategy;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
+import io.gridgo.framework.support.generators.impl.UUIDGenerator;
 
 public class TestProducer extends AbstractProducer {
 
@@ -28,7 +31,12 @@ public class TestProducer extends AbstractProducer {
 
 	@Override
 	protected void onStart() {
-
+		var strategy = new DefaultExecutionStrategy();
+		var generator = new UUIDGenerator();
+		produceOn(strategy).invokeCallbackOn(strategy).setIdGenerator(generator);
+		Assert.assertTrue(getProducerExecutionStrategy() == strategy);
+		Assert.assertTrue(getCallbackInvokeExecutor() == strategy);
+		Assert.assertTrue(getIdGenerator() == generator);
 	}
 
 	@Override
