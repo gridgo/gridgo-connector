@@ -6,18 +6,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.salesforce.kafka.test.junit4.SharedKafkaTestResource;
 
+import io.gridgo.bean.BValue;
 import io.gridgo.connector.Connector;
+import io.gridgo.connector.Producer;
 import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
 import io.gridgo.connector.kafka.KafkaConnector;
 import io.gridgo.connector.kafka.KafkaConstants;
+import io.gridgo.framework.support.Message;
+import io.gridgo.framework.support.Payload;
 
 public class KafkaConsumerUnitTest {
 
@@ -36,7 +38,7 @@ public class KafkaConsumerUnitTest {
 	@Test
 	public void testConsumer() {
 
-		String extraQuery = "&consumersCount=1&autoCommitEnable=false&mode=consumer&groupId=test&autoOffsetReset=earliest";
+		String extraQuery = "&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest";
 
 		doTestConsumer(extraQuery);
 	}
@@ -44,7 +46,7 @@ public class KafkaConsumerUnitTest {
 	@Test
 	public void testAutoCommitSyncConsumer() {
 
-		String extraQuery = "&consumersCount=1&autoCommitEnable=true&autoCommitOnStop=sync&mode=consumer&groupId=test&autoOffsetReset=earliest";
+		String extraQuery = "&consumersCount=1&autoCommitEnable=true&autoCommitOnStop=sync&groupId=test&autoOffsetReset=earliest";
 
 		doTestConsumer(extraQuery);
 	}
@@ -52,7 +54,7 @@ public class KafkaConsumerUnitTest {
 	@Test
 	public void testAutoCommitAsyncConsumer() {
 
-		String extraQuery = "&consumersCount=1&autoCommitEnable=true&autoCommitOnStop=async&mode=consumer&groupId=test&autoOffsetReset=earliest";
+		String extraQuery = "&consumersCount=1&autoCommitEnable=true&autoCommitOnStop=async&groupId=test&autoOffsetReset=earliest";
 
 		doTestConsumer(extraQuery);
 	}
@@ -66,6 +68,7 @@ public class KafkaConsumerUnitTest {
 		var connector = createKafkaConnector(connectString);
 
 		var consumer = connector.getConsumer().orElseThrow();
+		var producer = connector.getProducer().orElseThrow();
 
 		var latch = new CountDownLatch(NUM_MESSAGES);
 
@@ -75,9 +78,9 @@ public class KafkaConsumerUnitTest {
 			deferred.resolve(null);
 		});
 
-		sendTestRecords(topicName, NUM_MESSAGES);
-
 		connector.start();
+
+		sendTestRecords(topicName, producer, NUM_MESSAGES);
 
 		long started = System.nanoTime();
 		try {
@@ -94,15 +97,13 @@ public class KafkaConsumerUnitTest {
 	@Test
 	public void testConsumerWithError() {
 
-		doTestConsumerWithError(
-				"&consumersCount=1&autoCommitEnable=false&mode=consumer&groupId=test&autoOffsetReset=earliest");
+		doTestConsumerWithError("&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest");
 	}
 
 	@Test
 	public void testMultiConsumerWithError() {
 
-		doTestConsumerWithError(
-				"&consumersCount=2&autoCommitEnable=false&mode=consumer&groupId=test&autoOffsetReset=earliest");
+		doTestConsumerWithError("&consumersCount=2&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest");
 	}
 
 	private void doTestConsumerWithError(String extraQuery) {
@@ -114,6 +115,7 @@ public class KafkaConsumerUnitTest {
 		var connector = createKafkaConnector(connectString);
 
 		var consumer = connector.getConsumer().orElseThrow();
+		var producer = connector.getProducer().orElseThrow();
 
 		var latch = ConcurrentHashMap.<Integer>newKeySet();
 		AtomicInteger atomic = new AtomicInteger(0);
@@ -137,9 +139,9 @@ public class KafkaConsumerUnitTest {
 			deferred.resolve(null);
 		});
 
-		sendTestRecords(topicName, NUM_MESSAGES);
-
 		connector.start();
+
+		sendTestRecords(topicName, producer, NUM_MESSAGES);
 
 		long started = System.nanoTime();
 		while (!latch.isEmpty()) {
@@ -159,10 +161,11 @@ public class KafkaConsumerUnitTest {
 		String brokers = sharedKafkaTestResource.getKafkaConnectString();
 
 		var connectString = "kafka:" + topicName + "?brokers=" + brokers
-				+ "&consumersCount=1&autoCommitEnable=false&mode=consumer&groupId=test&autoOffsetReset=earliest&batchEnabled=true";
+				+ "&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest&batchEnabled=true";
 		var connector = createKafkaConnector(connectString);
 
 		var consumer = connector.getConsumer().orElseThrow();
+		var producer = connector.getProducer().orElseThrow();
 
 		var latch = new AtomicInteger(NUM_MESSAGES);
 
@@ -173,9 +176,9 @@ public class KafkaConsumerUnitTest {
 			deferred.resolve(null);
 		});
 
-		sendTestRecords(topicName, NUM_MESSAGES);
-
 		connector.start();
+
+		sendTestRecords(topicName, producer, NUM_MESSAGES);
 
 		long started = System.nanoTime();
 		while (latch.get() != 0) {
@@ -203,21 +206,15 @@ public class KafkaConsumerUnitTest {
 		return connector;
 	}
 
-	private void sendTestRecords(String topicName, int numMessages) {
-		var kafkaTestUtils = sharedKafkaTestResource.getKafkaTestUtils();
-
+	private void sendTestRecords(String topicName, Producer producer, int numMessages) {
 		System.out.println("Sending records...");
 
 		long started = System.nanoTime();
 		// Create a new producer
-		try (var producer = kafkaTestUtils.getKafkaProducer(StringSerializer.class, StringSerializer.class)) {
-
-			// Produce it & wait for it to complete.
-			for (int i = 0; i < numMessages; i++) {
-				var producerRecord = new ProducerRecord<String, String>(topicName, i + "", i + "");
-				producer.send(producerRecord);
-			}
-			producer.flush();
+		// Produce it & wait for it to complete.
+		for (int i = 0; i < numMessages; i++) {
+			Message msg = Message.newDefault(Payload.newDefault(BValue.newDefault(i + "")));
+			producer.send(msg);
 		}
 		long elapsed = System.nanoTime() - started;
 		printPace("KafkaEmbeddedProducer", numMessages, elapsed);
