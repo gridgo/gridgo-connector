@@ -27,7 +27,7 @@ public class KafkaConsumerUnitTest {
 
 	private static final int NUM_MESSAGES = 100;
 
-	private static final double ERROR_RATE = 0.05;
+	private static final double ERROR_RATE = 0.02;
 
 	@ClassRule
 	public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(1)
