@@ -19,32 +19,50 @@ import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
 import io.gridgo.connector.kafka.KafkaConnector;
 import io.gridgo.connector.kafka.KafkaConstants;
 
-public class KafkaUnitTest {
+public class KafkaConsumerUnitTest {
 
 	private static final short REPLICATION_FACTOR = (short) 1;
 
 	private static final int NUM_PARTITIONS = 1;
 
-	private static final int NUM_MESSAGES = 1000;
+	private static final int NUM_MESSAGES = 100;
+
+	private static final double ERROR_RATE = 0.01;
 
 	@ClassRule
 	public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(1)
 			.withBrokerProperty("auto.create.topics.enable", "false");
 
-	private static final double ERROR_RATE = 0.5;
-
 	@Test
 	public void testConsumer() {
 
-		String topicName = UUID.randomUUID().toString();
+		String extraQuery = "&consumersCount=1&autoCommitEnable=false&mode=consumer&groupId=test&autoOffsetReset=earliest";
 
-		var kafkaTestUtils = sharedKafkaTestResource.getKafkaTestUtils();
-		kafkaTestUtils.createTopic(topicName, 1, REPLICATION_FACTOR);
+		doTestConsumer(extraQuery);
+	}
+
+	@Test
+	public void testAutoCommitSyncConsumer() {
+
+		String extraQuery = "&consumersCount=1&autoCommitEnable=true&autoCommitOnStop=sync&mode=consumer&groupId=test&autoOffsetReset=earliest";
+
+		doTestConsumer(extraQuery);
+	}
+
+	@Test
+	public void testAutoCommitAsyncConsumer() {
+
+		String extraQuery = "&consumersCount=1&autoCommitEnable=true&autoCommitOnStop=async&mode=consumer&groupId=test&autoOffsetReset=earliest";
+
+		doTestConsumer(extraQuery);
+	}
+
+	private void doTestConsumer(String extraQuery) {
+		String topicName = createTopic();
 
 		String brokers = sharedKafkaTestResource.getKafkaConnectString();
 
-		var connectString = "kafka:" + topicName + "?brokers=" + brokers
-				+ "&consumersCount=1&autoCommitEnable=false&mode=consumer&groupId=test&autoOffsetReset=earliest";
+		var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
 		var connector = createKafkaConnector(connectString);
 
 		var consumer = connector.getConsumer().orElseThrow();
@@ -76,25 +94,23 @@ public class KafkaUnitTest {
 	@Test
 	public void testConsumerWithError() {
 
-		doTestConsumerWithError(1);
+		doTestConsumerWithError(
+				"&consumersCount=1&autoCommitEnable=false&mode=consumer&groupId=test&autoOffsetReset=earliest");
 	}
 
 	@Test
 	public void testMultiConsumerWithError() {
-		
-		doTestConsumerWithError(2);
+
+		doTestConsumerWithError(
+				"&consumersCount=2&autoCommitEnable=false&mode=consumer&groupId=test&autoOffsetReset=earliest");
 	}
 
-	private void doTestConsumerWithError(int consumersCount) {
-		String topicName = UUID.randomUUID().toString();
-
-		var kafkaTestUtils = sharedKafkaTestResource.getKafkaTestUtils();
-		kafkaTestUtils.createTopic(topicName, NUM_PARTITIONS, REPLICATION_FACTOR);
+	private void doTestConsumerWithError(String extraQuery) {
+		String topicName = createTopic();
 
 		String brokers = sharedKafkaTestResource.getKafkaConnectString();
 
-		var connectString = "kafka:" + topicName + "?brokers=" + brokers
-				+ "&consumersCount=" + consumersCount + "&autoCommitEnable=false&mode=consumer&groupId=test&autoOffsetReset=earliest";
+		var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
 		var connector = createKafkaConnector(connectString);
 
 		var consumer = connector.getConsumer().orElseThrow();
@@ -109,7 +125,7 @@ public class KafkaUnitTest {
 		consumer.subscribe((msg, deferred) -> {
 			int body = msg.getPayload().getBody().asValue().getInteger();
 			int counter = atomic.incrementAndGet();
-			if (counter % (NUM_MESSAGES * ERROR_RATE) == 0) {
+			if (counter % (1 / ERROR_RATE) == 0) {
 				deferred.reject(new RuntimeException("just fail (" + body + ")"));
 				return;
 			}
@@ -134,14 +150,11 @@ public class KafkaUnitTest {
 
 		connector.stop();
 	}
-	
+
 	@Test
 	public void testBatchConsumer() {
 
-		String topicName = UUID.randomUUID().toString();
-
-		var kafkaTestUtils = sharedKafkaTestResource.getKafkaTestUtils();
-		kafkaTestUtils.createTopic(topicName, 1, REPLICATION_FACTOR);
+		String topicName = createTopic();
 
 		String brokers = sharedKafkaTestResource.getKafkaConnectString();
 
@@ -174,6 +187,14 @@ public class KafkaUnitTest {
 		connector.stop();
 	}
 
+	private String createTopic() {
+		String topicName = UUID.randomUUID().toString();
+
+		var kafkaTestUtils = sharedKafkaTestResource.getKafkaTestUtils();
+		kafkaTestUtils.createTopic(topicName, NUM_PARTITIONS, REPLICATION_FACTOR);
+		return topicName;
+	}
+
 	private Connector createKafkaConnector(String connectString) {
 		var connector = new DefaultConnectorFactory().createConnector(connectString);
 
@@ -186,8 +207,6 @@ public class KafkaUnitTest {
 		var kafkaTestUtils = sharedKafkaTestResource.getKafkaTestUtils();
 
 		System.out.println("Sending records...");
-		// Define our message
-		final String expectedKey = "my-key";
 
 		long started = System.nanoTime();
 		// Create a new producer
@@ -195,7 +214,7 @@ public class KafkaUnitTest {
 
 			// Produce it & wait for it to complete.
 			for (int i = 0; i < numMessages; i++) {
-				var producerRecord = new ProducerRecord<String, String>(topicName, expectedKey, i + "");
+				var producerRecord = new ProducerRecord<String, String>(topicName, i + "", i + "");
 				producer.send(producerRecord);
 			}
 			producer.flush();

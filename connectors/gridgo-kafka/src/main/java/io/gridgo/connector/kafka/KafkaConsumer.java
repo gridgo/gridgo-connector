@@ -166,13 +166,16 @@ public class KafkaConsumer extends AbstractConsumer {
 							promise = processSingleRecord(partition, records);
 						}
 
+						long offset = -1;
 						try {
-							long offset = promise.get();
-							commitOffset(offset, partition);
+							offset = promise.get();
 						} catch (Exception ex) {
+							// TODO log exception
+							ex.printStackTrace();
 							getExceptionHandler().accept(ex);
 							reConnect = true;
 						}
+						commitOffset(offset, partition);
 					}
 				}
 
