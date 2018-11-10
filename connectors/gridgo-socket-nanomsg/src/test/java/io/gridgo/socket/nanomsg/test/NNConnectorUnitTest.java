@@ -20,7 +20,7 @@ import io.gridgo.connector.nanomsg.NNConnector;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 
-public class TestNNConnector {
+public class NNConnectorUnitTest {
 
 	@Test
 	public void testSimpleTcp() throws InterruptedException, PromiseException {
