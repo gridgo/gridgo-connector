@@ -69,7 +69,6 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 				// otherwise, socket timeout occurred, continue event loop
 			} else {
 				totalRecvBytes += rc;
-				totalRecvMessages++;
 
 				Message message = null;
 				try {
@@ -77,11 +76,13 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 					BObject headers = message.getPayload().getHeaders();
 					if (headers != null && headers.getBoolean("isBatch", false)) {
 						BArray subMessages = message.getPayload().getBody().asArray();
+						totalRecvMessages += headers.getInteger("batchSize", subMessages.size());
 						for (BElement payload : subMessages) {
 							Message subMessage = MessageParser.DEFAULT.parse(payload);
 							this.publish(subMessage, null);
 						}
 					} else {
+						totalRecvMessages++;
 						this.publish(message, null);
 					}
 				} catch (Exception e) {
