@@ -1,13 +1,11 @@
 package io.gridgo.connector.kafka;
 
-import java.beans.Statement;
-import java.util.Arrays;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import io.gridgo.connector.impl.AbstractConnector;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.config.ConnectorConfig;
+import io.gridgo.utils.ObjectUtils;
 
 @ConnectorEndpoint(scheme = "kafka", syntax = "{topic}")
 public class KafkaConnector extends AbstractConnector {
@@ -30,39 +28,11 @@ public class KafkaConnector extends AbstractConnector {
 
 	private KafkaConfiguration createKafkaConfig(ConnectorConfig config) {
 		var kafkaConfig = new KafkaConfiguration();
-		var fieldMap = Arrays.stream(KafkaConfiguration.class.getDeclaredFields())
-				.collect(Collectors.toMap(field -> field.getName(), field -> field.getType()));
-		for (String attr : config.getParameters().keySet()) {
-			if (!fieldMap.containsKey(attr))
-				continue;
-			Object value = convertValue(config.getParameters().get(attr), fieldMap.get(attr));
-			String setter = "set" + attr.substring(0, 1).toUpperCase() + attr.substring(1);
-			var stmt = new Statement(kafkaConfig, setter, new Object[] { value });
-			try {
-				stmt.execute();
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-		}
+		ObjectUtils.assembleFromMap(KafkaConfiguration.class, kafkaConfig, config.getParameters());
 		kafkaConfig.setTopic(config.getPlaceholders().getProperty("topic"));
 		return kafkaConfig;
 	}
 
-	private Object convertValue(Object value, Class<?> type) {
-		if (value == null)
-			return null;
-		if (type == String.class)
-			return value.toString();
-		if (type == int.class || type == Integer.class)
-			return Integer.parseInt(value.toString());
-		if (type == long.class || type == Long.class)
-			return Long.parseLong(value.toString());
-		if (type == boolean.class || type == Boolean.class)
-			return Boolean.valueOf(value.toString());
-		return value;
-	}
-
-	@Override
 	protected void onStart() {
 		if (consumer.isPresent())
 			consumer.get().start();
