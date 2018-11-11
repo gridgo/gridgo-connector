@@ -88,7 +88,7 @@ public class ZMQConnectorUnitTest {
 	}
 
 	private void doFnFSend(Consumer consumer, Producer producer) throws InterruptedException {
-		int numMessages = (int) 1e6;
+		int numMessages = (int) 1e2;
 		CountDownLatch doneSignal = new CountDownLatch(numMessages);
 
 		consumer.subscribe((message) -> {
