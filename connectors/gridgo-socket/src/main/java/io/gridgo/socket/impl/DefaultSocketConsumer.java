@@ -9,6 +9,7 @@ import io.gridgo.connector.impl.AbstractConsumer;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.MessageParser;
 import io.gridgo.socket.Socket;
+import io.gridgo.socket.SocketConstants;
 import io.gridgo.socket.SocketConsumer;
 import io.gridgo.socket.SocketFactory;
 import io.gridgo.socket.SocketOptions;
@@ -74,9 +75,9 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 				try {
 					message = MessageParser.DEFAULT.parse(buffer.flip());
 					BObject headers = message.getPayload().getHeaders();
-					if (headers != null && headers.getBoolean("isBatch", false)) {
+					if (headers != null && headers.getBoolean(SocketConstants.IS_BATCH, false)) {
 						BArray subMessages = message.getPayload().getBody().asArray();
-						totalRecvMessages += headers.getInteger("batchSize", subMessages.size());
+						totalRecvMessages += headers.getInteger(SocketConstants.BATCH_SIZE, subMessages.size());
 						for (BElement payload : subMessages) {
 							Message subMessage = MessageParser.DEFAULT.parse(payload);
 							this.publish(subMessage, null);
