@@ -67,7 +67,7 @@ final class ZMQSocket extends AbstractSocket {
 	public void applyConfig(@NonNull String name, Object value) {
 		Setter setter = ZMQ_SOCKET_SETTERS.get(name.toLowerCase());
 		if (setter != null) {
-			System.out.println("Setting: " + name + " = " + value);
+			System.out.println("[ZMQSocket] applied config " + name + " with value " + value);
 			setter.applyAsPrimitive(this.socket, value);
 		}
 	}

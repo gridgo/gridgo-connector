@@ -48,6 +48,10 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 
 	private void poll() {
 		Socket socket = this.factory.createSocket(options);
+		if (!options.getConfig().containsKey("receiveTimeout")) {
+			socket.applyConfig("receiveTimeout", DEFAULT_RECV_TIMEOUT);
+		}
+
 		switch (options.getType().toLowerCase()) {
 		case "pull":
 			socket.bind(address);
