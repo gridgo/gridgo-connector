@@ -18,7 +18,9 @@ import io.gridgo.connector.kafka.KafkaConnector;
 import io.gridgo.connector.kafka.KafkaConstants;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class KafkaProducerUnitTest {
 
 	private static final short REPLICATION_FACTOR = (short) 1;
@@ -102,6 +104,80 @@ public class KafkaProducerUnitTest {
 		connector.stop();
 	}
 
+	@Test
+	public void testProducerSendMultiTopicsWithAck() {
+		String extraQuery = "&mode=producer";
+
+		String topicName = createTopic() + "," + createTopic();
+
+		String brokers = sharedKafkaTestResource.getKafkaConnectString();
+
+		var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
+		var connector = createKafkaConnector(connectString);
+		var producer = connector.getProducer().orElseThrow();
+
+		connector.start();
+
+		String key = "test-key";
+		String value = "test-message";
+		BObject headers = BObject.newDefault().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
+		Message msg = Message.newDefault(Payload.newDefault(headers, BValue.newDefault(value)));
+
+		CountDownLatch latch = new CountDownLatch(NUM_MESSAGES);
+
+		long started = System.nanoTime();
+
+		for (int i = 0; i < NUM_MESSAGES; i++) {
+			producer.sendWithAck(msg).done(response -> {
+				var body = response.getPayload().getBody();
+				if (body.isArray() && body.asArray().size() == 2)
+					latch.countDown();
+			});
+		}
+
+		try {
+			latch.await();
+		} catch (InterruptedException e) {
+
+		}
+
+		long elapsed = System.nanoTime() - started;
+		printPace("KafkaProducerSendMultiTopicsWithAck", NUM_MESSAGES, elapsed);
+
+		connector.stop();
+	}
+
+	@Test
+	public void testProducerSendMultiTopics() {
+		String extraQuery = "&mode=producer";
+
+		String topicName = createTopic() + "," + createTopic();
+
+		String brokers = sharedKafkaTestResource.getKafkaConnectString();
+
+		var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
+		var connector = createKafkaConnector(connectString);
+		var producer = connector.getProducer().orElseThrow();
+
+		connector.start();
+
+		String key = "test-key";
+		String value = "test-message";
+		BObject headers = BObject.newDefault().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
+		Message msg = Message.newDefault(Payload.newDefault(headers, BValue.newDefault(value)));
+
+		long started = System.nanoTime();
+
+		for (int i = 0; i < NUM_MESSAGES; i++) {
+			producer.send(msg);
+		}
+
+		long elapsed = System.nanoTime() - started;
+		printPace("KafkaProducerSendMultiTopics", NUM_MESSAGES, elapsed);
+
+		connector.stop();
+	}
+
 	private Connector createKafkaConnector(String connectString) {
 		var connector = new DefaultConnectorFactory().createConnector(connectString);
 
@@ -120,7 +196,7 @@ public class KafkaProducerUnitTest {
 
 	private void printPace(String name, int numMessages, long elapsed) {
 		DecimalFormat df = new DecimalFormat("###,###.##");
-		System.out.println(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6)
+		log.info(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6)
 				+ "ms -> pace: " + df.format(1e9 * numMessages / elapsed) + "ops/s");
 	}
 }

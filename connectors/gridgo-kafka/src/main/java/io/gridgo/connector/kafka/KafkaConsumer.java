@@ -6,11 +6,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.header.Header;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.AsyncDeferredObject;
@@ -25,7 +27,9 @@ import io.gridgo.framework.execution.ExecutionStrategy;
 import io.gridgo.framework.execution.impl.ExecutorExecutionStrategy;
 import io.gridgo.framework.support.Message;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class KafkaConsumer extends AbstractConsumer {
 
 	private static final int DEFAULT_THREADS = 8;
@@ -50,8 +54,13 @@ public class KafkaConsumer extends AbstractConsumer {
 
 		var props = getProps();
 
+		Pattern pattern = null;
+		if (configuration.isTopicIsPattern()) {
+			pattern = Pattern.compile(configuration.getTopic());
+		}
+
 		for (int i = 0; i < configuration.getConsumersCount(); i++) {
-			KafkaFetchRecords task = new KafkaFetchRecords(configuration.getTopic(), i + "", props);
+			KafkaFetchRecords task = new KafkaFetchRecords(configuration.getTopic(), pattern, i + "", props);
 			task.doInit();
 			consumerExecutionStrategy.execute(task);
 			tasks.add(task);
@@ -84,8 +93,11 @@ public class KafkaConsumer extends AbstractConsumer {
 
 		private volatile boolean stopped = false;
 
-		public KafkaFetchRecords(String topicName, String id, Properties kafkaProps) {
+		private Pattern pattern;
+
+		public KafkaFetchRecords(String topicName, Pattern pattern, String id, Properties kafkaProps) {
 			this.topicName = topicName;
+			this.pattern = pattern;
 			this.id = id;
 			this.kafkaProps = kafkaProps;
 		}
@@ -102,7 +114,7 @@ public class KafkaConsumer extends AbstractConsumer {
 						doInit();
 					}
 				} catch (Throwable e) {
-					// TODO log
+					log.warn("Exception caught when initializing KafkaConsumer", e);
 				}
 
 				if (!first) {
@@ -133,7 +145,7 @@ public class KafkaConsumer extends AbstractConsumer {
 			}
 		}
 
-		public boolean doRun() {
+		private boolean doRun() {
 			boolean reConnect = false;
 
 			var pollDuration = Duration.ofMillis(100);
@@ -142,7 +154,7 @@ public class KafkaConsumer extends AbstractConsumer {
 			Thread.currentThread().setName("KAFKA-CONSUMER-" + topicName + "-" + id);
 
 			try {
-				consumer.subscribe(Arrays.asList(topicName.split(",")));
+				subscribeTopics();
 
 				seekOffset(pollDuration);
 
@@ -169,8 +181,7 @@ public class KafkaConsumer extends AbstractConsumer {
 						try {
 							offset = promise.get();
 						} catch (Exception ex) {
-							// TODO log exception
-							ex.printStackTrace();
+							log.error("Exception caught on processing records", ex);
 							getExceptionHandler().accept(ex);
 							reConnect = true;
 						}
@@ -187,19 +198,27 @@ public class KafkaConsumer extends AbstractConsumer {
 						}
 					}
 				}
+			} catch (WakeupException e) {
+				log.warn("WakeupException caught on consumer thread", e);
 			} catch (KafkaException e) {
-				// TODO log error
-				e.printStackTrace();
+				log.error("KafkaException caught on consumer thread", e);
 				reConnect = true;
 			} catch (Exception e) {
-				// TODO log error
-				e.printStackTrace();
+				log.error("Exception caught on consumer thread", e);
 				getExceptionHandler().accept(e);
 			} finally {
 				cleanUpConsumer();
 			}
 
 			return reConnect;
+		}
+
+		private void subscribeTopics() {
+			if (configuration.isTopicIsPattern()) {
+				consumer.subscribe(pattern);
+			} else {
+				consumer.subscribe(Arrays.asList(topicName.split(",")));
+			}
 		}
 
 		private void cleanUpConsumer() {
@@ -268,7 +287,7 @@ public class KafkaConsumer extends AbstractConsumer {
 					deferred.promise().get();
 					lastRecord = record.offset();
 				} catch (Exception ex) {
-					System.err.println(ex.getMessage());
+					log.error("Exception caught while processing ConsumerRecord", ex);
 					if (breakOnFirstError) {
 						commitOffset(lastRecord, partition);
 						return new SimpleFailurePromise<>(ex);
@@ -305,7 +324,6 @@ public class KafkaConsumer extends AbstractConsumer {
 			stopped = true;
 			if (consumer != null)
 				consumer.wakeup();
-			System.out.println("stopped kafka task");
 		}
 	}
 }

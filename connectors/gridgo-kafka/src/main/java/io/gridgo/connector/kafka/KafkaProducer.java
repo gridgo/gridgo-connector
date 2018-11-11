@@ -1,5 +1,7 @@
 package io.gridgo.connector.kafka;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -7,34 +9,58 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.joo.promise4j.Deferred;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.CompletableDeferredObject;
+import org.joo.promise4j.impl.JoinedPromise;
+import org.joo.promise4j.impl.JoinedResults;
 
+import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.AbstractProducer;
 import io.gridgo.framework.support.Message;
+import io.gridgo.framework.support.Payload;
 
 public class KafkaProducer extends AbstractProducer {
 
 	private KafkaConfiguration configuration;
+
 	private org.apache.kafka.clients.producer.KafkaProducer<Object, Object> producer;
+
+	private String[] topics;
 
 	public KafkaProducer(KafkaConfiguration configuration) {
 		this.configuration = configuration;
+		this.topics = configuration.getTopic().split(",");
 	}
 
 	@Override
 	public void send(Message message) {
-		var record = buildProducerRecord(message);
-		this.producer.send(record);
+		for (var topic : topics) {
+			var record = buildProducerRecord(topic, message);
+			this.producer.send(record);
+		}
 	}
 
 	@Override
 	public Promise<Message, Exception> sendWithAck(Message message) {
-		var deferred = new CompletableDeferredObject<Message, Exception>();
-		var record = buildProducerRecord(message);
-		this.producer.send(record, (metadata, ex) -> ack(deferred, metadata, ex));
-		return deferred.promise();
+		var promises = new ArrayList<Promise<Message, Exception>>();
+		for (var topic : topics) {
+			var deferred = new CompletableDeferredObject<Message, Exception>();
+			var record = buildProducerRecord(topic, message);
+			this.producer.send(record, (metadata, ex) -> ack(deferred, metadata, ex));
+			promises.add(deferred);
+		}
+
+		return promises.size() == 1 ? promises.get(0)
+				: JoinedPromise.from(promises).filterDone(this::convertJoinedResult);
+	}
+
+	public Message convertJoinedResult(JoinedResults<Message> results) {
+		List<Payload> list = new ArrayList<>();
+		for (Message msg : results) {
+			list.add(msg.getPayload());
+		}
+		return Message.newDefault(Payload.newDefault(BArray.newDefault(list)));
 	}
 
 	private void ack(Deferred<Message, Exception> deferred, RecordMetadata metadata, Exception exception) {
@@ -42,8 +68,7 @@ public class KafkaProducer extends AbstractProducer {
 		ack(deferred, msg, exception);
 	}
 
-	private ProducerRecord<Object, Object> buildProducerRecord(Message message) {
-		String topic = configuration.getTopic();
+	private ProducerRecord<Object, Object> buildProducerRecord(String topic, Message message) {
 		var headers = message.getPayload().getHeaders();
 
 		var partitionValue = headers.getValue(KafkaConstants.PARTITION);
@@ -68,7 +93,7 @@ public class KafkaProducer extends AbstractProducer {
 	private Message buildAckMessage(RecordMetadata metadata) {
 		if (metadata == null)
 			return null;
-		BObject headers = BObject.newDefault().setAny(KafkaConstants.IS_ACK_MSG, "true")
+		var headers = BObject.newDefault().setAny(KafkaConstants.IS_ACK_MSG, "true")
 				.setAny(KafkaConstants.TIMESTAMP, metadata.timestamp()).setAny(KafkaConstants.OFFSET, metadata.offset())
 				.setAny(KafkaConstants.PARTITION, metadata.partition()).setAny(KafkaConstants.TOPIC, metadata.topic());
 		return createMessage(headers, BValue.newDefault());
@@ -81,8 +106,10 @@ public class KafkaProducer extends AbstractProducer {
 
 	@Override
 	protected void onStart() {
-		Properties props = getProps();
-		ClassLoader threadClassLoader = Thread.currentThread().getContextClassLoader();
+		if (configuration.isTopicIsPattern())
+			getLogger().warn("topicIsPattern won't work with KafkaProducer, will ignore");
+		var props = getProps();
+		var threadClassLoader = Thread.currentThread().getContextClassLoader();
 		try {
 			// Kafka uses reflection for loading authentication settings, use its
 			// classloader

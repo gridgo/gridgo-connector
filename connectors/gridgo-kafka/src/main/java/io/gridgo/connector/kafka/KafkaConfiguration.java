@@ -65,6 +65,8 @@ public class KafkaConfiguration {
     private boolean autoCommitEnable = true;
 
     private String autoCommitOnStop = "sync";
+    
+    private boolean topicIsPattern = false;
 
     // producer
 

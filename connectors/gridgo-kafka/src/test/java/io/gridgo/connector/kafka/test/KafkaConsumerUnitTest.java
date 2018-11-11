@@ -19,7 +19,9 @@ import io.gridgo.connector.kafka.KafkaConnector;
 import io.gridgo.connector.kafka.KafkaConstants;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class KafkaConsumerUnitTest {
 
 	private static final short REPLICATION_FACTOR = (short) 1;
@@ -145,7 +147,7 @@ public class KafkaConsumerUnitTest {
 	}
 
 	private void sendTestRecords(String topicName, Producer producer, int numMessages) {
-		System.out.println("Sending records...");
+		log.info("Sending records...");
 
 		long started = System.nanoTime();
 		// Create a new producer
@@ -160,7 +162,7 @@ public class KafkaConsumerUnitTest {
 
 	private void printPace(String name, int numMessages, long elapsed) {
 		DecimalFormat df = new DecimalFormat("###,###.##");
-		System.out.println(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6)
-				+ "ms -> pace: " + df.format(1e9 * numMessages / elapsed) + "ops/s");
+		log.info("%s: %d operations were processed in %sms -> pace: %s", name, numMessages, df.format(elapsed / 1e6),
+				df.format(1e9 * numMessages / elapsed) + "ops/s");
 	}
 }
