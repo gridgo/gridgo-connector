@@ -9,6 +9,7 @@ import io.gridgo.connector.support.exceptions.SendMessageException;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 import io.gridgo.socket.Socket;
+import io.gridgo.socket.SocketConstants;
 import io.gridgo.socket.SocketFactory;
 import io.gridgo.socket.SocketOptions;
 import io.gridgo.socket.SocketProducer;
@@ -83,8 +84,8 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 				body.add(BArray.newFromSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody()));
 			}
 			Payload payload = Payload.newDefault(body)//
-					.addHeader("isBatch", true) //
-					.addHeader("batchSize", messages.size());
+					.addHeader(SocketConstants.IS_BATCH, true) //
+					.addHeader(SocketConstants.BATCH_SIZE, messages.size());
 
 			return Message.newDefault(payload);
 		}
