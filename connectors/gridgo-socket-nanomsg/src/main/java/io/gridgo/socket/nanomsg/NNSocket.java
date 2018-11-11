@@ -58,11 +58,8 @@ public class NNSocket extends AbstractSocket {
 		return nanomsg.nn_recv(id, buffer, block ? 0 : nanomsg.NN_DONTWAIT);
 	}
 
-	private void applyConfig(int option, int value) {
-		boolean success = nanomsg.nn_setsockopt_int(this.getId(), nanomsg.NN_SOL_SOCKET, option, value) >= 0;
-		if (!success) {
-			throw new NNException("Cannot apply option " + option + " to nnsocket id " + this.getId());
-		}
+	private boolean applyConfig(int option, int value) {
+		return nanomsg.nn_setsockopt_int(this.getId(), nanomsg.NN_SOL_SOCKET, option, value) >= 0;
 	}
 
 	@Override
@@ -70,47 +67,51 @@ public class NNSocket extends AbstractSocket {
 		Assert.notNull(name, "Config's name");
 		Assert.notNull(value, "Config's value");
 
+		boolean success = false;
 		switch (name.toLowerCase()) {
 		case "linger":
-			this.applyConfig(nanomsg.NN_LINGER, PrimitiveUtils.getIntegerValueFrom(value));
+			success = this.applyConfig(nanomsg.NN_LINGER, PrimitiveUtils.getIntegerValueFrom(value));
 			break;
 		case "sendbuffer":
 		case "sndbuf":
-			this.applyConfig(nanomsg.NN_SNDBUF, PrimitiveUtils.getIntegerValueFrom(value));
+			success = this.applyConfig(nanomsg.NN_SNDBUF, PrimitiveUtils.getIntegerValueFrom(value));
 			break;
 		case "receivebuffer":
 		case "recvbuffer":
 		case "recvbuf":
 		case "rcvbuf":
-			this.applyConfig(nanomsg.NN_RCVBUF, PrimitiveUtils.getIntegerValueFrom(value));
+			success = this.applyConfig(nanomsg.NN_RCVBUF, PrimitiveUtils.getIntegerValueFrom(value));
 			break;
 		case "sendtimeout":
 		case "sndtimeout":
 		case "sendtimeo":
 		case "sndtimeo":
-			this.applyConfig(nanomsg.NN_SNDTIMEO, PrimitiveUtils.getIntegerValueFrom(value));
+			success = this.applyConfig(nanomsg.NN_SNDTIMEO, PrimitiveUtils.getIntegerValueFrom(value));
 			break;
 		case "receivetimeout":
 		case "recvtimeout":
 		case "rcvtimeo":
-			this.applyConfig(nanomsg.NN_RCVTIMEO, PrimitiveUtils.getIntegerValueFrom(value));
+			success = this.applyConfig(nanomsg.NN_RCVTIMEO, PrimitiveUtils.getIntegerValueFrom(value));
 			break;
 		case "reconnectinterval":
 		case "reconnect_ivl":
 		case "reconnectivl":
-			this.applyConfig(nanomsg.NN_RECONNECT_IVL, PrimitiveUtils.getIntegerValueFrom(value));
+			success = this.applyConfig(nanomsg.NN_RECONNECT_IVL, PrimitiveUtils.getIntegerValueFrom(value));
 			break;
 		case "reconnectivlmax":
 		case "reconnect_ivl_max":
 		case "reconnectintervalmax":
-			this.applyConfig(nanomsg.NN_RECONNECT_IVL_MAX, PrimitiveUtils.getIntegerValueFrom(value));
+			success = this.applyConfig(nanomsg.NN_RECONNECT_IVL_MAX, PrimitiveUtils.getIntegerValueFrom(value));
 			break;
 		case "sendpriority":
 		case "sndpriority":
 		case "sendprio":
 		case "sndprio":
-			this.applyConfig(nanomsg.NN_SNDPRIO, PrimitiveUtils.getIntegerValueFrom(value));
+			success = this.applyConfig(nanomsg.NN_SNDPRIO, PrimitiveUtils.getIntegerValueFrom(value));
 			break;
+		}
+		if (success) {
+			System.out.println("[NNSocket] applied config " + name + " with value " + value);
 		}
 	}
 }

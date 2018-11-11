@@ -5,6 +5,8 @@ import io.gridgo.socket.impl.DefaultSocketConsumer;
 
 public interface SocketConsumer extends Consumer {
 
+	public final int DEFAULT_RECV_TIMEOUT = 100; // receive timeout apply on polling event loop
+
 	long getTotalRecvBytes();
 
 	long getTotalRecvMessages();
