@@ -105,7 +105,7 @@ public class NNConnectorUnitTest {
 	}
 
 	private void doAckSend(Consumer consumer, Producer producer) throws InterruptedException, PromiseException {
-		int numMessages = (int) 1e6;
+		int numMessages = (int) 1e2;
 		CountDownLatch doneSignal = new CountDownLatch(numMessages);
 
 		consumer.subscribe((message) -> {
