@@ -134,7 +134,6 @@ public class KafkaConsumer extends AbstractConsumer {
 		}
 
 		public boolean doRun() {
-			stopped = false;
 			boolean reConnect = false;
 
 			var pollDuration = Duration.ofMillis(100);
@@ -306,6 +305,7 @@ public class KafkaConsumer extends AbstractConsumer {
 			stopped = true;
 			if (consumer != null)
 				consumer.wakeup();
+			System.out.println("stopped kafka task");
 		}
 	}
 }
