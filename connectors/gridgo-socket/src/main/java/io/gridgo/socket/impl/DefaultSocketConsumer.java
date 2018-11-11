@@ -88,6 +88,7 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 					}
 				} catch (Exception e) {
 					getLogger().error("Error while parse buffer to message", e);
+					getExceptionHandler().accept(e);
 				}
 			}
 		}
