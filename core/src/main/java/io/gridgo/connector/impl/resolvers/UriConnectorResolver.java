@@ -163,7 +163,7 @@ public class UriConnectorResolver implements ConnectorResolver {
 
 	private boolean isPlaceholder(char c, boolean insideBracket) {
 		return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_' || c == '-' || c == '.'
-				|| c == ':' && insideBracket;
+				|| c == ',' || c == ':' && insideBracket;
 	}
 
 	private String extractPlaceholderKey(String syntax, int j, CharBuffer buffer) {
