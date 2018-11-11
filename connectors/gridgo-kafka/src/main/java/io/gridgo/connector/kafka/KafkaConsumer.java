@@ -248,7 +248,7 @@ public class KafkaConsumer extends AbstractConsumer {
 
 			populateCommonHeaders(headers, lastRecord);
 
-			headers.putAny(KafkaConstants.BATCH, true);
+			headers.putAny(KafkaConstants.IS_BATCH, true);
 			headers.putAny(KafkaConstants.BATCH_SIZE, records.size());
 			headers.putAny(KafkaConstants.OFFSET, lastRecord.offset());
 

@@ -26,9 +26,9 @@ public class KafkaConstants {
 
 	public static final String RECORD = "kafka.RECORD";
 
-	public static final String BATCH = "kafka.BATCH";
+	public static final String IS_BATCH = "isBatch";
 
-	public static final String BATCH_SIZE = "kafka.BATCH_SIZE";
+	public static final String BATCH_SIZE = "batchSize";
 
 	public static final String IS_ACK_MSG = "kafka.IS_ACK_MSG";
 }
