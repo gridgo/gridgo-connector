@@ -3,6 +3,8 @@ package io.gridgo.connector.kafka.test;
 import java.text.DecimalFormat;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -15,6 +17,7 @@ import io.gridgo.connector.Connector;
 import io.gridgo.connector.Producer;
 import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
 import io.gridgo.connector.kafka.KafkaConnector;
+import io.gridgo.connector.kafka.KafkaConstants;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 
@@ -24,7 +27,7 @@ public class KafkaIntegratedUnitTest {
 
 	private static final int NUM_PARTITIONS = 1;
 
-	private static final int NUM_MESSAGES = 10000;
+	private static final int NUM_MESSAGES = 1000;
 
 	@ClassRule
 	public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(1)
@@ -34,6 +37,14 @@ public class KafkaIntegratedUnitTest {
 	public void testConsumerAndProducer() {
 
 		String extraQuery = "&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest";
+
+		doTestConsumerAndProducer(extraQuery);
+	}
+
+	@Test
+	public void testBatchConsumerAndProducer() {
+
+		String extraQuery = "&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest&batchEnabled=true";
 
 		doTestConsumerAndProducer(extraQuery);
 	}
@@ -71,11 +82,12 @@ public class KafkaIntegratedUnitTest {
 
 		System.out.println("Warm up done");
 
-		var latch = new CountDownLatch(NUM_MESSAGES);
+		var latch = new AtomicInteger(NUM_MESSAGES);
 
 		consumer.clearSubscribers();
 		consumer.subscribe((msg, deferred) -> {
-			latch.countDown();
+			int size = msg.getPayload().getHeaders().getInteger(KafkaConstants.BATCH_SIZE, 1);
+			latch.addAndGet(-size);
 			deferred.resolve(null);
 		});
 
@@ -83,10 +95,9 @@ public class KafkaIntegratedUnitTest {
 
 		sendTestRecords(topicName, producer, NUM_MESSAGES);
 
-		try {
-			latch.await();
-		} catch (InterruptedException e) {
-
+		while (latch.get() != 0) {
+			// Thread.onSpinWait();
+			LockSupport.parkNanos(0);
 		}
 		long elapsed = System.nanoTime() - started;
 		printPace("KafkaConsumer", NUM_MESSAGES, elapsed);
