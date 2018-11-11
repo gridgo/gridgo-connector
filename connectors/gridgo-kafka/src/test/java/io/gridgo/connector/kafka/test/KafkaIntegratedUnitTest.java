@@ -103,6 +103,8 @@ public class KafkaIntegratedUnitTest {
 		printPace("KafkaConsumer", NUM_MESSAGES, elapsed);
 
 		connector.stop();
+		
+		System.out.println("Connector stop");
 	}
 
 	private String createTopic() {
