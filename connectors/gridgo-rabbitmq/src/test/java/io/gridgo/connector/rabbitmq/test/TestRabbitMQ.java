@@ -124,13 +124,13 @@ public class TestRabbitMQ {
 	public void testPubSub() throws InterruptedException {
 		System.out.println("Test pub/sub");
 		Connector connector1 = RESOLVER.resolve("rabbitmq://localhost/testFanoutExchange?exchangeType=fanout");
-		Producer producer = connector1.getProducer().get();
-		Consumer consumer1 = connector1.getConsumer().get();
-
 		Connector connector2 = RESOLVER.resolve("rabbitmq://localhost/testFanoutExchange?exchangeType=fanout");
 
 		connector1.start();
 		connector2.start();
+
+		Producer producer = connector1.getProducer().get();
+		Consumer consumer1 = connector1.getConsumer().get();
 
 		Consumer consumer2 = connector2.getConsumer().get();
 
@@ -165,14 +165,15 @@ public class TestRabbitMQ {
 		System.out.println("Test routing key");
 		Connector connector1 = RESOLVER
 				.resolve("rabbitmq://localhost/testDirectExchange?exchangeType=direct&routingKey=key1");
-		Producer producer1 = connector1.getProducer().get();
-		Consumer consumer1 = connector1.getConsumer().get();
 
 		Connector connector2 = RESOLVER
 				.resolve("rabbitmq://localhost/testDirectExchange?exchangeType=direct&routingKey=key2");
 
 		connector1.start();
 		connector2.start();
+
+		Producer producer1 = connector1.getProducer().get();
+		Consumer consumer1 = connector1.getConsumer().get();
 
 		Consumer consumer2 = connector2.getConsumer().get();
 
@@ -211,14 +212,14 @@ public class TestRabbitMQ {
 		System.out.println("Test routing key rpc");
 		Connector connector1 = RESOLVER
 				.resolve("rabbitmq://localhost/testDirectExchange?exchangeType=direct&routingKey=key1&rpc=true");
-		Producer producer = connector1.getProducer().get();
-		Consumer consumer1 = connector1.getConsumer().get();
-
 		Connector connector2 = RESOLVER
 				.resolve("rabbitmq://localhost/testDirectExchange?exchangeType=direct&routingKey=key2&rpc=true");
 
 		connector1.start();
 		connector2.start();
+
+		Producer producer = connector1.getProducer().get();
+		Consumer consumer1 = connector1.getConsumer().get();
 
 		Consumer consumer2 = connector2.getConsumer().get();
 
