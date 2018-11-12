@@ -1,0 +1,52 @@
+[[kafka-connector]]
+== gridgo-kafka
+
+*Available as of version 0.1.0*
+
+Allows messages to be sent to (or consumed from) http://kafka.apache.org/[Apache Kafka] brokers.
+
+=== install
+
+[source,xml]
+------------------------------------------------------------
+<dependency>
+    <groupId>io.gridgo</groupId>
+    <artifactId>gridgo-kafka</artifactId>
+    <version>x.x.x</version>
+    <!-- use the same version as gridgo-connector-core version -->
+</dependency>
+------------------------------------------------------------
+
+=== uri format
+
+[source,java]
+---------------------------
+kafka:topic[?options]
+
+---------------------------
+
+=== options
+
+// connector options: START
+
+Please look at link:src/main/java/io/gridgo/connector/kafka/KafkaConfiguration.java[KafkaConfiguration]
+for a complete list of the options. Below are some important options
+
+[width="100%",cols="2,5,^1,2",options="header"]
+|===
+
+| Name | Description  | Default | Type
+| *brokers* (common) | A list of host/port pairs to use for establishing the initial connection to the Kafka cluster |  | String
+| *clientId* (consumer) | An id string to pass to the server when making requests.  |  | String
+| *groupId* (consumer) | The name of the consumer group to which Kafka consumers belong |  | String
+| *consumersCount* (consumer) | Number of Kafka consumers to be created | 1 | Integer
+| *autoOffsetReset* (consumer) | Can be either `none`, `earliest` or `latest`. The offset to be used when there is no initial offset or if the current offset doesn't exist anymore | latest | String
+| *autoCommitEnable* (consumer) | Whether to auto-commit offset | true | boolean
+| *autoCommitIntervalMs* (consumer) | The frequency in milliseconds that the consumer offsets are auto-committed to Kafka if `autoCommitEnable` is set to `true` | 5000 | Integer
+| *autoCommitOnStop* (consumer) | Can be either `sync`, `async` or anything else. The auto-commit strategy when consumer stops. Only works if `autoCommitEnable` is set to `true` | sync | String
+| *batchEnabled* (consumer) | Whether to publish records as batch to handler | false | boolean
+| *breakOnFirstError* (consumer) | Whether to stop and restart consumer if exception was caught while handling records | true | boolean
+| *topicIsPattern* (consumer) | If true, the consumer will treat the topic parameter as pattern | false | boolean
+
+|===
+// connector options: END
