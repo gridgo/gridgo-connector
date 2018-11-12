@@ -6,26 +6,33 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.Consumer;
 import io.gridgo.connector.Producer;
+import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.config.ConnectorConfig;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.AbstractComponentLifecycle;
 import lombok.Getter;
 
+@ConnectorEndpoint(scheme = "mongodb", syntax = "")
 public abstract class AbstractConnector extends AbstractComponentLifecycle implements Connector {
 
 	protected static final String LOCALHOST = "localhost";
 
 	private final AtomicBoolean initialized = new AtomicBoolean(false);
-	
+
 	@Getter
 	private ConnectorConfig connectorConfig;
-	
+
+	@Getter
+	private ConnectorContext context;
+
 	protected Optional<Consumer> consumer = Optional.empty();
 
 	protected Optional<Producer> producer = Optional.empty();
 
 	@Override
-	public final Connector initialize(ConnectorConfig config) {
+	public final Connector initialize(ConnectorConfig config, ConnectorContext context) {
 		if (initialized.compareAndSet(false, true)) {
+			this.context = context;
 			this.connectorConfig = config;
 			this.onInit();
 			return this;
@@ -42,7 +49,7 @@ public abstract class AbstractConnector extends AbstractComponentLifecycle imple
 	public final Optional<Consumer> getConsumer() {
 		return consumer;
 	}
-	
+
 	protected String getParam(ConnectorConfig config, String name) {
 		Object value = config.getParameters().get(name);
 		return value != null ? value.toString() : null;

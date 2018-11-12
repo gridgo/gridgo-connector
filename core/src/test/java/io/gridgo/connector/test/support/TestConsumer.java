@@ -1,26 +1,18 @@
 package io.gridgo.connector.test.support;
 
-import java.util.function.Consumer;
-
-import org.junit.Assert;
-
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.AbstractConsumer;
-import io.gridgo.framework.execution.impl.DefaultExecutionStrategy;
-import io.gridgo.framework.support.generators.impl.UUIDGenerator;
+import io.gridgo.connector.support.config.ConnectorContext;
 
 public class TestConsumer extends AbstractConsumer {
 
+	public TestConsumer(ConnectorContext context) {
+		super(context);
+	}
+
 	@Override
 	protected void onStart() {
-		var strategy = new DefaultExecutionStrategy();
-		var handler = (Consumer<Throwable>) ex -> ex.printStackTrace();
-		var generator = new UUIDGenerator();
-		consumeOn(strategy).invokeCallbackOn(strategy).setExceptionHandler(handler).setIdGenerator(generator);;
-		Assert.assertTrue(getConsumerExecutionStrategy() == strategy);
-		Assert.assertTrue(getCallbackInvokeExecutor() == strategy);
-		Assert.assertTrue(getExceptionHandler() == handler);
-		Assert.assertTrue(getIdGenerator() == generator);
+		
 	}
 
 	@Override

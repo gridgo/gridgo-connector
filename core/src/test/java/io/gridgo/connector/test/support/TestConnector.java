@@ -10,8 +10,8 @@ public class TestConnector extends AbstractConnector {
 
 	@Override
 	protected void onInit() {
-		this.consumer = Optional.of(new TestConsumer());
-		this.producer = Optional.of(new TestProducer());
+		this.consumer = Optional.of(new TestConsumer(getContext()));
+		this.producer = Optional.of(new TestProducer(getContext()));
 	}
 	
 	@Override

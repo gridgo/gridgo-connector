@@ -1,6 +1,7 @@
 package io.gridgo.socket;
 
 import io.gridgo.connector.Consumer;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.socket.impl.DefaultSocketConsumer;
 
 public interface SocketConsumer extends Consumer {
@@ -11,8 +12,8 @@ public interface SocketConsumer extends Consumer {
 
 	long getTotalRecvMessages();
 
-	static SocketConsumer newDefault(SocketFactory factory, SocketOptions options, String address, int bufferSize) {
-		return new DefaultSocketConsumer(factory, options, address, bufferSize);
+	static SocketConsumer newDefault(ConnectorContext context, SocketFactory factory, SocketOptions options, String address, int bufferSize) {
+		return new DefaultSocketConsumer(context, factory, options, address, bufferSize);
 	}
 
 }

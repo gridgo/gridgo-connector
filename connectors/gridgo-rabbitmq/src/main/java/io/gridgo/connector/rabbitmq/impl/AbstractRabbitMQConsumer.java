@@ -18,6 +18,7 @@ import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.AbstractConsumer;
 import io.gridgo.connector.rabbitmq.RabbitMQConsumer;
 import io.gridgo.connector.rabbitmq.RabbitMQQueueConfig;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.MessageParser;
 import io.gridgo.framework.support.Payload;
@@ -34,7 +35,8 @@ public abstract class AbstractRabbitMQConsumer extends AbstractConsumer implemen
 	@Getter
 	private Channel channel;
 
-	protected AbstractRabbitMQConsumer(@NonNull Connection connection, @NonNull RabbitMQQueueConfig queueConfig) {
+	protected AbstractRabbitMQConsumer(ConnectorContext context, @NonNull Connection connection, @NonNull RabbitMQQueueConfig queueConfig) {
+		super(context);
 		this.connection = connection;
 		this.queueConfig = queueConfig;
 	}

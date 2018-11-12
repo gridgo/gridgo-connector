@@ -5,6 +5,7 @@ import java.util.Collection;
 
 import io.gridgo.bean.BArray;
 import io.gridgo.connector.impl.SingleThreadSendingProducer;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.exceptions.SendMessageException;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
@@ -34,6 +35,7 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 	private Socket socket;
 
 	public DefaultSocketProducer(//
+			ConnectorContext context, //
 			SocketFactory factory, //
 			SocketOptions options, //
 			String address, //
@@ -41,7 +43,7 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 			int ringBufferSize, //
 			boolean batchingEnabled, int maxBatchingSize) {
 
-		super(ringBufferSize, (runnable) -> {
+		super(context, ringBufferSize, (runnable) -> {
 			return new Thread(runnable);
 		}, batchingEnabled, maxBatchingSize);
 

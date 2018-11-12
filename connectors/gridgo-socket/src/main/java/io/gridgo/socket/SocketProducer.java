@@ -3,6 +3,7 @@ package io.gridgo.socket;
 import org.joo.promise4j.Promise;
 
 import io.gridgo.connector.Producer;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.gridgo.socket.impl.DefaultSocketProducer;
 
@@ -17,9 +18,9 @@ public interface SocketProducer extends Producer {
 		throw new UnsupportedOperationException();
 	}
 
-	static SocketProducer newDefault(SocketFactory factory, SocketOptions options, String address, int bufferSize,
-			int ringBufferSize, boolean batchingEnabled, int maxBatchSize) {
-		return new DefaultSocketProducer(factory, options, address, bufferSize, ringBufferSize, batchingEnabled,
-				maxBatchSize);
+	static SocketProducer newDefault(ConnectorContext context, SocketFactory factory, SocketOptions options,
+			String address, int bufferSize, int ringBufferSize, boolean batchingEnabled, int maxBatchSize) {
+		return new DefaultSocketProducer(context, factory, options, address, bufferSize, ringBufferSize,
+				batchingEnabled, maxBatchSize);
 	}
 }

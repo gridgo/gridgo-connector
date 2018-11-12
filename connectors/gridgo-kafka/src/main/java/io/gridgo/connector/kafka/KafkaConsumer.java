@@ -23,6 +23,7 @@ import io.gridgo.bean.BArray;
 import io.gridgo.bean.BFactory;
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.AbstractConsumer;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.execution.ExecutionStrategy;
 import io.gridgo.framework.execution.impl.ExecutorExecutionStrategy;
 import io.gridgo.framework.support.Message;
@@ -36,18 +37,25 @@ public class KafkaConsumer extends AbstractConsumer {
 
 	private static final ExecutionStrategy DEFAULT_EXECUTION_STRATEGY = new ExecutorExecutionStrategy(DEFAULT_THREADS);
 
+	static {
+		DEFAULT_EXECUTION_STRATEGY.start();
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			DEFAULT_EXECUTION_STRATEGY.stop();
+		}));
+	}
+
 	private final KafkaConfiguration configuration;
 
 	private List<KafkaFetchRecords> tasks;
 
-	public KafkaConsumer(final @NonNull KafkaConfiguration configuration) {
+	public KafkaConsumer(ConnectorContext context, final @NonNull KafkaConfiguration configuration) {
+		super(context);
 		this.configuration = configuration;
-		setConsumerExecutionStrategy(DEFAULT_EXECUTION_STRATEGY);
 	}
 
 	@Override
 	protected void onStart() {
-		var consumerExecutionStrategy = getConsumerExecutionStrategy();
+		var consumerExecutionStrategy = getContext().getConsumerExecutionStrategy().orElse(DEFAULT_EXECUTION_STRATEGY);
 		consumerExecutionStrategy.start();
 
 		tasks = new ArrayList<>();
@@ -76,8 +84,8 @@ public class KafkaConsumer extends AbstractConsumer {
 		for (KafkaFetchRecords task : tasks) {
 			task.shutdown();
 		}
-		var consumerExecutionStrategy = getCallbackInvokeExecutor();
-		if (consumerExecutionStrategy != DEFAULT_EXECUTION_STRATEGY)
+		var consumerExecutionStrategy = getContext().getConsumerExecutionStrategy().orElse(null);
+		if (consumerExecutionStrategy != null)
 			consumerExecutionStrategy.stop();
 	}
 
@@ -182,7 +190,7 @@ public class KafkaConsumer extends AbstractConsumer {
 							offset = promise.get();
 						} catch (Exception ex) {
 							log.error("Exception caught on processing records", ex);
-							getExceptionHandler().accept(ex);
+							getContext().getExceptionHandler().accept(ex);
 							reConnect = true;
 						}
 						commitOffset(offset, partition);
@@ -205,7 +213,7 @@ public class KafkaConsumer extends AbstractConsumer {
 				reConnect = true;
 			} catch (Exception e) {
 				log.error("Exception caught on consumer thread", e);
-				getExceptionHandler().accept(e);
+				getContext().getExceptionHandler().accept(e);
 			} finally {
 				cleanUpConsumer();
 			}

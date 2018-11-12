@@ -13,6 +13,7 @@ import io.gridgo.bean.BValue;
 import io.gridgo.connector.Consumer;
 import io.gridgo.connector.impl.AbstractConsumer;
 import io.gridgo.connector.support.ConnectionRef;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.exceptions.FailureHandlerAware;
 import io.gridgo.connector.vertx.support.exceptions.UnsupportedFormatException;
 import io.gridgo.framework.support.Message;
@@ -44,8 +45,9 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 
 	private Function<Throwable, Message> failureHandler;
 
-	public VertxHttpConsumer(VertxOptions vertxOptions, HttpServerOptions options, String path, String method,
-			String format) {
+	public VertxHttpConsumer(ConnectorContext context, VertxOptions vertxOptions, HttpServerOptions options,
+			String path, String method, String format) {
+		super(context);
 		this.vertxOptions = vertxOptions;
 		this.httpOptions = options;
 		this.path = path;

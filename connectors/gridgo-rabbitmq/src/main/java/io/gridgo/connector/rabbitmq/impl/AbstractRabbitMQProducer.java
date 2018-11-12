@@ -19,6 +19,7 @@ import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.AbstractProducer;
 import io.gridgo.connector.rabbitmq.RabbitMQProducer;
 import io.gridgo.connector.rabbitmq.RabbitMQQueueConfig;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.MessageParser;
 import io.gridgo.framework.support.Payload;
@@ -43,7 +44,9 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 
 	private final Map<String, Deferred<Message, Exception>> correlationIdToDeferredMap = new NonBlockingHashMap<>();
 
-	protected AbstractRabbitMQProducer(Connection connection, RabbitMQQueueConfig queueConfig) {
+	protected AbstractRabbitMQProducer(ConnectorContext context, Connection connection,
+			RabbitMQQueueConfig queueConfig) {
+		super(context);
 		this.connection = connection;
 		this.queueConfig = queueConfig;
 	}
@@ -65,7 +68,7 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 		final Optional<BValue> routingId = request.getRoutingId();
 		final String routingKey = routingId == null ? null : routingId.orElse(BValue.newDefault()).getString();
 
-		this.getProducerExecutionStrategy().execute(() -> {
+		getContext().getProducerExecutionStrategy().execute(() -> {
 			this.publish(buildBody(request.getPayload()), null, routingKey);
 			if (deferred != null) {
 				deferred.resolve(null);
@@ -89,7 +92,7 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 		String id = delivery.getProperties().getCorrelationId();
 		Deferred<Message, Exception> deferred = this.correlationIdToDeferredMap.get(id);
 		if (deferred != null) {
-			this.getCallbackInvokeExecutor().execute(() -> {
+			getContext().getCallbackInvokerStrategy().execute(() -> {
 				Message result = null;
 				try {
 					result = MessageParser.DEFAULT.parse(delivery.getBody());
@@ -121,7 +124,7 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 				correlationIdToDeferredMap.remove(corrId);
 			});
 
-			this.getProducerExecutionStrategy().execute(() -> {
+			getContext().getProducerExecutionStrategy().execute(() -> {
 				try {
 					this.publish(bytes, props, routingKey);
 				} catch (Exception e) {

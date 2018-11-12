@@ -5,49 +5,27 @@ import org.joo.promise4j.Deferred;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.Producer;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.AbstractComponentLifecycle;
-import io.gridgo.framework.execution.ExecutionStrategy;
-import io.gridgo.framework.execution.impl.DefaultExecutionStrategy;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
-import io.gridgo.framework.support.generators.IdGenerator;
 import io.gridgo.framework.support.impl.DefaultPayload;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.Setter;
 
 public abstract class AbstractProducer extends AbstractComponentLifecycle implements Producer {
 
-	private static final ExecutionStrategy DEFAULT_CALLBACK_EXECUTOR = new DefaultExecutionStrategy();
-
-	@Getter(AccessLevel.PROTECTED)
-	@Setter(AccessLevel.PROTECTED)
-	private ExecutionStrategy producerExecutionStrategy = DEFAULT_CALLBACK_EXECUTOR;
-
-	@Getter(AccessLevel.PROTECTED)
-	private ExecutionStrategy callbackInvokeExecutor = DEFAULT_CALLBACK_EXECUTOR;
-
 	@Getter
-	@Setter
-	private IdGenerator idGenerator;
+	private final ConnectorContext context;
 
-	@Override
-	public Producer invokeCallbackOn(final @NonNull ExecutionStrategy strategy) {
-		this.callbackInvokeExecutor = strategy;
-		return this;
-	}
-
-	@Override
-	public Producer produceOn(final @NonNull ExecutionStrategy strategy) {
-		this.producerExecutionStrategy = strategy;
-		return this;
+	protected AbstractProducer(final @NonNull ConnectorContext context) {
+		this.context = context;
 	}
 
 	protected Message createMessage(BObject headers, BElement body) {
-		if (idGenerator == null)
+		if (context.getIdGenerator().isEmpty())
 			return Message.newDefault(Payload.newDefault(headers, body));
-		return Message.newDefault(new DefaultPayload(idGenerator.generateId(), headers, body));
+		return Message.newDefault(new DefaultPayload(context.getIdGenerator().get().generateId(), headers, body));
 	}
 
 	protected void ack(Deferred<Message, Exception> deferred, Message response, Exception exception) {
@@ -59,7 +37,7 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 
 	protected void ack(Deferred<Message, Exception> deferred) {
 		if (deferred != null) {
-			callbackInvokeExecutor.execute(() -> {
+			context.getCallbackInvokerStrategy().execute(() -> {
 				deferred.resolve(null);
 			});
 		}
@@ -67,7 +45,7 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 
 	protected void ack(Deferred<Message, Exception> deferred, Exception exception) {
 		if (deferred != null) {
-			callbackInvokeExecutor.execute(() -> {
+			context.getCallbackInvokerStrategy().execute(() -> {
 				if (exception == null) {
 					deferred.resolve(null);
 				} else {
@@ -79,7 +57,7 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 
 	protected void ack(Deferred<Message, Exception> deferred, Message response) {
 		if (deferred != null) {
-			callbackInvokeExecutor.execute(() -> deferred.resolve(response));
+			context.getCallbackInvokerStrategy().execute(() -> deferred.resolve(response));
 		}
 	}
 }

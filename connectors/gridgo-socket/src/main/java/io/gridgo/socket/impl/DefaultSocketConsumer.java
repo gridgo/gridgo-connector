@@ -6,6 +6,7 @@ import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.AbstractConsumer;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.MessageParser;
 import io.gridgo.socket.Socket;
@@ -32,7 +33,8 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 	private final SocketOptions options;
 	private final String address;
 
-	public DefaultSocketConsumer(SocketFactory factory, SocketOptions options, String address, int bufferSize) {
+	public DefaultSocketConsumer(ConnectorContext context, SocketFactory factory, SocketOptions options, String address, int bufferSize) {
+		super(context);
 		this.factory = factory;
 		this.options = options;
 		this.address = address;
@@ -92,7 +94,7 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 					}
 				} catch (Exception e) {
 					getLogger().error("Error while parse buffer to message", e);
-					getExceptionHandler().accept(e);
+					getContext().getExceptionHandler().accept(e);
 				}
 			}
 		}

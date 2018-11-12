@@ -13,6 +13,7 @@ import io.gridgo.connector.Connector;
 import io.gridgo.connector.ConnectorResolver;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.config.ConnectorConfig;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.config.impl.DefaultConnectorConfig;
 import io.gridgo.connector.support.exceptions.ConnectorResolutionException;
 import io.gridgo.connector.support.exceptions.MalformedEndpointException;
@@ -34,10 +35,10 @@ public class UriConnectorResolver implements ConnectorResolver {
 	}
 
 	@Override
-	public Connector resolve(String endpoint) {
+	public Connector resolve(String endpoint, ConnectorContext context) {
 		try {
 			var config = resolveConfig(endpoint);
-			return clazz.getConstructor().newInstance().initialize(config);
+			return clazz.getConstructor().newInstance().initialize(config, context);
 		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
 				| NoSuchMethodException | SecurityException e) {
 			throw new ConnectorResolutionException("Exception caught while resolving endpoint " + endpoint, e);

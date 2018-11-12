@@ -8,6 +8,7 @@ import org.reflections.Reflections;
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.ConnectorResolver;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.exceptions.UnsupportedSchemeException;
 import lombok.NonNull;
 
@@ -34,12 +35,12 @@ public class ClasspathConnectorResolver implements ConnectorResolver {
 	private void resolvePackage(String pkg) {
 		var reflections = new Reflections(pkg);
 		var connectorClasses = reflections.getSubTypesOf(Connector.class);
-		
+
 		if (connectorClasses.isEmpty()) {
 			// TODO log warning
 			return;
 		}
-		
+
 		for (var clzz : connectorClasses) {
 			registerConnectorClass(clzz);
 		}
@@ -61,7 +62,7 @@ public class ClasspathConnectorResolver implements ConnectorResolver {
 	}
 
 	@Override
-	public Connector resolve(final @NonNull String endpoint) {
+	public Connector resolve(final @NonNull String endpoint, ConnectorContext context) {
 		String scheme = endpoint, remaining = "";
 		int schemeIdx = endpoint.indexOf(':');
 		if (schemeIdx != -1) {
@@ -72,6 +73,6 @@ public class ClasspathConnectorResolver implements ConnectorResolver {
 		var clazz = classMappings.get(scheme);
 		if (clazz == null)
 			throw new UnsupportedSchemeException(scheme);
-		return new UriConnectorResolver(clazz).resolve(remaining);
+		return new UriConnectorResolver(clazz).resolve(remaining, context);
 	}
 }
