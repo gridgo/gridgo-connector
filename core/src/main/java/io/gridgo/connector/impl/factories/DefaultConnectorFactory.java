@@ -4,6 +4,7 @@ import io.gridgo.connector.Connector;
 import io.gridgo.connector.ConnectorFactory;
 import io.gridgo.connector.ConnectorResolver;
 import io.gridgo.connector.impl.resolvers.ClasspathConnectorResolver;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.config.ConnectorContextBuilder;
 import io.gridgo.connector.support.config.impl.DefautConnectorContextBuilder;
 import lombok.NonNull;
@@ -40,7 +41,16 @@ public class DefaultConnectorFactory implements ConnectorFactory {
 
 	@Override
 	public Connector createConnector(String endpoint, ConnectorResolver resolver) {
-		var connector = resolver.resolve(endpoint, builder.build());
-		return connector;
+		return createConnector(endpoint, resolver, builder.build());
+	}
+
+	@Override
+	public Connector createConnector(String endpoint, ConnectorContext context) {
+		return createConnector(endpoint, resolver, builder.build());
+	}
+
+	@Override
+	public Connector createConnector(String endpoint, ConnectorResolver resolver, ConnectorContext context) {
+		return resolver.resolve(endpoint, context);
 	}
 }
