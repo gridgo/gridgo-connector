@@ -24,6 +24,7 @@ import io.gridgo.connector.netty4.Netty4Consumer;
 import io.gridgo.connector.netty4.Netty4Producer;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
+import io.gridgo.utils.ThreadUtils;
 
 public class Netty4ConnectorUnitTests {
 
@@ -33,7 +34,7 @@ public class Netty4ConnectorUnitTests {
 	@Test
 	public void testTCP() throws InterruptedException, PromiseException {
 
-		Connector connector = RESOLVER.resolve("netty4:tcp://localhost:8888");
+		Connector connector = RESOLVER.resolve("netty4:tcp://localhost:8888?workerThreads=2&bootThreads=2");
 		connector.start();
 
 		Consumer consumer = connector.getConsumer().get();
@@ -66,20 +67,18 @@ public class Netty4ConnectorUnitTests {
 
 	@Test
 	public void testTcpPingPong() throws InterruptedException, PromiseException {
-		Connector connector = RESOLVER.resolve("netty4:tcp://localhost:8889");
+		Connector connector = RESOLVER.resolve("netty4:tcp://localhost:8889?workerThreads=2&bootThreads=2");
 		assertTrue(connector instanceof Netty4Connector);
 		connector.start();
 
 		Consumer consumer = connector.getConsumer().get();
 		assertTrue(consumer instanceof Netty4Consumer);
-		consumer.start();
 
 		Responder responder = ((HasResponder) consumer).getResponder();
 		assertNotNull(responder);
 
 		Producer producer = connector.getProducer().get();
 		assertTrue(producer instanceof Netty4Producer);
-		producer.start();
 
 		final CountDownLatch doneSignal = new CountDownLatch(1);
 

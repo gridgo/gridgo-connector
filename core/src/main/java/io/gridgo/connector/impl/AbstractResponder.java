@@ -5,10 +5,15 @@ import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.AsyncDeferredObject;
 
 import io.gridgo.connector.Responder;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import lombok.NonNull;
 
 public abstract class AbstractResponder extends AbstractProducer implements Responder {
+
+	protected AbstractResponder(ConnectorContext context) {
+		super(context);
+	}
 
 	protected abstract void send(Message message, Deferred<Message, Exception> deferred);
 

@@ -5,6 +5,7 @@ import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.AbstractHasResponderConsumer;
 import io.gridgo.connector.netty4.Netty4Consumer;
 import io.gridgo.connector.netty4.exceptions.UnsupportedTransportException;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.MessageParser;
 import io.gridgo.socket.netty4.Netty4SocketServer;
@@ -29,8 +30,9 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 
 	private Netty4SocketServer socketServer;
 
-	protected AbstractNetty4Consumer(@NonNull Netty4Transport transport, @NonNull HostAndPort host,
-			@NonNull BObject options) {
+	protected AbstractNetty4Consumer(@NonNull ConnectorContext context, @NonNull Netty4Transport transport,
+			@NonNull HostAndPort host, @NonNull BObject options) {
+		super(context);
 		this.transport = transport;
 		this.host = host;
 		this.options = options;
@@ -53,7 +55,7 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 		this.socketServer.setChannelOpenCallback(this::onConnectionOpen);
 		this.socketServer.setChannelCloseCallback(this::onConnectionClose);
 		this.socketServer.setReceiveCallback(this::onReceive);
-		this.setResponder(new DefaultNetty4Responder(socketServer));
+		this.setResponder(new DefaultNetty4Responder(this.getContext(), socketServer));
 		this.socketServer.bind(host);
 	}
 

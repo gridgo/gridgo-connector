@@ -26,6 +26,8 @@ import lombok.Setter;
 
 public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket implements Netty4SocketServer {
 
+	private static final AttributeKey<Object> CHANNEL_ID = AttributeKey.newInstance("channelId");
+
 	private static final AtomicLong ID_SEED = new AtomicLong(0);
 
 	@Setter
@@ -103,7 +105,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 
 	protected Long getChannelId(ChannelHandlerContext ctx) {
 		if (ctx != null) {
-			return (Long) ctx.channel().attr(AttributeKey.valueOf("channelId")).get();
+			return (Long) ctx.channel().attr(CHANNEL_ID).get();
 		}
 		return null;
 	}
@@ -111,6 +113,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 	@Override
 	public final void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 		Long id = this.getChannelId(ctx);
+		System.out.println("Channel read, id: " + id);
 		if (id != null) {
 			if (this.getReceiveCallback() != null) {
 				this.getReceiveCallback().accept(id, parseReceivedData(msg));
@@ -123,7 +126,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 	public final void channelActive(ChannelHandlerContext ctx) throws Exception {
 		long id = ID_SEED.getAndIncrement();
 		this.channelContexts.put(id, ctx);
-		ctx.channel().attr(AttributeKey.newInstance("channelId")).set(id);
+		ctx.channel().attr(CHANNEL_ID).set(id);
 		if (this.getChannelOpenCallback() != null) {
 			this.getChannelOpenCallback().accept(id);
 		}

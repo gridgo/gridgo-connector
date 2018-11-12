@@ -4,6 +4,7 @@ import org.joo.promise4j.Deferred;
 
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.AbstractResponder;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.gridgo.socket.netty4.Netty4SocketServer;
 import io.netty.channel.ChannelFuture;
@@ -14,7 +15,8 @@ class DefaultNetty4Responder extends AbstractResponder {
 
 	private final Netty4SocketServer socketServer;
 
-	DefaultNetty4Responder(Netty4SocketServer socketServer) {
+	DefaultNetty4Responder(ConnectorContext context, Netty4SocketServer socketServer) {
+		super(context);
 		this.socketServer = socketServer;
 	}
 

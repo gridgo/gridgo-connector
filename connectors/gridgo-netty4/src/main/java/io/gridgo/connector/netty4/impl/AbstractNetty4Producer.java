@@ -10,6 +10,7 @@ import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.AbstractHasReceiverProducer;
 import io.gridgo.connector.netty4.Netty4Producer;
 import io.gridgo.connector.netty4.exceptions.UnsupportedTransportException;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.MessageParser;
 import io.gridgo.framework.support.Payload;
@@ -38,8 +39,9 @@ public class AbstractNetty4Producer extends AbstractHasReceiverProducer implemen
 
 	private Netty4SocketClient socketClient;
 
-	protected AbstractNetty4Producer(@NonNull Netty4Transport transport, @NonNull HostAndPort host,
-			@NonNull BObject options) {
+	protected AbstractNetty4Producer(@NonNull ConnectorContext context, @NonNull Netty4Transport transport,
+			@NonNull HostAndPort host, @NonNull BObject options) {
+		super(context);
 		this.transport = transport;
 		this.host = host;
 		this.options = options;
