@@ -1,5 +1,5 @@
 [[kafka-connector]]
-== kafka connector
+== gridgo-kafka
 
 *Available as of version 0.1.0*
 
