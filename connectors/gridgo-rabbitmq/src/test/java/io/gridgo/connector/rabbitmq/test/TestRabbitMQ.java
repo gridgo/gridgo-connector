@@ -116,9 +116,6 @@ public class TestRabbitMQ {
 			waitForDone.run();
 			assertEquals(TEXT, receivedTextRef.get());
 
-			producer.stop();
-			consumer.stop();
-
 			connector.stop();
 		});
 	}
@@ -127,19 +124,15 @@ public class TestRabbitMQ {
 	public void testPubSub() throws InterruptedException {
 		System.out.println("Test pub/sub");
 		Connector connector1 = RESOLVER.resolve("rabbitmq://localhost/testFanoutExchange?exchangeType=fanout");
-		connector1.start();
-
 		Producer producer = connector1.getProducer().get();
 		Consumer consumer1 = connector1.getConsumer().get();
 
 		Connector connector2 = RESOLVER.resolve("rabbitmq://localhost/testFanoutExchange?exchangeType=fanout");
+
+		connector1.start();
 		connector2.start();
 
 		Consumer consumer2 = connector2.getConsumer().get();
-
-		producer.start();
-		consumer1.start();
-		consumer2.start();
 
 		final AtomicReference<String> receivedTextRef1 = new AtomicReference<String>(null);
 		final AtomicReference<String> receivedTextRef2 = new AtomicReference<String>(null);
@@ -162,11 +155,8 @@ public class TestRabbitMQ {
 		assertEquals(TEXT, receivedTextRef1.get());
 		assertEquals(TEXT, receivedTextRef2.get());
 
-		producer.stop();
-		consumer1.stop();
 		connector1.stop();
 
-		consumer2.stop();
 		connector2.stop();
 	}
 
@@ -175,20 +165,16 @@ public class TestRabbitMQ {
 		System.out.println("Test routing key");
 		Connector connector1 = RESOLVER
 				.resolve("rabbitmq://localhost/testDirectExchange?exchangeType=direct&routingKey=key1");
-		connector1.start();
-
 		Producer producer1 = connector1.getProducer().get();
 		Consumer consumer1 = connector1.getConsumer().get();
 
 		Connector connector2 = RESOLVER
 				.resolve("rabbitmq://localhost/testDirectExchange?exchangeType=direct&routingKey=key2");
+
+		connector1.start();
 		connector2.start();
 
 		Consumer consumer2 = connector2.getConsumer().get();
-
-		producer1.start();
-		consumer1.start();
-		consumer2.start();
 
 		final String text1 = TEXT + "1";
 		final String text2 = TEXT + "2";
@@ -215,11 +201,8 @@ public class TestRabbitMQ {
 		assertEquals(text1, receivedTextRef1.get());
 		assertEquals(text2, receivedTextRef2.get());
 
-		producer1.stop();
-		consumer1.stop();
 		connector1.stop();
 
-		consumer2.stop();
 		connector2.stop();
 	}
 
@@ -228,20 +211,16 @@ public class TestRabbitMQ {
 		System.out.println("Test routing key rpc");
 		Connector connector1 = RESOLVER
 				.resolve("rabbitmq://localhost/testDirectExchange?exchangeType=direct&routingKey=key1&rpc=true");
-		connector1.start();
-
 		Producer producer = connector1.getProducer().get();
 		Consumer consumer1 = connector1.getConsumer().get();
 
 		Connector connector2 = RESOLVER
 				.resolve("rabbitmq://localhost/testDirectExchange?exchangeType=direct&routingKey=key2&rpc=true");
+
+		connector1.start();
 		connector2.start();
 
 		Consumer consumer2 = connector2.getConsumer().get();
-
-		producer.start();
-		consumer1.start();
-		consumer2.start();
 
 		final String text1 = TEXT + "1";
 		final String text2 = TEXT + "2";
@@ -267,11 +246,8 @@ public class TestRabbitMQ {
 		assertEquals(text1, resp1.getPayload().getBody().asValue().getString());
 		assertEquals(text2, resp2.getPayload().getBody().asValue().getString());
 
-		producer.stop();
-		consumer1.stop();
 		connector1.stop();
 
-		consumer2.stop();
 		connector2.stop();
 	}
 }
