@@ -31,7 +31,7 @@ public class UriConnectorResolver implements ConnectorResolver {
 
 	private String extractSyntax(Class<? extends Connector> clazz) {
 		var annotations = clazz.getAnnotationsByType(ConnectorEndpoint.class);
-		return annotations.length > 0 ? clazz.getAnnotationsByType(ConnectorEndpoint.class)[0].syntax() : null;
+		return annotations.length > 0 ? annotations[0].syntax() : null;
 	}
 
 	@Override
