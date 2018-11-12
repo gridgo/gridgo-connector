@@ -8,12 +8,6 @@ import io.netty.handler.codec.MessageToByteEncoder;
 
 public class MsgpackEncoder extends MessageToByteEncoder<BElement> {
 
-	public static final MsgpackEncoder DEFAULT = new MsgpackEncoder();
-
-	private MsgpackEncoder() {
-		// do nothing
-	}
-
 	@Override
 	public boolean acceptOutboundMessage(Object msg) throws Exception {
 		return msg instanceof BElement;

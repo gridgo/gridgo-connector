@@ -16,5 +16,10 @@
 			<artifactId>netty-all</artifactId>
 			<version>4.1.30.Final</version>
 		</dependency>
+		<dependency>
+			<groupId>io.netty</groupId>
+			<artifactId>netty-transport-udt</artifactId>
+			<version>4.1.31.Final</version>
+		</dependency>
 	</dependencies>
 </project>

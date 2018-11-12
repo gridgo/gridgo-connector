@@ -18,7 +18,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.util.AttributeKey;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -26,6 +25,8 @@ import lombok.NonNull;
 import lombok.Setter;
 
 public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket implements Netty4SocketServer {
+
+	private static final AttributeKey<Object> CHANNEL_ID = AttributeKey.newInstance("channelId");
 
 	private static final AtomicLong ID_SEED = new AtomicLong(0);
 
@@ -62,9 +63,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 		});
 	}
 
-	protected ServerBootstrap createBootstrap() {
-		return new ServerBootstrap().channel(NioServerSocketChannel.class);
-	}
+	protected abstract ServerBootstrap createBootstrap();
 
 	private void executeBind(HostAndPort host) {
 		BObject configs = this.getConfigs();
@@ -77,11 +76,13 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 		bootstrap.childHandler(this.channelInitializer);
 
 		// Bind and start to accept incoming connections.
-		ChannelFuture channelFuture = bootstrap.bind(host.getHostOrDefault("127.0.0.1"), host.getPort());
+		ChannelFuture channelFuture = bootstrap.bind(host.getResolvedIpOrDefault("127.0.0.1"), host.getPort());
 
 		try {
 			if (!channelFuture.await().isSuccess()) {
 				throw new RuntimeException("Start " + this.getClass().getName() + " is unsuccessful");
+			} else {
+				System.out.println("Bind success to " + host.toIpAndPort());
 			}
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
@@ -95,17 +96,16 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 	}
 
 	private void initChannel(SocketChannel socketChannel) {
+		System.out.println("Init channel");
 		this.onInitChannel(socketChannel);
-		socketChannel.pipeline().addLast("channelInboundHandler", this);
+		socketChannel.pipeline().addLast(this);
 	}
 
-	protected void onInitChannel(SocketChannel socketChannel) {
-
-	}
+	protected abstract void onInitChannel(SocketChannel socketChannel);
 
 	protected Long getChannelId(ChannelHandlerContext ctx) {
 		if (ctx != null) {
-			return (Long) ctx.channel().attr(AttributeKey.valueOf("channelId")).get();
+			return (Long) ctx.channel().attr(CHANNEL_ID).get();
 		}
 		return null;
 	}
@@ -113,6 +113,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 	@Override
 	public final void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 		Long id = this.getChannelId(ctx);
+		System.out.println("Channel read, id: " + id);
 		if (id != null) {
 			if (this.getReceiveCallback() != null) {
 				this.getReceiveCallback().accept(id, parseReceivedData(msg));
@@ -121,13 +122,11 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 		ctx.fireChannelRead(msg);
 	}
 
-	protected abstract BElement parseReceivedData(Object msg) throws Exception;
-
 	@Override
 	public final void channelActive(ChannelHandlerContext ctx) throws Exception {
 		long id = ID_SEED.getAndIncrement();
 		this.channelContexts.put(id, ctx);
-		ctx.channel().attr(AttributeKey.newInstance("channelId")).set(id);
+		ctx.channel().attr(CHANNEL_ID).set(id);
 		if (this.getChannelOpenCallback() != null) {
 			this.getChannelOpenCallback().accept(id);
 		}
@@ -150,19 +149,19 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 			}
 		} else {
 			getLogger().warn("The current inactive channel hasn't been registered");
-			System.err.println("The current inactive channel hasn't been registered");
 		}
 	}
 
 	@Override
-	public final void send(long routingId, BElement data) {
+	public final ChannelFuture send(long routingId, BElement data) {
 		ChannelHandlerContext ctx = this.channelContexts.get(routingId);
 		if (ctx != null) {
 			if (data == null) {
 				ctx.close();
 			} else {
-				ctx.write(data);
+				return ctx.writeAndFlush(data);
 			}
 		}
+		return null;
 	}
 }

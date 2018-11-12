@@ -1,5 +1,8 @@
 package io.gridgo.connector.netty4;
 
-public interface Netty4Producer {
+import io.gridgo.connector.HasReceiver;
+import io.gridgo.connector.Producer;
+
+public interface Netty4Producer extends Producer, HasReceiver {
 
 }
