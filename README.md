@@ -29,14 +29,23 @@ var connector = factory.createConnector("kafka:someTopic?brokers=127.0.0.1:1234&
 // start the connector
 connector.start();
 
-// access the consumer and producer
-var consumer = connector.getConsumer().orElseThrow();
-var producer = connector.getProducer().orElseThrow();
+// do something with the Connector
+...
 
 // stop the connector when you are done.
 // notes that stopping the connector will 
 // also stop the producer and consumer
 connector.stop();
+```
+
+### using Connector
+
+To do something useful, you need to access Consumer and Producer from the Connector. 
+
+```java
+// access the consumer and producer
+var consumer = connector.getConsumer().orElseThrow();
+var producer = connector.getProducer().orElseThrow();
 ```
 
 Consumer and Producer will expose several API to interact with the I/O layer:
