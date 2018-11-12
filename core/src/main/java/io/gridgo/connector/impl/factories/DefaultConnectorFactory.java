@@ -6,14 +6,14 @@ import io.gridgo.connector.ConnectorResolver;
 import io.gridgo.connector.impl.resolvers.ClasspathConnectorResolver;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.config.ConnectorContextBuilder;
-import io.gridgo.connector.support.config.impl.DefautConnectorContextBuilder;
+import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
 import lombok.NonNull;
 
 public class DefaultConnectorFactory implements ConnectorFactory {
 
 	private static final ConnectorResolver DEFAULT_CONNECTOR_RESOLVER = new ClasspathConnectorResolver();
 
-	private static final ConnectorContextBuilder DEFAULT_CONNECTOR_CONTEXT_BUILDER = new DefautConnectorContextBuilder();
+	private static final ConnectorContextBuilder DEFAULT_CONNECTOR_CONTEXT_BUILDER = new DefaultConnectorContextBuilder();
 
 	private final ConnectorResolver resolver;
 
@@ -46,7 +46,7 @@ public class DefaultConnectorFactory implements ConnectorFactory {
 
 	@Override
 	public Connector createConnector(String endpoint, ConnectorContext context) {
-		return createConnector(endpoint, resolver, builder.build());
+		return createConnector(endpoint, resolver, context);
 	}
 
 	@Override
