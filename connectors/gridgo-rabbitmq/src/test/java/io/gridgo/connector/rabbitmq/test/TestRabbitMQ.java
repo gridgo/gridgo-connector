@@ -51,8 +51,6 @@ public class TestRabbitMQ {
 		assertNotNull(consumer);
 		assertTrue(consumer instanceof RabbitMQConsumer);
 
-		producer.start();
-		consumer.start();
 		final AtomicReference<CountDownLatch> doneSignal = new AtomicReference<CountDownLatch>(new CountDownLatch(1));
 
 		final Runnable triggerDone = () -> {
@@ -87,9 +85,6 @@ public class TestRabbitMQ {
 
 			waitForDone.run();
 			assertEquals(TEXT, receivedTextRef.get());
-
-			producer.stop();
-			consumer.stop();
 
 			connector.stop();
 		});

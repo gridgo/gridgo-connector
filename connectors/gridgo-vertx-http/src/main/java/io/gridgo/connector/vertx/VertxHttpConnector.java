@@ -60,14 +60,4 @@ public class VertxHttpConnector extends AbstractConnector {
 			options.setCompressionSupported(Boolean.valueOf(compressionSupported));
 		return options;
 	}
-
-	public void onStart() {
-		if (consumer.isPresent())
-			consumer.get().start();
-	}
-
-	public void onStop() {
-		if (consumer.isPresent())
-			consumer.get().stop();
-	}
 }

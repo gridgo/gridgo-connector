@@ -69,22 +69,6 @@ public class SocketConnector extends AbstractConnector implements Connector {
 		this.producer = createProducer();
 	}
 
-	@Override
-	protected void onStart() {
-		if (this.consumer.isPresent())
-			this.consumer.get().start();
-		if (this.producer.isPresent())
-			this.producer.get().start();
-	}
-
-	@Override
-	protected void onStop() {
-		if (this.producer.isPresent())
-			this.producer.get().stop();
-		if (this.consumer.isPresent())
-			this.consumer.get().stop();
-	}
-
 	private Optional<Producer> createProducer() {
 		if (this.options.getType().equalsIgnoreCase("push") || this.options.getType().equalsIgnoreCase("pub")) {
 			SocketProducer p = SocketProducer.newDefault(getContext(), factory, options, address, bufferSize,

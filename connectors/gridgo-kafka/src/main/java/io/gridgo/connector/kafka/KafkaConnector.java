@@ -32,19 +32,4 @@ public class KafkaConnector extends AbstractConnector {
 		kafkaConfig.setTopic(config.getPlaceholders().getProperty("topic"));
 		return kafkaConfig;
 	}
-
-	protected void onStart() {
-		if (consumer.isPresent())
-			consumer.get().start();
-		if (producer.isPresent())
-			producer.get().start();
-	}
-
-	@Override
-	protected void onStop() {
-		if (consumer.isPresent())
-			consumer.get().stop();
-		if (producer.isPresent())
-			producer.get().stop();
-	}
 }

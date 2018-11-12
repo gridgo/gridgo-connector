@@ -66,12 +66,18 @@ public abstract class AbstractConnector extends AbstractComponentLifecycle imple
 
 	@Override
 	protected void onStart() {
-		// do nothing
+		if (this.consumer.isPresent())
+			this.consumer.get().start();
+		if (this.producer.isPresent())
+			this.producer.get().start();
 	}
 
 	@Override
 	protected void onStop() {
-		// do nothing
+		if (this.producer.isPresent())
+			this.producer.get().stop();
+		if (this.consumer.isPresent())
+			this.consumer.get().stop();
 	}
 
 }
