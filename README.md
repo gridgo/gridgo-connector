@@ -83,6 +83,22 @@ producer.call(someMessage).done(response -> {
 
 Some producers might not support RPC calls and will throw `UnsupportedOperationException` if you try to do so.
 
+### custom connectors
+
+Internally, `ConnectorFactory` will use a `ConnectorResolver` to resolve an endpoint. `ClasspathConnectorResolver` is the default resolver. It will scan the *io.gridgo.connector* package for any `Connector` class annotated with `@ConnectorEndpoint`. To use a custom resolver you can pass it to either the constructor of `DefaultConnectorFactory` or `createConnector` method:
+
+```java
+var factory = new DefaultConnectorFactory(myResolver);
+var connector = factory.createConnector(someEndpoint);
+```
+
+or
+
+```java
+var factory = new DefaultConnectorFactory();
+var connector = factory.createConnector(someEndpoint, myResolver);
+```
+
 ### continuous integration
 
 **master**
