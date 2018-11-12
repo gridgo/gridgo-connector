@@ -9,7 +9,7 @@ import io.gridgo.framework.support.Registry;
 import io.gridgo.framework.support.generators.IdGenerator;
 import lombok.NonNull;
 
-public class DefautConnectorContextBuilder implements ConnectorContextBuilder {
+public class DefaultConnectorContextBuilder implements ConnectorContextBuilder {
 	
 	private IdGenerator idGenerator;
 
