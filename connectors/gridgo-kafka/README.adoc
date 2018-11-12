@@ -1,0 +1,49 @@
+[[kafka-connector]]
+== kafka connector
+
+*Available as of version 0.1.0*
+
+Allows messages to be sent to (or consumed from) http://kafka.apache.org/[Apache Kafka] brokers.
+
+=== install
+
+[source,xml]
+------------------------------------------------------------
+<dependency>
+    <groupId>io.gridgo</groupId>
+    <artifactId>gridgo-kafka</artifactId>
+    <version>x.x.x</version>
+    <!-- use the same version as gridgo-connector-core version -->
+</dependency>
+------------------------------------------------------------
+
+=== uri format
+
+[source,java]
+---------------------------
+kafka:topic[?options]
+
+---------------------------
+
+=== options
+
+// component options: START
+The Kafka component supports 8 options, which are listed below.
+
+[width="100%",cols="2,5,^1,2",options="header"]
+|===
+| Name | Description  | Default | Type
+| *brokers* (common) | A list of host/port pairs to use for establishing the initial connection to the Kafka cluster |  | String
+| *clientId* (consumer) | An id string to pass to the server when making requests.  |  | String
+| *groupId* (consumer) | The name of the consumer group to which Kafka consumers belong |  | String
+| *consumersCount* (consumer) | Number of Kafka consumers to be created | 1 | Integer
+| *interceptorClasses* (consumer) | A list of classes to use as interceptors |  | String
+| *keyDeserializer* (common) | Deserializer class for key |  | String
+| *valueDeserializer* (common) | Deserializer class for value |  | String
+| *fetchMinBytes* (consumer) | The minimum amount of data the server should return for a fetch request | 1 | Integer
+| *fetchMaxBytes* (consumer) | The maximum amount of data the server should return for a fetch request | 52,428,800 | Integer
+| *sessionTimeoutMs* (consumer) | The timeout used to detect worker failures | 52,428,800 | Integer
+| *heartbeatIntervalMs* (consumer) | The expected time between heartbeats to the group coordinator when using Kafka's group management facilities | 52,428,800 | Integer
+
+|===
+// component options: END
