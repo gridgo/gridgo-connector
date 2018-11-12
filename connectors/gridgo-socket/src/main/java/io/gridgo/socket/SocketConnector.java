@@ -69,26 +69,10 @@ public class SocketConnector extends AbstractConnector implements Connector {
 		this.producer = createProducer();
 	}
 
-	@Override
-	protected void onStart() {
-		if (this.consumer.isPresent())
-			this.consumer.get().start();
-		if (this.producer.isPresent())
-			this.producer.get().start();
-	}
-
-	@Override
-	protected void onStop() {
-		if (this.producer.isPresent())
-			this.producer.get().stop();
-		if (this.consumer.isPresent())
-			this.consumer.get().stop();
-	}
-
 	private Optional<Producer> createProducer() {
 		if (this.options.getType().equalsIgnoreCase("push") || this.options.getType().equalsIgnoreCase("pub")) {
-			SocketProducer p = SocketProducer.newDefault(factory, options, address, bufferSize, ringBufferSize,
-					batchingEnabled, maxBatchSize);
+			SocketProducer p = SocketProducer.newDefault(getContext(), factory, options, address, bufferSize,
+					ringBufferSize, batchingEnabled, maxBatchSize);
 			return Optional.of(p);
 		}
 		return Optional.empty();
@@ -96,7 +80,7 @@ public class SocketConnector extends AbstractConnector implements Connector {
 
 	private Optional<Consumer> createConsumer() {
 		if (this.options.getType().equalsIgnoreCase("pull") || this.options.getType().equalsIgnoreCase("sub")) {
-			return Optional.of(SocketConsumer.newDefault(factory, options, address, bufferSize));
+			return Optional.of(SocketConsumer.newDefault(getContext(), factory, options, address, bufferSize));
 		}
 		return Optional.empty();
 	}

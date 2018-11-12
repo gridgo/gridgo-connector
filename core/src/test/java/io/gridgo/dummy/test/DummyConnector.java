@@ -7,6 +7,7 @@ import io.gridgo.connector.Consumer;
 import io.gridgo.connector.Producer;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.config.ConnectorConfig;
+import io.gridgo.connector.support.config.ConnectorContext;
 import lombok.Getter;
 
 @ConnectorEndpoint(scheme="dummy", syntax="{type}:{transport}://{host}:{port}")
@@ -14,6 +15,9 @@ public class DummyConnector implements Connector {
 	
 	@Getter
 	private ConnectorConfig connectorConfig;
+
+	@Getter
+	private ConnectorContext context;
 	
 	@Override
 	public void start() {
@@ -36,7 +40,8 @@ public class DummyConnector implements Connector {
 	}
 
 	@Override
-	public Connector initialize(ConnectorConfig config) {
+	public Connector initialize(ConnectorConfig config, ConnectorContext context) {
+		this.context = context;
 		this.connectorConfig = config;
 		return this;
 	}

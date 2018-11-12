@@ -17,6 +17,7 @@ import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.AbstractProducer;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 
@@ -28,7 +29,8 @@ public class KafkaProducer extends AbstractProducer {
 
 	private String[] topics;
 
-	public KafkaProducer(KafkaConfiguration configuration) {
+	public KafkaProducer(ConnectorContext context, KafkaConfiguration configuration) {
+		super(context);
 		this.configuration = configuration;
 		this.topics = configuration.getTopic().split(",");
 	}

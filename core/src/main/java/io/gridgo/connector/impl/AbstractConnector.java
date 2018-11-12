@@ -6,10 +6,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.Consumer;
 import io.gridgo.connector.Producer;
+import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.config.ConnectorConfig;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.AbstractComponentLifecycle;
 import lombok.Getter;
 
+@ConnectorEndpoint(scheme = "mongodb", syntax = "")
 public abstract class AbstractConnector extends AbstractComponentLifecycle implements Connector {
 
 	protected static final String LOCALHOST = "localhost";
@@ -19,13 +22,17 @@ public abstract class AbstractConnector extends AbstractComponentLifecycle imple
 	@Getter
 	private ConnectorConfig connectorConfig;
 
+	@Getter
+	private ConnectorContext context;
+
 	protected Optional<Consumer> consumer = Optional.empty();
 
 	protected Optional<Producer> producer = Optional.empty();
 
 	@Override
-	public final Connector initialize(ConnectorConfig config) {
+	public final Connector initialize(ConnectorConfig config, ConnectorContext context) {
 		if (initialized.compareAndSet(false, true)) {
+			this.context = context;
 			this.connectorConfig = config;
 			this.onInit();
 			return this;
@@ -59,12 +66,18 @@ public abstract class AbstractConnector extends AbstractComponentLifecycle imple
 
 	@Override
 	protected void onStart() {
-		// do nothing
+		if (this.consumer.isPresent())
+			this.consumer.get().start();
+		if (this.producer.isPresent())
+			this.producer.get().start();
 	}
 
 	@Override
 	protected void onStop() {
-		// do nothing
+		if (this.producer.isPresent())
+			this.producer.get().stop();
+		if (this.consumer.isPresent())
+			this.consumer.get().stop();
 	}
 
 }

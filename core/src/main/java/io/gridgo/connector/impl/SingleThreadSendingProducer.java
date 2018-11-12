@@ -12,6 +12,7 @@ import org.joo.promise4j.impl.AsyncDeferredObject;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.dsl.Disruptor;
 
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import lombok.Getter;
 
@@ -58,9 +59,9 @@ public abstract class SingleThreadSendingProducer extends AbstractProducer {
 		}
 	};
 
-	protected SingleThreadSendingProducer(int ringBufferSize, ThreadFactory threadFactory, boolean batchingEnabled,
-			int maxBatchSize) {
-
+	protected SingleThreadSendingProducer(ConnectorContext context, int ringBufferSize, ThreadFactory threadFactory,
+			boolean batchingEnabled, int maxBatchSize) {
+		super(context);
 		this.sendWorker = new Disruptor<>(ProducerEvent::new, ringBufferSize, threadFactory);
 		this.sendWorker.handleEventsWith(sender);
 		this.batchingEnabled = batchingEnabled;

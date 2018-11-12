@@ -71,8 +71,8 @@ public class RabbitMQConnector extends AbstractConnector {
 
 	@Override
 	protected void onStart() {
-		this.consumer = Optional.of(new DefaultRabbitMQConsumer(newConnection(), queueConfig));
-		this.producer = Optional.of(new DefaultRabbitMQProducer(newConnection(), queueConfig));
+		this.consumer = Optional.of(new DefaultRabbitMQConsumer(getContext(), newConnection(), queueConfig));
+		this.producer = Optional.of(new DefaultRabbitMQProducer(getContext(), newConnection(), queueConfig));
+		super.onStart();
 	}
-
 }

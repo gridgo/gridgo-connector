@@ -2,15 +2,11 @@ package io.gridgo.connector;
 
 import org.joo.promise4j.Promise;
 
-import io.gridgo.connector.support.execution.CallbackExecutionAware;
-import io.gridgo.connector.support.execution.ProducerExecutionAware;
 import io.gridgo.framework.ComponentLifecycle;
 import io.gridgo.framework.support.Message;
-import io.gridgo.framework.support.generators.IdGeneratorAware;
 import lombok.NonNull;
 
-public interface Producer extends ComponentLifecycle, CallbackExecutionAware<Producer>,
-		ProducerExecutionAware<Producer>, IdGeneratorAware {
+public interface Producer extends ComponentLifecycle {
 
 	public void send(final @NonNull Message message);
 

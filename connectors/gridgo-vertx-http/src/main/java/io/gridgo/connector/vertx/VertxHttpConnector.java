@@ -23,7 +23,8 @@ public class VertxHttpConnector extends AbstractConnector {
 		String format = getParam(config, VertxHttpConstants.PARAM_FORMAT);
 		var vertxOptions = buildVertxOptions(config);
 		var httpOptions = buildHttpServerOptions(config);
-		this.consumer = Optional.of(new VertxHttpConsumer(vertxOptions, httpOptions, path, method, format));
+		this.consumer = Optional
+				.of(new VertxHttpConsumer(getContext(), vertxOptions, httpOptions, path, method, format));
 	}
 
 	private VertxOptions buildVertxOptions(ConnectorConfig config) {
@@ -58,15 +59,5 @@ public class VertxHttpConnector extends AbstractConnector {
 		if (compressionSupported != null)
 			options.setCompressionSupported(Boolean.valueOf(compressionSupported));
 		return options;
-	}
-
-	public void onStart() {
-		if (consumer.isPresent())
-			consumer.get().start();
-	}
-
-	public void onStop() {
-		if (consumer.isPresent())
-			consumer.get().stop();
 	}
 }
