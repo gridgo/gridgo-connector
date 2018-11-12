@@ -15,10 +15,10 @@ public abstract class AbstractConnector extends AbstractComponentLifecycle imple
 	protected static final String LOCALHOST = "localhost";
 
 	private final AtomicBoolean initialized = new AtomicBoolean(false);
-	
+
 	@Getter
 	private ConnectorConfig connectorConfig;
-	
+
 	protected Optional<Consumer> consumer = Optional.empty();
 
 	protected Optional<Producer> producer = Optional.empty();
@@ -42,7 +42,7 @@ public abstract class AbstractConnector extends AbstractComponentLifecycle imple
 	public final Optional<Consumer> getConsumer() {
 		return consumer;
 	}
-	
+
 	protected String getParam(ConnectorConfig config, String name) {
 		Object value = config.getParameters().get(name);
 		return value != null ? value.toString() : null;

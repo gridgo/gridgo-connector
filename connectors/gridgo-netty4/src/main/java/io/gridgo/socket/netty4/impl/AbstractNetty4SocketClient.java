@@ -1,14 +1,107 @@
 package io.gridgo.socket.netty4.impl;
 
+import java.util.function.Consumer;
+
+import io.gridgo.bean.BElement;
 import io.gridgo.socket.netty4.Netty4SocketClient;
+import io.gridgo.utils.support.HostAndPort;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 
 public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket implements Netty4SocketClient {
 
-	@Override
-	public void connect(@NonNull final String address) {
-		this.tryStart(() -> {
+	@Setter
+	@Getter(AccessLevel.PROTECTED)
+	private Consumer<BElement> receiveCallback;
 
+	@Setter
+	@Getter(AccessLevel.PROTECTED)
+	private Runnable channelOpenCallback;
+
+	@Setter
+	@Getter(AccessLevel.PROTECTED)
+	private Runnable channelCloseCallback;
+
+	private ChannelHandlerContext channelContext;
+
+	private ChannelInitializer<SocketChannel> channelInitializer = new ChannelInitializer<SocketChannel>() {
+		@Override
+		public void initChannel(SocketChannel ch) throws Exception {
+			AbstractNetty4SocketClient.this.initChannel(ch);
+		}
+	};
+
+	@Override
+	public void connect(@NonNull final HostAndPort host) {
+		tryStart(() -> {
+			this.executeConnect(host);
 		});
+	}
+
+	private void initChannel(SocketChannel channel) {
+		this.onInitChannel(channel);
+		channel.pipeline().addLast("channelInboundHandler", this);
+	}
+
+	protected abstract void onInitChannel(SocketChannel ch);
+
+	protected abstract Bootstrap createBootstrap();
+
+	private void executeConnect(HostAndPort host) {
+		Bootstrap bootstrap = createBootstrap();
+
+		bootstrap.group(createLoopGroup());
+
+		bootstrap.handler(this.channelInitializer);
+
+		try {
+			ChannelFuture future = bootstrap.connect(host.getHostOrDefault("localhost"), host.getPort());
+			if (!future.await().isSuccess()) {
+				throw new RuntimeException("Cannot connect to " + host);
+			} else {
+				System.out.println("Connect success to " + host.toIpAndPort());
+			}
+		} catch (Exception e) {
+			throw new RuntimeException("Error while connect to " + host, e);
+		}
+	}
+
+	protected NioEventLoopGroup createLoopGroup() {
+		return new NioEventLoopGroup(this.getConfigs().getInteger("workerThreads", 1));
+	}
+
+	@Override
+	public final void channelActive(ChannelHandlerContext ctx) throws Exception {
+		this.channelContext = ctx;
+		if (this.getChannelOpenCallback() != null) {
+			this.getChannelOpenCallback().run();
+		}
+	}
+
+	@Override
+	public final void channelInactive(ChannelHandlerContext ctx) throws Exception {
+		if (this.getChannelCloseCallback() != null) {
+			this.getChannelCloseCallback().run();
+		}
+	}
+
+	@Override
+	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+		if (this.getReceiveCallback() != null) {
+			this.getReceiveCallback().accept(this.parseReceivedData(msg));
+		}
+	}
+
+	@Override
+	public ChannelFuture send(BElement data) {
+		return this.channelContext.writeAndFlush(data);
 	}
 }

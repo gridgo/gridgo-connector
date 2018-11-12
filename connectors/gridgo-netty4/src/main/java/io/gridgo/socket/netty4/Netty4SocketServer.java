@@ -5,12 +5,13 @@ import java.util.function.Consumer;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.utils.support.HostAndPort;
+import io.netty.channel.ChannelFuture;
 
 public interface Netty4SocketServer extends Netty4Socket {
 
 	void bind(HostAndPort host);
 
-	void send(long routingId, BElement data);
+	ChannelFuture send(long routingId, BElement data);
 
 	void setReceiveCallback(BiConsumer<Long, BElement> onReceiveCallback);
 

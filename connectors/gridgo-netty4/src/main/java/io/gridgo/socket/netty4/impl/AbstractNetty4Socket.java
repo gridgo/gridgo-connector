@@ -3,6 +3,7 @@ package io.gridgo.socket.netty4.impl;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.socket.netty4.Netty4Socket;
 import io.gridgo.socket.netty4.Netty4Transport;
@@ -67,4 +68,6 @@ public abstract class AbstractNetty4Socket extends ChannelInboundHandlerAdapter 
 		}
 		this.configs.putAny(name, value);
 	}
+
+	protected abstract BElement parseReceivedData(Object msg) throws Exception;
 }

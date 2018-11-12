@@ -5,6 +5,7 @@ import java.util.Optional;
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.AbstractConnector;
 import io.gridgo.connector.netty4.impl.DefaultNetty4Consumer;
+import io.gridgo.connector.netty4.impl.DefaultNetty4Producer;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.config.ConnectorConfig;
 import io.gridgo.connector.support.exceptions.InvalidPlaceholderException;
@@ -47,7 +48,6 @@ public class Netty4Connector extends AbstractConnector {
 	@Override
 	protected void onStart() {
 		this.consumer = Optional.of(new DefaultNetty4Consumer(transport, host, options));
-		// this.producer = Optional.of(new DefaultNetty4Producer(transport, host,
-		// options));
+		this.producer = Optional.of(new DefaultNetty4Producer(transport, host, options));
 	}
 }

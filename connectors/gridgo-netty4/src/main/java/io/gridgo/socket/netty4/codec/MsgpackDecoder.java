@@ -2,6 +2,8 @@ package io.gridgo.socket.netty4.codec;
 
 import java.util.List;
 
+import org.msgpack.core.MessageInsufficientBufferException;
+
 import io.gridgo.bean.BElement;
 import io.gridgo.utils.helper.Loggable;
 import io.netty.buffer.ByteBuf;
@@ -11,21 +13,17 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 
 public class MsgpackDecoder extends ByteToMessageDecoder implements Loggable {
 
-	public static final MsgpackDecoder DEFAULT = new MsgpackDecoder();
-
-	private MsgpackDecoder() {
-		// do nothing
-	}
-
 	@Override
 	protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
-		try (ByteBufInputStream stream = new ByteBufInputStream(in)) {
-			while (in.isReadable()) {
-				in.markReaderIndex();
-				out.add(BElement.fromRaw(new ByteBufInputStream(in)));
-			}
+		in.markReaderIndex();
+		ByteBufInputStream stream = new ByteBufInputStream(in);
+		try {
+			out.add(BElement.fromRaw(stream));
 		} catch (Exception e) {
-			in.resetReaderIndex();
+			e.printStackTrace();
+			if (e.getCause() instanceof MessageInsufficientBufferException) {
+				in.resetReaderIndex();
+			}
 		}
 	}
 }

@@ -5,7 +5,7 @@ import java.util.Set;
 
 public enum Netty4Transport {
 
-	TCP, UDT, WEBSOCKET("ws");
+	TCP, WEBSOCKET("ws");
 
 	private final Set<String> aliases = new HashSet<>();
 

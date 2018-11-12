@@ -18,7 +18,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.util.AttributeKey;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -62,9 +61,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 		});
 	}
 
-	protected ServerBootstrap createBootstrap() {
-		return new ServerBootstrap().channel(NioServerSocketChannel.class);
-	}
+	protected abstract ServerBootstrap createBootstrap();
 
 	private void executeBind(HostAndPort host) {
 		BObject configs = this.getConfigs();
@@ -77,11 +74,13 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 		bootstrap.childHandler(this.channelInitializer);
 
 		// Bind and start to accept incoming connections.
-		ChannelFuture channelFuture = bootstrap.bind(host.getHostOrDefault("127.0.0.1"), host.getPort());
+		ChannelFuture channelFuture = bootstrap.bind(host.getResolvedIpOrDefault("127.0.0.1"), host.getPort());
 
 		try {
 			if (!channelFuture.await().isSuccess()) {
 				throw new RuntimeException("Start " + this.getClass().getName() + " is unsuccessful");
+			} else {
+				System.out.println("Bind success to " + host.toIpAndPort());
 			}
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
@@ -95,13 +94,12 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 	}
 
 	private void initChannel(SocketChannel socketChannel) {
+		System.out.println("Init channel");
 		this.onInitChannel(socketChannel);
-		socketChannel.pipeline().addLast("channelInboundHandler", this);
+		socketChannel.pipeline().addLast(this);
 	}
 
-	protected void onInitChannel(SocketChannel socketChannel) {
-
-	}
+	protected abstract void onInitChannel(SocketChannel socketChannel);
 
 	protected Long getChannelId(ChannelHandlerContext ctx) {
 		if (ctx != null) {
@@ -120,8 +118,6 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 		}
 		ctx.fireChannelRead(msg);
 	}
-
-	protected abstract BElement parseReceivedData(Object msg) throws Exception;
 
 	@Override
 	public final void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -150,19 +146,19 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 			}
 		} else {
 			getLogger().warn("The current inactive channel hasn't been registered");
-			System.err.println("The current inactive channel hasn't been registered");
 		}
 	}
 
 	@Override
-	public final void send(long routingId, BElement data) {
+	public final ChannelFuture send(long routingId, BElement data) {
 		ChannelHandlerContext ctx = this.channelContexts.get(routingId);
 		if (ctx != null) {
 			if (data == null) {
 				ctx.close();
 			} else {
-				ctx.write(data);
+				return ctx.writeAndFlush(data);
 			}
 		}
+		return null;
 	}
 }
