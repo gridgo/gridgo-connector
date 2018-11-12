@@ -36,13 +36,15 @@ public class KafkaFailureUnitTest {
 	@Test
 	public void testConsumerWithError() {
 
-		doTestConsumerWithError("&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest");
+		doTestConsumerWithError(
+				"&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest&pollTimeoutMs=0");
 	}
 
 	@Test
 	public void testMultiConsumerWithError() {
 
-		doTestConsumerWithError("&consumersCount=2&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest");
+		doTestConsumerWithError(
+				"&consumersCount=2&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest&pollTimeoutMs=0");
 	}
 
 	private void doTestConsumerWithError(String extraQuery) {
