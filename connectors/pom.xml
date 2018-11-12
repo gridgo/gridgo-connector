@@ -21,6 +21,7 @@
 		<module>gridgo-kafka</module>
 		<module>gridgo-rabbitmq</module>
 		<module>gridgo-vertx-http</module>
+		<module>gridgo-mongodb</module>
 	</modules>
 
 	<dependencies>
