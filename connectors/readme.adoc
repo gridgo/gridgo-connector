@@ -15,13 +15,13 @@ Number of Components: 6
 | 0.1.0 | // TODO: Fill description.
 
 | link:gridgo-rabbitmq/readme.adoc[RabbitMQ] (gridgo-rabbitmq) +
-`rabbitmq://address[/exchangeName]` | 0.1.0 | Allows messages to be sent to (or consumed from) Rabbit MQ.
+`rabbitmq://address/exchangeName` | 0.1.0 | Allows messages to be sent to (or consumed from) Rabbit MQ.
 
 | link:gridgo-socket-nanomsg/readme.adoc[NanoMSG] (gridgo-socket-nanomsg) +
-`nanomsg:type:transport://host:[port]` | 0.1.0 | // TODO: Fill description.
+`nanomsg:type:transport://host:port` | 0.1.0 | // TODO: Fill description.
 
 | link:gridgo-socket-zmq/readme.adoc[ZMQ] (gridgo-socket-zmq) +
-`zmq:type:transport://host[:port]` | 0.1.0 | // TODO: Fill description.
+`zmq:type:transport://host:port` | 0.1.0 | // TODO: Fill description.
 
 |===
 // components: END
