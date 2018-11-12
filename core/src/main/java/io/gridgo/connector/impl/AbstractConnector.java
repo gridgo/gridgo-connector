@@ -6,13 +6,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.Consumer;
 import io.gridgo.connector.Producer;
-import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.config.ConnectorConfig;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.AbstractComponentLifecycle;
 import lombok.Getter;
 
-@ConnectorEndpoint(scheme = "mongodb", syntax = "")
 public abstract class AbstractConnector extends AbstractComponentLifecycle implements Connector {
 
 	protected static final String LOCALHOST = "localhost";
