@@ -40,7 +40,7 @@ connector.stop();
 
 ### using Connector
 
-To do something useful, you need to access Consumer and Producer from the Connector. 
+To do something useful, you need to access Consumer and Producer from the Connector. Based on the endpoint or the connector, some might only support Consumer or Producer. For example, Vertx HTTP will only support Consumer, not Producer. Again, refer to their pages to find out which are supported and which are not.
 
 ```java
 // access the consumer and producer
