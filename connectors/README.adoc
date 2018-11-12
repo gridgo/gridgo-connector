@@ -8,22 +8,22 @@ Number of Components: 6
 |===
 | Component | Available From | Description
 
-| link:gridgo-kafka/readme.adoc[Kafka] (gridgo-kafka) +
+| link:gridgo-kafka/README.adoc[Kafka] (gridgo-kafka) +
 `kafka:topic` | 0.1.0 | Allows messages to be sent to (or consumed from) Apache Kafka brokers.
 
-| link:gridgo-netty4/readme.adoc[Netty4] (gridgo-netty4) +
+| link:gridgo-netty4/README.adoc[Netty4] (gridgo-netty4) +
 | 0.1.0 | // TODO: Fill description.
 
-| link:gridgo-rabbitmq/readme.adoc[RabbitMQ] (gridgo-rabbitmq) +
+| link:gridgo-rabbitmq/README.adoc[RabbitMQ] (gridgo-rabbitmq) +
 `rabbitmq://address/exchangeName` | 0.1.0 | Allows messages to be sent to (or consumed from) Rabbit MQ.
 
-| link:gridgo-socket-nanomsg/readme.adoc[NanoMSG] (gridgo-socket-nanomsg) +
+| link:gridgo-socket-nanomsg/README.adoc[NanoMSG] (gridgo-socket-nanomsg) +
 `nanomsg:type:transport://host:port` | 0.1.0 | // TODO: Fill description.
 
-| link:gridgo-socket-zmq/readme.adoc[ZMQ] (gridgo-socket-zmq) +
+| link:gridgo-socket-zmq/README.adoc[ZMQ] (gridgo-socket-zmq) +
 `zmq:type:transport://host:port` | 0.1.0 | // TODO: Fill description.
 
-| link:gridgo-vertx-http/readme.adoc[VertX HTTP] (gridgo-vertx-http) +
+| link:gridgo-vertx-http/README.adoc[VertX HTTP] (gridgo-vertx-http) +
 `vertx:http://host:port/path` | 0.1.0 | HTTP server using the VertX.
 
 |===
