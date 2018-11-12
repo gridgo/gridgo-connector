@@ -29,7 +29,7 @@ public class Netty4WebsocketUnitTests {
 			doneSignal.countDown();
 		});
 
-		doneSignal.await();
+		// doneSignal.await();
 
 		connector.stop();
 
