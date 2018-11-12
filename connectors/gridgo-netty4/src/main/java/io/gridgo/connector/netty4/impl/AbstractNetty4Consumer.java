@@ -6,6 +6,7 @@ import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.AbstractConsumer;
 import io.gridgo.connector.netty4.Netty4Consumer;
 import io.gridgo.connector.netty4.exceptions.UnsupportedTransportException;
+import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 import io.gridgo.socket.netty4.Netty4SocketServer;
@@ -31,8 +32,9 @@ public abstract class AbstractNetty4Consumer extends AbstractConsumer implements
 
 	private Netty4SocketServer socketServer;
 
-	protected AbstractNetty4Consumer(@NonNull Netty4Transport transport, @NonNull HostAndPort host,
-			@NonNull BObject options) {
+	protected AbstractNetty4Consumer(@NonNull ConnectorContext context, @NonNull Netty4Transport transport,
+			@NonNull HostAndPort host, @NonNull BObject options) {
+		super(context);
 		this.transport = transport;
 		this.host = host;
 		this.options = options;

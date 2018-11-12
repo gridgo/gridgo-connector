@@ -46,7 +46,7 @@ public class Netty4Connector extends AbstractConnector {
 
 	@Override
 	protected void onStart() {
-		this.consumer = Optional.of(new DefaultNetty4Consumer(transport, host, options));
+		this.consumer = Optional.of(new DefaultNetty4Consumer(getContext(), transport, host, options));
 		// this.producer = Optional.of(new DefaultNetty4Producer(transport, host,
 		// options));
 	}
