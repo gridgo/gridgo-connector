@@ -10,8 +10,8 @@ import io.gridgo.utils.support.HostAndPort;
 
 public interface Netty4Consumer extends Consumer, HasResponder {
 
-	static Netty4Consumer newDefault(ConnectorContext context, Netty4Transport transport, HostAndPort host,
+	static Netty4Consumer newDefault(ConnectorContext context, Netty4Transport transport, HostAndPort host, String path,
 			BObject options) {
-		return new DefaultNetty4Consumer(context, transport, host, options);
+		return new DefaultNetty4Consumer(context, transport, host, path, options);
 	}
 }

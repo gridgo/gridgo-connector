@@ -25,6 +25,7 @@ public abstract class AbstractNetty4Socket extends ChannelInboundHandlerAdapter 
 	private Netty4Transport transport = null;
 
 	private final AtomicBoolean startFlag = new AtomicBoolean(false);
+
 	private boolean running = false;
 
 	@Override
@@ -50,6 +51,15 @@ public abstract class AbstractNetty4Socket extends ChannelInboundHandlerAdapter 
 	}
 
 	@Override
+	public void stop() {
+		try {
+			this.close();
+		} catch (IOException e) {
+			throw new RuntimeException("Error while close netty4 socket", e);
+		}
+	}
+
+	@Override
 	public final void close() throws IOException {
 		if (this.isStarted() && this.startFlag.compareAndSet(true, false)) {
 			this.onClose();
@@ -69,5 +79,5 @@ public abstract class AbstractNetty4Socket extends ChannelInboundHandlerAdapter 
 		this.configs.putAny(name, value);
 	}
 
-	protected abstract BElement parseReceivedData(Object msg) throws Exception;
+	protected abstract BElement handleIncomingMessage(long channelId, Object msg) throws Exception;
 }

@@ -11,6 +11,7 @@ import io.gridgo.framework.support.MessageParser;
 import io.gridgo.socket.netty4.Netty4SocketServer;
 import io.gridgo.socket.netty4.Netty4Transport;
 import io.gridgo.socket.netty4.raw.tcp.Netty4TCPServer;
+import io.gridgo.socket.netty4.ws.Netty4Websocket;
 import io.gridgo.socket.netty4.ws.Netty4WebsocketServer;
 import io.gridgo.utils.support.HostAndPort;
 import lombok.AccessLevel;
@@ -28,13 +29,17 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 	@Getter(AccessLevel.PROTECTED)
 	private final BObject options;
 
+	@Getter(AccessLevel.PROTECTED)
+	private final String path;
+
 	private Netty4SocketServer socketServer;
 
 	protected AbstractNetty4Consumer(@NonNull ConnectorContext context, @NonNull Netty4Transport transport,
-			@NonNull HostAndPort host, @NonNull BObject options) {
+			@NonNull HostAndPort host, @NonNull String path, @NonNull BObject options) {
 		super(context);
 		this.transport = transport;
 		this.host = host;
+		this.path = path;
 		this.options = options;
 	}
 
@@ -51,10 +56,16 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 	@Override
 	protected void onStart() {
 		this.socketServer = this.createSocketServer();
+
 		this.socketServer.applyConfigs(this.options);
+		if (this.socketServer instanceof Netty4Websocket) {
+			((Netty4Websocket) this.socketServer).setPath(this.getPath());
+		}
+
 		this.socketServer.setChannelOpenCallback(this::onConnectionOpen);
 		this.socketServer.setChannelCloseCallback(this::onConnectionClose);
 		this.socketServer.setReceiveCallback(this::onReceive);
+
 		this.setResponder(new DefaultNetty4Responder(this.getContext(), socketServer));
 		this.socketServer.bind(host);
 	}

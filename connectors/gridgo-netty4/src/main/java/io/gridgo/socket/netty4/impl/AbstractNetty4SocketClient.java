@@ -96,7 +96,7 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 	@Override
 	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 		if (this.getReceiveCallback() != null) {
-			this.getReceiveCallback().accept(this.parseReceivedData(msg));
+			this.getReceiveCallback().accept(this.handleIncomingMessage(0, msg));
 		}
 	}
 
@@ -104,4 +104,11 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 	public ChannelFuture send(BElement data) {
 		return this.channelContext.writeAndFlush(data);
 	}
+
+	@Override
+	protected final BElement handleIncomingMessage(long channelId, Object msg) throws Exception {
+		return this.handleIncomingMessage(msg);
+	}
+
+	protected abstract BElement handleIncomingMessage(Object msg) throws Exception;
 }

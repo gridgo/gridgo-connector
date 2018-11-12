@@ -18,6 +18,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.util.AttributeKey;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -56,6 +57,9 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 
 	private NioEventLoopGroup workerGroup;
 
+	@Getter(AccessLevel.PROTECTED)
+	private HostAndPort host;
+
 	@Override
 	public void bind(@NonNull final HostAndPort host) {
 		tryStart(() -> {
@@ -63,7 +67,9 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 		});
 	}
 
-	protected abstract ServerBootstrap createBootstrap();
+	protected ServerBootstrap createBootstrap() {
+		return new ServerBootstrap().channel(NioServerSocketChannel.class);
+	}
 
 	private void executeBind(HostAndPort host) {
 		BObject configs = this.getConfigs();
@@ -83,6 +89,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 				throw new RuntimeException("Start " + this.getClass().getName() + " is unsuccessful");
 			} else {
 				System.out.println("Bind success to " + host.toIpAndPort());
+				this.host = host;
 			}
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
@@ -91,12 +98,16 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 
 	@Override
 	protected void onClose() throws IOException {
+		for (ChannelHandlerContext ctx : this.channelContexts.values()) {
+			ctx.channel().close();
+			ctx.close();
+		}
+		this.channelContexts.clear();
 		this.bossGroup.shutdownGracefully();
 		this.workerGroup.shutdownGracefully();
 	}
 
 	private void initChannel(SocketChannel socketChannel) {
-		System.out.println("Init channel");
 		this.onInitChannel(socketChannel);
 		socketChannel.pipeline().addLast(this);
 	}
@@ -110,13 +121,19 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 		return null;
 	}
 
+	protected ChannelHandlerContext getChannelHandlerContext(long id) {
+		return this.channelContexts.get(id);
+	}
+
 	@Override
 	public final void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 		Long id = this.getChannelId(ctx);
-		System.out.println("Channel read, id: " + id);
 		if (id != null) {
 			if (this.getReceiveCallback() != null) {
-				this.getReceiveCallback().accept(id, parseReceivedData(msg));
+				BElement incomingMessage = handleIncomingMessage(id, msg);
+				if (incomingMessage != null) {
+					this.getReceiveCallback().accept(id, incomingMessage);
+				}
 			}
 		}
 		ctx.fireChannelRead(msg);

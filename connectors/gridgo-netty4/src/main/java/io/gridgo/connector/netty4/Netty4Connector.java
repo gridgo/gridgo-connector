@@ -15,8 +15,9 @@ import io.gridgo.utils.support.HostAndPort;
 @ConnectorEndpoint(scheme = "netty4", syntax = "{transport}://{host}:{port}[/{path}]")
 public class Netty4Connector extends AbstractConnector {
 
-	private HostAndPort host;
 	private Netty4Transport transport;
+	private HostAndPort host;
+	private String path;
 	private BObject options;
 
 	@Override
@@ -43,12 +44,17 @@ public class Netty4Connector extends AbstractConnector {
 		this.host = HostAndPort.newInstance(hostStr, port);
 
 		this.options = BObject.newDefault(config.getParameters());
+
+		this.path = (String) config.getPlaceholders().getProperty("path", "websocket");
 	}
 
 	@Override
 	protected void onStart() {
-		this.consumer = Optional.of(new DefaultNetty4Consumer(this.getContext(), transport, host, options));
-		this.producer = Optional.of(new DefaultNetty4Producer(this.getContext(), transport, host, options));
+		this.consumer = Optional.of(new DefaultNetty4Consumer(this.getContext(), transport, host, path, options));
+		if (transport != Netty4Transport.WEBSOCKET) {
+			this.producer = Optional.of(new DefaultNetty4Producer(this.getContext(), transport, host, options));
+		}
 		super.onStart();
 	}
+
 }

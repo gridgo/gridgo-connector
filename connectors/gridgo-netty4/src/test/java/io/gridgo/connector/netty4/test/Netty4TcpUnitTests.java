@@ -24,9 +24,8 @@ import io.gridgo.connector.netty4.Netty4Consumer;
 import io.gridgo.connector.netty4.Netty4Producer;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
-import io.gridgo.utils.ThreadUtils;
 
-public class Netty4ConnectorUnitTests {
+public class Netty4TcpUnitTests {
 
 	private final static ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
 	private final static String TEXT = "this is test text";

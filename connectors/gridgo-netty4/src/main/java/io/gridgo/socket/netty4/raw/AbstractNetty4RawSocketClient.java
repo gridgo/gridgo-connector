@@ -20,7 +20,7 @@ public class AbstractNetty4RawSocketClient extends AbstractNetty4SocketClient {
 	}
 
 	@Override
-	protected BElement parseReceivedData(Object msg) throws Exception {
+	protected BElement handleIncomingMessage(Object msg) throws Exception {
 		return (BElement) msg;
 	}
 }

@@ -7,7 +7,8 @@ import io.gridgo.utils.support.HostAndPort;
 
 public class DefaultNetty4Consumer extends AbstractNetty4Consumer {
 
-	public DefaultNetty4Consumer(ConnectorContext context, Netty4Transport transport, HostAndPort host, BObject options) {
-		super(context, transport, host, options);
+	public DefaultNetty4Consumer(ConnectorContext context, Netty4Transport transport, HostAndPort host, String path,
+			BObject options) {
+		super(context, transport, host, path, options);
 	}
 }
