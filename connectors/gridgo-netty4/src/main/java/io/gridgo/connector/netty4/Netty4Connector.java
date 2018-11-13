@@ -45,9 +45,6 @@ public class Netty4Connector extends AbstractConnector {
 		}
 
 		int port = Integer.parseInt((String) config.getPlaceholders().getOrDefault("port", "0"));
-		if (port <= 0) {
-			throw new InvalidPlaceholderException("port must be provided and positive (port > 0)");
-		}
 
 		this.host = HostAndPort.newInstance(hostStr, port);
 		this.options = BObject.newDefault(config.getParameters());
