@@ -191,13 +191,17 @@ public class MongoDBProducer extends AbstractProducer {
 		if (result instanceof Long)
 			return createMessage(BObject.newDefault(), BValue.newDefault(result));
 		if (result instanceof Document)
-			return createMessage(BObject.newDefault(), BReference.newDefault(result));
+			return createMessage(BObject.newDefault(), toReference((Document) result));
 		if (result instanceof List<?>) {
-			var cloned = StreamSupport.stream(((List<Document>) result).spliterator(), false)
-					.map(BReference::newDefault).collect(Collectors.toList());
+			var cloned = StreamSupport.stream(((List<Document>) result).spliterator(), false).map(this::toReference)
+					.collect(Collectors.toList());
 			return createMessage(BObject.newDefault(), BArray.newDefault(cloned));
 		}
 		return null;
+	}
+
+	private BReference toReference(Document doc) {
+		return BReference.newDefault(new SerializableDocument(doc));
 	}
 
 	private List<Document> convertToDocuments(BArray body) {
