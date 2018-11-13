@@ -16,9 +16,7 @@ public class MongoDBConnector extends AbstractConnector {
 		var collection = getConnectorConfig().getPlaceholders().get("collection");
 		var collectionName = collection != null ? collection.toString() : null;
 
-		var connection = getContext().getRegistry().lookup(connectionBean, MongoClient.class);
-		if (connection == null)
-			throw new RuntimeException("Bean " + connectionBean + " cannot be found");
+		var connection = getContext().getRegistry().lookupMandatory(connectionBean, MongoClient.class);
 		var mongoCollection = connection.getDatabase(database).getCollection(collectionName);
 		this.producer = Optional.of(new MongoDBProducer(getContext(), mongoCollection));
 	}

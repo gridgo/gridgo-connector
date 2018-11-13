@@ -26,7 +26,7 @@ public class VertxHttpConnector extends AbstractConnector {
 		var vertxOptions = buildVertxOptions(config);
 		Vertx vertx = null;
 		if (vertxBean != null) {
-			vertx = getContext().getRegistry().lookup(vertxBean, Vertx.class);
+			vertx = getContext().getRegistry().lookupMandatory(vertxBean, Vertx.class);
 		}
 		var httpOptions = buildHttpServerOptions(config);
 		this.consumer = Optional
