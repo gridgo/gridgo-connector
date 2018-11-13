@@ -67,7 +67,7 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 			if (!future.await().isSuccess()) {
 				throw new RuntimeException("Cannot connect to " + host);
 			} else {
-				System.out.println("Connect success to " + host.toIpAndPort());
+				getLogger().info("Connect success to %s", host.toIpAndPort());
 			}
 		} catch (Exception e) {
 			throw new RuntimeException("Error while connect to " + host, e);

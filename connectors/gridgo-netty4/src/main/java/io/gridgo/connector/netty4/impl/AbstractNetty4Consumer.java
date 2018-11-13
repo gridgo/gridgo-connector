@@ -71,11 +71,11 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 	}
 
 	protected void onConnectionClose(long routingId) {
-		System.out.println("Connection closed on " + routingId);
+		getLogger().info("Connection closed on %d", routingId);
 	}
 
 	protected void onConnectionOpen(long routingId) {
-		System.out.println("Connection opened, id: " + routingId);
+		getLogger().info("Connection opened, id: %d", routingId);
 	}
 
 	protected void onReceive(long routingId, BElement data) {

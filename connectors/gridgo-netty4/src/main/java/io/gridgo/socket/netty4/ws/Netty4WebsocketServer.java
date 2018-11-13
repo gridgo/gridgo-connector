@@ -63,7 +63,7 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 						wsUri = "ws://" + this.getHost().toHostAndPort() + (getPath().startsWith("/") ? "" : "/")
 								+ this.getPath();
 					}
-					System.out.println("handshake on wsUri: " + wsUri);
+					getLogger().info("handshake on wsUri: %s", wsUri);
 					wsFactory = new WebSocketServerHandshakerFactory(wsUri, null, true);
 				}
 			}
