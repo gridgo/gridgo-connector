@@ -1,9 +1,10 @@
 package io.gridgo.connector;
 
 import io.gridgo.connector.support.config.ConnectorContext;
+import io.gridgo.framework.support.RegistryAware;
 import lombok.NonNull;
 
-public interface ConnectorFactory {
+public interface ConnectorFactory extends RegistryAware {
 
 	public Connector createConnector(final @NonNull String endpoint);
 

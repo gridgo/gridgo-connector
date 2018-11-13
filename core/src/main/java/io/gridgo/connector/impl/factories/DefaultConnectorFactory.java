@@ -7,31 +7,37 @@ import io.gridgo.connector.impl.resolvers.ClasspathConnectorResolver;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.config.ConnectorContextBuilder;
 import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
+import io.gridgo.framework.support.Registry;
+import lombok.Getter;
 import lombok.NonNull;
 
 public class DefaultConnectorFactory implements ConnectorFactory {
 
 	private static final ConnectorResolver DEFAULT_CONNECTOR_RESOLVER = new ClasspathConnectorResolver();
 
-	private static final ConnectorContextBuilder DEFAULT_CONNECTOR_CONTEXT_BUILDER = new DefaultConnectorContextBuilder();
-
 	private final ConnectorResolver resolver;
 
 	private final ConnectorContextBuilder builder;
 
+	@Getter
+	private Registry registry;
+
+	private boolean ownedBuilder = true;
+
 	public DefaultConnectorFactory() {
 		this.resolver = DEFAULT_CONNECTOR_RESOLVER;
-		this.builder = DEFAULT_CONNECTOR_CONTEXT_BUILDER;
+		this.builder = new DefaultConnectorContextBuilder();
 	}
 
 	public DefaultConnectorFactory(final @NonNull ConnectorResolver resolver) {
 		this.resolver = resolver;
-		this.builder = DEFAULT_CONNECTOR_CONTEXT_BUILDER;
+		this.builder = new DefaultConnectorContextBuilder();
 	}
 
 	public DefaultConnectorFactory(final @NonNull ConnectorResolver resolver, ConnectorContextBuilder builder) {
 		this.resolver = resolver;
 		this.builder = builder;
+		ownedBuilder = false;
 	}
 
 	@Override
@@ -51,6 +57,15 @@ public class DefaultConnectorFactory implements ConnectorFactory {
 
 	@Override
 	public Connector createConnector(String endpoint, ConnectorResolver resolver, ConnectorContext context) {
+		if (context.getRegistry() == null)
+			context.setRegistry(registry);
 		return resolver.resolve(endpoint, context);
+	}
+
+	@Override
+	public void setRegistry(Registry registry) {
+		this.registry = registry;
+		if (ownedBuilder)
+			builder.setRegistry(registry);
 	}
 }
