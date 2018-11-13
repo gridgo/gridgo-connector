@@ -16,6 +16,7 @@ import io.gridgo.framework.support.Payload;
 import io.gridgo.socket.netty4.Netty4SocketClient;
 import io.gridgo.socket.netty4.Netty4Transport;
 import io.gridgo.socket.netty4.raw.tcp.Netty4TCPClient;
+import io.gridgo.socket.netty4.ws.Netty4Websocket;
 import io.gridgo.socket.netty4.ws.Netty4WebsocketClient;
 import io.gridgo.utils.support.HostAndPort;
 import io.netty.channel.ChannelFuture;
@@ -39,12 +40,16 @@ public abstract class AbstractNetty4Producer extends AbstractHasReceiverProducer
 	@Getter(AccessLevel.PROTECTED)
 	private Netty4SocketClient socketClient;
 
+	@Getter(AccessLevel.PROTECTED)
+	private final String path;
+
 	protected AbstractNetty4Producer(@NonNull ConnectorContext context, @NonNull Netty4Transport transport,
-			@NonNull HostAndPort host, @NonNull BObject options) {
+			@NonNull HostAndPort host, String path, @NonNull BObject options) {
 		super(context);
 		this.transport = transport;
 		this.host = host;
 		this.options = options;
+		this.path = path;
 	}
 
 	@Override
@@ -94,6 +99,10 @@ public abstract class AbstractNetty4Producer extends AbstractHasReceiverProducer
 	protected void onStart() {
 		this.socketClient = this.createSocketClient();
 		this.socketClient.applyConfigs(this.options);
+		if (this.socketClient instanceof Netty4Websocket) {
+			((Netty4Websocket) this.socketClient).setPath(getPath());
+		}
+
 		this.setReceiver(this.createReceiver());
 		this.socketClient.connect(this.host);
 	}
@@ -117,4 +126,8 @@ public abstract class AbstractNetty4Producer extends AbstractHasReceiverProducer
 		this.socketClient = null;
 	}
 
+	@Override
+	protected String generateName() {
+		return null;
+	}
 }

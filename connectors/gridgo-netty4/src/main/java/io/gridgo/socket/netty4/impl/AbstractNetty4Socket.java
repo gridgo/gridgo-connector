@@ -9,13 +9,20 @@ import io.gridgo.socket.netty4.Netty4Socket;
 import io.gridgo.socket.netty4.Netty4Transport;
 import io.gridgo.utils.ThreadUtils;
 import io.gridgo.utils.helper.Loggable;
+import io.gridgo.utils.support.HostAndPort;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandler;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 
-public abstract class AbstractNetty4Socket extends ChannelInboundHandlerAdapter implements Netty4Socket, Loggable {
+public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
+
+	@Setter
+	@Getter
+	private String name;
 
 	@Getter(AccessLevel.PROTECTED)
 	private final BObject configs = BObject.newDefault();
@@ -24,9 +31,46 @@ public abstract class AbstractNetty4Socket extends ChannelInboundHandlerAdapter 
 	@Setter(AccessLevel.PROTECTED)
 	private Netty4Transport transport = null;
 
+	@Getter(AccessLevel.PROTECTED)
+	@Setter(AccessLevel.PROTECTED)
+	private HostAndPort host;
+
 	private final AtomicBoolean startFlag = new AtomicBoolean(false);
 
 	private boolean running = false;
+
+	protected ChannelInboundHandler newChannelHandlerDelegater() {
+		return new ChannelInboundHandlerAdapter() {
+
+			@Override
+			public void channelActive(ChannelHandlerContext ctx) throws Exception {
+				AbstractNetty4Socket.this.onChannelActive(ctx);
+				ctx.fireChannelActive();
+			}
+
+			@Override
+			public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+				AbstractNetty4Socket.this.onChannelInactive(ctx);
+				ctx.fireChannelInactive();
+			}
+
+			@Override
+			public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+				AbstractNetty4Socket.this.onChannelRead(ctx, msg);
+				ctx.fireChannelRead(msg);
+			}
+
+			@Override
+			public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+				AbstractNetty4Socket.this.onHandlerAdded(ctx);
+			}
+
+			@Override
+			public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+				AbstractNetty4Socket.this.onException(ctx, cause);
+			}
+		};
+	}
 
 	@Override
 	public final boolean isStarted() {
@@ -72,12 +116,32 @@ public abstract class AbstractNetty4Socket extends ChannelInboundHandlerAdapter 
 	}
 
 	@Override
-	public void applyConfig(@NonNull String name, @NonNull Object value) {
+	public final void applyConfig(@NonNull String name, @NonNull Object value) {
 		if (this.isStarted()) {
 			throw new IllegalStateException("Cannot apply config while this socket already stated");
 		}
 		this.configs.putAny(name, value);
+		this.onApplyConfig(name);
+	}
+
+	protected void onApplyConfig(String name) {
+		// do nothing
 	}
 
 	protected abstract BElement handleIncomingMessage(long channelId, Object msg) throws Exception;
+
+	protected abstract void onChannelActive(ChannelHandlerContext ctx) throws Exception;
+
+	protected abstract void onChannelInactive(ChannelHandlerContext ctx) throws Exception;
+
+	protected abstract void onChannelRead(ChannelHandlerContext ctx, Object msg) throws Exception;
+
+	protected void onHandlerAdded(ChannelHandlerContext ctx) {
+		// do nothing...
+	}
+
+	protected void onException(ChannelHandlerContext ctx, Throwable cause) {
+		cause.printStackTrace();
+	}
+
 }

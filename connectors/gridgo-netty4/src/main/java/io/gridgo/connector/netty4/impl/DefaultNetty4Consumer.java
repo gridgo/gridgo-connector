@@ -17,10 +17,4 @@ public class DefaultNetty4Consumer extends AbstractNetty4Consumer {
 	protected Responder createResponder() {
 		return new DefaultNetty4Responder(this.getContext(), getSocketServer());
 	}
-
-	@Override
-	protected String generateName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
 }

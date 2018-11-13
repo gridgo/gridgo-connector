@@ -6,6 +6,7 @@ import io.gridgo.bean.BElement;
 import io.gridgo.socket.netty4.Netty4SocketClient;
 import io.gridgo.utils.support.HostAndPort;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
@@ -30,7 +31,8 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 	@Getter(AccessLevel.PROTECTED)
 	private Runnable channelCloseCallback;
 
-	private ChannelHandlerContext channelContext;
+	@Getter(AccessLevel.PROTECTED)
+	private Channel channel;
 
 	private ChannelInitializer<SocketChannel> channelInitializer = new ChannelInitializer<SocketChannel>() {
 		@Override
@@ -48,7 +50,7 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 
 	private void initChannel(SocketChannel channel) {
 		this.onInitChannel(channel);
-		channel.pipeline().addLast("channelInboundHandler", this);
+		channel.pipeline().addLast("handler", this.newChannelHandlerDelegater());
 	}
 
 	protected abstract void onInitChannel(SocketChannel ch);
@@ -67,6 +69,9 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 			if (!future.await().isSuccess()) {
 				throw new RuntimeException("Cannot connect to " + host);
 			} else {
+				this.setHost(host);
+				this.channel = future.channel();
+				this.onConnectionEstablished();
 				getLogger().info("Connect success to %s", host.toIpAndPort());
 			}
 		} catch (Exception e) {
@@ -74,27 +79,30 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 		}
 	}
 
+	protected void onConnectionEstablished() {
+		// do nothing
+	}
+
 	protected NioEventLoopGroup createLoopGroup() {
 		return new NioEventLoopGroup(this.getConfigs().getInteger("workerThreads", 1));
 	}
 
 	@Override
-	public final void channelActive(ChannelHandlerContext ctx) throws Exception {
-		this.channelContext = ctx;
+	protected void onChannelActive(ChannelHandlerContext ctx) throws Exception {
 		if (this.getChannelOpenCallback() != null) {
 			this.getChannelOpenCallback().run();
 		}
 	}
 
 	@Override
-	public final void channelInactive(ChannelHandlerContext ctx) throws Exception {
+	protected final void onChannelInactive(ChannelHandlerContext ctx) throws Exception {
 		if (this.getChannelCloseCallback() != null) {
 			this.getChannelCloseCallback().run();
 		}
 	}
 
 	@Override
-	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+	protected void onChannelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 		if (this.getReceiveCallback() != null) {
 			this.getReceiveCallback().accept(this.handleIncomingMessage(0, msg));
 		}
@@ -102,7 +110,7 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 
 	@Override
 	public ChannelFuture send(BElement data) {
-		return this.channelContext.writeAndFlush(data);
+		return this.channel.writeAndFlush(data);
 	}
 
 	@Override

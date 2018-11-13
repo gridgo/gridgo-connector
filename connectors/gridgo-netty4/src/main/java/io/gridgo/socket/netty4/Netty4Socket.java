@@ -5,9 +5,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import io.gridgo.framework.ComponentLifecycle;
-import io.netty.channel.ChannelInboundHandler;
 
-public interface Netty4Socket extends Closeable, ComponentLifecycle, ChannelInboundHandler {
+public interface Netty4Socket extends Closeable, ComponentLifecycle {
 
 	boolean isStarted();
 

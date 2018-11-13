@@ -98,4 +98,9 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 		this.socketServer.setReceiveCallback(null);
 		this.socketServer = null;
 	}
+
+	@Override
+	protected String generateName() {
+		return null;
+	}
 }

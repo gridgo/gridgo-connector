@@ -50,7 +50,6 @@ class DefaultNetty4Responder extends AbstractResponder {
 
 	@Override
 	protected String generateName() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 

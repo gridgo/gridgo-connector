@@ -45,7 +45,6 @@ public class DefaultNetty4Receiver extends AbstractReceiver {
 
 	@Override
 	protected String generateName() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 }

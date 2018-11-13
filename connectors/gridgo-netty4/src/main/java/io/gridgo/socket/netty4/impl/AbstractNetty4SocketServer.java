@@ -13,6 +13,7 @@ import io.gridgo.bean.BObject;
 import io.gridgo.socket.netty4.Netty4SocketServer;
 import io.gridgo.utils.support.HostAndPort;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
@@ -30,7 +31,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 	private static final AttributeKey<Object> CHANNEL_ID = AttributeKey.newInstance("channelId");
 
 	private static final AtomicLong ID_SEED = new AtomicLong(0);
-
+	
 	@Setter
 	@Getter(AccessLevel.PROTECTED)
 	private BiConsumer<Long, BElement> receiveCallback;
@@ -43,7 +44,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 	@Getter(AccessLevel.PROTECTED)
 	private Consumer<Long> channelCloseCallback;
 
-	private final Map<Long, ChannelHandlerContext> channelContexts = new NonBlockingHashMap<>();
+	private final Map<Long, Channel> channels = new NonBlockingHashMap<>();
 
 	private final ChannelInitializer<SocketChannel> channelInitializer = new ChannelInitializer<SocketChannel>() {
 
@@ -56,9 +57,6 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 	private NioEventLoopGroup bossGroup;
 
 	private NioEventLoopGroup workerGroup;
-
-	@Getter(AccessLevel.PROTECTED)
-	private HostAndPort host;
 
 	@Override
 	public void bind(@NonNull final HostAndPort host) {
@@ -89,7 +87,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 				throw new RuntimeException("Start " + this.getClass().getName() + " is unsuccessful");
 			} else {
 				getLogger().info("Bind success to %s", host.toIpAndPort());
-				this.host = host;
+				this.setHost(host);
 			}
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
@@ -98,36 +96,49 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 
 	@Override
 	protected void onClose() throws IOException {
-		for (ChannelHandlerContext ctx : this.channelContexts.values()) {
-			ctx.channel().close();
-			ctx.close();
+		for (Channel channel : this.channels.values()) {
+			closeChannel(channel);
 		}
-		this.channelContexts.clear();
+
+		this.channels.clear();
+
 		this.bossGroup.shutdownGracefully();
 		this.workerGroup.shutdownGracefully();
+
+		this.bossGroup = null;
+		this.workerGroup = null;
+	}
+
+	protected void closeChannel(Channel channel) {
+		try {
+			channel.close().sync();
+		} catch (InterruptedException e) {
+			// continue
+		}
 	}
 
 	private void initChannel(SocketChannel socketChannel) {
 		this.onInitChannel(socketChannel);
-		socketChannel.pipeline().addLast(this);
+		socketChannel.pipeline().addLast(this.newChannelHandlerDelegater());
 	}
 
 	protected abstract void onInitChannel(SocketChannel socketChannel);
 
-	protected Long getChannelId(ChannelHandlerContext ctx) {
-		if (ctx != null) {
-			return (Long) ctx.channel().attr(CHANNEL_ID).get();
+	protected Long getChannelId(Channel channel) {
+		if (channel != null) {
+			return (Long) channel.attr(CHANNEL_ID).get();
 		}
 		return null;
 	}
 
-	protected ChannelHandlerContext getChannelHandlerContext(long id) {
-		return this.channelContexts.get(id);
+	protected Channel getChannel(long id) {
+		return this.channels.get(id);
 	}
 
 	@Override
-	public final void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-		Long id = this.getChannelId(ctx);
+	protected final void onChannelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+		final Channel channel = ctx.channel();
+		Long id = this.getChannelId(channel);
 		if (id != null) {
 			if (this.getReceiveCallback() != null) {
 				BElement incomingMessage = handleIncomingMessage(id, msg);
@@ -136,30 +147,31 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 				}
 			}
 		}
-		ctx.fireChannelRead(msg);
 	}
 
 	@Override
-	public final void channelActive(ChannelHandlerContext ctx) throws Exception {
-		long id = ID_SEED.getAndIncrement();
-		this.channelContexts.put(id, ctx);
-		ctx.channel().attr(CHANNEL_ID).set(id);
+	protected final void onChannelActive(final ChannelHandlerContext ctx) throws Exception {
+		final Channel channel = ctx.channel();
+		final long id = ID_SEED.getAndIncrement();
+
+		channel.attr(CHANNEL_ID).set(id);
+		this.channels.put(id, channel);
+
 		if (this.getChannelOpenCallback() != null) {
 			this.getChannelOpenCallback().accept(id);
 		}
-		ctx.fireChannelActive();
 	}
 
 	@Override
-	public final void channelInactive(ChannelHandlerContext ctx) throws Exception {
-		Long id = getChannelId(ctx);
-		if (id != null && this.channelContexts.containsKey(id)) {
-			if (ctx == this.channelContexts.get(id)) {
-				ChannelHandlerContext context = this.channelContexts.remove(id);
+	protected final void onChannelInactive(ChannelHandlerContext ctx) throws Exception {
+		final Channel channel = ctx.channel();
+		Long id = getChannelId(channel);
+		if (id != null && this.channels.containsKey(id)) {
+			if (channel == this.channels.get(id)) {
+				this.channels.remove(id);
 				if (this.getChannelCloseCallback() != null) {
 					this.getChannelCloseCallback().accept(id);
 				}
-				context.fireChannelInactive();
 			} else {
 				throw new IllegalStateException(
 						"Something were wrong, the current inactive channel has registered with other channel context");
@@ -167,18 +179,5 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 		} else {
 			getLogger().warn("The current inactive channel hasn't been registered");
 		}
-	}
-
-	@Override
-	public final ChannelFuture send(long routingId, BElement data) {
-		ChannelHandlerContext ctx = this.channelContexts.get(routingId);
-		if (ctx != null) {
-			if (data == null) {
-				ctx.close();
-			} else {
-				return ctx.writeAndFlush(data);
-			}
-		}
-		return null;
 	}
 }
