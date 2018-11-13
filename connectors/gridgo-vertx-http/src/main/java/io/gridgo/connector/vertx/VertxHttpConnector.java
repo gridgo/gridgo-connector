@@ -5,6 +5,7 @@ import java.util.Optional;
 import io.gridgo.connector.impl.AbstractConnector;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.config.ConnectorConfig;
+import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpServerOptions;
@@ -21,10 +22,15 @@ public class VertxHttpConnector extends AbstractConnector {
 			path = "/" + path;
 		String method = getParam(config, VertxHttpConstants.PARAM_METHOD);
 		String format = getParam(config, VertxHttpConstants.PARAM_FORMAT);
+		String vertxBean = getParam(config, VertxHttpConstants.PARAM_VERTX_BEAN);
 		var vertxOptions = buildVertxOptions(config);
+		Vertx vertx = null;
+		if (vertxBean != null) {
+			vertx = getContext().getRegistry().lookup(vertxBean, Vertx.class);
+		}
 		var httpOptions = buildHttpServerOptions(config);
 		this.consumer = Optional
-				.of(new VertxHttpConsumer(getContext(), vertxOptions, httpOptions, path, method, format));
+				.of(new VertxHttpConsumer(getContext(), vertx, vertxOptions, httpOptions, path, method, format));
 	}
 
 	private VertxOptions buildVertxOptions(ConnectorConfig config) {
