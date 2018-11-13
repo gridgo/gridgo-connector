@@ -2,6 +2,7 @@ package io.gridgo.connector.netty4.impl;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
+import io.gridgo.connector.Responder;
 import io.gridgo.connector.impl.AbstractHasResponderConsumer;
 import io.gridgo.connector.netty4.Netty4Consumer;
 import io.gridgo.connector.netty4.exceptions.UnsupportedTransportException;
@@ -32,6 +33,7 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 	@Getter(AccessLevel.PROTECTED)
 	private final String path;
 
+	@Getter(AccessLevel.PROTECTED)
 	private Netty4SocketServer socketServer;
 
 	protected AbstractNetty4Consumer(@NonNull ConnectorContext context, @NonNull Netty4Transport transport,
@@ -53,6 +55,8 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 		throw new UnsupportedTransportException("Transport type doesn't supported: " + this.transport);
 	}
 
+	protected abstract Responder createResponder();
+
 	@Override
 	protected void onStart() {
 		this.socketServer = this.createSocketServer();
@@ -66,7 +70,7 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 		this.socketServer.setChannelCloseCallback(this::onConnectionClose);
 		this.socketServer.setReceiveCallback(this::onReceive);
 
-		this.setResponder(new DefaultNetty4Responder(this.getContext(), socketServer));
+		this.setResponder(this.createResponder());
 		this.socketServer.bind(host);
 	}
 
@@ -85,11 +89,13 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 
 	@Override
 	protected void onStop() {
+		this.getResponder().stop();
+		this.setResponder(null);
+
 		this.socketServer.stop();
 		this.socketServer.setChannelCloseCallback(null);
 		this.socketServer.setChannelOpenCallback(null);
 		this.socketServer.setReceiveCallback(null);
 		this.socketServer = null;
-		this.setResponder(null);
 	}
 }

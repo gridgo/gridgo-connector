@@ -5,14 +5,13 @@ import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.AsyncDeferredObject;
 
 import io.gridgo.bean.BArray;
-import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
+import io.gridgo.connector.Receiver;
 import io.gridgo.connector.impl.AbstractHasReceiverProducer;
 import io.gridgo.connector.netty4.Netty4Producer;
 import io.gridgo.connector.netty4.exceptions.UnsupportedTransportException;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
-import io.gridgo.framework.support.MessageParser;
 import io.gridgo.framework.support.Payload;
 import io.gridgo.socket.netty4.Netty4SocketClient;
 import io.gridgo.socket.netty4.Netty4Transport;
@@ -26,7 +25,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 
-public class AbstractNetty4Producer extends AbstractHasReceiverProducer implements Netty4Producer {
+public abstract class AbstractNetty4Producer extends AbstractHasReceiverProducer implements Netty4Producer {
 
 	@Getter(AccessLevel.PROTECTED)
 	private final Netty4Transport transport;
@@ -37,6 +36,7 @@ public class AbstractNetty4Producer extends AbstractHasReceiverProducer implemen
 	@Getter(AccessLevel.PROTECTED)
 	private final BObject options;
 
+	@Getter(AccessLevel.PROTECTED)
 	private Netty4SocketClient socketClient;
 
 	protected AbstractNetty4Producer(@NonNull ConnectorContext context, @NonNull Netty4Transport transport,
@@ -88,17 +88,13 @@ public class AbstractNetty4Producer extends AbstractHasReceiverProducer implemen
 		throw new UnsupportedOperationException("Cannot make a call on netty4 producer");
 	}
 
-	protected void onReceive(BElement element) {
-		if (this.getReceiveCallback() != null) {
-			this.getReceiveCallback().accept(MessageParser.DEFAULT.parse(element));
-		}
-	}
+	protected abstract Receiver createReceiver();
 
 	@Override
 	protected void onStart() {
 		this.socketClient = this.createSocketClient();
 		this.socketClient.applyConfigs(this.options);
-		this.socketClient.setReceiveCallback(this::onReceive);
+		this.setReceiver(this.createReceiver());
 		this.socketClient.connect(this.host);
 	}
 
@@ -114,8 +110,10 @@ public class AbstractNetty4Producer extends AbstractHasReceiverProducer implemen
 
 	@Override
 	protected void onStop() {
+		this.getReceiver().stop();
+		this.setReceiver(null);
+
 		this.socketClient.stop();
-		this.socketClient.setReceiveCallback(null);
 		this.socketClient = null;
 	}
 

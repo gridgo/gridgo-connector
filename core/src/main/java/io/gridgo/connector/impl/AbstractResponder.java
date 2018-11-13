@@ -46,12 +46,12 @@ public abstract class AbstractResponder extends AbstractProducer implements Resp
 	}
 
 	@Override
-	protected final void onStart() {
+	protected void onStart() {
 		// responder donot need to be started
 	}
 
 	@Override
-	protected final void onStop() {
+	protected void onStop() {
 		// no need to stop a responder
 	}
 }
