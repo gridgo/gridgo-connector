@@ -10,6 +10,7 @@ import io.gridgo.framework.support.Registry;
 import io.gridgo.framework.support.generators.IdGenerator;
 import io.gridgo.framework.support.impl.SimpleRegistry;
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 public class DefaultConnectorContext implements ConnectorContext {
@@ -21,6 +22,7 @@ public class DefaultConnectorContext implements ConnectorContext {
 
 	private Optional<IdGenerator> idGenerator = Optional.empty();
 
+	@Setter
 	private Registry registry = new SimpleRegistry();
 
 	private Consumer<Throwable> exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
