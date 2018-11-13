@@ -7,8 +7,6 @@ import io.gridgo.connector.impl.AbstractHasResponderConsumer;
 import io.gridgo.connector.netty4.Netty4Consumer;
 import io.gridgo.connector.netty4.exceptions.UnsupportedTransportException;
 import io.gridgo.connector.support.config.ConnectorContext;
-import io.gridgo.framework.support.Message;
-import io.gridgo.framework.support.MessageParser;
 import io.gridgo.socket.netty4.Netty4SocketServer;
 import io.gridgo.socket.netty4.Netty4Transport;
 import io.gridgo.socket.netty4.raw.tcp.Netty4TCPServer;
@@ -74,18 +72,11 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 		this.socketServer.bind(host);
 	}
 
-	protected void onConnectionClose(long routingId) {
-		System.out.println("Connection closed on " + routingId);
-	}
+	protected abstract void onConnectionClose(long routingId);
 
-	protected void onConnectionOpen(long routingId) {
-		System.out.println("Connection opened, id: " + routingId);
-	}
+	protected abstract void onConnectionOpen(long routingId);
 
-	protected void onReceive(long routingId, BElement data) {
-		Message message = MessageParser.DEFAULT.parse(data).setRoutingIdFromAny(routingId);
-		this.publish(message, null);
-	}
+	protected abstract void onReceive(long routingId, BElement data);
 
 	@Override
 	protected void onStop() {
