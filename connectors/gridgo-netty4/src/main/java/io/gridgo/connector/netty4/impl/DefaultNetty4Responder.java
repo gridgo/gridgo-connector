@@ -13,7 +13,7 @@ import io.netty.util.concurrent.GenericFutureListener;
 
 class DefaultNetty4Responder extends AbstractResponder {
 
-	private final Netty4SocketServer socketServer;
+	private Netty4SocketServer socketServer;
 
 	DefaultNetty4Responder(ConnectorContext context, Netty4SocketServer socketServer) {
 		super(context);
@@ -22,6 +22,9 @@ class DefaultNetty4Responder extends AbstractResponder {
 
 	@Override
 	protected void send(Message message, Deferred<Message, Exception> deferred) {
+		if (!this.isStarted()) {
+			return;
+		}
 		BValue routingId = message.getRoutingId().orElse(BValue.newDefault(-1l));
 		ChannelFuture future = this.socketServer.send(routingId.getLong(), message.getPayload().toBArray());
 		if (deferred != null) {
@@ -38,10 +41,17 @@ class DefaultNetty4Responder extends AbstractResponder {
 			}
 		}
 	}
-	
+
 	@Override
-	public String generateName() {
+	protected void onStop() {
+		this.socketServer = null;
+		super.onStop();
+	}
+
+	@Override
+	protected String generateName() {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
 }
