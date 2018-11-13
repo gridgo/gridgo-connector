@@ -1,7 +1,6 @@
 package io.gridgo.connector.kafka;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -12,14 +11,13 @@ import org.joo.promise4j.impl.CompletableDeferredObject;
 import org.joo.promise4j.impl.JoinedPromise;
 import org.joo.promise4j.impl.JoinedResults;
 
-import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.AbstractProducer;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
-import io.gridgo.framework.support.Payload;
+import io.gridgo.framework.support.impl.MultipartMessage;
 
 public class KafkaProducer extends AbstractProducer {
 
@@ -58,11 +56,7 @@ public class KafkaProducer extends AbstractProducer {
 	}
 
 	public Message convertJoinedResult(JoinedResults<Message> results) {
-		List<Payload> list = new ArrayList<>();
-		for (Message msg : results) {
-			list.add(msg.getPayload());
-		}
-		return Message.newDefault(Payload.newDefault(BArray.newDefault(list)));
+		return new MultipartMessage(results);
 	}
 
 	private void ack(Deferred<Message, Exception> deferred, RecordMetadata metadata, Exception exception) {
