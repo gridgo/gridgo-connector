@@ -29,7 +29,9 @@ public class VertxHttpConstants {
 	public static final String PARAM_COMPRESSION_SUPPORTED = "compressionSupported";
 
 	public static final String PARAM_COMPRESSION_LEVEL = "compressionLevel";
-	
+
+	public static final String PARAM_VERTX_BEAN = "vertxBean";
+
 	public static final String HEADER_STATUS = "Status";
 
 	public static final String HEADER_STATUS_CODE = "Status-Code";

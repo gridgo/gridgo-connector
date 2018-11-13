@@ -33,6 +33,8 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 
 	private static final int DEFAULT_EXCEPTION_STATUS_CODE = 500;
 
+	private Vertx vertx;
+
 	private VertxOptions vertxOptions;
 
 	private HttpServerOptions httpOptions;
@@ -45,9 +47,10 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 
 	private Function<Throwable, Message> failureHandler;
 
-	public VertxHttpConsumer(ConnectorContext context, VertxOptions vertxOptions, HttpServerOptions options,
-			String path, String method, String format) {
+	public VertxHttpConsumer(ConnectorContext context, Vertx vertx, VertxOptions vertxOptions,
+			HttpServerOptions options, String path, String method, String format) {
 		super(context);
+		this.vertx = vertx;
 		this.vertxOptions = vertxOptions;
 		this.httpOptions = options;
 		this.path = path;
@@ -64,11 +67,19 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 				connRef = SERVER_MAP.get(connectionKey);
 			} else {
 				var latch = new CountDownLatch(1);
-				var vertx = Vertx.vertx(vertxOptions);
+				Vertx vertx;
+				boolean ownedVertx;
+				if (this.vertx != null) {
+					vertx = this.vertx;
+					ownedVertx = false;
+				} else {
+					vertx = Vertx.vertx(vertxOptions);
+					ownedVertx = true;
+				}
 				var server = vertx.createHttpServer(httpOptions);
 				var router = Router.router(vertx);
 				server.requestHandler(router::accept);
-				connRef = new ConnectionRef<>(new ServerRouterTuple(vertx, server, router));
+				connRef = new ConnectionRef<>(new ServerRouterTuple(ownedVertx ? vertx : null, server, router));
 				SERVER_MAP.put(connectionKey, connRef);
 				server.listen(result -> latch.countDown());
 				try {

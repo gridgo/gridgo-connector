@@ -75,7 +75,10 @@ public class MongoDBProducer extends AbstractProducer {
 		bind(MongoDBConstants.OPERATION_COUNT, this::countCollection);
 		bind(MongoDBConstants.OPERATION_FIND_ALL, this::findAllDocuments);
 		bind(MongoDBConstants.OPERATION_FIND_BY_ID, this::findById);
-		bind(MongoDBConstants.OPERATION_UPDATE, this::updateDocument);
+		bind(MongoDBConstants.OPERATION_UPDATE_ONE, this::updateDocument);
+		bind(MongoDBConstants.OPERATION_UPDATE_MANY, this::updateManyDocuments);
+		bind(MongoDBConstants.OPERATION_DELETE_ONE, this::deleteDocument);
+		bind(MongoDBConstants.OPERATION_DELETE_MANY, this::deleteManyDocuments);
 	}
 
 	@Override
@@ -89,7 +92,7 @@ public class MongoDBProducer extends AbstractProducer {
 
 	public void insertDocument(Message msg, Deferred<Message, Exception> deferred) {
 		var body = msg.getPayload().getBody();
-		if (body.isObject()) {
+		if (body.isReference()) {
 			var doc = convertToDocument(body.asReference());
 			collection.insertOne(doc, (ignore, throwable) -> ack(deferred, null, throwable));
 		} else {
@@ -106,14 +109,26 @@ public class MongoDBProducer extends AbstractProducer {
 		var filter = getHeaderAs(msg, MongoDBConstants.FILTER, Bson.class);
 
 		var body = msg.getPayload().getBody();
-		if (body.isObject()) {
-			var doc = convertToDocument(body.asReference());
-			collection.updateOne(filter, doc, (ignore, throwable) -> ack(deferred, null, throwable));
-		} else {
-			var docs = convertToDocuments(body.asArray());
-			var options = getHeaderAs(msg, MongoDBConstants.INSERT_MANY_OPTIONS, InsertManyOptions.class);
-			collection.insertMany(docs, options, (ignore, throwable) -> ack(deferred, null, throwable));
-		}
+		var doc = convertToDocument(body.asReference());
+		collection.updateOne(filter, doc, (result, throwable) -> ack(deferred, result.getModifiedCount(), throwable));
+	}
+
+	public void updateManyDocuments(Message msg, Deferred<Message, Exception> deferred) {
+		var filter = getHeaderAs(msg, MongoDBConstants.FILTER, Bson.class);
+
+		var body = msg.getPayload().getBody();
+		var doc = convertToDocument(body.asReference());
+		collection.updateMany(filter, doc, (result, throwable) -> ack(deferred, result.getModifiedCount(), throwable));
+	}
+
+	public void deleteDocument(Message msg, Deferred<Message, Exception> deferred) {
+		var filter = getHeaderAs(msg, MongoDBConstants.FILTER, Bson.class);
+		collection.deleteOne(filter, (result, throwable) -> ack(deferred, result.getDeletedCount(), throwable));
+	}
+
+	public void deleteManyDocuments(Message msg, Deferred<Message, Exception> deferred) {
+		var filter = getHeaderAs(msg, MongoDBConstants.FILTER, Bson.class);
+		collection.deleteMany(filter, (result, throwable) -> ack(deferred, result.getDeletedCount(), throwable));
 	}
 
 	public void findAllDocuments(Message msg, Deferred<Message, Exception> deferred) {

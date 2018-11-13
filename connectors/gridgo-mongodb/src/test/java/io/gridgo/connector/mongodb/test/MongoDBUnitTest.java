@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.bson.Document;
 import org.joo.promise4j.impl.SimpleDonePromise;
 import org.joo.promise4j.impl.SimpleFailurePromise;
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.mongodb.async.client.MongoClient;
@@ -84,7 +85,27 @@ public class MongoDBUnitTest {
 					if (doc != null && doc.size() == 2)
 						return new SimpleDonePromise<Message, Exception>(msg);
 					return new SimpleFailurePromise<Message, Exception>(new RuntimeException());
-				}).done(msg -> callLatch.countDown());
+				}) //
+				.pipeDone(msg -> producer.call(createDeleteRequest())) //
+				.pipeDone(msg -> producer.call(createCountMessage())) //
+				.pipeDone(msg -> {
+					System.out.println("check count");
+					long count = msg.getPayload().getBody().asValue().getLong();
+					if (count == 2)
+						return new SimpleDonePromise<Message, Exception>(msg);
+					return new SimpleFailurePromise<Message, Exception>(new RuntimeException());
+				}) //
+				.pipeDone(msg -> producer.call(createDeleteManyRequest())) //
+				.pipeDone(msg -> producer.call(createCountMessage())) //
+				.pipeDone(msg -> {
+					System.out.println("check count");
+					long count = msg.getPayload().getBody().asValue().getLong();
+					if (count == 0)
+						return new SimpleDonePromise<Message, Exception>(msg);
+					return new SimpleFailurePromise<Message, Exception>(new RuntimeException());
+				}) //
+				.pipeDone(msg -> producer.call(createInsertMessage())) //
+				.done(msg -> callLatch.countDown());
 		callLatch.await();
 
 		// test perf
@@ -92,10 +113,12 @@ public class MongoDBUnitTest {
 		var perfLatch = new AtomicInteger(NUM_MESSAGES);
 		long perfStarted = System.nanoTime();
 		for (int i = 0; i < NUM_MESSAGES; i++)
-			producer.call(createFindByIdRequest()).always((status, msg, ex) -> perfLatch.decrementAndGet()).fail(ex -> {
-				ex.printStackTrace();
-				failure.incrementAndGet();
-			});
+			producer.call(createFindByIdRequest()) //
+					.always((status, msg, ex) -> perfLatch.decrementAndGet()) //
+					.fail(ex -> {
+						ex.printStackTrace();
+						failure.incrementAndGet();
+					});
 		while (perfLatch.get() != 0) {
 			Thread.onSpinWait();
 		}
@@ -108,6 +131,20 @@ public class MongoDBUnitTest {
 
 		connector.stop();
 		mongo.close();
+
+		Assert.assertEquals(0, failure.get());
+	}
+
+	private Message createDeleteRequest() {
+		var headers = BObject.newDefault().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_DELETE_ONE)
+				.set(MongoDBConstants.FILTER, BReference.newDefault(Filters.eq("key", 1)));
+		return Message.newDefault(Payload.newDefault(headers, null));
+	}
+
+	private Message createDeleteManyRequest() {
+		var headers = BObject.newDefault().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_DELETE_MANY)
+				.set(MongoDBConstants.FILTER, BReference.newDefault(Filters.gt("key", 1)));
+		return Message.newDefault(Payload.newDefault(headers, null));
 	}
 
 	private Message createFindAllRequest() {
