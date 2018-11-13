@@ -132,4 +132,9 @@ public class KafkaProducer extends AbstractProducer {
 	private Properties getProps() {
 		return configuration.createProducerProperties();
 	}
+
+	@Override
+	protected String generateName() {
+		return "producer.kafka." + configuration.getTopic();
+	}
 }

@@ -2,8 +2,6 @@ package io.gridgo.connector.mongodb;
 
 import java.util.Optional;
 
-import com.mongodb.async.client.MongoClient;
-
 import io.gridgo.connector.impl.AbstractConnector;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 
@@ -11,13 +9,11 @@ import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 public class MongoDBConnector extends AbstractConnector {
 
 	protected void onInit() {
-		var connectionBean = getConnectorConfig().getPlaceholders().get("connectionBean").toString();
-		var database = getConnectorConfig().getPlaceholders().get("database").toString();
-		var collection = getConnectorConfig().getPlaceholders().get("collection");
+		var connectionBean = getPlaceholder("connectionBean").toString();
+		var database = getPlaceholder("database").toString();
+		var collection = getPlaceholder("collection");
 		var collectionName = collection != null ? collection.toString() : null;
 
-		var connection = getContext().getRegistry().lookupMandatory(connectionBean, MongoClient.class);
-		var mongoCollection = connection.getDatabase(database).getCollection(collectionName);
-		this.producer = Optional.of(new MongoDBProducer(getContext(), mongoCollection));
+		this.producer = Optional.of(new MongoDBProducer(getContext(), connectionBean, database, collectionName));
 	}
 }

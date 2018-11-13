@@ -23,8 +23,10 @@ public class UriConnectorResolver implements ConnectorResolver {
 	private static final int MAX_PLACEHOLDER_NAME = 1024;
 	private final Class<? extends Connector> clazz;
 	private final String syntax;
+	private String scheme;
 
-	public UriConnectorResolver(Class<? extends Connector> clazz) {
+	public UriConnectorResolver(String scheme, Class<? extends Connector> clazz) {
+		this.scheme = scheme;
 		this.clazz = clazz;
 		this.syntax = extractSyntax(clazz);
 	}
@@ -57,7 +59,7 @@ public class UriConnectorResolver implements ConnectorResolver {
 
 		var params = extractParameters(queryPart);
 		var placeholders = extractPlaceholders(schemePart);
-		return new DefaultConnectorConfig(schemePart, params, placeholders);
+		return new DefaultConnectorConfig(scheme + ":" + schemePart, schemePart, params, placeholders);
 	}
 
 	private Properties extractPlaceholders(String schemePart) {

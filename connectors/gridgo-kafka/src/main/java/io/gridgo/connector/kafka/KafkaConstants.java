@@ -2,6 +2,16 @@ package io.gridgo.connector.kafka;
 
 public class KafkaConstants {
 
+	public static final String PLACEHOLDER_TOPIC = "topic";
+
+	public static final String PARAM_MODE = "mode";
+	
+	public static final String MODE_PRODUCER = "producer";
+	
+	public static final String MODE_CONSUMER = "consumer";
+	
+	public static final String MODE_BOTH = "both";
+
 	public static final String LAST_RECORD_BEFORE_COMMIT = "kafka.LAST_RECORD_BEFORE_COMMIT";
 
 	public static final String MANUAL_COMMIT = "kafka.MANUAL_COMMIT";

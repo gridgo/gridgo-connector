@@ -108,4 +108,10 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 		totalSentBytes += sentBytes;
 		totalSentMessages++;
 	}
+
+	@Override
+	protected String generateName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

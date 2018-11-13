@@ -56,5 +56,4 @@ public class Netty4Connector extends AbstractConnector {
 		}
 		super.onStart();
 	}
-
 }

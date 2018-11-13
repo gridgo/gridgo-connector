@@ -334,4 +334,9 @@ public class KafkaConsumer extends AbstractConsumer {
 				consumer.wakeup();
 		}
 	}
+
+	@Override
+	protected String generateName() {
+		return "consumer.kafka." + configuration.getTopic();
+	}
 }

@@ -11,4 +11,9 @@ public class DefaultRabbitMQConsumer extends AbstractRabbitMQConsumer {
 		super(context, connection, queueConfig);
 	}
 
+	@Override
+	protected String generateName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

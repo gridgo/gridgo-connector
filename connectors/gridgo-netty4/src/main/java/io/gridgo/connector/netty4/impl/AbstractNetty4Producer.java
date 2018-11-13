@@ -119,4 +119,8 @@ public class AbstractNetty4Producer extends AbstractHasReceiverProducer implemen
 		this.socketClient = null;
 	}
 
+	@Override
+	protected String generateName() {
+		return "producer.netty4." + transport + "." + host;
+	}
 }

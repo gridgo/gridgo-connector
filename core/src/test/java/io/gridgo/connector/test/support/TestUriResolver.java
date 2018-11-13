@@ -8,7 +8,7 @@ import io.gridgo.connector.impl.resolvers.UriConnectorResolver;
 public class TestUriResolver extends UriConnectorResolver {
 
 	public TestUriResolver(Class<? extends Connector> clazz) {
-		super(clazz);
+		super("test", clazz);
 	}
 	
 	public Properties testResolver(String endpoint, String syntax) {

@@ -6,7 +6,7 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
-public class AbstractNetty4RawSocketClient extends AbstractNetty4SocketClient {
+public abstract class AbstractNetty4RawSocketClient extends AbstractNetty4SocketClient {
 
 	@Override
 	protected void onInitChannel(SocketChannel socketChannel) {

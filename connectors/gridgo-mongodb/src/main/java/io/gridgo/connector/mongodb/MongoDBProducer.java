@@ -16,7 +16,9 @@ import org.joo.promise4j.impl.CompletableDeferredObject;
 import org.joo.promise4j.impl.SimpleDonePromise;
 import org.joo.promise4j.impl.SimpleFailurePromise;
 
+import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoCollection;
+import com.mongodb.async.client.MongoDatabase;
 import com.mongodb.client.model.CountOptions;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.InsertManyOptions;
@@ -36,9 +38,16 @@ public class MongoDBProducer extends AbstractProducer {
 
 	private MongoCollection<Document> collection;
 
-	public MongoDBProducer(ConnectorContext context, MongoCollection<Document> mongoCollection) {
+	private MongoDatabase database;
+
+	private String generatedName;
+
+	public MongoDBProducer(ConnectorContext context, String connectionBean, String database, String collectionName) {
 		super(context);
-		this.collection = mongoCollection;
+		var connection = getContext().getRegistry().lookupMandatory(connectionBean, MongoClient.class);
+		this.database = connection.getDatabase(database);
+		this.collection = this.database.getCollection(collectionName);
+		this.generatedName = "producer.mongodb." + connectionBean + "." + database + "." + collectionName;
 	}
 
 	@Override
@@ -218,5 +227,10 @@ public class MongoDBProducer extends AbstractProducer {
 		if (options == null)
 			return null;
 		return clazz.cast(options.asReference().getReference());
+	}
+
+	@Override
+	protected String generateName() {
+		return generatedName;
 	}
 }

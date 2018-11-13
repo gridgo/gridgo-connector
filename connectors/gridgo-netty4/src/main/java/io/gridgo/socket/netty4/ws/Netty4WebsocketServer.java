@@ -190,4 +190,10 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 		pipeline.addLast(new HttpServerCodec());
 		pipeline.addLast(new HttpObjectAggregator(65536));
 	}
+
+	@Override
+	public String getName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

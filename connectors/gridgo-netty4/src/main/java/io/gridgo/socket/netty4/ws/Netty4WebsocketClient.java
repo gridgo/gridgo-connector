@@ -33,4 +33,10 @@ public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements
 		return null;
 	}
 
+	@Override
+	public String getName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

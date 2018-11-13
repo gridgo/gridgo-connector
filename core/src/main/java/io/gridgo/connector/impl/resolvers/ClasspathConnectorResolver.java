@@ -73,6 +73,6 @@ public class ClasspathConnectorResolver implements ConnectorResolver {
 		var clazz = classMappings.get(scheme);
 		if (clazz == null)
 			throw new UnsupportedSchemeException(scheme);
-		return new UriConnectorResolver(clazz).resolve(remaining, context);
+		return new UriConnectorResolver(scheme, clazz).resolve(remaining, context);
 	}
 }

@@ -24,4 +24,8 @@ public class TestConsumer extends AbstractConsumer {
 		publish(createMessage(BObject.newDefault().setAny("test-header", 1), null), null);
 	}
 
+	@Override
+	protected String generateName() {
+		return "consumer.test";
+	}
 }

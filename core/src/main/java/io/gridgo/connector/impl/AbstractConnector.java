@@ -48,14 +48,18 @@ public abstract class AbstractConnector extends AbstractComponentLifecycle imple
 		return consumer;
 	}
 
-	protected String getParam(ConnectorConfig config, String name) {
-		Object value = config.getParameters().get(name);
+	protected String getParam(String name) {
+		Object value = connectorConfig.getParameters().get(name);
 		return value != null ? value.toString() : null;
 	}
 
-	protected String getParam(ConnectorConfig config, String name, String defaultValue) {
-		Object value = config.getParameters().getOrDefault(name, defaultValue);
+	protected String getParam(String name, String defaultValue) {
+		Object value = connectorConfig.getParameters().getOrDefault(name, defaultValue);
 		return value != null ? value.toString() : null;
+	}
+
+	protected String getPlaceholder(String name) {
+		return connectorConfig.getPlaceholders().getProperty(name);
 	}
 
 	protected void onInit() {
@@ -78,4 +82,8 @@ public abstract class AbstractConnector extends AbstractComponentLifecycle imple
 			this.consumer.get().stop();
 	}
 
+	@Override
+	protected final String generateName() {
+		return "connector." + connectorConfig.getNonQueryEndpoint();
+	}
 }

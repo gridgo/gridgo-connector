@@ -112,4 +112,10 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 		this.totalRecvBytes = 0;
 		this.totalRecvMessages = 0;
 	}
+
+	@Override
+	protected String generateName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

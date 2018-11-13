@@ -46,4 +46,8 @@ public class TestProducer extends AbstractProducer {
 
 	}
 
+	@Override
+	protected String generateName() {
+		return "producer.test";
+	}
 }

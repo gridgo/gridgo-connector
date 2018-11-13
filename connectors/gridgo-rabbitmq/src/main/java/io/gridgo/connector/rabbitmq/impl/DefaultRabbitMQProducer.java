@@ -10,4 +10,10 @@ public class DefaultRabbitMQProducer extends AbstractRabbitMQProducer {
 	public DefaultRabbitMQProducer(ConnectorContext context, Connection connection, RabbitMQQueueConfig queueConfig) {
 		super(context, connection, queueConfig);
 	}
+
+	@Override
+	protected String generateName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

@@ -4,6 +4,8 @@ import java.util.Map;
 import java.util.Properties;
 
 public interface ConnectorConfig {
+	
+	public String getNonQueryEndpoint();
 
 	public String getRemaining();
 	

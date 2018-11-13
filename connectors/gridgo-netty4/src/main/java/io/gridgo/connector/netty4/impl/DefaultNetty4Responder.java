@@ -38,4 +38,10 @@ class DefaultNetty4Responder extends AbstractResponder {
 			}
 		}
 	}
+	
+	@Override
+	public String generateName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

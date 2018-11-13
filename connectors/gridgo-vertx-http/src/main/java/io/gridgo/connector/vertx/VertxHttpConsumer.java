@@ -236,4 +236,9 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 		this.failureHandler = failureHandler;
 		return this;
 	}
+
+	@Override
+	protected String generateName() {
+		return "consumer.vertx:http." + method + "." + path;
+	}
 }

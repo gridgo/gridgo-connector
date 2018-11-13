@@ -12,11 +12,11 @@ public class KafkaConnector extends AbstractConnector {
 
 	protected void onInit() {
 		var config = getConnectorConfig();
-		String mode = getParam(config, "mode", "both");
+		String mode = getParam(KafkaConstants.PARAM_MODE, KafkaConstants.MODE_BOTH);
 		boolean createConsumer = true, createProducer = true;
-		if (mode.equals("consumer")) {
+		if (mode.equals(KafkaConstants.MODE_CONSUMER)) {
 			createProducer = false;
-		} else if (mode.equals("producer")) {
+		} else if (mode.equals(KafkaConstants.MODE_PRODUCER)) {
 			createConsumer = false;
 		}
 		var kafkaConfig = createKafkaConfig(config);
@@ -29,7 +29,7 @@ public class KafkaConnector extends AbstractConnector {
 	private KafkaConfiguration createKafkaConfig(ConnectorConfig config) {
 		var kafkaConfig = new KafkaConfiguration();
 		ObjectUtils.assembleFromMap(KafkaConfiguration.class, kafkaConfig, config.getParameters());
-		kafkaConfig.setTopic(config.getPlaceholders().getProperty("topic"));
+		kafkaConfig.setTopic(getPlaceholder(KafkaConstants.PLACEHOLDER_TOPIC));
 		return kafkaConfig;
 	}
 }

@@ -92,4 +92,9 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 		this.socketServer = null;
 		this.setResponder(null);
 	}
+	
+	@Override
+	public String generateName() {
+		return "consumer.netty4." + transport + "." + host;
+	}
 }
