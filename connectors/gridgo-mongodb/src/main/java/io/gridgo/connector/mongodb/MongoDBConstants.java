@@ -12,7 +12,13 @@ public class MongoDBConstants {
 
 	public static final String OPERATION_FIND_BY_ID = "Mongo_OperationFindById";
 
-	public static final String OPERATION_UPDATE = "Mongo_OperationUpdate";
+	public static final String OPERATION_UPDATE_ONE = "Mongo_OperationUpdateOne";
+
+	public static final String OPERATION_UPDATE_MANY = "Mongo_OperationUpdateMany";
+
+	public static final String OPERATION_DELETE_ONE = "Mongo_OperationDeleteOne";
+
+	public static final String OPERATION_DELETE_MANY = "Mongo_OperationDeleteMany";
 
 	public static final String INSERT_MANY_OPTIONS = "Mongo_InsertManyOptions";
 
