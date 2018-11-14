@@ -58,6 +58,8 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 
 	private NioEventLoopGroup workerGroup;
 
+	private ChannelFuture bootstrapFuture;
+
 	@Override
 	public void bind(@NonNull final HostAndPort host) {
 		tryStart(() -> {
@@ -80,10 +82,10 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 		bootstrap.childHandler(this.channelInitializer);
 
 		// Bind and start to accept incoming connections.
-		ChannelFuture channelFuture = bootstrap.bind(host.getResolvedIpOrDefault("127.0.0.1"), host.getPort());
+		bootstrapFuture = bootstrap.bind(host.getResolvedIpOrDefault("127.0.0.1"), host.getPort());
 
 		try {
-			if (!channelFuture.await().isSuccess()) {
+			if (!bootstrapFuture.await().isSuccess()) {
 				throw new RuntimeException("Start " + this.getClass().getName() + " is unsuccessful");
 			} else {
 				getLogger().info("Bind success to %s", host.toIpAndPort());
@@ -102,6 +104,8 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 
 		this.channels.clear();
 
+		bootstrapFuture.channel().close();
+
 		try {
 			this.bossGroup.shutdownGracefully().sync();
 		} catch (InterruptedException e) {
@@ -114,6 +118,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 			// continue
 		}
 
+		bootstrapFuture = null;
 		this.bossGroup = null;
 		this.workerGroup = null;
 	}
