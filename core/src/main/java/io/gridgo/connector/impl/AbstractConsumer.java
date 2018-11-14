@@ -45,6 +45,7 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 			try {
 				context.getCallbackInvokerStrategy().execute(() -> subscriber.accept(message, deferred));
 			} catch (Exception ex) {
+				getLogger().error("Error while publishing message", ex);
 				if (deferred != null)
 					deferred.reject(ex);
 			}
