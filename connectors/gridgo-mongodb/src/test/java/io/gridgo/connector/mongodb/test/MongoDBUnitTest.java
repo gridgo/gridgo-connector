@@ -21,7 +21,6 @@ import io.gridgo.bean.BReference;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
 import io.gridgo.connector.mongodb.MongoDBConstants;
-import io.gridgo.connector.mongodb.SerializableDocument;
 import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
@@ -74,8 +73,8 @@ public class MongoDBUnitTest {
 				.pipeDone(msg -> producer.call(createFindByIdRequest())) //
 				.pipeDone(msg -> {
 					System.out.println("check find by id");
-					var doc = msg.getPayload().getBody().asReference().getReference();
-					if (doc != null && doc instanceof SerializableDocument)
+					var doc = msg.getPayload().getBody().asObject();
+					if (doc != null)
 						return new SimpleDonePromise<Message, Exception>(msg);
 					return new SimpleFailurePromise<Message, Exception>(new RuntimeException());
 				}) //
