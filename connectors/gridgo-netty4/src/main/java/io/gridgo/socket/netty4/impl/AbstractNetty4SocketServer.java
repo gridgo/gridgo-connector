@@ -102,8 +102,17 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 
 		this.channels.clear();
 
-		this.bossGroup.shutdownGracefully();
-		this.workerGroup.shutdownGracefully();
+		try {
+			this.bossGroup.shutdownGracefully().sync();
+		} catch (InterruptedException e) {
+			// continue
+		}
+
+		try {
+			this.workerGroup.shutdownGracefully().sync();
+		} catch (InterruptedException e) {
+			// continue
+		}
 
 		this.bossGroup = null;
 		this.workerGroup = null;
