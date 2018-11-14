@@ -2,7 +2,7 @@
 
 Gridgo Connector is the I/O abstraction level of Gridgo. It provides easy-to-use I/O connector for various protocols, including Kafka, ZMQ, VertX, etc. Connector consists of Producer and Consumer.
 
-### installation
+### install
 
 ```xml
 <dependency>
@@ -57,6 +57,8 @@ consumer.subscribe(msg -> {
     // handle the incoming message
 });
 ```
+
+*Note: You probably need to call subscribe before calling start(). Since after started, Connector consumers will start listening for incoming messages and you will miss the ones coming before subscribe() is called*
 
 Some consumers will require a response, or acknowledgement from handler, e.g Vertx HTTP and Kafka. To send the response or acknowledgement back to the consumer, you need to use the subscribe(java.util.function.BiConsumer) method:
 
