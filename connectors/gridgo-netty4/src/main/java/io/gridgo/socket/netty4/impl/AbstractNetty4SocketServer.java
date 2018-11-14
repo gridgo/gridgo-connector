@@ -2,11 +2,16 @@ package io.gridgo.socket.netty4.impl;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
+import org.joo.promise4j.Deferred;
+import org.joo.promise4j.DeferredStatus;
+import org.joo.promise4j.impl.AsyncDeferredObject;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
@@ -55,18 +60,38 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 		}
 	};
 
-	private NioEventLoopGroup bossGroup;
-
-	private NioEventLoopGroup workerGroup;
-
-	private ChannelFuture bindFuture;
+	private Channel serverChannel;
 
 	private ServerBootstrap bootstrap;
 
 	@Override
 	public void bind(@NonNull final HostAndPort host) {
 		tryStart(() -> {
-			this.executeBind(host);
+			final CountDownLatch doneSignal = new CountDownLatch(1);
+			final AtomicReference<Throwable> failedCauseRef = new AtomicReference<>();
+
+			Deferred<Void, Throwable> deferred = new AsyncDeferredObject<>();
+			deferred.promise().always((stt, msg, failedCause) -> {
+				if (stt == DeferredStatus.REJECTED) {
+					failedCauseRef.set(failedCause == null ? new Exception("Unknown exception") : failedCause);
+				}
+				doneSignal.countDown();
+			});
+
+			new Thread(new Runnable() {
+				public void run() {
+					executeBind(host, deferred);
+				}
+			}).start();
+
+			try {
+				doneSignal.await();
+			} catch (InterruptedException e) {
+				throw new RuntimeException(e);
+			}
+			if (failedCauseRef.get() != null) {
+				throw new RuntimeException(failedCauseRef.get());
+			}
 		});
 	}
 
@@ -74,11 +99,11 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 		return new ServerBootstrap().channel(NioServerSocketChannel.class);
 	}
 
-	private void executeBind(HostAndPort host) {
+	private void executeBind(HostAndPort host, Deferred<Void, Throwable> deferred) {
 		BObject configs = this.getConfigs();
 
-		bossGroup = new NioEventLoopGroup(configs.getInteger("bootThreads", 1));
-		workerGroup = new NioEventLoopGroup(configs.getInteger("workerThreads", 1));
+		NioEventLoopGroup bossGroup = new NioEventLoopGroup(configs.getInteger("bootThreads", 1));
+		NioEventLoopGroup workerGroup = new NioEventLoopGroup(configs.getInteger("workerThreads", 1));
 
 		bootstrap = createBootstrap();
 		bootstrap.group(bossGroup, workerGroup);
@@ -87,18 +112,24 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 		Netty4SocketOptionsUtils.applyOptions(getConfigs(), bootstrap);
 
 		// Bind and start to accept incoming connections.
-		bindFuture = bootstrap.bind(host.getResolvedIpOrDefault("127.0.0.1"), host.getPort());
+		final ChannelFuture bindFuture = bootstrap.bind(host.getResolvedIpOrDefault("127.0.0.1"), host.getPort());
 
 		try {
 			if (!bindFuture.await().isSuccess()) {
-				throw new RuntimeException("Start " + this.getClass().getName() + " is unsuccessful",
-						bindFuture.cause());
+				deferred.reject(bindFuture.cause());
 			} else {
 				getLogger().info("Bind success to %s", host.toIpAndPort());
 				this.setHost(host);
+				this.serverChannel = bindFuture.channel();
+				deferred.resolve(null);
+
+				bindFuture.channel().closeFuture().sync();
 			}
+
+			workerGroup.shutdownGracefully();
+			bossGroup.shutdownGracefully();
 		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
+			deferred.reject(e);
 		}
 	}
 
@@ -116,23 +147,11 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 		this.channels.clear();
 
 		try {
-			this.bindFuture.channel().close().sync();
+			this.serverChannel.close().sync();
 		} catch (InterruptedException e) {
 			getLogger().warn("Close netty4 socket server {} error", this.getHost(), e);
 		} finally {
-			this.bindFuture = null;
-		}
-
-		try {
-			this.bossGroup.shutdownGracefully();
-		} finally {
-			this.bossGroup = null;
-		}
-
-		try {
-			this.workerGroup.shutdownGracefully();
-		} finally {
-			this.workerGroup = null;
+			this.serverChannel = null;
 		}
 	}
 
