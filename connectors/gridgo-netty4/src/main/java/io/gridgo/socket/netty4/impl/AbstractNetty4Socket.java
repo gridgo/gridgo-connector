@@ -10,7 +10,6 @@ import io.gridgo.socket.netty4.Netty4Socket;
 import io.gridgo.socket.netty4.Netty4Transport;
 import io.gridgo.utils.ThreadUtils;
 import io.gridgo.utils.helper.Loggable;
-import io.gridgo.utils.support.HostAndPort;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandler;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -27,10 +26,6 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 	@Getter
 	@Setter(AccessLevel.PROTECTED)
 	private Netty4Transport transport = null;
-
-	@Getter(AccessLevel.PROTECTED)
-	@Setter(AccessLevel.PROTECTED)
-	private HostAndPort host;
 
 	private final AtomicBoolean startFlag = new AtomicBoolean(false);
 
@@ -143,6 +138,7 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 	}
 
 	protected void onException(ChannelHandlerContext ctx, Throwable cause) {
+		cause.printStackTrace();
 		if (this.failureHandler != null) {
 			this.failureHandler.accept(cause);
 		} else {

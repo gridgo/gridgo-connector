@@ -6,6 +6,7 @@ import java.net.URISyntaxException;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.socket.netty4.impl.AbstractNetty4SocketClient;
+import io.gridgo.utils.support.HostAndPort;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
@@ -38,16 +39,17 @@ public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements
 	@Getter(AccessLevel.PROTECTED)
 	private String proxy;
 
+	@Getter
 	private Netty4WebsocketFrameType frameType = Netty4WebsocketFrameType.TEXT;
 
-	protected URI getWsUri() {
-		int port = this.getHost().getPortOrDefault(80);
-		String wsUri = "ws://" + this.getHost().getHostOrDefault("localhost") + (port == 80 ? "" : (":" + port))
+	protected URI getWsUri(HostAndPort host) {
+		int port = host.getPortOrDefault(80);
+		String wsUri = "ws://" + host.getHostOrDefault("localhost") + (port == 80 ? "" : (":" + port))
 				+ (getPath().startsWith("/") ? "" : "/") + this.getPath();
 		try {
 			return new URI(wsUri);
 		} catch (URISyntaxException e) {
-			throw new RuntimeException("Invalid host info" + this.getHost());
+			throw new RuntimeException("Invalid host info" + host);
 		}
 	}
 
@@ -55,37 +57,20 @@ public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements
 
 	private ChannelPromise handshakeFuture;
 
-	protected WebSocketClientHandshaker getHandshaker() {
-		if (this.handshaker == null) {
-			synchronized (this) {
-				if (this.handshaker == null) {
-					this.handshaker = WebSocketClientHandshakerFactory.newHandshaker(getWsUri(), WebSocketVersion.V13,
-							null, false, EmptyHttpHeaders.INSTANCE, 1280000);
-				}
-			}
-		}
-		return this.handshaker;
-	}
+	@Override
+	protected void onBeforeConnect(HostAndPort host) {
+		URI wsUri = getWsUri(host);
+		this.handshaker = WebSocketClientHandshakerFactory.newHandshaker(wsUri, WebSocketVersion.V13, null, false,
+				EmptyHttpHeaders.INSTANCE, 1280000);
 
-	public Netty4WebsocketFrameType getFrameType() {
-		if (frameType == null) {
-			synchronized (this) {
-				if (frameType == null) {
-					String configFrameType = this.getConfigs().getString("frameType", "text");
-					this.frameType = Netty4WebsocketFrameType.fromName(configFrameType);
-
-					if (this.frameType == null) {
-						this.frameType = Netty4WebsocketFrameType.TEXT;
-					}
-				}
-			}
-		}
-		return frameType;
+		String configFrameType = this.getConfigs().getString("frameType", "text");
+		this.frameType = Netty4WebsocketFrameType.fromNameOrDefault(configFrameType, Netty4WebsocketFrameType.TEXT);
 	}
 
 	@Override
-	protected void onConnectionEstablished() {
+	protected void onAfterConnect() {
 		try {
+
 			this.handshakeFuture.sync();
 		} catch (InterruptedException e) {
 			throw new RuntimeException("Waiting for handshake error", e);
@@ -112,16 +97,16 @@ public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements
 
 	@Override
 	protected void onChannelActive(ChannelHandlerContext ctx) throws Exception {
-		getHandshaker().handshake(ctx.channel());
+		handshaker.handshake(ctx.channel());
 	}
 
 	@Override
 	protected void onChannelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 		Channel channel = ctx.channel();
 
-		if (!getHandshaker().isHandshakeComplete()) {
+		if (!handshaker.isHandshakeComplete()) {
 			// web socket client connected
-			getHandshaker().finishHandshake(channel, (FullHttpResponse) msg);
+			handshaker.finishHandshake(channel, (FullHttpResponse) msg);
 			handshakeFuture.setSuccess();
 			return;
 		}

@@ -1,5 +1,6 @@
 package io.gridgo.socket.netty4.ws;
 
+import static io.gridgo.socket.netty4.ws.Netty4WebsocketFrameType.TEXT;
 import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE;
 import static io.netty.handler.codec.http.HttpMethod.GET;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -10,6 +11,7 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.socket.netty4.impl.AbstractNetty4SocketServer;
+import io.gridgo.utils.support.HostAndPort;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -45,55 +47,42 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 	@Getter(AccessLevel.PROTECTED)
 	private String path;
 
+	@Getter
+	private Netty4WebsocketFrameType frameType = TEXT;
+
+	@Getter(AccessLevel.PROTECTED)
 	private WebSocketServerHandshakerFactory wsFactory;
 
-	private Netty4WebsocketFrameType frameType;
-
-	public Netty4WebsocketFrameType getFrameType() {
-		if (frameType == null) {
-			synchronized (this) {
-				if (frameType == null) {
-					String configFrameType = this.getConfigs().getString("frameType", "text");
-					this.frameType = Netty4WebsocketFrameType.fromName(configFrameType);
-
-					if (this.frameType == null) {
-						this.frameType = Netty4WebsocketFrameType.TEXT;
-					}
-				}
-			}
-		}
-		return frameType;
-	}
-
-	protected String getWsUri() {
+	protected String getWsUri(HostAndPort host) {
 		String proxy = this.getConfigs().getString("proxy", null);
 		String wsUri = proxy == null ? null : proxy;
+
 		if (wsUri == null) {
-			wsUri = "ws://" + this.getHost().toHostAndPort() + (getPath().startsWith("/") ? "" : "/") + this.getPath();
+			int port = host.getPortOrDefault(80);
+			wsUri = "ws://" + host.getHostOrDefault("localhost") + (port == 80 ? "" : (":" + port))
+					+ (getPath().startsWith("/") ? "" : "/") + this.getPath();
 		}
+
 		return wsUri;
 	}
 
-	protected WebSocketServerHandshakerFactory getWsFactory() {
-		if (wsFactory == null) {
-			synchronized (this) {
-				if (wsFactory == null) {
-					wsFactory = new WebSocketServerHandshakerFactory(getWsUri(), null, true);
-				}
-			}
-		}
-		return this.wsFactory;
+	@Override
+	protected void onBeforeBind(HostAndPort host) {
+		wsFactory = new WebSocketServerHandshakerFactory(getWsUri(host), null, true);
+
+		String configFrameType = this.getConfigs().getString("frameType", "text");
+		this.frameType = Netty4WebsocketFrameType.fromNameOrDefault(configFrameType, TEXT);
 	}
 
 	@Override
 	protected BElement handleIncomingMessage(long channelId, Object msg) throws Exception {
-		Channel ctx = getChannel(channelId);
-		if (ctx != null) {
+		Channel channel = getChannel(channelId);
+		if (channel != null) {
 			try {
 				if (msg instanceof FullHttpRequest) {
-					handleHttpRequest(ctx, (FullHttpRequest) msg);
+					handleHttpRequest(channel, (FullHttpRequest) msg);
 				} else if (msg instanceof WebSocketFrame) {
-					return handleWebSocketFrame(ctx, (WebSocketFrame) msg);
+					return handleWebSocketFrame(channel, (WebSocketFrame) msg);
 				}
 			} finally {
 				if (msg instanceof ReferenceCounted) {
@@ -145,7 +134,7 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 	}
 
 	@SuppressWarnings("deprecation")
-	public void handleHttpRequest(Channel channel, FullHttpRequest req) {
+	private void handleHttpRequest(Channel channel, FullHttpRequest req) {
 		// Handle a bad request.
 		if (!req.decoderResult().isSuccess()) {
 			sendHttpResponse(channel, req, new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST));

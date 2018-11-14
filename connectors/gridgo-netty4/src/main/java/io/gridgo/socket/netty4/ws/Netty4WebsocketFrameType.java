@@ -15,4 +15,16 @@ public enum Netty4WebsocketFrameType {
 		}
 		return null;
 	}
+
+	public static final Netty4WebsocketFrameType fromNameOrDefault(String name, Netty4WebsocketFrameType defaultValue) {
+		if (name != null) {
+			name = name.trim();
+			for (Netty4WebsocketFrameType value : values()) {
+				if (value.name().equalsIgnoreCase(name)) {
+					return value;
+				}
+			}
+		}
+		return defaultValue;
+	}
 }

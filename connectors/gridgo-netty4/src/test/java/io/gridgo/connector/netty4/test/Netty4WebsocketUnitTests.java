@@ -55,13 +55,13 @@ public class Netty4WebsocketUnitTests {
 	}
 
 	@Test
-	public void testTcpPingPong() throws InterruptedException, PromiseException {
+	public void testWsPingPong() throws InterruptedException, PromiseException {
 		final String host = "localhost:8889";
 
-		Connector serverConnector = RESOLVER.resolve("netty4:server:ws://" + host + "?workerThreads=2&bootThreads=2");
+		Connector serverConnector = RESOLVER.resolve("netty4:server:ws://" + host + "/test");
 		assertNetty4Connector(serverConnector);
 
-		Connector clientConnector = RESOLVER.resolve("netty4:client:ws://" + host + "/" + "?workerThreads=2");
+		Connector clientConnector = RESOLVER.resolve("netty4:client:ws://" + host + "/test");
 		assertNetty4Connector(clientConnector);
 
 		serverConnector.start();
@@ -85,6 +85,12 @@ public class Netty4WebsocketUnitTests {
 			serverResponder.send(msg);
 		});
 
+		((FailureHandlerAware<?>) serverConsumer).setFailureHandler((cause) -> {
+			cause.printStackTrace();
+			doneSignal.countDown();
+			return null;
+		});
+
 		final AtomicReference<String> receivedText = new AtomicReference<>(null);
 
 		clientReceiver.subscribe((msg) -> {
@@ -106,10 +112,10 @@ public class Netty4WebsocketUnitTests {
 	public void testHandlerException() throws InterruptedException, PromiseException {
 		final String host = "localhost:8889";
 
-		Connector serverConnector = RESOLVER.resolve("netty4:server:ws://" + host + "?workerThreads=2&bootThreads=2");
+		Connector serverConnector = RESOLVER.resolve("netty4:server:ws://" + host + "/test");
 		assertNetty4Connector(serverConnector);
 
-		Connector clientConnector = RESOLVER.resolve("netty4:client:ws://" + host + "?workerThreads=2");
+		Connector clientConnector = RESOLVER.resolve("netty4:client:ws://" + host + "/test");
 		assertNetty4Connector(clientConnector);
 
 		serverConnector.start();

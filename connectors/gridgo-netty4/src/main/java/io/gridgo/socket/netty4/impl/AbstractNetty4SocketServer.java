@@ -78,10 +78,8 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 				doneSignal.countDown();
 			});
 
-			new Thread(new Runnable() {
-				public void run() {
-					executeBind(host, deferred);
-				}
+			new Thread(() -> {
+				executeBind(host, deferred);
 			}).start();
 
 			try {
@@ -89,6 +87,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 			} catch (InterruptedException e) {
 				throw new RuntimeException(e);
 			}
+
 			if (failedCauseRef.get() != null) {
 				throw new RuntimeException(failedCauseRef.get());
 			}
@@ -111,6 +110,8 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 
 		Netty4SocketOptionsUtils.applyOptions(getConfigs(), bootstrap);
 
+		this.onBeforeBind(host);
+
 		// Bind and start to accept incoming connections.
 		final ChannelFuture bindFuture = bootstrap.bind(host.getResolvedIpOrDefault("127.0.0.1"), host.getPort());
 
@@ -119,18 +120,30 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 				deferred.reject(bindFuture.cause());
 			} else {
 				getLogger().info("Bind success to %s", host.toIpAndPort());
-				this.setHost(host);
+				// this.setHost(host);
 				this.serverChannel = bindFuture.channel();
 				deferred.resolve(null);
 
+				this.onAfterBind();
+
+				// block thread here and wait for server to shutdown
 				bindFuture.channel().closeFuture().sync();
 			}
-
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		} finally {
+			// shutdown the nio event loop groups
 			workerGroup.shutdownGracefully();
 			bossGroup.shutdownGracefully();
-		} catch (InterruptedException e) {
-			deferred.reject(e);
 		}
+	}
+
+	protected void onBeforeBind(HostAndPort host) {
+		// do nothing.
+	}
+
+	protected void onAfterBind() {
+		// do nothing.
 	}
 
 	@Override
@@ -149,7 +162,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 		try {
 			this.serverChannel.close().sync();
 		} catch (InterruptedException e) {
-			getLogger().warn("Close netty4 socket server {} error", this.getHost(), e);
+			getLogger().warn("Close netty4 socket server error", this.serverChannel);
 		} finally {
 			this.serverChannel = null;
 		}

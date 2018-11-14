@@ -23,6 +23,9 @@ public class Netty4Connector extends AbstractConnector {
 	private BObject options;
 	private String type;
 
+	private Netty4Consumer consumerServer;
+	private Netty4Producer producerClient;
+
 	@Override
 	protected void onInit() {
 		final ConnectorConfig config = getConnectorConfig();
@@ -56,16 +59,14 @@ public class Netty4Connector extends AbstractConnector {
 	private void initProducerAndConsumer() {
 		switch (type) {
 		case "server":
-			Netty4Consumer consumer = Netty4Consumer.newDefault(this.getContext(), transport, host, path, options);
-			consumer.start();
-			this.consumer = Optional.of(consumer);
-			this.producer = Optional.of(consumer.getResponder());
+			consumerServer = Netty4Consumer.newDefault(this.getContext(), transport, host, path, options);
+			this.consumer = Optional.of(consumerServer);
+			this.producer = Optional.of(consumerServer.getResponder());
 			break;
 		case "client":
-			Netty4Producer producer = Netty4Producer.newDefault(this.getContext(), transport, host, path, options);
-			producer.start();
-			this.producer = Optional.of(producer);
-			this.consumer = Optional.of(producer.getReceiver());
+			producerClient = Netty4Producer.newDefault(this.getContext(), transport, host, path, options);
+			this.producer = Optional.of(producerClient);
+			this.consumer = Optional.of(producerClient.getReceiver());
 			break;
 		}
 	}

@@ -56,6 +56,24 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 		this.host = host;
 		this.path = path;
 		this.options = options;
+
+		initSocketServer();
+	}
+
+	private void initSocketServer() {
+		this.socketServer = this.createSocketServer();
+
+		this.socketServer.applyConfigs(this.options);
+		if (this.socketServer instanceof Netty4Websocket) {
+			((Netty4Websocket) this.socketServer).setPath(this.getPath());
+		}
+
+		this.socketServer.setChannelOpenCallback(this::onConnectionOpen);
+		this.socketServer.setChannelCloseCallback(this::onConnectionClose);
+		this.socketServer.setReceiveCallback(this::onReceive);
+		this.socketServer.setFailureHandler(this::onFailure);
+
+		this.setResponder(this.createResponder());
 	}
 
 	protected Netty4SocketServer createSocketServer() {
@@ -72,19 +90,6 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 
 	@Override
 	protected void onStart() {
-		this.socketServer = this.createSocketServer();
-
-		this.socketServer.applyConfigs(this.options);
-		if (this.socketServer instanceof Netty4Websocket) {
-			((Netty4Websocket) this.socketServer).setPath(this.getPath());
-		}
-
-		this.socketServer.setChannelOpenCallback(this::onConnectionOpen);
-		this.socketServer.setChannelCloseCallback(this::onConnectionClose);
-		this.socketServer.setReceiveCallback(this::onReceive);
-		this.socketServer.setFailureHandler(this::onFailure);
-
-		this.setResponder(this.createResponder());
 		this.socketServer.bind(host);
 	}
 

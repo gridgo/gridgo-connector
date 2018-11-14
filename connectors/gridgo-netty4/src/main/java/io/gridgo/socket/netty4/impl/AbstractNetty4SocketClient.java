@@ -1,7 +1,13 @@
 package io.gridgo.socket.netty4.impl;
 
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+
+import org.joo.promise4j.Deferred;
+import org.joo.promise4j.DeferredStatus;
+import org.joo.promise4j.impl.AsyncDeferredObject;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.socket.netty4.Netty4SocketClient;
@@ -38,6 +44,7 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 	private Channel channel;
 
 	private ChannelInitializer<SocketChannel> channelInitializer = new ChannelInitializer<SocketChannel>() {
+
 		@Override
 		public void initChannel(SocketChannel ch) throws Exception {
 			AbstractNetty4SocketClient.this.initChannel(ch);
@@ -46,10 +53,38 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 
 	private Bootstrap bootstrap;
 
+	private ChannelFuture connectFuture;
+
 	@Override
 	public void connect(@NonNull final HostAndPort host) {
 		tryStart(() -> {
-			this.executeConnect(host);
+			final AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
+			final CountDownLatch doneSignal = new CountDownLatch(1);
+			final Deferred<Void, Throwable> deferred = new AsyncDeferredObject<>();
+
+			deferred.promise().always((stt, result, failedCause) -> {
+				if (stt == DeferredStatus.REJECTED) {
+					if (failedCause == null) {
+						failedCause = new RuntimeException("Unknown error, cannot connect to server");
+					}
+					exceptionRef.set(failedCause);
+				}
+				doneSignal.countDown();
+			});
+
+			new Thread(() -> {
+				this.executeConnect(host, deferred);
+			}).start();
+
+			try {
+				doneSignal.await();
+			} catch (InterruptedException e) {
+				throw new RuntimeException(e);
+			}
+
+			if (exceptionRef.get() != null) {
+				throw new RuntimeException(exceptionRef.get());
+			}
 		});
 	}
 
@@ -64,35 +99,50 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 		return new Bootstrap().channel(NioSocketChannel.class);
 	}
 
-	private void executeConnect(HostAndPort host) {
+	private void executeConnect(HostAndPort host, Deferred<Void, Throwable> deferred) {
+		final NioEventLoopGroup loopGroup = createLoopGroup();
+
 		bootstrap = createBootstrap();
-		bootstrap.group(createLoopGroup());
+		bootstrap.group(loopGroup);
 		bootstrap.handler(this.channelInitializer);
 
 		Netty4SocketOptionsUtils.applyOptions(getConfigs(), bootstrap);
 
 		try {
-			ChannelFuture future = bootstrap.connect(host.getHostOrDefault("localhost"), host.getPort());
-			if (!future.await().isSuccess()) {
-				throw new RuntimeException("Cannot connect to " + host);
+			this.onBeforeConnect(host);
+
+			this.connectFuture = bootstrap.connect(host.getHostOrDefault("localhost"), host.getPort());
+
+			if (!connectFuture.await().isSuccess()) {
+				deferred.reject(connectFuture.cause());
 			} else {
-				this.setHost(host);
-				this.channel = future.channel();
-				this.onConnectionEstablished();
-				getLogger().info("Connect success to %s", host.toIpAndPort());
+				// this.setHost(host);
+				this.channel = connectFuture.channel();
+
+				this.onAfterConnect();
+				deferred.resolve(null);
+
+				getLogger().info("Connect success to {}", host.toIpAndPort());
+				this.connectFuture.channel().closeFuture().await();
 			}
 		} catch (Exception e) {
 			throw new RuntimeException("Error while connect to " + host, e);
+		} finally {
+			loopGroup.shutdownGracefully();
 		}
+	}
+
+	protected void onBeforeConnect(HostAndPort host) {
+		// do nothing
+	}
+
+	protected void onAfterConnect() {
+		// do nothing
 	}
 
 	@Override
 	protected void onApplyConfig(String name) {
 		Netty4SocketOptionsUtils.applyOption(name, getConfigs(), bootstrap);
-	}
-
-	protected void onConnectionEstablished() {
-		// do nothing
 	}
 
 	protected NioEventLoopGroup createLoopGroup() {

@@ -24,11 +24,11 @@ public class DefaultNetty4Consumer extends AbstractNetty4Consumer {
 	}
 
 	protected void onConnectionClose(long routingId) {
-		System.out.println("Connection closed on " + routingId);
+		// System.out.println("Connection closed on " + routingId);
 	}
 
 	protected void onConnectionOpen(long routingId) {
-		System.out.println("Connection opened, id: " + routingId);
+		// System.out.println("Connection opened, id: " + routingId);
 	}
 
 	protected void onReceive(long routingId, BElement data) {
