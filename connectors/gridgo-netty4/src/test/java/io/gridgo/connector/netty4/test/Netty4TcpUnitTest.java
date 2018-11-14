@@ -21,7 +21,7 @@ import io.gridgo.connector.support.exceptions.FailureHandlerAware;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 
-public class Netty4TcpUnitTests {
+public class Netty4TcpUnitTest {
 
 	private final static ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
 	private final static String TEXT = "this is test text";
