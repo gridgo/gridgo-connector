@@ -58,6 +58,8 @@ consumer.subscribe(msg -> {
 });
 ```
 
+*Note: You probably need to call subscribe before calling start(). Since after started, Connector consumers will start listening for incoming messages and you will miss the ones coming before subscribe() is called*
+
 Some consumers will require a response, or acknowledgement from handler, e.g Vertx HTTP and Kafka. To send the response or acknowledgement back to the consumer, you need to use the subscribe(java.util.function.BiConsumer) method:
 
 ```java
