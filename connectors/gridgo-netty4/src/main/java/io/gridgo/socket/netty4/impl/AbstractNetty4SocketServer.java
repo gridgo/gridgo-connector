@@ -86,7 +86,8 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 
 		try {
 			if (!bootstrapFuture.await().isSuccess()) {
-				throw new RuntimeException("Start " + this.getClass().getName() + " is unsuccessful");
+				throw new RuntimeException("Start " + this.getClass().getName() + " is unsuccessful",
+						bootstrapFuture.cause());
 			} else {
 				getLogger().info("Bind success to %s", host.toIpAndPort());
 				this.setHost(host);
