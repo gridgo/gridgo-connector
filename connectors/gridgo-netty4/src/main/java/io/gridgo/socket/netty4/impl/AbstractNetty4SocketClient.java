@@ -5,6 +5,7 @@ import java.util.function.Consumer;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.socket.netty4.Netty4SocketClient;
+import io.gridgo.socket.netty4.Netty4SocketOptionsUtils;
 import io.gridgo.utils.support.HostAndPort;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -13,6 +14,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
@@ -42,6 +44,8 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 		}
 	};
 
+	private Bootstrap bootstrap;
+
 	@Override
 	public void connect(@NonNull final HostAndPort host) {
 		tryStart(() -> {
@@ -56,14 +60,16 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 
 	protected abstract void onInitChannel(SocketChannel ch);
 
-	protected abstract Bootstrap createBootstrap();
+	protected Bootstrap createBootstrap() {
+		return new Bootstrap().channel(NioSocketChannel.class);
+	}
 
 	private void executeConnect(HostAndPort host) {
-		Bootstrap bootstrap = createBootstrap();
-
+		bootstrap = createBootstrap();
 		bootstrap.group(createLoopGroup());
-
 		bootstrap.handler(this.channelInitializer);
+
+		Netty4SocketOptionsUtils.applyOptions(getConfigs(), bootstrap);
 
 		try {
 			ChannelFuture future = bootstrap.connect(host.getHostOrDefault("localhost"), host.getPort());
@@ -78,6 +84,11 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 		} catch (Exception e) {
 			throw new RuntimeException("Error while connect to " + host, e);
 		}
+	}
+
+	@Override
+	protected void onApplyConfig(String name) {
+		Netty4SocketOptionsUtils.applyOption(name, getConfigs(), bootstrap);
 	}
 
 	protected void onConnectionEstablished() {

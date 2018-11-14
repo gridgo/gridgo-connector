@@ -10,6 +10,7 @@ import org.cliffc.high_scale_lib.NonBlockingHashMap;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
+import io.gridgo.socket.netty4.Netty4SocketOptionsUtils;
 import io.gridgo.socket.netty4.Netty4SocketServer;
 import io.gridgo.utils.support.HostAndPort;
 import io.netty.bootstrap.ServerBootstrap;
@@ -58,7 +59,9 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 
 	private NioEventLoopGroup workerGroup;
 
-	private ChannelFuture bootstrapFuture;
+	private ChannelFuture bindFuture;
+
+	private ServerBootstrap bootstrap;
 
 	@Override
 	public void bind(@NonNull final HostAndPort host) {
@@ -77,15 +80,17 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 		bossGroup = new NioEventLoopGroup(configs.getInteger("bootThreads", 1));
 		workerGroup = new NioEventLoopGroup(configs.getInteger("workerThreads", 1));
 
-		ServerBootstrap bootstrap = createBootstrap();
+		bootstrap = createBootstrap();
 		bootstrap.group(bossGroup, workerGroup);
 		bootstrap.childHandler(this.channelInitializer);
 
+		Netty4SocketOptionsUtils.applyOptions(getConfigs(), bootstrap);
+
 		// Bind and start to accept incoming connections.
-		bootstrapFuture = bootstrap.bind(host.getResolvedIpOrDefault("127.0.0.1"), host.getPort());
+		bindFuture = bootstrap.bind(host.getResolvedIpOrDefault("127.0.0.1"), host.getPort());
 
 		try {
-			if (!bootstrapFuture.await().isSuccess()) {
+			if (!bindFuture.await().isSuccess()) {
 				throw new RuntimeException("Start " + this.getClass().getName() + " is unsuccessful");
 			} else {
 				getLogger().info("Bind success to %s", host.toIpAndPort());
@@ -97,6 +102,11 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 	}
 
 	@Override
+	protected void onApplyConfig(String name) {
+		Netty4SocketOptionsUtils.applyOption(name, getConfigs(), bootstrap);
+	}
+
+	@Override
 	protected void onClose() throws IOException {
 		for (Channel channel : this.channels.values()) {
 			closeChannel(channel);
@@ -104,21 +114,12 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 
 		this.channels.clear();
 
-		bootstrapFuture.channel().close();
+		this.bindFuture.channel().close();
 
-		try {
-			this.bossGroup.shutdownGracefully().sync();
-		} catch (InterruptedException e) {
-			// continue
-		}
+		this.bossGroup.shutdownGracefully();
+		this.workerGroup.shutdownGracefully();
 
-		try {
-			this.workerGroup.shutdownGracefully().sync();
-		} catch (InterruptedException e) {
-			// continue
-		}
-
-		bootstrapFuture = null;
+		this.bindFuture = null;
 		this.bossGroup = null;
 		this.workerGroup = null;
 	}

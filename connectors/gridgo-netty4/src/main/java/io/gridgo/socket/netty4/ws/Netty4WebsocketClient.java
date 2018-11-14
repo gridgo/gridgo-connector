@@ -6,14 +6,12 @@ import java.net.URISyntaxException;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.socket.netty4.impl.AbstractNetty4SocketClient;
-import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.EmptyHttpHeaders;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpClientCodec;
@@ -99,11 +97,6 @@ public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements
 		ChannelPipeline pipeline = ch.pipeline();
 		pipeline.addLast("http-codec", new HttpClientCodec());
 		pipeline.addLast("aggregator", new HttpObjectAggregator(65536));
-	}
-
-	@Override
-	protected Bootstrap createBootstrap() {
-		return new Bootstrap().channel(NioSocketChannel.class);
 	}
 
 	@Override

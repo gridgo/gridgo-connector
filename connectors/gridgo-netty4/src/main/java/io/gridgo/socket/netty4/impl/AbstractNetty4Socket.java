@@ -121,7 +121,9 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 			throw new IllegalStateException("Cannot apply config while this socket already stated");
 		}
 		this.configs.putAny(name, value);
-		this.onApplyConfig(name);
+		if (this.isStarted()) {
+			this.onApplyConfig(name);
+		}
 	}
 
 	protected void onApplyConfig(String name) {

@@ -49,10 +49,11 @@ public class Netty4Connector extends AbstractConnector {
 		this.host = HostAndPort.newInstance(hostStr, port);
 		this.options = BObject.newDefault(config.getParameters());
 		this.path = (String) config.getPlaceholders().getProperty("path", "websocket");
+
+		initProducerAndConsumer();
 	}
 
-	@Override
-	protected void onStart() {
+	private void initProducerAndConsumer() {
 		switch (type) {
 		case "server":
 			Netty4Consumer consumer = Netty4Consumer.newDefault(this.getContext(), transport, host, path, options);
@@ -67,6 +68,5 @@ public class Netty4Connector extends AbstractConnector {
 			this.consumer = Optional.of(producer.getReceiver());
 			break;
 		}
-		super.onStart();
 	}
 }
