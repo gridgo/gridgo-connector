@@ -30,7 +30,7 @@ public class Netty4TcpUnitTests {
 		assertTrue(connector instanceof Netty4Connector);
 	}
 
-	// @Test
+	@Test
 	public void testTCP() throws InterruptedException, PromiseException {
 
 		final String host = "localhost:8888";

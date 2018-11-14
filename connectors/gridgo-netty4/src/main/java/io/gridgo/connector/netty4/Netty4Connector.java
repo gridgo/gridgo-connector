@@ -6,15 +6,13 @@ import java.util.Optional;
 
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.AbstractConnector;
-import io.gridgo.connector.netty4.impl.DefaultNetty4Consumer;
-import io.gridgo.connector.netty4.impl.DefaultNetty4Producer;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.config.ConnectorConfig;
 import io.gridgo.connector.support.exceptions.InvalidPlaceholderException;
 import io.gridgo.socket.netty4.Netty4Transport;
 import io.gridgo.utils.support.HostAndPort;
 
-@ConnectorEndpoint(scheme = "netty4", syntax = "{type}:{transport}://{host}:{port}[/{path}]")
+@ConnectorEndpoint(scheme = "netty4", syntax = "{type}:{transport}://{host}[:{port}][/{path}]")
 public class Netty4Connector extends AbstractConnector {
 
 	public static final Collection<String> ALLOWED_TYPES = Arrays.asList("server", "client");
@@ -47,14 +45,9 @@ public class Netty4Connector extends AbstractConnector {
 		}
 
 		int port = Integer.parseInt((String) config.getPlaceholders().getOrDefault("port", "0"));
-		if (port <= 0) {
-			throw new InvalidPlaceholderException("port must be provided and positive (port > 0)");
-		}
 
 		this.host = HostAndPort.newInstance(hostStr, port);
-
 		this.options = BObject.newDefault(config.getParameters());
-
 		this.path = (String) config.getPlaceholders().getProperty("path", "websocket");
 	}
 
@@ -62,13 +55,13 @@ public class Netty4Connector extends AbstractConnector {
 	protected void onStart() {
 		switch (type) {
 		case "server":
-			Netty4Consumer consumer = new DefaultNetty4Consumer(this.getContext(), transport, host, path, options);
+			Netty4Consumer consumer = Netty4Consumer.newDefault(this.getContext(), transport, host, path, options);
 			consumer.start();
 			this.consumer = Optional.of(consumer);
 			this.producer = Optional.of(consumer.getResponder());
 			break;
 		case "client":
-			Netty4Producer producer = new DefaultNetty4Producer(this.getContext(), transport, host, options);
+			Netty4Producer producer = Netty4Producer.newDefault(this.getContext(), transport, host, path, options);
 			producer.start();
 			this.producer = Optional.of(producer);
 			this.consumer = Optional.of(producer.getReceiver());
@@ -76,5 +69,4 @@ public class Netty4Connector extends AbstractConnector {
 		}
 		super.onStart();
 	}
-
 }

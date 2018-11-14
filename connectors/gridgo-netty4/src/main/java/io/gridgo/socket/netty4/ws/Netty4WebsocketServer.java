@@ -9,14 +9,12 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 import io.gridgo.bean.BElement;
-import io.gridgo.bean.BValue;
 import io.gridgo.socket.netty4.impl.AbstractNetty4SocketServer;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
@@ -25,11 +23,9 @@ import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.HttpUtil;
-import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshakerFactory;
@@ -51,20 +47,38 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 
 	private WebSocketServerHandshakerFactory wsFactory;
 
+	private Netty4WebsocketFrameType frameType;
+
+	public Netty4WebsocketFrameType getFrameType() {
+		if (frameType == null) {
+			synchronized (this) {
+				if (frameType == null) {
+					String configFrameType = this.getConfigs().getString("frameType", "text");
+					this.frameType = Netty4WebsocketFrameType.fromName(configFrameType);
+
+					if (this.frameType == null) {
+						this.frameType = Netty4WebsocketFrameType.TEXT;
+					}
+				}
+			}
+		}
+		return frameType;
+	}
+
+	protected String getWsUri() {
+		String proxy = this.getConfigs().getString("proxy", null);
+		String wsUri = proxy == null ? null : proxy;
+		if (wsUri == null) {
+			wsUri = "ws://" + this.getHost().toHostAndPort() + (getPath().startsWith("/") ? "" : "/") + this.getPath();
+		}
+		return wsUri;
+	}
+
 	protected WebSocketServerHandshakerFactory getWsFactory() {
 		if (wsFactory == null) {
 			synchronized (this) {
 				if (wsFactory == null) {
-					String proxy = this.getConfigs().getString("proxy", null);
-					String wsUri = null;
-					if (proxy != null) {
-						wsUri = proxy;
-					} else {
-						wsUri = "ws://" + this.getHost().toHostAndPort() + (getPath().startsWith("/") ? "" : "/")
-								+ this.getPath();
-					}
-					getLogger().info("handshake on wsUri: %s", wsUri);
-					wsFactory = new WebSocketServerHandshakerFactory(wsUri, null, true);
+					wsFactory = new WebSocketServerHandshakerFactory(getWsUri(), null, true);
 				}
 			}
 		}
@@ -73,7 +87,7 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 
 	@Override
 	protected BElement handleIncomingMessage(long channelId, Object msg) throws Exception {
-		ChannelHandlerContext ctx = getChannelHandlerContext(channelId);
+		Channel ctx = getChannel(channelId);
 		if (ctx != null) {
 			try {
 				if (msg instanceof FullHttpRequest) {
@@ -94,39 +108,27 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 		return null;
 	}
 
-	protected BElement handleWebSocketFrame(ChannelHandlerContext ctx, WebSocketFrame frame) {
+	protected BElement handleWebSocketFrame(Channel channel, WebSocketFrame frame) {
 		if (frame == null) {
 			return null;
 		}
 
-		WebSocketServerHandshaker handshaker = ctx.channel().attr(HANDSHAKER_KEY).get();
-
 		// Check for closing frame
 		if (frame instanceof CloseWebSocketFrame) {
-			handshaker.close(ctx.channel(), (CloseWebSocketFrame) frame.retain());
+			WebSocketServerHandshaker handshaker = channel.attr(HANDSHAKER_KEY).get();
+			handshaker.close(channel, (CloseWebSocketFrame) frame.retain());
 			return null;
 		}
 
 		if (frame instanceof PingWebSocketFrame) {
-			ctx.channel().write(new PongWebSocketFrame(frame.content().retain()));
+			channel.write(new PongWebSocketFrame(frame.content().retain()));
 			return null;
 		}
 
-		if (frame instanceof BinaryWebSocketFrame) {
-			return BElement.fromRaw(new ByteBufInputStream(((BinaryWebSocketFrame) frame).content()));
-		} else if (frame instanceof TextWebSocketFrame) {
-			String text = ((TextWebSocketFrame) frame).text();
-			try {
-				return BElement.fromJson(text);
-			} catch (Exception ex) {
-				return BValue.newDefault(text);
-			}
-		}
-
-		return null;
+		return Netty4WebsocketUtils.parseWebsocketFrame(frame);
 	}
 
-	private static void sendHttpResponse(ChannelHandlerContext ctx, FullHttpRequest req, FullHttpResponse res) {
+	private static void sendHttpResponse(Channel channel, FullHttpRequest req, FullHttpResponse res) {
 		// Generate an error page if response getStatus code is not OK (200).
 		if (res.status().code() != 200) {
 			ByteBuf buf = Unpooled.copiedBuffer(res.status().toString(), CharsetUtil.UTF_8);
@@ -136,23 +138,23 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 		}
 
 		// Send the response and close the connection if necessary.
-		ChannelFuture f = ctx.channel().writeAndFlush(res);
+		ChannelFuture f = channel.writeAndFlush(res);
 		if (!HttpUtil.isKeepAlive(req) || res.status().code() != 200) {
 			f.addListener(ChannelFutureListener.CLOSE);
 		}
 	}
 
 	@SuppressWarnings("deprecation")
-	public void handleHttpRequest(ChannelHandlerContext ctx, FullHttpRequest req) {
+	public void handleHttpRequest(Channel channel, FullHttpRequest req) {
 		// Handle a bad request.
 		if (!req.decoderResult().isSuccess()) {
-			sendHttpResponse(ctx, req, new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST));
+			sendHttpResponse(channel, req, new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST));
 			return;
 		}
 
 		// Allow only GET methods.
 		if (req.method() != GET) {
-			sendHttpResponse(ctx, req, new DefaultFullHttpResponse(HTTP_1_1, FORBIDDEN));
+			sendHttpResponse(channel, req, new DefaultFullHttpResponse(HTTP_1_1, FORBIDDEN));
 			return;
 		}
 
@@ -164,36 +166,47 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 			res.headers().set(CONTENT_TYPE, "text/html; charset=UTF-8");
 			HttpUtil.setContentLength(res, content.readableBytes());
 
-			sendHttpResponse(ctx, req, res);
+			sendHttpResponse(channel, req, res);
 			return;
 		}
 
 		if ("/favicon.ico".equals(req.uri())) {
 			FullHttpResponse res = new DefaultFullHttpResponse(HTTP_1_1, NOT_FOUND);
-			sendHttpResponse(ctx, req, res);
+			sendHttpResponse(channel, req, res);
 			return;
 		}
 
 		// Handshake
 		final WebSocketServerHandshaker handshaker = getWsFactory().newHandshaker(req);
 		if (handshaker == null) {
-			WebSocketServerHandshakerFactory.sendUnsupportedVersionResponse(ctx.channel());
+			WebSocketServerHandshakerFactory.sendUnsupportedVersionResponse(channel);
 		} else {
-			handshaker.handshake(ctx.channel(), req);
-			ctx.channel().attr(HANDSHAKER_KEY).set(handshaker);
+			handshaker.handshake(channel, req);
+			channel.attr(HANDSHAKER_KEY).set(handshaker);
 		}
 	}
 
 	@Override
-	protected void onInitChannel(SocketChannel socketChannel) {
-		ChannelPipeline pipeline = socketChannel.pipeline();
+	protected void closeChannel(Channel channel) {
+		channel.writeAndFlush(new CloseWebSocketFrame());
+		super.closeChannel(channel);
+	}
+
+	@Override
+	protected void onInitChannel(SocketChannel ch) {
+		ChannelPipeline pipeline = ch.pipeline();
 		pipeline.addLast(new HttpServerCodec());
 		pipeline.addLast(new HttpObjectAggregator(65536));
 	}
 
 	@Override
-	public String getName() {
-		// TODO Auto-generated method stub
-		return null;
+	public ChannelFuture send(long routingId, BElement data) {
+		Channel channel = this.getChannel(routingId);
+		if (data == null) {
+			closeChannel(channel);
+			return null;
+		} else {
+			return Netty4WebsocketUtils.send(channel, data, getFrameType());
+		}
 	}
 }

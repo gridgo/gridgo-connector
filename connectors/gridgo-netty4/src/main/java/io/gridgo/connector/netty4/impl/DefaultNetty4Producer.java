@@ -8,19 +8,13 @@ import io.gridgo.utils.support.HostAndPort;
 
 public class DefaultNetty4Producer extends AbstractNetty4Producer {
 
-	public DefaultNetty4Producer(ConnectorContext context, Netty4Transport transport, HostAndPort host,
+	public DefaultNetty4Producer(ConnectorContext context, Netty4Transport transport, HostAndPort host, String path,
 			BObject options) {
-		super(context, transport, host, options);
+		super(context, transport, host, path, options);
 	}
 
 	@Override
 	protected Receiver createReceiver() {
 		return new DefaultNetty4Receiver(getContext(), getSocketClient());
-	}
-
-	@Override
-	protected String generateName() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 }
