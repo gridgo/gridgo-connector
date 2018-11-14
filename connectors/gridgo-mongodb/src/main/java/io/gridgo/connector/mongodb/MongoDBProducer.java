@@ -31,7 +31,9 @@ import io.gridgo.connector.impl.AbstractProducer;
 import io.gridgo.connector.mongodb.support.MongoOperationException;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class MongoDBProducer extends AbstractProducer {
 
 	private Map<String, BiConsumer<Message, Deferred<Message, Exception>>> operations = new HashMap<>();
@@ -74,7 +76,12 @@ public class MongoDBProducer extends AbstractProducer {
 			return new SimpleFailurePromise<>(
 					new IllegalArgumentException("Operation " + operation + " is not supported"));
 		}
-		handler.accept(request, deferred);
+		try {
+			handler.accept(request, deferred);
+		} catch (Exception ex) {
+			log.error("Error while processing MongoDB request", ex);
+			deferred.reject(ex);
+		}
 		return deferred != null ? deferred.promise() : null;
 	}
 
@@ -149,7 +156,7 @@ public class MongoDBProducer extends AbstractProducer {
 		int limit = headers.getInteger(MongoDBConstants.LIMIT, -1);
 		Bson sortBy = getHeaderAs(msg, MongoDBConstants.SORT_BY, Bson.class);
 
-		var filterable = collection.find(filter);
+		var filterable = filter != null ? collection.find(filter) : collection.find();
 		if (batchSize != -1)
 			filterable.batchSize(batchSize);
 		if (numToSkip != -1)
@@ -209,8 +216,8 @@ public class MongoDBProducer extends AbstractProducer {
 		return null;
 	}
 
-	private BReference toReference(Document doc) {
-		return BReference.newDefault(new SerializableDocument(doc));
+	private BObject toReference(Document doc) {
+		return BObject.newDefault(doc);
 	}
 
 	private List<Document> convertToDocuments(BArray body) {
