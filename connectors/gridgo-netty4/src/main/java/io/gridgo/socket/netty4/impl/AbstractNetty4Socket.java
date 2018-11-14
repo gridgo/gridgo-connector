@@ -138,7 +138,6 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 	}
 
 	protected void onException(ChannelHandlerContext ctx, Throwable cause) {
-		cause.printStackTrace();
 		if (this.failureHandler != null) {
 			this.failureHandler.accept(cause);
 		} else {
