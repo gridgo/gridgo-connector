@@ -1,5 +1,6 @@
 package io.gridgo.socket.netty4.impl;
 
+import java.io.IOException;
 import java.util.function.Consumer;
 
 import io.gridgo.bean.BElement;
@@ -116,6 +117,15 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 	@Override
 	protected final BElement handleIncomingMessage(long channelId, Object msg) throws Exception {
 		return this.handleIncomingMessage(msg);
+	}
+
+	@Override
+	protected void onClose() throws IOException {
+		try {
+			this.getChannel().close().sync();
+		} catch (InterruptedException e) {
+			// ignore
+		}
 	}
 
 	protected abstract BElement handleIncomingMessage(Object msg) throws Exception;
