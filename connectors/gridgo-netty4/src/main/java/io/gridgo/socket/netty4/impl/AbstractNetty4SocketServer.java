@@ -99,6 +99,14 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 	}
 
 	private void executeBind(HostAndPort host, Deferred<Void, Throwable> deferred) {
+
+		try {
+			this.onBeforeBind(host);
+		} catch (Exception e) {
+			deferred.reject(e);
+			return;
+		}
+
 		BObject configs = this.getConfigs();
 
 		NioEventLoopGroup bossGroup = new NioEventLoopGroup(configs.getInteger("bootThreads", 1));
@@ -110,8 +118,6 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 
 		Netty4SocketOptionsUtils.applyOptions(getConfigs(), bootstrap);
 
-		this.onBeforeBind(host);
-
 		// Bind and start to accept incoming connections.
 		final ChannelFuture bindFuture = bootstrap.bind(host.getResolvedIpOrDefault("127.0.0.1"), host.getPort());
 
@@ -122,15 +128,22 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 				getLogger().info("Bind success to %s", host.toIpAndPort());
 				// this.setHost(host);
 				this.serverChannel = bindFuture.channel();
+
+				try {
+					this.onAfterBind();
+				} catch (Exception e) {
+					this.serverChannel.close().sync();
+					this.serverChannel = null;
+					deferred.reject(e);
+					return;
+				}
+
 				deferred.resolve(null);
-
-				this.onAfterBind();
-
 				// block thread here and wait for server to shutdown
 				bindFuture.channel().closeFuture().sync();
 			}
 		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
+			deferred.reject(e);
 		} finally {
 			// shutdown the nio event loop groups
 			workerGroup.shutdownGracefully();
@@ -148,7 +161,9 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 
 	@Override
 	protected void onApplyConfig(String name) {
-		Netty4SocketOptionsUtils.applyOption(name, getConfigs(), bootstrap);
+		if (this.isStarted()) {
+			Netty4SocketOptionsUtils.applyOption(name, getConfigs(), bootstrap);
+		}
 	}
 
 	@Override

@@ -70,8 +70,10 @@ public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements
 	@Override
 	protected void onAfterConnect() {
 		try {
-
 			this.handshakeFuture.sync();
+			if (this.getChannelOpenCallback() != null) {
+				this.getChannelOpenCallback().run();
+			}
 		} catch (InterruptedException e) {
 			throw new RuntimeException("Waiting for handshake error", e);
 		}

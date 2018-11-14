@@ -100,6 +100,13 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 	}
 
 	private void executeConnect(HostAndPort host, Deferred<Void, Throwable> deferred) {
+		try {
+			this.onBeforeConnect(host);
+		} catch (Exception e) {
+			deferred.reject(e);
+			return;
+		}
+
 		final NioEventLoopGroup loopGroup = createLoopGroup();
 
 		bootstrap = createBootstrap();
@@ -108,25 +115,36 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 
 		Netty4SocketOptionsUtils.applyOptions(getConfigs(), bootstrap);
 
+		this.connectFuture = bootstrap.connect(host.getHostOrDefault("localhost"), host.getPort());
+
+		boolean success = false;
 		try {
-			this.onBeforeConnect(host);
+			success = connectFuture.await().isSuccess();
+		} catch (InterruptedException e) {
+			deferred.reject(new RuntimeException("Error while connect to " + host, e));
+			return;
+		}
 
-			this.connectFuture = bootstrap.connect(host.getHostOrDefault("localhost"), host.getPort());
-
-			if (!connectFuture.await().isSuccess()) {
+		try {
+			if (!success) {
 				deferred.reject(connectFuture.cause());
 			} else {
-				// this.setHost(host);
 				this.channel = connectFuture.channel();
-
-				this.onAfterConnect();
+				try {
+					this.onAfterConnect();
+				} catch (Exception e) {
+					this.channel.close();
+					this.channel = null;
+					deferred.reject(e);
+					return;
+				}
 				deferred.resolve(null);
 
 				getLogger().info("Connect success to {}", host.toIpAndPort());
 				this.connectFuture.channel().closeFuture().await();
 			}
-		} catch (Exception e) {
-			throw new RuntimeException("Error while connect to " + host, e);
+		} catch (InterruptedException e) {
+			getLogger().error("Error while waiting for connectFuture tobe closed", e);
 		} finally {
 			loopGroup.shutdownGracefully();
 		}
@@ -142,7 +160,9 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 
 	@Override
 	protected void onApplyConfig(String name) {
-		Netty4SocketOptionsUtils.applyOption(name, getConfigs(), bootstrap);
+		if (this.isStarted()) {
+			Netty4SocketOptionsUtils.applyOption(name, getConfigs(), bootstrap);
+		}
 	}
 
 	protected NioEventLoopGroup createLoopGroup() {
