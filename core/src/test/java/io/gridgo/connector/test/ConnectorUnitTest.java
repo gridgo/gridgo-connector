@@ -7,6 +7,7 @@ import org.junit.Test;
 
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
+import io.gridgo.connector.test.support.TestConnector;
 import io.gridgo.connector.test.support.TestConsumer;
 import io.gridgo.connector.test.support.TestProducer;
 import io.gridgo.framework.support.Message;
@@ -16,7 +17,14 @@ public class ConnectorUnitTest {
 
 	@Test
 	public void testConsumer() {
-		var connector = new DefaultConnectorFactory().createConnector("test:pull:tcp://127.0.0.1:8080?p1=v1&p2=v2");
+		var connector = (TestConnector) new DefaultConnectorFactory()
+				.createConnector("test:pull:tcp://127.0.0.1:8080?p1=v1&p2=v2");
+
+		Assert.assertEquals("v1", connector.getParamPublic("p1"));
+		Assert.assertEquals("bar", connector.getParamPublic("foo", "bar"));
+		Assert.assertEquals("pull", connector.getPlaceholderPublic("type"));
+		Assert.assertEquals("tcp", connector.getPlaceholderPublic("transport"));
+		
 		var consumer = (TestConsumer) connector.getConsumer().orElseThrow();
 		connector.start();
 		var latch = new CountDownLatch(1);
