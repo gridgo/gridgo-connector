@@ -1,5 +1,7 @@
 package io.gridgo.connector.netty4.impl;
 
+import java.util.function.Function;
+
 import org.joo.promise4j.Deferred;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.AsyncDeferredObject;
@@ -42,6 +44,14 @@ public abstract class AbstractNetty4Producer extends AbstractHasReceiverProducer
 
 	@Getter(AccessLevel.PROTECTED)
 	private final String path;
+
+	private Function<Throwable, Message> failureHandler;
+
+	@Override
+	public Netty4Producer setFailureHandler(Function<Throwable, Message> failureHandler) {
+		this.failureHandler = failureHandler;
+		return this;
+	}
 
 	protected AbstractNetty4Producer(@NonNull ConnectorContext context, @NonNull Netty4Transport transport,
 			@NonNull HostAndPort host, String path, @NonNull BObject options) {
@@ -95,15 +105,24 @@ public abstract class AbstractNetty4Producer extends AbstractHasReceiverProducer
 
 	protected abstract Receiver createReceiver();
 
+	private void onSocketFailure(Throwable cause) {
+		if (this.failureHandler != null) {
+			this.failureHandler.apply(cause);
+		}
+	}
+
 	@Override
 	protected void onStart() {
 		this.socketClient = this.createSocketClient();
-		this.socketClient.applyConfigs(this.options);
+		this.socketClient.setFailureHandler(this::onSocketFailure);
 		if (this.socketClient instanceof Netty4Websocket) {
 			((Netty4Websocket) this.socketClient).setPath(getPath());
 		}
 
+		this.socketClient.applyConfigs(this.options);
+
 		this.setReceiver(this.createReceiver());
+
 		this.socketClient.connect(this.host);
 	}
 

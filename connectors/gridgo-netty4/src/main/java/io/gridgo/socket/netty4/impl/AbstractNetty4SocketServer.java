@@ -31,7 +31,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 	private static final AttributeKey<Object> CHANNEL_ID = AttributeKey.newInstance("channelId");
 
 	private static final AtomicLong ID_SEED = new AtomicLong(0);
-	
+
 	@Setter
 	@Getter(AccessLevel.PROTECTED)
 	private BiConsumer<Long, BElement> receiveCallback;

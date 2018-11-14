@@ -14,5 +14,4 @@ public class Netty4SocketConfig {
 	private String path;
 
 	private BObject options;
-
 }

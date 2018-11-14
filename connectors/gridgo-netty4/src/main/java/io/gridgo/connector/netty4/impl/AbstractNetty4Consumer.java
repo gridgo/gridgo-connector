@@ -1,5 +1,10 @@
 package io.gridgo.connector.netty4.impl;
 
+import java.util.function.Function;
+
+import org.joo.promise4j.Deferred;
+import org.joo.promise4j.impl.CompletableDeferredObject;
+
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.Responder;
@@ -7,6 +12,7 @@ import io.gridgo.connector.impl.AbstractHasResponderConsumer;
 import io.gridgo.connector.netty4.Netty4Consumer;
 import io.gridgo.connector.netty4.exceptions.UnsupportedTransportException;
 import io.gridgo.connector.support.config.ConnectorContext;
+import io.gridgo.framework.support.Message;
 import io.gridgo.socket.netty4.Netty4SocketServer;
 import io.gridgo.socket.netty4.Netty4Transport;
 import io.gridgo.socket.netty4.raw.tcp.Netty4TCPServer;
@@ -33,6 +39,15 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 
 	@Getter(AccessLevel.PROTECTED)
 	private Netty4SocketServer socketServer;
+
+	@Getter(AccessLevel.PROTECTED)
+	private Function<Throwable, Message> failureHandler;
+
+	@Override
+	public Netty4Consumer setFailureHandler(Function<Throwable, Message> failureHandler) {
+		this.failureHandler = failureHandler;
+		return this;
+	}
 
 	protected AbstractNetty4Consumer(@NonNull ConnectorContext context, @NonNull Netty4Transport transport,
 			@NonNull HostAndPort host, @NonNull String path, @NonNull BObject options) {
@@ -67,16 +82,17 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 		this.socketServer.setChannelOpenCallback(this::onConnectionOpen);
 		this.socketServer.setChannelCloseCallback(this::onConnectionClose);
 		this.socketServer.setReceiveCallback(this::onReceive);
+		this.socketServer.setFailureHandler(this::onFailure);
 
 		this.setResponder(this.createResponder());
 		this.socketServer.bind(host);
 	}
 
-	protected abstract void onConnectionClose(long routingId);
-
-	protected abstract void onConnectionOpen(long routingId);
-
-	protected abstract void onReceive(long routingId, BElement data);
+	protected final void onFailure(Throwable cause) {
+		if (this.failureHandler != null) {
+			this.failureHandler.apply(cause);
+		}
+	}
 
 	@Override
 	protected void onStop() {
@@ -94,4 +110,15 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 	protected String generateName() {
 		return null;
 	}
+
+	protected Deferred<Message, Exception> createDeferred() {
+		return new CompletableDeferredObject<>();
+	}
+
+	protected abstract void onConnectionClose(long routingId);
+
+	protected abstract void onConnectionOpen(long routingId);
+
+	protected abstract void onReceive(long routingId, BElement data);
+
 }

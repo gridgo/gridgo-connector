@@ -2,6 +2,7 @@ package io.gridgo.socket.netty4.impl;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
@@ -20,10 +21,6 @@ import lombok.Setter;
 
 public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 
-	@Setter
-	@Getter
-	private String name;
-
 	@Getter(AccessLevel.PROTECTED)
 	private final BObject configs = BObject.newDefault();
 
@@ -38,6 +35,9 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 	private final AtomicBoolean startFlag = new AtomicBoolean(false);
 
 	private boolean running = false;
+
+	@Setter
+	private Consumer<Throwable> failureHandler;
 
 	protected ChannelInboundHandler newChannelHandlerDelegater() {
 		return new ChannelInboundHandlerAdapter() {
@@ -141,7 +141,11 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 	}
 
 	protected void onException(ChannelHandlerContext ctx, Throwable cause) {
-		cause.printStackTrace();
+		if (this.failureHandler != null) {
+			this.failureHandler.accept(cause);
+		} else {
+			getLogger().error("Error while handling socket msg", cause);
+		}
 	}
 
 }

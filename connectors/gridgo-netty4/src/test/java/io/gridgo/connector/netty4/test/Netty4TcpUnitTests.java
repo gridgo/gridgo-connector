@@ -17,6 +17,7 @@ import io.gridgo.connector.Consumer;
 import io.gridgo.connector.Producer;
 import io.gridgo.connector.impl.resolvers.ClasspathConnectorResolver;
 import io.gridgo.connector.netty4.Netty4Connector;
+import io.gridgo.connector.support.exceptions.FailureHandlerAware;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 
@@ -31,7 +32,7 @@ public class Netty4TcpUnitTests {
 	}
 
 	@Test
-	public void testTCP() throws InterruptedException, PromiseException {
+	public void testTcpDiscard() throws InterruptedException, PromiseException {
 
 		final String host = "localhost:8888";
 
@@ -52,7 +53,6 @@ public class Netty4TcpUnitTests {
 		final AtomicReference<String> receivedText = new AtomicReference<>(null);
 		final CountDownLatch doneSignal = new CountDownLatch(1);
 		server.subscribe((msg) -> {
-			System.out.println("TCP server got message: " + msg.getPayload().getBody());
 			receivedText.set(msg.getPayload().getBody().asValue().getString());
 			doneSignal.countDown();
 		});
@@ -96,17 +96,59 @@ public class Netty4TcpUnitTests {
 		final CountDownLatch doneSignal = new CountDownLatch(1);
 
 		serverConsumer.subscribe((msg) -> {
-			System.out.println(
-					"Got ping message from routingId " + msg.getRoutingId() + ": " + msg.getPayload().toBArray());
 			serverResponder.send(msg);
 		});
 
 		final AtomicReference<String> receivedText = new AtomicReference<>(null);
 
 		clientReceiver.subscribe((msg) -> {
-			System.out.println("Got pong message: " + msg.getPayload().toBArray());
 			receivedText.set(msg.getPayload().getBody().asValue().getString());
 			doneSignal.countDown();
+		});
+
+		clientProducer.sendWithAck(Message.newDefault(Payload.newDefault(BValue.newDefault(TEXT)))).get();
+
+		doneSignal.await();
+
+		assertEquals(TEXT, receivedText.get());
+
+		serverConnector.stop();
+		clientConnector.stop();
+	}
+
+	@Test
+	public void testHandlerException() throws InterruptedException, PromiseException {
+		final String host = "localhost:8889";
+
+		Connector serverConnector = RESOLVER.resolve("netty4:server:tcp://" + host + "?workerThreads=2&bootThreads=2");
+		assertNetty4Connector(serverConnector);
+
+		Connector clientConnector = RESOLVER.resolve("netty4:client:tcp://" + host + "?workerThreads=2");
+		assertNetty4Connector(clientConnector);
+
+		serverConnector.start();
+		clientConnector.start();
+
+		assertTrue(serverConnector.getConsumer().isPresent());
+		Consumer serverConsumer = serverConnector.getConsumer().get();
+
+		assertTrue(serverConnector.getProducer().isPresent());
+
+		assertTrue(clientConnector.getProducer().isPresent());
+		Producer clientProducer = clientConnector.getProducer().get();
+
+		serverConsumer.subscribe((msg) -> {
+			String received = msg.getPayload().getBody().asValue().getString();
+			throw new RuntimeException(received);
+		});
+
+		assertTrue(serverConsumer instanceof FailureHandlerAware<?>);
+		final CountDownLatch doneSignal = new CountDownLatch(1);
+		final AtomicReference<String> receivedRef = new AtomicReference<>(null);
+		((FailureHandlerAware<?>) serverConsumer).setFailureHandler((cause) -> {
+			receivedRef.set(cause.getMessage());
+			doneSignal.countDown();
+			return null;
 		});
 
 		clientProducer.sendWithAck(Message.newDefault(Payload.newDefault(BValue.newDefault(TEXT)))).get();
@@ -114,7 +156,7 @@ public class Netty4TcpUnitTests {
 		System.out.println("sending done");
 		doneSignal.await();
 
-		assertEquals(TEXT, receivedText.get());
+		assertEquals(TEXT, receivedRef.get());
 
 		serverConnector.stop();
 		clientConnector.stop();

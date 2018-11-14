@@ -1,4 +1,4 @@
-package io.gridgo.socket.netty4.codec;
+package io.gridgo.socket.netty4.raw.codec;
 
 import io.gridgo.bean.BElement;
 import io.netty.buffer.ByteBuf;
