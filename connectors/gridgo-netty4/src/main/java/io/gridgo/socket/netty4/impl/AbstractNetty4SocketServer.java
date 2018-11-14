@@ -115,14 +115,25 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 
 		this.channels.clear();
 
-		this.bindFuture.channel().close();
+		try {
+			this.bindFuture.channel().close().sync();
+		} catch (InterruptedException e) {
+			getLogger().warn("Close netty4 socket server {} error", this.getHost(), e);
+		} finally {
+			this.bindFuture = null;
+		}
 
-		this.bossGroup.shutdownGracefully();
-		this.workerGroup.shutdownGracefully();
+		try {
+			this.bossGroup.shutdownGracefully();
+		} finally {
+			this.bossGroup = null;
+		}
 
-		this.bindFuture = null;
-		this.bossGroup = null;
-		this.workerGroup = null;
+		try {
+			this.workerGroup.shutdownGracefully();
+		} finally {
+			this.workerGroup = null;
+		}
 	}
 
 	protected void closeChannel(Channel channel) {
