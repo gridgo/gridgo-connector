@@ -10,7 +10,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class MsgpackDecoder extends ByteToMessageDecoder implements Loggable {
 
 	@Override
@@ -20,7 +22,7 @@ public class MsgpackDecoder extends ByteToMessageDecoder implements Loggable {
 		try {
 			out.add(BElement.fromRaw(stream));
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("Exception caught while decoding", e);
 			if (e.getCause() instanceof MessageInsufficientBufferException) {
 				in.resetReaderIndex();
 			}
