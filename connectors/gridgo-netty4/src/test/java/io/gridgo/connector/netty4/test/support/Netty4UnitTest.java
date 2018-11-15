@@ -259,7 +259,7 @@ public class Netty4UnitTest {
 	protected void testCloseSocketFromServer(@NonNull String transport, String path)
 			throws InterruptedException, PromiseException {
 
-		System.out.println("****** Netty4 " + transport + " - test close connection from client");
+		System.out.println("****** Netty4 " + transport + " - test close connection from server");
 		final String host = "localhost:8889";
 
 		Connector serverConnector = RESOLVER
