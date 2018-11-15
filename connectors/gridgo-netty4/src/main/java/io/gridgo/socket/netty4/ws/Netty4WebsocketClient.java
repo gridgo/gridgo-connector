@@ -93,7 +93,9 @@ public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements
 
 	@Override
 	protected void onClose() throws IOException {
+		System.out.println("[ws client] - send close websocket frame and wait for done");
 		this.getChannel().writeAndFlush(new CloseWebSocketFrame()).syncUninterruptibly();
+		System.out.println("[ws client] - close frame sent, call super.close()");
 		super.onClose();
 	}
 
