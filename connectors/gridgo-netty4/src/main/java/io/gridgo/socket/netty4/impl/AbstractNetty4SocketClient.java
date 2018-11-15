@@ -180,6 +180,7 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 	protected final void onChannelInactive(ChannelHandlerContext ctx) throws Exception {
 		// make sure the client state is sync with channel state, call close, the
 		// closedChannelException were ignored
+		System.out.println("Channel inactive, calling close to sync the state");
 		this.close();
 
 		if (this.getChannelCloseCallback() != null) {
@@ -207,12 +208,8 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 	@Override
 	protected void onClose() throws IOException {
 		if (this.getChannel().isOpen()) {
-			try {
-				System.out.println("----- calling channel.close() and wait for done...");
-				this.getChannel().close().sync();
-			} catch (InterruptedException e) {
-				// ignore
-			}
+			System.out.println("calling channel.close() and wait for done...");
+			this.getChannel().close().syncUninterruptibly();
 		}
 	}
 
