@@ -12,7 +12,7 @@ import io.gridgo.utils.ThreadUtils;
 import io.gridgo.utils.helper.Loggable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandler;
-import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
@@ -35,7 +35,11 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 	private Consumer<Throwable> failureHandler;
 
 	protected ChannelInboundHandler newChannelHandlerDelegater() {
-		return new ChannelInboundHandlerAdapter() {
+		return new SimpleChannelInboundHandler<Object>() {
+
+			protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+				AbstractNetty4Socket.this.onChannelRead(ctx, msg);
+			};
 
 			@Override
 			public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -47,12 +51,6 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 			public void channelInactive(ChannelHandlerContext ctx) throws Exception {
 				AbstractNetty4Socket.this.onChannelInactive(ctx);
 				ctx.fireChannelInactive();
-			}
-
-			@Override
-			public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-				AbstractNetty4Socket.this.onChannelRead(ctx, msg);
-				ctx.fireChannelRead(msg);
 			}
 
 			@Override
@@ -136,10 +134,14 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 	}
 
 	protected void onException(ChannelHandlerContext ctx, Throwable cause) {
-		if (this.failureHandler != null) {
-			this.failureHandler.accept(cause);
+		if (cause instanceof IOException && "connection reset by peer".equalsIgnoreCase(cause.getMessage())) {
+			// cause.printStackTrace();
 		} else {
-			getLogger().error("Error while handling socket msg", cause);
+			if (this.failureHandler != null) {
+				this.failureHandler.accept(cause);
+			} else {
+				getLogger().error("Error while handling socket msg", cause);
+			}
 		}
 	}
 

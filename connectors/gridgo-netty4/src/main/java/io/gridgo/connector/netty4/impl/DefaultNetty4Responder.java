@@ -2,6 +2,7 @@ package io.gridgo.connector.netty4.impl;
 
 import org.joo.promise4j.Deferred;
 
+import io.gridgo.bean.BElement;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.AbstractResponder;
 import io.gridgo.connector.support.config.ConnectorContext;
@@ -25,8 +26,10 @@ class DefaultNetty4Responder extends AbstractResponder {
 		if (!this.isStarted()) {
 			return;
 		}
-		BValue routingId = message.getRoutingId().orElse(BValue.newDefault(-1l));
-		ChannelFuture future = this.socketServer.send(routingId.getLong(), message.getPayload().toBArray());
+		long routingId = message.getRoutingId().orElse(BValue.newDefault(-1l)).getLong();
+		BElement data = message.getPayload() == null ? null : message.getPayload().toBArray();
+		
+		ChannelFuture future = this.socketServer.send(routingId, data);
 		if (deferred != null) {
 			if (future != null) {
 				future.addListener(new GenericFutureListener<Future<? super Void>>() {

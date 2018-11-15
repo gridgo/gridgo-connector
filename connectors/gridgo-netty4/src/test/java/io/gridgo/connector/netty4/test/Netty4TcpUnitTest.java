@@ -7,13 +7,25 @@ import io.gridgo.connector.netty4.test.support.Netty4UnitTest;
 
 public class Netty4TcpUnitTest extends Netty4UnitTest {
 
+	private static final String TRANSPORT = "tcp";
+
 	@Test
 	public void testTcpPingPong() throws InterruptedException, PromiseException {
-		this.testPingPong("tcp", null);
+		this.testPingPong(TRANSPORT, null);
 	}
 
 	@Test
 	public void testHandlerException() throws InterruptedException, PromiseException {
-		this.testHandlerException("tcp", null);
+		this.testHandlerException(TRANSPORT, null);
+	}
+
+	@Test
+	public void testCloseSocketFromClient() throws InterruptedException, PromiseException {
+		this.testCloseSocketFromClient(TRANSPORT, null);
+	}
+
+	@Test
+	public void testCloseSocketFromServer() throws InterruptedException, PromiseException {
+		this.testCloseSocketFromServer(TRANSPORT, null);
 	}
 }

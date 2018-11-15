@@ -33,15 +33,13 @@ import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshakerFactory;
 import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
-import io.netty.util.ReferenceCounted;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 
 public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements Netty4Websocket {
 
-	private static final AttributeKey<WebSocketServerHandshaker> HANDSHAKER_KEY = AttributeKey
-			.newInstance("handshaker");
+	private static final AttributeKey<WebSocketServerHandshaker> HANDSHAKER = AttributeKey.newInstance("handshaker");
 
 	@Setter
 	@Getter(AccessLevel.PROTECTED)
@@ -78,20 +76,10 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 	protected BElement handleIncomingMessage(long channelId, Object msg) throws Exception {
 		Channel channel = getChannel(channelId);
 		if (channel != null) {
-			try {
-				if (msg instanceof FullHttpRequest) {
-					handleHttpRequest(channel, (FullHttpRequest) msg);
-				} else if (msg instanceof WebSocketFrame) {
-					return handleWebSocketFrame(channel, (WebSocketFrame) msg);
-				}
-			} finally {
-				if (msg instanceof ReferenceCounted) {
-					try {
-						((ReferenceCounted) msg).release();
-					} catch (Exception e) {
-						getLogger().error("Error while retaining websocket message", e);
-					}
-				}
+			if (msg instanceof FullHttpRequest) {
+				handleHttpRequest(channel, (FullHttpRequest) msg);
+			} else if (msg instanceof WebSocketFrame) {
+				return handleWebSocketFrame(channel, (WebSocketFrame) msg);
 			}
 		}
 		return null;
@@ -104,7 +92,7 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 
 		// Check for closing frame
 		if (frame instanceof CloseWebSocketFrame) {
-			WebSocketServerHandshaker handshaker = channel.attr(HANDSHAKER_KEY).get();
+			WebSocketServerHandshaker handshaker = channel.attr(HANDSHAKER).get();
 			handshaker.close(channel, (CloseWebSocketFrame) frame.retain());
 			return null;
 		}
@@ -171,7 +159,7 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 			WebSocketServerHandshakerFactory.sendUnsupportedVersionResponse(channel);
 		} else {
 			handshaker.handshake(channel, req);
-			channel.attr(HANDSHAKER_KEY).set(handshaker);
+			channel.attr(HANDSHAKER).set(handshaker);
 		}
 	}
 

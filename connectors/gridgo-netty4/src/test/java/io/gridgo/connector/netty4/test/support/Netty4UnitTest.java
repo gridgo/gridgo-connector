@@ -2,6 +2,7 @@ package io.gridgo.connector.netty4.test.support;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.CountDownLatch;
@@ -33,7 +34,7 @@ public class Netty4UnitTest {
 	}
 
 	protected void testPingPong(@NonNull String transport, String path) throws InterruptedException, PromiseException {
-		System.out.println("Netty4 " + transport + " - test ping/pong");
+		System.out.println("****** Netty4 " + transport + " - test ping/pong");
 		final String host = "localhost:8889";
 
 		Connector serverConnector = RESOLVER
@@ -115,7 +116,7 @@ public class Netty4UnitTest {
 	protected void testHandlerException(@NonNull String transport, String path)
 			throws InterruptedException, PromiseException {
 
-		System.out.println("Netty4 " + transport + " - test server side handle exception");
+		System.out.println("****** Netty4 " + transport + " - test server side handle exception");
 		final String host = "localhost:8889";
 
 		Connector serverConnector = RESOLVER
@@ -165,6 +166,182 @@ public class Netty4UnitTest {
 		doneSignal.await();
 
 		assertEquals(TEXT, receivedRef.get());
+
+		serverConnector.stop();
+		clientConnector.stop();
+	}
+
+	protected void testCloseSocketFromClient(@NonNull String transport, String path)
+			throws InterruptedException, PromiseException {
+
+		System.out.println("****** Netty4 " + transport + " - test close connection from client");
+		final String host = "localhost:8889";
+
+		Connector serverConnector = RESOLVER
+				.resolve("netty4:server:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
+		assertNetty4Connector(serverConnector);
+
+		Connector clientConnector = RESOLVER
+				.resolve("netty4:client:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
+		assertNetty4Connector(clientConnector);
+
+		// server side
+		Consumer serverConsumer = serverConnector.getConsumer().get();
+
+		// client side
+		Producer clientProducer = clientConnector.getProducer().get();
+		Consumer clientReceiver = clientConnector.getConsumer().get();
+
+		final CountDownLatch doneSignal = new CountDownLatch(2);
+
+		System.out.println("Subscribe to server consumer");
+		serverConsumer.subscribe((msg) -> {
+			String socketMessageType = (String) msg.getMisc().get("socketMessageType");
+			BValue routingId = msg.getRoutingId().orElse(BValue.newDefault(-1));
+			switch (socketMessageType) {
+			case "open":
+				System.out.println("[" + transport + " server] - socket open, routing id: " + routingId);
+				break;
+			case "close":
+				System.out.println("[" + transport + " server] - socket closed, routing id: " + routingId);
+				doneSignal.countDown();
+				break;
+			case "message":
+				System.out.println("[" + transport + " server] - got message from routing id " + routingId + ": "
+						+ msg.getPayload().toBArray());
+				break;
+			}
+		});
+
+		clientReceiver.subscribe((msg) -> {
+			String socketMessageType = (String) msg.getMisc().get("socketMessageType");
+			switch (socketMessageType) {
+			case "close":
+				System.out.println("[" + transport + " client] - connection closed");
+				doneSignal.countDown();
+				break;
+			case "open":
+				System.out.println("[" + transport + " client] - connection established");
+				break;
+			}
+		});
+
+		((FailureHandlerAware<?>) clientReceiver).setFailureHandler((cause) -> {
+			System.err.println("[" + transport + " client] - exception...");
+			cause.printStackTrace();
+		});
+
+		serverConnector.start();
+		clientConnector.start();
+
+		final AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
+		assertTrue(serverConsumer instanceof FailureHandlerAware<?>);
+		((FailureHandlerAware<?>) serverConsumer).setFailureHandler((cause) -> {
+			System.err.println("[" + transport + " server] - exception...");
+			cause.printStackTrace();
+			exceptionRef.set(cause);
+			doneSignal.countDown();
+		});
+
+		clientProducer.sendWithAck(Message.newDefault(Payload.newDefault(BValue.newDefault(TEXT)))).get();
+
+		System.out.println("[" + transport + " client] - close connection by stop client producer");
+		clientProducer.stop();
+
+		doneSignal.await();
+
+		assertNull(exceptionRef.get());
+
+		serverConnector.stop();
+		clientConnector.stop();
+	}
+
+	protected void testCloseSocketFromServer(@NonNull String transport, String path)
+			throws InterruptedException, PromiseException {
+
+		System.out.println("****** Netty4 " + transport + " - test close connection from client");
+		final String host = "localhost:8889";
+
+		Connector serverConnector = RESOLVER
+				.resolve("netty4:server:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
+		assertNetty4Connector(serverConnector);
+
+		Connector clientConnector = RESOLVER
+				.resolve("netty4:client:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
+		assertNetty4Connector(clientConnector);
+
+		// server side
+		Consumer serverConsumer = serverConnector.getConsumer().get();
+		Producer serverProducer = serverConnector.getProducer().get();
+
+		// client side
+		Producer clientProducer = clientConnector.getProducer().get();
+		Consumer clientReceiver = clientConnector.getConsumer().get();
+
+		final CountDownLatch doneSignal = new CountDownLatch(2);
+
+		System.out.println("Subscribe to server consumer");
+		serverConsumer.subscribe((msg) -> {
+			String socketMessageType = (String) msg.getMisc().get("socketMessageType");
+			BValue routingId = msg.getRoutingId().orElse(BValue.newDefault(-1));
+			switch (socketMessageType) {
+			case "open":
+				System.out.println("[" + transport + " server] - socket open, routing id: " + routingId);
+				break;
+			case "close":
+				System.out.println("[" + transport + " server] - socket closed, routing id: " + routingId);
+				doneSignal.countDown();
+				break;
+			case "message":
+				System.out.println("[" + transport + " server] - got message from routing id " + routingId + ": "
+						+ msg.getPayload().toBArray()
+						+ "close client connection (by send a null-payload msg) right now...");
+
+				try {
+					serverProducer.sendWithAck(Message.newDefault(BValue.newDefault(routingId), null)).get();
+				} catch (PromiseException | InterruptedException e) {
+					throw new RuntimeException("Error while try to close connection", e);
+				}
+
+				break;
+			}
+		});
+
+		clientReceiver.subscribe((msg) -> {
+			String socketMessageType = (String) msg.getMisc().get("socketMessageType");
+			switch (socketMessageType) {
+			case "close":
+				System.out.println("[" + transport + " client] - connection closed");
+				doneSignal.countDown();
+				break;
+			case "open":
+				System.out.println("[" + transport + " client] - connection established");
+				break;
+			}
+		});
+
+		((FailureHandlerAware<?>) clientReceiver).setFailureHandler((cause) -> {
+			System.err.println("[" + transport + " client] - exception...");
+			cause.printStackTrace();
+		});
+
+		serverConnector.start();
+		clientConnector.start();
+
+		final AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
+		assertTrue(serverConsumer instanceof FailureHandlerAware<?>);
+		((FailureHandlerAware<?>) serverConsumer).setFailureHandler((cause) -> {
+			System.err.println("[" + transport + " server] - exception...");
+			cause.printStackTrace();
+			exceptionRef.set(cause);
+			doneSignal.countDown();
+		});
+
+		clientProducer.sendWithAck(Message.newDefault(Payload.newDefault(BValue.newDefault(TEXT)))).get();
+
+		doneSignal.await();
+
+		assertNull(exceptionRef.get());
 
 		serverConnector.stop();
 		clientConnector.stop();

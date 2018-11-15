@@ -4,6 +4,7 @@ import io.gridgo.bean.BElement;
 import io.gridgo.socket.netty4.impl.AbstractNetty4SocketServer;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.socket.SocketChannel;
 
 public abstract class AbstractNetty4RawSocketServer extends AbstractNetty4SocketServer {
@@ -26,7 +27,7 @@ public abstract class AbstractNetty4RawSocketServer extends AbstractNetty4Socket
 			if (data == null) {
 				channel.close();
 			} else {
-				return channel.writeAndFlush(data);
+				return channel.writeAndFlush(data).addListener(ChannelFutureListener.CLOSE);
 			}
 		}
 		return null;

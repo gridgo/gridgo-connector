@@ -169,7 +169,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 	@Override
 	protected void onClose() throws IOException {
 		for (Channel channel : this.channels.values()) {
-			closeChannel(channel);
+			channel.close();
 		}
 
 		this.channels.clear();

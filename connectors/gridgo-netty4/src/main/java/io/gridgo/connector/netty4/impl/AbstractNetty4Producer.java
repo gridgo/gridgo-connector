@@ -66,12 +66,10 @@ public abstract class AbstractNetty4Producer extends AbstractHasReceiverProducer
 
 	private void initSocketClient() {
 		this.socketClient = this.createSocketClient();
-		this.socketClient.setFailureHandler(this::onSocketFailure);
+		this.socketClient.applyConfigs(this.options);
 		if (this.socketClient instanceof Netty4Websocket) {
 			((Netty4Websocket) this.socketClient).setPath(getPath());
 		}
-
-		this.socketClient.applyConfigs(this.options);
 
 		this.setReceiver(this.createReceiver());
 	}
@@ -127,6 +125,7 @@ public abstract class AbstractNetty4Producer extends AbstractHasReceiverProducer
 
 	@Override
 	protected void onStart() {
+		this.socketClient.setFailureHandler(this::onSocketFailure);
 		this.socketClient.connect(this.host);
 	}
 
@@ -142,11 +141,11 @@ public abstract class AbstractNetty4Producer extends AbstractHasReceiverProducer
 
 	@Override
 	protected void onStop() {
-		this.getReceiver().stop();
-		this.setReceiver(null);
-
 		this.socketClient.stop();
 		this.socketClient = null;
+
+		this.getReceiver().stop();
+		this.setReceiver(null);
 	}
 
 	@Override
