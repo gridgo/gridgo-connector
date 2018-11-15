@@ -42,6 +42,14 @@ public class DefaultNetty4Receiver extends AbstractReceiver implements FailureHa
 	}
 
 	private void onFailure(Throwable cause) {
+		if (!this.isStarted()) {
+			System.out.println(this.socketClient.getClass().getSimpleName()
+					+ " --> complete unlink from receiver to socket client because of exxception");
+			this.socketClient.setChannelCloseCallback(null);
+			this.socketClient.setFailureHandler(null);
+			this.socketClient = null;
+		}
+
 		if (this.failureHandler != null) {
 			this.failureHandler.apply(cause);
 		} else {
@@ -53,10 +61,6 @@ public class DefaultNetty4Receiver extends AbstractReceiver implements FailureHa
 	protected void onStop() {
 		this.socketClient.setChannelOpenCallback(null);
 		this.socketClient.setReceiveCallback(null);
-
-		this.socketClient.setChannelCloseCallback(null);
-		this.socketClient.setFailureHandler(null);
-		this.socketClient = null;
 	}
 
 	protected Deferred<Message, Exception> createDeferred() {
@@ -79,6 +83,14 @@ public class DefaultNetty4Receiver extends AbstractReceiver implements FailureHa
 
 	private void onConnectionClosed() {
 		this.publishMessage(this.createMessage().addMisc("socketMessageType", "close"));
+
+		if (!this.isStarted()) {
+			System.out.println(this.socketClient.getClass().getSimpleName()
+					+ " --> complete unlink from receiver to socket client because of connection closed");
+			this.socketClient.setChannelCloseCallback(null);
+			this.socketClient.setFailureHandler(null);
+			this.socketClient = null;
+		}
 	}
 
 	@Override
