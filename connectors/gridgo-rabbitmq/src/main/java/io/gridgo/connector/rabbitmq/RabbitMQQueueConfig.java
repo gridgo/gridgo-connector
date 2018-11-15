@@ -122,4 +122,26 @@ public class RabbitMQQueueConfig {
 			}
 		}
 	}
+
+	public RabbitMQQueueConfig makeCopy() {
+		RabbitMQQueueConfig result = new RabbitMQQueueConfig();
+
+		result.setExchangeName(this.getExchangeName());
+		result.setExchangeType(this.getExchangeType());
+		result.setQueueName(this.getQueueName());
+
+		result.setAutoDelete(this.isAutoDelete());
+		result.setDurable(this.isDurable());
+		result.setExclusive(this.isExclusive());
+
+		result.setAckOnFail(this.isAckOnFail());
+		result.setAutoAck(this.isAutoAck());
+		result.setMultipleAck(this.isMultipleAck());
+
+		result.setRpc(this.isRpc());
+
+		result.getRoutingKeys().addAll(this.getRoutingKeys());
+
+		return result;
+	}
 }

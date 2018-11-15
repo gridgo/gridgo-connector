@@ -10,10 +10,4 @@ public class DefaultRabbitMQConsumer extends AbstractRabbitMQConsumer {
 	public DefaultRabbitMQConsumer(ConnectorContext context, Connection connection, RabbitMQQueueConfig queueConfig) {
 		super(context, connection, queueConfig);
 	}
-
-	@Override
-	protected String generateName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
 }

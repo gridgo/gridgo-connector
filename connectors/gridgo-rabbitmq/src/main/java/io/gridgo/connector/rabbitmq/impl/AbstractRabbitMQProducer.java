@@ -51,6 +51,11 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 	}
 
 	@Override
+	protected String generateName() {
+		return null;
+	}
+
+	@Override
 	protected void onStart() {
 		this.channel = this.initChannel(connection);
 		if (this.getQueueConfig().isRpc()) {

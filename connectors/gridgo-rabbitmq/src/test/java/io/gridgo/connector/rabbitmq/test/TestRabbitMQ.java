@@ -11,7 +11,6 @@ import java.util.function.BiConsumer;
 import org.joo.promise4j.Deferred;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.PromiseException;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.gridgo.bean.BElement;
@@ -70,7 +69,6 @@ public class TestRabbitMQ {
 	}
 
 	@Test
-	@Ignore
 	public void testDirectQueue() throws InterruptedException {
 		System.out.println("Test direct queue");
 		final Connector connector = RESOLVER.resolve("rabbitmq://localhost?queueName=test");
@@ -93,7 +91,6 @@ public class TestRabbitMQ {
 	}
 
 	@Test
-	@Ignore
 	public void testRPC() throws InterruptedException {
 		System.out.println("Test RPC");
 		final Connector connector = RESOLVER.resolve("rabbitmq://localhost?queueName=test&rpc=true");
@@ -124,18 +121,17 @@ public class TestRabbitMQ {
 	}
 
 	@Test
-	@Ignore
 	public void testPubSub() throws InterruptedException {
 		System.out.println("Test pub/sub");
 		Connector connector1 = RESOLVER.resolve("rabbitmq://localhost/testFanoutExchange?exchangeType=fanout");
 		Connector connector2 = RESOLVER.resolve("rabbitmq://localhost/testFanoutExchange?exchangeType=fanout");
 
 		connector1.start();
-		connector2.start();
 
 		Producer producer = connector1.getProducer().get();
 		Consumer consumer1 = connector1.getConsumer().get();
 
+		connector2.start();
 		Consumer consumer2 = connector2.getConsumer().get();
 
 		final AtomicReference<String> receivedTextRef1 = new AtomicReference<String>(null);
@@ -160,12 +156,10 @@ public class TestRabbitMQ {
 		assertEquals(TEXT, receivedTextRef2.get());
 
 		connector1.stop();
-
 		connector2.stop();
 	}
 
 	@Test
-	@Ignore
 	public void testRoutingKey() throws InterruptedException {
 		System.out.println("Test routing key");
 		Connector connector1 = RESOLVER
@@ -213,13 +207,12 @@ public class TestRabbitMQ {
 	}
 
 	@Test
-	@Ignore
 	public void testRoutingKeyRPC() throws InterruptedException, PromiseException {
 		System.out.println("Test routing key rpc");
 		Connector connector1 = RESOLVER
-				.resolve("rabbitmq://localhost/testDirectExchange?exchangeType=direct&routingKey=key1&rpc=true");
+				.resolve("rabbitmq://localhost/testDirectExchangeRPC?exchangeType=direct&routingKey=key1&rpc=true");
 		Connector connector2 = RESOLVER
-				.resolve("rabbitmq://localhost/testDirectExchange?exchangeType=direct&routingKey=key2&rpc=true");
+				.resolve("rabbitmq://localhost/testDirectExchangeRPC?exchangeType=direct&routingKey=key2&rpc=true");
 
 		connector1.start();
 		connector2.start();

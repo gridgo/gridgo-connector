@@ -42,6 +42,11 @@ public abstract class AbstractRabbitMQConsumer extends AbstractConsumer implemen
 	}
 
 	@Override
+	protected String generateName() {
+		return null;
+	}
+
+	@Override
 	protected void onStart() {
 		this.channel = this.initChannel(connection);
 		this.subscibe(this::onDelivery, this::onCancel);
