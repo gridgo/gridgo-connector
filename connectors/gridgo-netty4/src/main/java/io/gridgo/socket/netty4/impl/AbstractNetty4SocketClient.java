@@ -1,7 +1,6 @@
 package io.gridgo.socket.netty4.impl;
 
 import java.io.IOException;
-import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -179,6 +178,10 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 
 	@Override
 	protected final void onChannelInactive(ChannelHandlerContext ctx) throws Exception {
+		// make sure the client state is sync with channel state, call close, the
+		// closedChannelException were ignored
+		this.close();
+		
 		if (this.getChannelCloseCallback() != null) {
 			this.getChannelCloseCallback().run();
 		}
