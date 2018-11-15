@@ -61,14 +61,6 @@ public class DefaultNetty4Receiver extends AbstractReceiver implements FailureHa
 	protected void onStop() {
 		this.socketClient.setChannelOpenCallback(null);
 		this.socketClient.setReceiveCallback(null);
-
-		if (!this.socketClient.isRunning()) {
-			System.out.println(this.socketClient.getClass().getSimpleName()
-					+ " --> complete unlink from receiver to socket client because socket is not running");
-			this.socketClient.setChannelCloseCallback(null);
-			this.socketClient.setFailureHandler(null);
-			this.socketClient = null;
-		}
 	}
 
 	protected Deferred<Message, Exception> createDeferred() {
