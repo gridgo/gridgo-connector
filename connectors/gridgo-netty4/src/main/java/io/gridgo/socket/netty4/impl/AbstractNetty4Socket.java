@@ -30,6 +30,7 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 
 	private final AtomicBoolean startFlag = new AtomicBoolean(false);
 
+	@Getter
 	private boolean running = false;
 
 	@Setter
@@ -68,14 +69,16 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 
 	@Override
 	public final boolean isStarted() {
-		ThreadUtils.busySpin(10, () -> {
-			return startFlag.get() ^ running;
-		});
+		ThreadUtils.busySpin(10, this::isInChangingState);
 		return this.running;
 	}
 
-	public final boolean isInChangingState() {
-		return !(startFlag.get() ^ running);
+	protected final boolean isInChangingState() {
+		return startFlag.get() != running;
+	}
+
+	protected final boolean isOkToClose() {
+		return this.startFlag.get() && this.running;
 	}
 
 	protected final boolean tryStart(Runnable starter) {

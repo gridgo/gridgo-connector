@@ -47,19 +47,16 @@ public class DefaultNetty4Receiver extends AbstractReceiver implements FailureHa
 		} else {
 			getLogger().error("Receiver error: ", cause);
 		}
-
-		if (!this.isStarted()) {
-			this.socketClient.setChannelCloseCallback(null);
-			this.socketClient.setFailureHandler(null);
-			this.socketClient = null;
-		}
 	}
 
 	@Override
 	protected void onStop() {
-		System.out.println(this.socketClient.getClass().getSimpleName() + " --> close the client receiver...");
 		this.socketClient.setChannelOpenCallback(null);
 		this.socketClient.setReceiveCallback(null);
+
+		this.socketClient.setChannelCloseCallback(null);
+		this.socketClient.setFailureHandler(null);
+		this.socketClient = null;
 	}
 
 	protected Deferred<Message, Exception> createDeferred() {
@@ -82,12 +79,6 @@ public class DefaultNetty4Receiver extends AbstractReceiver implements FailureHa
 
 	private void onConnectionClosed() {
 		this.publishMessage(this.createMessage().addMisc("socketMessageType", "close"));
-
-		if (!this.isStarted()) {
-			this.socketClient.setChannelCloseCallback(null);
-			this.socketClient.setFailureHandler(null);
-			this.socketClient = null;
-		}
 	}
 
 	@Override
