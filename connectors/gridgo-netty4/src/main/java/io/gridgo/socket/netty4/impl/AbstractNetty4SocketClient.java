@@ -197,7 +197,9 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 	@Override
 	protected void onClose() throws IOException {
 		if (this.getChannel().isOpen()) {
+			System.out.println("[socket client] - closing channel actively");
 			this.getChannel().close().syncUninterruptibly();
+			System.out.println("[socket client] - channel closed");
 		}
 	}
 
