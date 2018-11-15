@@ -295,7 +295,7 @@ public class Netty4UnitTest {
 			case "message":
 				System.out.println("[" + transport + " server] - got message from routing id " + routingId + ": "
 						+ msg.getPayload().toBArray()
-						+ "close client connection (by send a null-payload msg) right now...");
+						+ " --> close client connection (by send a null-payload msg) right now...");
 
 				try {
 					serverProducer.sendWithAck(Message.newDefault(BValue.newDefault(routingId), null)).get();
