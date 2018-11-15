@@ -92,7 +92,7 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 
 		// Check for closing frame
 		if (frame instanceof CloseWebSocketFrame) {
-			System.out.println("[ws server] - Got close websocket frame from client, close channel ");
+//			System.out.println("[ws server] - Got close websocket frame from client, close channel ");
 			WebSocketServerHandshaker handshaker = channel.attr(HANDSHAKER).get();
 			handshaker.close(channel, (CloseWebSocketFrame) frame.retain());
 			return null;
