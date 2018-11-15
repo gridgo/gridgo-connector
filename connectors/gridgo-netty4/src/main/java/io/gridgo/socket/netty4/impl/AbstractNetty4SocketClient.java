@@ -181,7 +181,7 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 		// make sure the client state is sync with channel state, call close, the
 		// closedChannelException were ignored
 		this.close();
-		
+
 		if (this.getChannelCloseCallback() != null) {
 			this.getChannelCloseCallback().run();
 		}
@@ -208,6 +208,7 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 	protected void onClose() throws IOException {
 		if (this.getChannel().isOpen()) {
 			try {
+				System.out.println("----- calling channel.close() and wait for done...");
 				this.getChannel().close().sync();
 			} catch (InterruptedException e) {
 				// ignore
