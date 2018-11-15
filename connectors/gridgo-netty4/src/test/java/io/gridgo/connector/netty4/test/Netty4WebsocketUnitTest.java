@@ -29,4 +29,9 @@ public class Netty4WebsocketUnitTest extends Netty4UnitTest {
 	public void testCloseSocketFromServer() throws InterruptedException, PromiseException {
 		this.testCloseSocketFromServer(TRANSPORT, PATH);
 	}
+
+	@Test
+	public void testCloseServer() throws InterruptedException, PromiseException {
+		this.testCloseServer(TRANSPORT, PATH);
+	}
 }
