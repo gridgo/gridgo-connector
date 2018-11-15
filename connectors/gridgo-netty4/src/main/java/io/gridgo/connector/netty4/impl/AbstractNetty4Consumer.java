@@ -68,11 +68,6 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 			((Netty4Websocket) this.socketServer).setPath(this.getPath());
 		}
 
-		this.socketServer.setChannelOpenCallback(this::onConnectionOpen);
-		this.socketServer.setChannelCloseCallback(this::onConnectionClose);
-		this.socketServer.setReceiveCallback(this::onReceive);
-		this.socketServer.setFailureHandler(this::onFailure);
-
 		this.setResponder(this.createResponder());
 	}
 
@@ -90,13 +85,12 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 
 	@Override
 	protected void onStart() {
-		this.socketServer.bind(host);
-	}
+		this.socketServer.setChannelOpenCallback(this::onConnectionOpen);
+		this.socketServer.setChannelCloseCallback(this::onConnectionClose);
+		this.socketServer.setReceiveCallback(this::onReceive);
+		this.socketServer.setFailureHandler(this::onFailure);
 
-	protected final void onFailure(Throwable cause) {
-		if (this.failureHandler != null) {
-			this.failureHandler.apply(cause);
-		}
+		this.socketServer.bind(host);
 	}
 
 	@Override
@@ -118,6 +112,14 @@ public abstract class AbstractNetty4Consumer extends AbstractHasResponderConsume
 
 	protected Deferred<Message, Exception> createDeferred() {
 		return new CompletableDeferredObject<>();
+	}
+
+	protected final void onFailure(Throwable cause) {
+		if (this.failureHandler != null) {
+			this.failureHandler.apply(cause);
+		} else {
+			getLogger().error("Netty4 consumer error", cause);
+		}
 	}
 
 	protected abstract void onConnectionClose(long routingId);

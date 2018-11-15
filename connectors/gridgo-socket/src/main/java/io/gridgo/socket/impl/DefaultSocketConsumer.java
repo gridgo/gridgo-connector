@@ -8,7 +8,6 @@ import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.AbstractConsumer;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
-import io.gridgo.framework.support.MessageParser;
 import io.gridgo.socket.Socket;
 import io.gridgo.socket.SocketConstants;
 import io.gridgo.socket.SocketConsumer;
@@ -33,7 +32,8 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 	private final SocketOptions options;
 	private final String address;
 
-	public DefaultSocketConsumer(ConnectorContext context, SocketFactory factory, SocketOptions options, String address, int bufferSize) {
+	public DefaultSocketConsumer(ConnectorContext context, SocketFactory factory, SocketOptions options, String address,
+			int bufferSize) {
 		super(context);
 		this.factory = factory;
 		this.options = options;
@@ -79,13 +79,13 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 
 				Message message = null;
 				try {
-					message = MessageParser.DEFAULT.parse(buffer.flip());
+					message = Message.parse(buffer.flip());
 					BObject headers = message.getPayload().getHeaders();
 					if (headers != null && headers.getBoolean(SocketConstants.IS_BATCH, false)) {
 						BArray subMessages = message.getPayload().getBody().asArray();
 						totalRecvMessages += headers.getInteger(SocketConstants.BATCH_SIZE, subMessages.size());
 						for (BElement payload : subMessages) {
-							Message subMessage = MessageParser.DEFAULT.parse(payload);
+							Message subMessage = Message.parse(payload);
 							this.publish(subMessage, null);
 						}
 					} else {
@@ -115,7 +115,6 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 
 	@Override
 	protected String generateName() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 }

@@ -7,7 +7,6 @@ import io.gridgo.bean.BObject;
 import io.gridgo.connector.Responder;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
-import io.gridgo.framework.support.MessageParser;
 import io.gridgo.socket.netty4.Netty4Transport;
 import io.gridgo.utils.support.HostAndPort;
 
@@ -23,18 +22,27 @@ public class DefaultNetty4Consumer extends AbstractNetty4Consumer {
 		return new DefaultNetty4Responder(this.getContext(), getSocketServer());
 	}
 
-	protected void onConnectionClose(long routingId) {
-		// System.out.println("Connection closed on " + routingId);
-	}
-
-	protected void onConnectionOpen(long routingId) {
-		// System.out.println("Connection opened, id: " + routingId);
-	}
-
-	protected void onReceive(long routingId, BElement data) {
-		Message message = MessageParser.DEFAULT.parse(data).setRoutingIdFromAny(routingId);
+	private void publishMessage(Message message) {
 		Deferred<Message, Exception> deferred = this.createDeferred();
 		deferred.promise().fail(this::onFailure);
 		this.publish(message, deferred);
+	}
+
+	protected void onConnectionClose(long routingId) {
+		Message message = this.createMessage().setRoutingIdFromAny(routingId);
+		message.addMisc("socketMessageType", "close");
+		publishMessage(message);
+	}
+
+	protected void onConnectionOpen(long routingId) {
+		Message message = this.createMessage().setRoutingIdFromAny(routingId);
+		message.addMisc("socketMessageType", "open");
+		publishMessage(message);
+	}
+
+	protected void onReceive(long routingId, BElement data) {
+		Message message = this.parseMessage(data).setRoutingIdFromAny(routingId);
+		message.addMisc("socketMessageType", "message");
+		publishMessage(message);
 	}
 }

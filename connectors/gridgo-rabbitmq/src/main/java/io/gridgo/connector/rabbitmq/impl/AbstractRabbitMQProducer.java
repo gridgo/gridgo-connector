@@ -21,7 +21,6 @@ import io.gridgo.connector.rabbitmq.RabbitMQProducer;
 import io.gridgo.connector.rabbitmq.RabbitMQQueueConfig;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
-import io.gridgo.framework.support.MessageParser;
 import io.gridgo.framework.support.Payload;
 import io.gridgo.framework.support.generators.impl.TimeBasedIdGenerator;
 import lombok.Getter;
@@ -95,7 +94,7 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 			getContext().getCallbackInvokerStrategy().execute(() -> {
 				Message result = null;
 				try {
-					result = MessageParser.DEFAULT.parse(delivery.getBody());
+					result = Message.parse(delivery.getBody());
 				} catch (Exception e) {
 					deferred.reject(e);
 				}

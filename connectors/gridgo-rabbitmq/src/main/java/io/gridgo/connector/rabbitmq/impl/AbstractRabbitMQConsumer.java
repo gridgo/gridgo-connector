@@ -20,7 +20,6 @@ import io.gridgo.connector.rabbitmq.RabbitMQConsumer;
 import io.gridgo.connector.rabbitmq.RabbitMQQueueConfig;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
-import io.gridgo.framework.support.MessageParser;
 import io.gridgo.framework.support.Payload;
 import lombok.Getter;
 import lombok.NonNull;
@@ -35,7 +34,8 @@ public abstract class AbstractRabbitMQConsumer extends AbstractConsumer implemen
 	@Getter
 	private Channel channel;
 
-	protected AbstractRabbitMQConsumer(ConnectorContext context, @NonNull Connection connection, @NonNull RabbitMQQueueConfig queueConfig) {
+	protected AbstractRabbitMQConsumer(ConnectorContext context, @NonNull Connection connection,
+			@NonNull RabbitMQQueueConfig queueConfig) {
 		super(context);
 		this.connection = connection;
 		this.queueConfig = queueConfig;
@@ -93,7 +93,7 @@ public abstract class AbstractRabbitMQConsumer extends AbstractConsumer implemen
 		final Message message;
 
 		try {
-			message = MessageParser.DEFAULT.parse(delivery.getBody());
+			message = Message.parse(delivery.getBody());
 		} catch (Exception e) {
 			getLogger().error("Error while parse delivery body into message (ack will be sent automatically)", e);
 			sendAck(deliveryTag);
