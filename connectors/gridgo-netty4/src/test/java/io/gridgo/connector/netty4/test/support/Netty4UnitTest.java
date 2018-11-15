@@ -252,7 +252,10 @@ public class Netty4UnitTest {
 
 		assertNull(exceptionRef.get());
 
+		System.out.println("Close server connector");
 		serverConnector.stop();
+
+		System.out.println("Close client connector");
 		clientConnector.stop();
 	}
 
