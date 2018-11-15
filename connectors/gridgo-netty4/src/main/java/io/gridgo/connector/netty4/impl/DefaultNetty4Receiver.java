@@ -51,6 +51,7 @@ public class DefaultNetty4Receiver extends AbstractReceiver implements FailureHa
 
 	@Override
 	protected void onStop() {
+		System.out.println(this.socketClient.getClass().getSimpleName() + " --> close the client receiver...");
 		this.socketClient.setChannelCloseCallback(null);
 		this.socketClient.setChannelOpenCallback(null);
 		this.socketClient.setReceiveCallback(null);
