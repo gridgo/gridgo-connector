@@ -141,9 +141,11 @@ public abstract class AbstractNetty4Producer extends AbstractHasReceiverProducer
 
 	@Override
 	protected void onStop() {
+		System.out.println("Close socket client...");
 		this.socketClient.stop();
 		this.socketClient = null;
 
+		System.out.println("Close receiver...");
 		this.getReceiver().stop();
 		this.setReceiver(null);
 	}

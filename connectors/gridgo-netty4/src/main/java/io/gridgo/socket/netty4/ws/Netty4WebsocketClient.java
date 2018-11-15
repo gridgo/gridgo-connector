@@ -9,7 +9,6 @@ import io.gridgo.socket.netty4.impl.AbstractNetty4SocketClient;
 import io.gridgo.utils.support.HostAndPort;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
@@ -94,8 +93,7 @@ public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements
 
 	@Override
 	protected void onClose() throws IOException {
-		this.getChannel().writeAndFlush(new CloseWebSocketFrame()) //
-				.addListener(ChannelFutureListener.CLOSE_ON_FAILURE).syncUninterruptibly();
+		this.getChannel().writeAndFlush(new CloseWebSocketFrame()).syncUninterruptibly();
 		super.onClose();
 	}
 
