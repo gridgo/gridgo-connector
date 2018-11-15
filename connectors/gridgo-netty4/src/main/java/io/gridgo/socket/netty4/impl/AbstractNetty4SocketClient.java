@@ -178,16 +178,28 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 
 	@Override
 	protected final void onChannelInactive(ChannelHandlerContext ctx) throws Exception {
-		if (!this.isCloseCalledFromExternal()) {
+		System.out.println(this.getClass().getSimpleName() + " --> channel inactive");
+		if (!this.isInChangingState() && this.isStarted()) {
 			// make sure the client state is sync with channel state, call close, the
 			// closedChannelException were ignored
 
-			// System.out.println("Channel inactive, calling close to sync the state");
+			System.out.println(this.getClass().getSimpleName()
+					+ " --> channel inactive by connection itself, calling close to sync the state");
 			this.close();
+		} else {
+			System.out.println(this.getClass().getSimpleName() + " --> is in changing state or closed");
 		}
 
 		if (this.getChannelCloseCallback() != null) {
 			this.getChannelCloseCallback().run();
+		}
+	}
+
+	@Override
+	protected void onClose() throws IOException {
+		if (this.getChannel().isOpen()) {
+			System.out.println("calling channel.close() and wait for done...");
+			this.getChannel().close().syncUninterruptibly();
 		}
 	}
 
@@ -206,14 +218,6 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
 	@Override
 	protected final BElement handleIncomingMessage(long channelId, Object msg) throws Exception {
 		return this.handleIncomingMessage(msg);
-	}
-
-	@Override
-	protected void onClose() throws IOException {
-		if (this.getChannel().isOpen()) {
-			System.out.println("calling channel.close() and wait for done...");
-			this.getChannel().close().syncUninterruptibly();
-		}
 	}
 
 	protected abstract BElement handleIncomingMessage(Object msg) throws Exception;

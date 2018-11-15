@@ -32,9 +32,6 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 
 	private boolean running = false;
 
-	@Getter(AccessLevel.PROTECTED)
-	private boolean closeCalledFromExternal = false;
-
 	@Setter
 	private Consumer<Throwable> failureHandler;
 
@@ -77,6 +74,10 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 		return this.running;
 	}
 
+	public final boolean isInChangingState() {
+		return !(startFlag.get() ^ running);
+	}
+
 	protected final boolean tryStart(Runnable starter) {
 		if (!this.isStarted() && this.startFlag.compareAndSet(false, true)) {
 			try {
@@ -102,7 +103,6 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 
 	@Override
 	public final void close() throws IOException {
-		this.closeCalledFromExternal = true;
 		if (this.isStarted() && this.startFlag.compareAndSet(true, false)) {
 			try {
 				this.onClose();
@@ -111,7 +111,6 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 			}
 			this.running = false;
 		}
-		this.closeCalledFromExternal = false;
 	}
 
 	protected void onClose() throws IOException {
