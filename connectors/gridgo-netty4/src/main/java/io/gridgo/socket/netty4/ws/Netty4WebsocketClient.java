@@ -93,7 +93,11 @@ public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements
 
 	@Override
 	protected void onClose() throws IOException {
-		this.getChannel().writeAndFlush(new CloseWebSocketFrame());
+		try {
+			this.getChannel().writeAndFlush(new CloseWebSocketFrame()).sync();
+		} catch (InterruptedException e) {
+			throw new RuntimeException("Interupted while trying to write CloseWebSocketFrame", e);
+		}
 		super.onClose();
 	}
 

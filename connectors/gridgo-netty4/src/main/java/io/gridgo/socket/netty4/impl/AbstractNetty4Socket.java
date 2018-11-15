@@ -1,6 +1,7 @@
 package io.gridgo.socket.netty4.impl;
 
 import java.io.IOException;
+import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -99,7 +100,11 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 	@Override
 	public final void close() throws IOException {
 		if (this.isStarted() && this.startFlag.compareAndSet(true, false)) {
-			this.onClose();
+			try {
+				this.onClose();
+			} catch (ClosedChannelException e) {
+				// channel already closed, just ignore
+			}
 			this.running = false;
 		}
 	}
