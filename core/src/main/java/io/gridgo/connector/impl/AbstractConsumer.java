@@ -71,7 +71,7 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 	 * check if payload not null, payload's id is empty, then set payload's id by
 	 * value generated from idGenerator if presented
 	 * 
-	 * @param payload
+	 * @param payload the payload
 	 */
 	protected void ensurePayloadId(Payload payload) {
 		if (payload != null && payload.getId().isEmpty() && context.getIdGenerator().isPresent()) {
@@ -96,7 +96,7 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 	/**
 	 * create a message with empty payload's header, auto id generated
 	 * 
-	 * @param payload's body
+	 * @param body the body
 	 * @return the message
 	 */
 	protected Message createMessage(BElement body) {
@@ -110,7 +110,7 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 	 * @return the message
 	 */
 	protected Message createMessage() {
-		return createMessage(null);
+		return Message.newDefault(null);
 	}
 
 	protected Message parseMessage(BElement data) {

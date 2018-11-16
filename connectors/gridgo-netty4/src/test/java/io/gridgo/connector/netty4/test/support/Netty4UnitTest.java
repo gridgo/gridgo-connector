@@ -237,6 +237,10 @@ public class Netty4UnitTest {
 		final AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
 		assertTrue(serverConsumer instanceof FailureHandlerAware<?>);
 		((FailureHandlerAware<?>) serverConsumer).setFailureHandler((cause) -> {
+			if ("connection reset by peer".equalsIgnoreCase(cause.getMessage())
+					|| "An existing connection was forcibly closed by the remote host".equals(cause.getMessage())) {
+				return;
+			}
 			System.err.println("[" + transport + " server] - exception...");
 			cause.printStackTrace();
 			exceptionRef.set(cause);
