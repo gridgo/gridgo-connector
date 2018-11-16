@@ -73,7 +73,7 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 		final String routingKey = routingId == null ? null : routingId.orElse(BValue.newDefault()).getString();
 
 		getContext().getProducerExecutionStrategy().execute(() -> {
-			this.publish(buildBody(request.getPayload()), null, routingKey);
+			this.publish(buildRequestBody(request.getPayload()), null, routingKey);
 			if (deferred != null) {
 				deferred.resolve(null);
 			}
@@ -119,7 +119,7 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 
 			final String corrId = TIME_BASED_ID_GENERATOR.generateId().get().getString();
 			final BasicProperties props = createBasicProperties(corrId);
-			byte[] bytes = buildBody(request.getPayload());
+			byte[] bytes = buildRequestBody(request.getPayload());
 
 			final Deferred<Message, Exception> deferred = createDeferred();
 
@@ -143,7 +143,7 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 				"Cannot make a call on non-rpc rabbitmq producer, use rpc=true in connector endpoint");
 	}
 
-	protected byte[] buildBody(Payload payload) {
+	protected byte[] buildRequestBody(Payload payload) {
 		return BArray.newFromSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody()).toBytes();
 	}
 

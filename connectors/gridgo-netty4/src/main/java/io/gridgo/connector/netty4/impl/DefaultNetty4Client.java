@@ -6,9 +6,9 @@ import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.socket.netty4.Netty4Transport;
 import io.gridgo.utils.support.HostAndPort;
 
-public class DefaultNetty4Producer extends AbstractNetty4Producer {
+public class DefaultNetty4Client extends AbstractNetty4Client {
 
-	public DefaultNetty4Producer(ConnectorContext context, Netty4Transport transport, HostAndPort host, String path,
+	public DefaultNetty4Client(ConnectorContext context, Netty4Transport transport, HostAndPort host, String path,
 			BObject options) {
 		super(context, transport, host, path, options);
 	}

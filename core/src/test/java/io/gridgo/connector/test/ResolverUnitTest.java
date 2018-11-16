@@ -1,5 +1,7 @@
 package io.gridgo.connector.test;
 
+import static org.junit.Assert.assertEquals;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -44,6 +46,10 @@ public class ResolverUnitTest {
 		Assert.assertEquals("127.0.0.1", props.get("host"));
 		Assert.assertNull(props.get("port"));
 		Assert.assertNull(props.get("path"));
+		
+		props = resolver.testResolver("test://[127.0.0.1:5672,23.45.56.67:4567]/path", "test://{address}[/{path}]");
+		assertEquals("[127.0.0.1:5672,23.45.56.67:4567]", props.get("address"));
+		assertEquals("path", props.get("path"));
 	}
 
 	@Test
