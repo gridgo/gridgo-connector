@@ -16,6 +16,7 @@ import io.gridgo.framework.AbstractComponentLifecycle;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 import lombok.Getter;
+import lombok.NonNull;
 
 public abstract class AbstractConsumer extends AbstractComponentLifecycle implements Consumer {
 
@@ -86,9 +87,9 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 	 * @param body    payload's body
 	 * @return the message
 	 */
-	protected Message createMessage(BObject headers, BElement body) {
+	protected Message createMessage(@NonNull BObject headers, BElement body) {
 		Payload payload = null;
-		if (headers != null || body != null) {
+		if (body != null) {
 			payload = Payload.newDefault(headers, body);
 		}
 		this.ensurePayloadId(payload);
@@ -102,7 +103,7 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 	 * @return the message
 	 */
 	protected Message createMessage(BElement body) {
-		return createMessage(null, body);
+		return createMessage(BObject.newDefault(), body);
 	}
 
 	/**
