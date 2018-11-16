@@ -86,10 +86,12 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 						totalRecvMessages += headers.getInteger(SocketConstants.BATCH_SIZE, subMessages.size());
 						for (BElement payload : subMessages) {
 							Message subMessage = Message.parse(payload);
+							this.ensurePayloadId(subMessage);
 							this.publish(subMessage, null);
 						}
 					} else {
 						totalRecvMessages++;
+						this.ensurePayloadId(message);
 						this.publish(message, null);
 					}
 				} catch (Exception e) {

@@ -28,7 +28,7 @@ class DefaultNetty4Responder extends AbstractResponder {
 		}
 		long routingId = message.getRoutingId().orElse(BValue.newDefault(-1l)).getLong();
 		BElement data = message.getPayload() == null ? null : message.getPayload().toBArray();
-		
+
 		ChannelFuture future = this.socketServer.send(routingId, data);
 		if (deferred != null) {
 			if (future != null) {

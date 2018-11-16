@@ -98,7 +98,7 @@ public abstract class AbstractRabbitMQConsumer extends AbstractConsumer implemen
 		final Message message;
 
 		try {
-			message = Message.parse(delivery.getBody());
+			message = this.parseMessage(delivery.getBody());
 		} catch (Exception e) {
 			getLogger().error("Error while parse delivery body into message (ack will be sent automatically)", e);
 			sendAck(deliveryTag);

@@ -10,7 +10,7 @@ import io.gridgo.bean.BArray;
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.Receiver;
 import io.gridgo.connector.impl.AbstractHasReceiverProducer;
-import io.gridgo.connector.netty4.Netty4Producer;
+import io.gridgo.connector.netty4.Netty4Client;
 import io.gridgo.connector.netty4.exceptions.UnsupportedTransportException;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
@@ -28,7 +28,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 
-public abstract class AbstractNetty4Producer extends AbstractHasReceiverProducer implements Netty4Producer {
+public abstract class AbstractNetty4Client extends AbstractHasReceiverProducer implements Netty4Client {
 
 	@Getter(AccessLevel.PROTECTED)
 	private final Netty4Transport transport;
@@ -48,12 +48,12 @@ public abstract class AbstractNetty4Producer extends AbstractHasReceiverProducer
 	private Function<Throwable, Message> failureHandler;
 
 	@Override
-	public Netty4Producer setFailureHandler(Function<Throwable, Message> failureHandler) {
+	public Netty4Client setFailureHandler(Function<Throwable, Message> failureHandler) {
 		this.failureHandler = failureHandler;
 		return this;
 	}
 
-	protected AbstractNetty4Producer(@NonNull ConnectorContext context, @NonNull Netty4Transport transport,
+	protected AbstractNetty4Client(@NonNull ConnectorContext context, @NonNull Netty4Transport transport,
 			@NonNull HostAndPort host, String path, @NonNull BObject options) {
 		super(context);
 		this.transport = transport;

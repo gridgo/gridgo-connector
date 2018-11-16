@@ -23,8 +23,8 @@ public class Netty4Connector extends AbstractConnector {
 	private BObject options;
 	private String type;
 
-	private Netty4Consumer consumerServer;
-	private Netty4Producer producerClient;
+	private Netty4Server consumerServer;
+	private Netty4Client producerClient;
 
 	@Override
 	protected void onInit() {
@@ -59,12 +59,12 @@ public class Netty4Connector extends AbstractConnector {
 	private void initProducerAndConsumer() {
 		switch (type) {
 		case "server":
-			consumerServer = Netty4Consumer.newDefault(this.getContext(), transport, host, path, options);
+			consumerServer = Netty4Server.newDefault(this.getContext(), transport, host, path, options);
 			this.consumer = Optional.of(consumerServer);
 			this.producer = Optional.of(consumerServer.getResponder());
 			break;
 		case "client":
-			producerClient = Netty4Producer.newDefault(this.getContext(), transport, host, path, options);
+			producerClient = Netty4Client.newDefault(this.getContext(), transport, host, path, options);
 			this.producer = Optional.of(producerClient);
 			this.consumer = Optional.of(producerClient.getReceiver());
 			break;

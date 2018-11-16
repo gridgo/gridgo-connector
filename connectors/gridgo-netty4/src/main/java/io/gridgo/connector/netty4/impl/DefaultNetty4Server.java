@@ -10,9 +10,9 @@ import io.gridgo.framework.support.Message;
 import io.gridgo.socket.netty4.Netty4Transport;
 import io.gridgo.utils.support.HostAndPort;
 
-public class DefaultNetty4Consumer extends AbstractNetty4Consumer {
+public class DefaultNetty4Server extends AbstractNetty4Server {
 
-	public DefaultNetty4Consumer(ConnectorContext context, Netty4Transport transport, HostAndPort host, String path,
+	public DefaultNetty4Server(ConnectorContext context, Netty4Transport transport, HostAndPort host, String path,
 			BObject options) {
 		super(context, transport, host, path, options);
 	}
