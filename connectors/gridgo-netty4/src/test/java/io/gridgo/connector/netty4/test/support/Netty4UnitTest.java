@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -252,7 +253,8 @@ public class Netty4UnitTest {
 
 		doneSignal.await();
 
-		assertNull(exceptionRef.get());
+		// the exception should be: connection reset by peer
+		assertTrue(exceptionRef.get() instanceof IOException);
 
 		System.out.println("Close server connector");
 		serverConnector.stop();
