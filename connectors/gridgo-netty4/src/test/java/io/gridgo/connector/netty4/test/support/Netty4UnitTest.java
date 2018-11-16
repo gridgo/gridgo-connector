@@ -58,6 +58,7 @@ public class Netty4UnitTest {
 		System.out.println("Subscribe to server consumer");
 		serverConsumer.subscribe((msg) -> {
 			if (msg.getPayload() != null) {
+				System.out.println("[" + transport + " server] - got msg from source: " + msg.getMisc().get("source"));
 				serverResponder.send(msg);
 			} else {
 				String socketMessageType = (String) msg.getMisc().get("socketMessageType");
@@ -84,6 +85,7 @@ public class Netty4UnitTest {
 
 		clientReceiver.subscribe((msg) -> {
 			if (msg.getPayload() != null) {
+				System.out.println("[" + transport + " client] - got msg from source: " + msg.getMisc().get("source"));
 				receivedText.set(msg.getPayload().getBody().asValue().getString());
 				doneSignal.countDown();
 			} else {

@@ -117,6 +117,6 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 
 	@Override
 	protected String generateName() {
-		return null;
+		return "consumer." + this.factory.getType() + "." + this.options.getType() + "." + this.address;
 	}
 }

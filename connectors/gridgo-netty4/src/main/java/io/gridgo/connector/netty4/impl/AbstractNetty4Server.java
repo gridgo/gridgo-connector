@@ -105,9 +105,13 @@ public abstract class AbstractNetty4Server extends AbstractHasResponderConsumer 
 		this.socketServer = null;
 	}
 
+	protected String getUniqueIdentifier() {
+		return "netty:server:" + this.transport.name().toLowerCase() + "://" + this.host.toIpAndPort();
+	}
+
 	@Override
 	protected String generateName() {
-		return null;
+		return "consumer." + this.getUniqueIdentifier();
 	}
 
 	protected Deferred<Message, Exception> createDeferred() {

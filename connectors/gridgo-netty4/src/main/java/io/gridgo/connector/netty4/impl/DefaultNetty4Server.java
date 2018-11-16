@@ -19,7 +19,7 @@ public class DefaultNetty4Server extends AbstractNetty4Server {
 
 	@Override
 	protected Responder createResponder() {
-		return new DefaultNetty4Responder(this.getContext(), getSocketServer());
+		return new DefaultNetty4Responder(this.getContext(), getSocketServer(), this.getUniqueIdentifier());
 	}
 
 	private void publishMessage(Message message) {

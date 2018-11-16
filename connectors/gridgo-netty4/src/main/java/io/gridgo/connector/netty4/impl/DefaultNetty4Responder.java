@@ -16,9 +16,12 @@ class DefaultNetty4Responder extends AbstractResponder {
 
 	private Netty4SocketServer socketServer;
 
-	DefaultNetty4Responder(ConnectorContext context, Netty4SocketServer socketServer) {
+	private final String uniqueIdentifier;
+
+	DefaultNetty4Responder(ConnectorContext context, Netty4SocketServer socketServer, String uniqueIdentifier) {
 		super(context);
 		this.socketServer = socketServer;
+		this.uniqueIdentifier = uniqueIdentifier;
 	}
 
 	@Override
@@ -53,7 +56,7 @@ class DefaultNetty4Responder extends AbstractResponder {
 
 	@Override
 	protected String generateName() {
-		return null;
+		return "producer." + this.uniqueIdentifier;
 	}
 
 }

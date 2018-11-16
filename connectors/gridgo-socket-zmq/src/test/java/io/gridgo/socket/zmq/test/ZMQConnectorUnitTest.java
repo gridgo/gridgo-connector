@@ -83,8 +83,15 @@ public class ZMQConnectorUnitTest {
 
 	private void warmUp(Consumer consumer, Producer producer) throws PromiseException, InterruptedException {
 		System.out.println("Started consumer and producer");
-		producer.sendWithAck(Message.newDefault(Payload.newDefault(BObject.newFromSequence("cmd", "start")))).get();
+		CountDownLatch doneSignal = new CountDownLatch(1);
+		consumer.subscribe((msg) -> {
+			System.out.println("Got message from source: " + msg.getMisc().get("source"));
+			doneSignal.countDown();
+		});
+		producer.send(Message.newDefault(Payload.newDefault(BObject.newFromSequence("cmd", "start"))));
+		doneSignal.await();
 		System.out.println("Warmup done");
+		consumer.clearSubscribers();
 	}
 
 	private void doFnFSend(Consumer consumer, Producer producer) throws InterruptedException {
@@ -104,6 +111,8 @@ public class ZMQConnectorUnitTest {
 		DecimalFormat df = new DecimalFormat("###,###.##");
 		System.out.println("FnF TRANSMITION DONE (*** not improved), " + numMessages + " messages were transmited in "
 				+ df.format(elapsed / 1e6) + "ms -> pace: " + df.format(1e9 * numMessages / elapsed) + "msg/s");
+
+		consumer.clearSubscribers();
 	}
 
 	private void doAckSend(Consumer consumer, Producer producer) throws InterruptedException, PromiseException {
@@ -124,5 +133,7 @@ public class ZMQConnectorUnitTest {
 		DecimalFormat df = new DecimalFormat("###,###.##");
 		System.out.println("ACK TRANSMITION DONE (*** not improved), " + numMessages + " messages were transmited in "
 				+ df.format(elapsed / 1e6) + "ms -> pace: " + df.format(1e9 * numMessages / elapsed) + "msg/s");
+
+		consumer.clearSubscribers();
 	}
 }

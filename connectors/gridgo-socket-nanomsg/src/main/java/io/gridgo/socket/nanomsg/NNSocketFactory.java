@@ -5,11 +5,15 @@ import org.nanomsg.NanoLibrary;
 import io.gridgo.socket.Socket;
 import io.gridgo.socket.impl.BaseSocketFactory;
 import io.gridgo.utils.helper.Assert;
+import lombok.Getter;
 
 public class NNSocketFactory extends BaseSocketFactory {
 
 	private final NanoLibrary nanomsg = new NanoLibrary();
 
+	@Getter
+	private final String type = "nanomsg";
+	
 	private Socket createNanoSocket(int type) {
 		return new NNSocket(nanomsg.nn_socket(nanomsg.AF_SP, type), nanomsg);
 	}

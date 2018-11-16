@@ -7,7 +7,8 @@ import io.gridgo.connector.support.config.ConnectorContext;
 
 public class DefaultRabbitMQProducer extends AbstractRabbitMQProducer {
 
-	public DefaultRabbitMQProducer(ConnectorContext context, Connection connection, RabbitMQQueueConfig queueConfig) {
-		super(context, connection, queueConfig);
+	public DefaultRabbitMQProducer(ConnectorContext context, Connection connection, RabbitMQQueueConfig queueConfig,
+			String uniqueIdentifier) {
+		super(context, connection, queueConfig, uniqueIdentifier);
 	}
 }

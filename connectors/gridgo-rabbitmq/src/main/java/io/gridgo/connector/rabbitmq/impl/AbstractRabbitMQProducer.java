@@ -23,6 +23,7 @@ import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 import io.gridgo.framework.support.generators.impl.TimeBasedIdGenerator;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -41,13 +42,17 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 	@Getter
 	private String responseQueue;
 
+	@Getter(AccessLevel.PROTECTED)
+	private final String uniqueIdentifier;
+
 	private final Map<String, Deferred<Message, Exception>> correlationIdToDeferredMap = new NonBlockingHashMap<>();
 
-	protected AbstractRabbitMQProducer(ConnectorContext context, Connection connection,
-			RabbitMQQueueConfig queueConfig) {
+	protected AbstractRabbitMQProducer(@NonNull ConnectorContext context, @NonNull Connection connection,
+			@NonNull RabbitMQQueueConfig queueConfig, @NonNull String uniqueIdentifier) {
 		super(context);
 		this.connection = connection;
 		this.queueConfig = queueConfig;
+		this.uniqueIdentifier = uniqueIdentifier;
 	}
 
 	@Override

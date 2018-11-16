@@ -111,7 +111,6 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 
 	@Override
 	protected String generateName() {
-		// TODO Auto-generated method stub
-		return null;
+		return "producer." + this.factory.getType() + "." + this.options.getType() + "." + this.address;
 	}
 }

@@ -15,6 +15,6 @@ public class DefaultNetty4Client extends AbstractNetty4Client {
 
 	@Override
 	protected Receiver createReceiver() {
-		return new DefaultNetty4Receiver(getContext(), getSocketClient());
+		return new DefaultNetty4Receiver(getContext(), getSocketClient(), this.getUniqueIdentifier());
 	}
 }

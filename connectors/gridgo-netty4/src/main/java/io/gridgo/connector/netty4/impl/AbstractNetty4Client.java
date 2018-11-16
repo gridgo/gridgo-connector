@@ -150,8 +150,12 @@ public abstract class AbstractNetty4Client extends AbstractHasReceiverProducer i
 		this.setReceiver(null);
 	}
 
+	protected String getUniqueIdentifier() {
+		return "netty:client:" + this.transport.name().toLowerCase() + "://" + this.host.toIpAndPort();
+	}
+
 	@Override
 	protected String generateName() {
-		return null;
+		return "producer." + this.getUniqueIdentifier();
 	}
 }

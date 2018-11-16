@@ -21,6 +21,7 @@ import io.gridgo.connector.rabbitmq.RabbitMQQueueConfig;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -34,16 +35,20 @@ public abstract class AbstractRabbitMQConsumer extends AbstractConsumer implemen
 	@Getter
 	private Channel channel;
 
+	@Getter(AccessLevel.PROTECTED)
+	private final String uniqueIdentifier;
+
 	protected AbstractRabbitMQConsumer(ConnectorContext context, @NonNull Connection connection,
-			@NonNull RabbitMQQueueConfig queueConfig) {
+			@NonNull RabbitMQQueueConfig queueConfig, @NonNull String uniqueIdentifier) {
 		super(context);
 		this.connection = connection;
 		this.queueConfig = queueConfig;
+		this.uniqueIdentifier = uniqueIdentifier;
 	}
 
 	@Override
 	protected String generateName() {
-		return null;
+		return "consumer." + this.getUniqueIdentifier();
 	}
 
 	@Override
@@ -142,4 +147,5 @@ public abstract class AbstractRabbitMQConsumer extends AbstractConsumer implemen
 			throw new RuntimeException("Cannot send ack for delivery tag: " + deliveryTag, e);
 		}
 	}
+
 }

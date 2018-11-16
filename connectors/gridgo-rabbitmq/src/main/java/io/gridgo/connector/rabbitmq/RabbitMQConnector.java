@@ -39,6 +39,15 @@ public class RabbitMQConnector extends AbstractConnector {
 		}
 	}
 
+	protected String getUniqueIdentifier() {
+		String routingKey = this.queueConfig.getQueueName() == null ? "" : this.queueConfig.getQueueName();
+		if (routingKey.isBlank()) {
+			routingKey = this.queueConfig.getRoutingKeys().toString();
+		}
+		return this.getConnectorConfig().getNonQueryEndpoint() + "." + this.queueConfig.getExchangeType() + "."
+				+ routingKey;
+	}
+
 	@Override
 	protected void onInit() {
 		ConnectorConfig config = this.getConnectorConfig();
@@ -67,12 +76,22 @@ public class RabbitMQConnector extends AbstractConnector {
 		configObject.setAny("exchangeName", exchangeName);
 
 		queueConfig = new RabbitMQQueueConfig(configObject);
+
+		String uniqueIdentifier = this.getUniqueIdentifier();
+
+		this.consumer = Optional.of(
+				new DefaultRabbitMQConsumer(getContext(), newConnection(), queueConfig.makeCopy(), uniqueIdentifier));
+		this.producer = Optional.of(
+				new DefaultRabbitMQProducer(getContext(), newConnection(), queueConfig.makeCopy(), uniqueIdentifier));
 	}
 
 	@Override
-	protected void onStart() {
-		this.consumer = Optional.of(new DefaultRabbitMQConsumer(getContext(), newConnection(), queueConfig.makeCopy()));
-		this.producer = Optional.of(new DefaultRabbitMQProducer(getContext(), newConnection(), queueConfig.makeCopy()));
-		super.onStart();
+	protected String generateName() {
+		String routingKey = this.queueConfig.getQueueName() == null ? "" : this.queueConfig.getQueueName();
+		if (routingKey.isBlank()) {
+			routingKey = this.queueConfig.getRoutingKeys().toString();
+		}
+		return super.generateName() + "." + this.queueConfig.getExchangeType() + "." + routingKey;
 	}
+
 }

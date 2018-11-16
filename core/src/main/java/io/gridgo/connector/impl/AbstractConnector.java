@@ -79,7 +79,7 @@ public abstract class AbstractConnector extends AbstractComponentLifecycle imple
 	}
 
 	@Override
-	protected final String generateName() {
+	protected String generateName() {
 		return "connector." + connectorConfig.getNonQueryEndpoint();
 	}
 }

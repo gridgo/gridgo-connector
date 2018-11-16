@@ -97,6 +97,7 @@ public class TestRabbitMQ {
 		init(connector, (producer, consumer, triggerDone, waitForDone) -> {
 
 			consumer.subscribe((message, deferred) -> {
+				System.out.println("got message from source: " + message.getMisc().get("source"));
 				try {
 					Payload responsePayload = Payload.newDefault(message.getPayload().getBody());
 					deferred.resolve(Message.newDefault(responsePayload));
@@ -185,11 +186,13 @@ public class TestRabbitMQ {
 		CountDownLatch doneSignal = new CountDownLatch(2);
 
 		consumer1.subscribe((message, deferred) -> {
+			System.out.println("consumer 1: got message from source: " + message.getMisc().get("source"));
 			receivedTextRef1.set(message.getPayload().getBody().asValue().getString());
 			doneSignal.countDown();
 		});
 
 		consumer2.subscribe((message, deferred) -> {
+			System.out.println("consumer 2: got message from source: " + message.getMisc().get("source"));
 			receivedTextRef2.set(message.getPayload().getBody().asValue().getString());
 			doneSignal.countDown();
 		});

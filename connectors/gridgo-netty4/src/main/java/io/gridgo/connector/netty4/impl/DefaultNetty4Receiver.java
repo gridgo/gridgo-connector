@@ -19,9 +19,13 @@ public class DefaultNetty4Receiver extends AbstractReceiver implements FailureHa
 
 	private Netty4SocketClient socketClient;
 
-	public DefaultNetty4Receiver(ConnectorContext context, @NonNull Netty4SocketClient socketClient) {
+	private final String uniqueIdentifier;
+
+	public DefaultNetty4Receiver(ConnectorContext context, @NonNull Netty4SocketClient socketClient,
+			@NonNull String uniqueIdentifier) {
 		super(context);
 		this.socketClient = socketClient;
+		this.uniqueIdentifier = uniqueIdentifier;
 	}
 
 	@Getter(AccessLevel.PROTECTED)
@@ -43,8 +47,6 @@ public class DefaultNetty4Receiver extends AbstractReceiver implements FailureHa
 
 	private void onFailure(Throwable cause) {
 		if (!this.socketClient.isRunning()) {
-//			System.out.println(this.socketClient.getClass().getSimpleName()
-//					+ " --> complete unlink from receiver to socket client because of exception");
 			this.socketClient.setChannelCloseCallback(null);
 			this.socketClient.setFailureHandler(null);
 		}
@@ -83,15 +85,12 @@ public class DefaultNetty4Receiver extends AbstractReceiver implements FailureHa
 	private void onConnectionClosed() {
 		this.publishMessage(this.createMessage().addMisc("socketMessageType", "close"));
 
-//		System.out.println(this.socketClient.getClass().getSimpleName()
-//				+ " --> complete unlink from receiver to socket client because of connection closed");
-
 		this.socketClient.setChannelCloseCallback(null);
 		this.socketClient.setFailureHandler(null);
 	}
 
 	@Override
 	protected String generateName() {
-		return null;
+		return "consumer." + this.uniqueIdentifier;
 	}
 }

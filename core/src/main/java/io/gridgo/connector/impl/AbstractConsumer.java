@@ -16,6 +16,7 @@ import io.gridgo.framework.AbstractComponentLifecycle;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 import lombok.Getter;
+import lombok.NonNull;
 
 public abstract class AbstractConsumer extends AbstractComponentLifecycle implements Consumer {
 
@@ -41,7 +42,10 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 		this.subscribers.clear();
 	}
 
-	protected void publish(Message message, Deferred<Message, Exception> deferred) {
+	protected void publish(@NonNull Message message, Deferred<Message, Exception> deferred) {
+		if (!message.getMisc().containsKey("source")) {
+			message.addMisc("source", this.getName());
+		}
 		for (var subscriber : this.subscribers) {
 			try {
 				context.getCallbackInvokerStrategy().execute(() -> subscriber.accept(message, deferred));

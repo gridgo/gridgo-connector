@@ -13,6 +13,9 @@ public class ZMQSocketFactory extends BaseSocketFactory {
 	@Getter(AccessLevel.PROTECTED)
 	private final ZMQ.Context ctx;
 
+	@Getter
+	private final String type = "zmq";
+
 	public ZMQSocketFactory() {
 		this(1);
 	}
