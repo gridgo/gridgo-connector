@@ -19,7 +19,6 @@ import org.joo.promise4j.impl.AsyncDeferredObject;
 import org.joo.promise4j.impl.SimpleDonePromise;
 import org.joo.promise4j.impl.SimpleFailurePromise;
 
-import io.gridgo.bean.BArray;
 import io.gridgo.bean.BFactory;
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.AbstractConsumer;
@@ -27,6 +26,7 @@ import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.execution.ExecutionStrategy;
 import io.gridgo.framework.execution.impl.ExecutorExecutionStrategy;
 import io.gridgo.framework.support.Message;
+import io.gridgo.framework.support.impl.MultipartMessage;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -268,7 +268,10 @@ public class KafkaConsumer extends AbstractConsumer {
 		}
 
 		private Message buildMessageForBatch(List<ConsumerRecord<Object, Object>> records) {
-			var headers = BObject.newDefault();
+			var messages = records.stream().map(this::buildMessage).toArray(size -> new Message[size]);
+			var multiPart = new MultipartMessage(messages);
+
+			var headers = multiPart.getPayload().getHeaders();
 
 			var lastRecord = records.get(records.size() - 1);
 
@@ -277,9 +280,7 @@ public class KafkaConsumer extends AbstractConsumer {
 			headers.putAny(KafkaConstants.IS_BATCH, true);
 			headers.putAny(KafkaConstants.BATCH_SIZE, records.size());
 			headers.putAny(KafkaConstants.OFFSET, lastRecord.offset());
-
-			var body = BArray.newFromSequence(records);
-			return createMessage(headers, body);
+			return multiPart;
 		}
 
 		private Promise<Long, Exception> processSingleRecord(TopicPartition partition,
@@ -314,11 +315,17 @@ public class KafkaConsumer extends AbstractConsumer {
 			if (record.key() != null) {
 				headers.putAny(KafkaConstants.KEY, record.key());
 			}
+
+			boolean isRaw = false;
+
 			for (Header header : record.headers()) {
 				headers.putAny(header.key(), header.value());
+				if (KafkaConstants.RAW.equals(header.key()))
+					isRaw = true;
 			}
 
-			var body = BFactory.DEFAULT.fromAny(record.value());
+			var body = isRaw ? BFactory.DEFAULT.fromRaw((byte[]) record.value())
+					: BFactory.DEFAULT.fromAny(record.value());
 			return createMessage(headers, body);
 		}
 

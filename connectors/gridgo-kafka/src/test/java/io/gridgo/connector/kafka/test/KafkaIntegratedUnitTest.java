@@ -12,6 +12,7 @@ import org.junit.Test;
 
 import com.salesforce.kafka.test.junit4.SharedKafkaTestResource;
 
+import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.Producer;
@@ -39,6 +40,71 @@ public class KafkaIntegratedUnitTest {
 		String extraQuery = "&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest";
 
 		doTestConsumerAndProducer(extraQuery);
+	}
+
+	@Test
+	public void testConsumerAndProducerWithObject() {
+
+		String extraQuery = "&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest&serializerClass=org.apache.kafka.common.serialization.ByteArraySerializer&valueDeserializer=org.apache.kafka.common.serialization.ByteArrayDeserializer";
+
+		String topicName = createTopic();
+
+		String brokers = sharedKafkaTestResource.getKafkaConnectString();
+
+		var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
+		var connector = createKafkaConnector(connectString);
+
+		var consumer = connector.getConsumer().orElseThrow();
+
+		System.out.println("Warming up...");
+		var warmUpLatch = new CountDownLatch(1);
+
+		connector.start();
+
+		consumer.clearSubscribers();
+		consumer.subscribe((msg, deferred) -> {
+			warmUpLatch.countDown();
+			deferred.resolve(null);
+		});
+
+		var producer = connector.getProducer().orElseThrow();
+
+		sendTestObjectRecords(topicName, producer, 1);
+
+		try {
+			warmUpLatch.await();
+		} catch (InterruptedException e) {
+			Assert.fail(e.getMessage());
+		}
+
+		System.out.println("Warm up done");
+
+		var latch = new AtomicInteger(NUM_MESSAGES);
+
+		consumer.clearSubscribers();
+		consumer.subscribe((msg, deferred) -> {
+			if (msg.getPayload().getBody().isObject()
+					&& msg.getPayload().getBody().asObject().getInteger("test") == 1) {
+				int size = msg.getPayload().getHeaders().getInteger(KafkaConstants.BATCH_SIZE, 1);
+				latch.addAndGet(-size);
+				deferred.resolve(null);
+			}
+		});
+
+		long started = System.nanoTime();
+
+		sendTestObjectRecords(topicName, producer, NUM_MESSAGES);
+
+		while (latch.get() != 0) {
+			// Thread.onSpinWait();
+			LockSupport.parkNanos(0);
+		}
+		long elapsed = System.nanoTime() - started;
+		printPace("KafkaConsumer", NUM_MESSAGES, elapsed);
+
+		connector.stop();
+
+		System.out.println("Connector stop");
 	}
 
 	@Test
@@ -103,7 +169,7 @@ public class KafkaIntegratedUnitTest {
 		printPace("KafkaConsumer", NUM_MESSAGES, elapsed);
 
 		connector.stop();
-		
+
 		System.out.println("Connector stop");
 	}
 
@@ -121,6 +187,19 @@ public class KafkaIntegratedUnitTest {
 		Assert.assertNotNull(connector);
 		Assert.assertTrue(connector instanceof KafkaConnector);
 		return connector;
+	}
+
+	private void sendTestObjectRecords(String topicName, Producer producer, int numMessages) {
+		System.out.println("Sending records...");
+
+		long started = System.nanoTime();
+		// Produce it & wait for it to complete.
+		for (int i = 0; i < numMessages; i++) {
+			Message msg = Message.newDefault(Payload.newDefault(BObject.newDefault().setAny("test", 1)));
+			producer.send(msg);
+		}
+		long elapsed = System.nanoTime() - started;
+		printPace("KafkaProducer", numMessages, elapsed);
 	}
 
 	private void sendTestRecords(String topicName, Producer producer, int numMessages) {
