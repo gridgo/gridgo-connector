@@ -14,4 +14,9 @@ public interface Responder extends Producer {
 	default Promise<Message, Exception> call(Message request) {
 		throw new UnsupportedOperationException("Cannot make a call on a responder");
 	}
+
+	@Override
+	default boolean isCallSupported() {
+		return false;
+	}
 }

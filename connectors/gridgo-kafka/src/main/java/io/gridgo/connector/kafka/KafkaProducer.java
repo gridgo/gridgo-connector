@@ -74,7 +74,7 @@ public class KafkaProducer extends AbstractProducer {
 		var keyValue = headers.getValue(KafkaConstants.KEY);
 		Object key = keyValue != null ? keyValue.getData() : null;
 		var value = convert(message.getPayload().getBody());
-
+		
 		return new ProducerRecord<Object, Object>(topic, partition, timestamp, key, value);
 	}
 
@@ -83,7 +83,7 @@ public class KafkaProducer extends AbstractProducer {
 			return null;
 		if (body.isValue())
 			return body.asValue().getData();
-		return body;
+		return body.toBytes();
 	}
 
 	private Message buildAckMessage(RecordMetadata metadata) {
@@ -130,5 +130,10 @@ public class KafkaProducer extends AbstractProducer {
 	@Override
 	protected String generateName() {
 		return "producer.kafka." + configuration.getTopic();
+	}
+
+	@Override
+	public boolean isCallSupported() {
+		return false;
 	}
 }

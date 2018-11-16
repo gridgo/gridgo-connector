@@ -50,4 +50,9 @@ public class TestProducer extends AbstractProducer {
 	protected String generateName() {
 		return "producer.test";
 	}
+
+	@Override
+	public boolean isCallSupported() {
+		return true;
+	}
 }

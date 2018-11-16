@@ -18,6 +18,10 @@ public interface SocketProducer extends Producer {
 		throw new UnsupportedOperationException();
 	}
 
+	default boolean isCallSupported() {
+		return false;
+	}
+
 	static SocketProducer newDefault(ConnectorContext context, SocketFactory factory, SocketOptions options,
 			String address, int bufferSize, int ringBufferSize, boolean batchingEnabled, int maxBatchSize) {
 		return new DefaultSocketProducer(context, factory, options, address, bufferSize, ringBufferSize,

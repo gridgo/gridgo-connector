@@ -154,4 +154,9 @@ public abstract class AbstractNetty4Producer extends AbstractHasReceiverProducer
 	protected String generateName() {
 		return null;
 	}
+	
+	@Override
+	public boolean isCallSupported() {
+		return false;
+	}
 }

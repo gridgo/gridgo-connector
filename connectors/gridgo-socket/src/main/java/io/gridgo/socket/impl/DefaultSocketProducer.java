@@ -114,4 +114,10 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+	@Override
+	public boolean isCallSupported() {
+		// TODO Auto-generated method stub
+		return false;
+	}
 }
