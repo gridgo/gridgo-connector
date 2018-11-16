@@ -5,7 +5,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -240,7 +239,10 @@ public class Netty4UnitTest {
 		final AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
 		assertTrue(serverConsumer instanceof FailureHandlerAware<?>);
 		((FailureHandlerAware<?>) serverConsumer).setFailureHandler((cause) -> {
-			System.err.println("[" + transport + " server] - exception...");
+			if ("connection reset by peer".equalsIgnoreCase(cause.getMessage())
+					|| "An existing connection was forcibly closed by the remote host".equals(cause.getMessage())) {
+				return;
+			}
 			cause.printStackTrace();
 			exceptionRef.set(cause);
 			doneSignal.countDown();
@@ -254,7 +256,7 @@ public class Netty4UnitTest {
 		doneSignal.await();
 
 		// the exception should be: connection reset by peer
-		assertTrue(exceptionRef.get() instanceof IOException);
+		assertNull(exceptionRef.get());
 
 		System.out.println("Close server connector");
 		serverConnector.stop();
