@@ -2,11 +2,12 @@ package io.gridgo.connector;
 
 import org.joo.promise4j.Promise;
 
+import io.gridgo.connector.support.ProducerCapability;
 import io.gridgo.framework.ComponentLifecycle;
 import io.gridgo.framework.support.Message;
 import lombok.NonNull;
 
-public interface Producer extends ComponentLifecycle {
+public interface Producer extends ComponentLifecycle, ProducerCapability {
 
 	public void send(final @NonNull Message message);
 

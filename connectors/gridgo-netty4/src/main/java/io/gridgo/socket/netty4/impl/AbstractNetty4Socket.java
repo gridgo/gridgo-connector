@@ -146,15 +146,9 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 	}
 
 	protected void onException(ChannelHandlerContext ctx, Throwable cause) {
-		if (cause instanceof IOException && "connection reset by peer".equalsIgnoreCase(cause.getMessage())) {
-			// cause.printStackTrace();
-		} else {
-			if (this.failureHandler != null) {
-				this.failureHandler.accept(cause);
-			} else {
-				getLogger().error("Error while handling socket msg", cause);
-			}
+		if (this.failureHandler != null) {
+			this.failureHandler.accept(cause);
 		}
+		getLogger().error("Error while handling socket msg", cause);
 	}
-
 }

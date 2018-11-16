@@ -158,4 +158,9 @@ public abstract class AbstractNetty4Client extends AbstractHasReceiverProducer i
 	protected String generateName() {
 		return "producer." + this.getUniqueIdentifier();
 	}
+
+	@Override
+	public boolean isCallSupported() {
+		return false;
+	}
 }

@@ -163,4 +163,8 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 		return new CompletableDeferredObject<>();
 	}
 
+	@Override
+	public boolean isCallSupported() {
+		return true;
+	}
 }

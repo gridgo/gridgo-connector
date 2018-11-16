@@ -66,6 +66,36 @@ public class KafkaProducerUnitTest {
 	}
 
 	@Test
+	public void testSendObject() {
+		String extraQuery = "&mode=producer&serializerClass=org.apache.kafka.common.serialization.ByteArraySerializer";
+		String topicName = createTopic();
+
+		String brokers = sharedKafkaTestResource.getKafkaConnectString();
+
+		var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
+		var connector = createKafkaConnector(connectString);
+		var producer = connector.getProducer().orElseThrow();
+
+		connector.start();
+
+		String key = "test-key";
+		BObject headers = BObject.newDefault().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
+		Message msg = Message.newDefault(
+				Payload.newDefault(headers, BObject.newDefault().setAny("test", 1).setAny("hello", "world")));
+
+		long started = System.nanoTime();
+
+		for (int i = 0; i < NUM_MESSAGES; i++) {
+			producer.send(msg);
+		}
+
+		long elapsed = System.nanoTime() - started;
+		printPace("KafkaProducerSend", NUM_MESSAGES, elapsed);
+
+		connector.stop();
+	}
+
+	@Test
 	public void testProducerSendWithAck() {
 		String extraQuery = "&mode=producer";
 

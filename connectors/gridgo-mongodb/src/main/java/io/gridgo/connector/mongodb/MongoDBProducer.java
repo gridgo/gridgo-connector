@@ -240,4 +240,9 @@ public class MongoDBProducer extends AbstractProducer {
 	protected String generateName() {
 		return generatedName;
 	}
+
+	@Override
+	public boolean isCallSupported() {
+		return true;
+	}
 }

@@ -113,4 +113,10 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 	protected String generateName() {
 		return "producer." + this.factory.getType() + "." + this.options.getType() + "." + this.address;
 	}
+
+	@Override
+	public boolean isCallSupported() {
+		// TODO Auto-generated method stub
+		return false;
+	}
 }
