@@ -23,14 +23,6 @@ public abstract class BaseSocketFactory extends AbstractSocketFactory {
 			case "pull":
 				socket = this.createPullSocket();
 				break;
-			case "req":
-			case "request":
-				socket = this.createRepSocket();
-				break;
-			case "rep":
-			case "reply":
-				socket = this.createRepSocket();
-				break;
 			case "pub":
 				socket = this.createPubSocket();
 				break;
@@ -70,14 +62,6 @@ public abstract class BaseSocketFactory extends AbstractSocketFactory {
 	}
 
 	protected Socket createSubSocket() {
-		return null;
-	}
-
-	protected Socket createReqSocket() {
-		return null;
-	}
-
-	protected Socket createRepSocket() {
 		return null;
 	}
 
