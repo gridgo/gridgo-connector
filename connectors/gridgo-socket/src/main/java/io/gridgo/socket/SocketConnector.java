@@ -19,11 +19,11 @@ import io.gridgo.connector.support.config.ConnectorConfig;
  */
 public class SocketConnector extends AbstractConnector implements Connector {
 
-	static final int DEFAULT_BUFFER_SIZE = 128 * 1024;
+	public static final int DEFAULT_BUFFER_SIZE = 128 * 1024;
 
-	static final int DEFAULT_RINGBUFFER_SIZE = 1024;
+	public static final int DEFAULT_RINGBUFFER_SIZE = 1024;
 
-	static final int DEFAULT_MAX_BATCH_SIZE = 1000;
+	public static final int DEFAULT_MAX_BATCH_SIZE = 1000;
 
 	private String address;
 	private SocketOptions options;

@@ -4,21 +4,27 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 
 import io.gridgo.bean.BArray;
+import io.gridgo.connector.HasReceiver;
+import io.gridgo.connector.Receiver;
 import io.gridgo.connector.impl.SingleThreadSendingProducer;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.exceptions.SendMessageException;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 import io.gridgo.socket.Socket;
+import io.gridgo.socket.SocketConnector;
 import io.gridgo.socket.SocketConstants;
 import io.gridgo.socket.SocketFactory;
 import io.gridgo.socket.SocketOptions;
 import io.gridgo.socket.SocketProducer;
 import io.gridgo.utils.helper.Loggable;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 
-public class DefaultSocketProducer extends SingleThreadSendingProducer implements SocketProducer, Loggable {
+public class DefaultSocketProducer extends SingleThreadSendingProducer
+		implements SocketProducer, HasReceiver, Loggable {
 
 	private final ByteBuffer buffer;
 
@@ -27,6 +33,10 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 
 	@Getter
 	private long totalSentMessages;
+
+	@Getter
+	@Setter(AccessLevel.PROTECTED)
+	private Receiver receiver;
 
 	private final SocketFactory factory;
 	private final SocketOptions options;
@@ -41,7 +51,8 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 			String address, //
 			int bufferSize, //
 			int ringBufferSize, //
-			boolean batchingEnabled, int maxBatchingSize) {
+			boolean batchingEnabled, //
+			int maxBatchingSize) {
 
 		super(context, ringBufferSize, (runnable) -> {
 			return new Thread(runnable);
@@ -62,6 +73,12 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 			break;
 		case "pub":
 			socket.bind(address);
+			break;
+		case "pair":
+			socket.connect(address);
+			int bufferSize = Integer.parseInt(
+					(String) options.getConfig().getOrDefault("bufferSize", "" + SocketConnector.DEFAULT_BUFFER_SIZE));
+			this.setReceiver(new DefaultSocketReceiver(getContext(), this.socket, bufferSize, getUniqueIdentifier()));
 			break;
 		}
 		super.onStart();
@@ -111,7 +128,17 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 
 	@Override
 	protected String generateName() {
-		return "producer." + this.factory.getType() + "." + this.options.getType() + "." + this.address;
+		return "producer." + this.getUniqueIdentifier();
+	}
+
+	private String getUniqueIdentifier() {
+		return new StringBuilder() //
+				.append(this.factory.getType()) //
+				.append(".") //
+				.append(this.options.getType()) //
+				.append(".") //
+				.append(this.address) //
+				.toString();
 	}
 
 	@Override

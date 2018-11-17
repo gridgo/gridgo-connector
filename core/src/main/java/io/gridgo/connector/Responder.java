@@ -10,7 +10,6 @@ public interface Responder extends Producer {
 	 * Cannot make a call on a responder
 	 */
 	@Override
-	@Deprecated
 	default Promise<Message, Exception> call(Message request) {
 		throw new UnsupportedOperationException("Cannot make a call on a responder");
 	}
