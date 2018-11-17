@@ -4,7 +4,6 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 
 import io.gridgo.bean.BArray;
-import io.gridgo.connector.HasReceiver;
 import io.gridgo.connector.Receiver;
 import io.gridgo.connector.impl.SingleThreadSendingProducer;
 import io.gridgo.connector.support.config.ConnectorContext;
@@ -23,8 +22,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 
-public class DefaultSocketProducer extends SingleThreadSendingProducer
-		implements SocketProducer, HasReceiver, Loggable {
+public class DefaultSocketProducer extends SingleThreadSendingProducer implements SocketProducer, Loggable {
 
 	private final ByteBuffer buffer;
 

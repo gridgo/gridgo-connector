@@ -2,12 +2,13 @@ package io.gridgo.socket;
 
 import org.joo.promise4j.Promise;
 
+import io.gridgo.connector.HasReceiver;
 import io.gridgo.connector.Producer;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.gridgo.socket.impl.DefaultSocketProducer;
 
-public interface SocketProducer extends Producer {
+public interface SocketProducer extends Producer, HasReceiver {
 
 	long getTotalSentBytes();
 

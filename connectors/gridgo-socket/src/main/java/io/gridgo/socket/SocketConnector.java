@@ -7,6 +7,8 @@ import io.gridgo.connector.Consumer;
 import io.gridgo.connector.Producer;
 import io.gridgo.connector.impl.AbstractConnector;
 import io.gridgo.connector.support.config.ConnectorConfig;
+import io.gridgo.connector.support.exceptions.InvalidPlaceholderException;
+import io.gridgo.connector.support.exceptions.MalformedEndpointException;
 
 /**
  * The sub-class must annotated by ConnectorResolver which syntax has at least 4
@@ -67,6 +69,45 @@ public class SocketConnector extends AbstractConnector implements Connector {
 
 		this.consumer = createConsumer();
 		this.producer = createProducer();
+
+		this.initConsumerAndProducer();
+	}
+
+	private void initConsumerAndProducer() {
+		SocketProducer p = null;
+		SocketConsumer c = null;
+		switch (this.options.getType().toLowerCase()) {
+		case "push":
+		case "pub":
+			p = SocketProducer.newDefault(getContext(), factory, options, address, bufferSize, ringBufferSize,
+					batchingEnabled, maxBatchSize);
+			break;
+		case "pull":
+		case "sub":
+			c = SocketConsumer.newDefault(getContext(), factory, options, address, bufferSize);
+			break;
+		case "pair":
+			String role = this.getPlaceholder("role");
+			if (role == null || role.isBlank()) {
+				throw new MalformedEndpointException("Pair socket require socket role (connect or bind)");
+			}
+			switch (role.trim().toLowerCase()) {
+			case "connect":
+				p = SocketProducer.newDefault(getContext(), factory, options, address, bufferSize, ringBufferSize,
+						batchingEnabled, maxBatchSize);
+				c = (SocketConsumer) p.getReceiver();
+				break;
+			case "bind":
+				c = SocketConsumer.newDefault(getContext(), factory, options, address, bufferSize);
+				p = (SocketProducer) c.getResponder();
+				break;
+			default:
+				throw new InvalidPlaceholderException("Invalid pair socket role, expected 'connect' or 'bind'");
+			}
+			break;
+		}
+		this.producer = Optional.ofNullable(p);
+		this.consumer = Optional.ofNullable(c);
 	}
 
 	private Optional<Producer> createProducer() {
