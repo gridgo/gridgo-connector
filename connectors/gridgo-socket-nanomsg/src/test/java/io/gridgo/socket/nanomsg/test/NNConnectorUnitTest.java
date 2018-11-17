@@ -6,11 +6,13 @@ import static org.junit.Assert.assertTrue;
 
 import java.text.DecimalFormat;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.joo.promise4j.PromiseException;
 import org.junit.Test;
 
 import io.gridgo.bean.BObject;
+import io.gridgo.bean.BValue;
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.ConnectorResolver;
 import io.gridgo.connector.Consumer;
@@ -21,6 +23,76 @@ import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 
 public class NNConnectorUnitTest {
+	@Test
+	public void testPairDuplex() throws InterruptedException, PromiseException {
+
+		String osName = System.getProperty("os.name");
+		if (osName != null && osName.contains("Windows"))
+			return;
+
+		System.out.println("Test pair duplex...");
+		ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.connector");
+
+		String port = "8080";
+		String host = "localhost";
+		String address = host + ":" + port;
+
+		Connector connector1 = resolver.resolve("nanomsg:pair:tcp:bind://" + address);
+		assertNotNull(connector1);
+		assertNotNull(connector1.getConnectorConfig());
+		assertNotNull(connector1.getConnectorConfig().getRemaining());
+		assertNotNull(connector1.getConnectorConfig().getParameters());
+		assertTrue(connector1 instanceof NNConnector);
+		assertEquals("pair:tcp:bind://" + address, connector1.getConnectorConfig().getRemaining());
+		assertEquals("pair", connector1.getConnectorConfig().getPlaceholders().get("type"));
+		assertEquals("tcp", connector1.getConnectorConfig().getPlaceholders().get("transport"));
+		assertEquals("bind", connector1.getConnectorConfig().getPlaceholders().get("role"));
+		assertEquals(host, connector1.getConnectorConfig().getPlaceholders().get("host"));
+		assertEquals(port, connector1.getConnectorConfig().getPlaceholders().get("port"));
+
+		Connector connector2 = resolver.resolve("nanomsg:pair:tcp:connect://" + address);
+		assertNotNull(connector2);
+		assertNotNull(connector2.getConnectorConfig());
+		assertNotNull(connector2.getConnectorConfig().getRemaining());
+		assertNotNull(connector2.getConnectorConfig().getParameters());
+		assertTrue(connector2 instanceof NNConnector);
+		assertEquals("pair:tcp:connect://" + address, connector2.getConnectorConfig().getRemaining());
+		assertEquals("pair", connector2.getConnectorConfig().getPlaceholders().get("type"));
+		assertEquals("tcp", connector2.getConnectorConfig().getPlaceholders().get("transport"));
+		assertEquals("connect", connector2.getConnectorConfig().getPlaceholders().get("role"));
+		assertEquals(host, connector2.getConnectorConfig().getPlaceholders().get("host"));
+		assertEquals(port, connector2.getConnectorConfig().getPlaceholders().get("port"));
+
+		connector1.start();
+		assertTrue(connector1.getConsumer().isPresent());
+		assertTrue(connector1.getProducer().isPresent());
+
+		connector2.start();
+		assertTrue(connector2.getConsumer().isPresent());
+		assertTrue(connector2.getProducer().isPresent());
+
+		Producer responder = connector1.getProducer().get();
+		connector1.getConsumer().get().subscribe((message) -> {
+			responder.send(message);
+		});
+
+		AtomicReference<String> pongDataRef = new AtomicReference<String>(null);
+		final String data = "This is test text";
+
+		final CountDownLatch doneSignal = new CountDownLatch(1);
+		connector2.getConsumer().get().subscribe((message) -> {
+			pongDataRef.set(message.getPayload().getBody().asValue().getString());
+			doneSignal.countDown();
+		});
+
+		connector2.getProducer().get().send(Message.newDefault(Payload.newDefault(BValue.newDefault(data))));
+
+		doneSignal.await();
+		assertEquals(data, pongDataRef.get());
+
+		connector1.stop();
+		connector2.stop();
+	}
 
 	@Test
 	public void testSimpleTcp() throws InterruptedException, PromiseException {
@@ -54,7 +126,7 @@ public class NNConnectorUnitTest {
 		assertNotNull(connector2.getConnectorConfig().getRemaining());
 		assertNotNull(connector2.getConnectorConfig().getParameters());
 		assertTrue(connector2 instanceof NNConnector);
-		
+
 		assertEquals("push:tcp://localhost:8080", connector2.getConnectorConfig().getRemaining());
 		assertEquals("push", connector2.getConnectorConfig().getPlaceholders().get("type"));
 		assertEquals("tcp", connector2.getConnectorConfig().getPlaceholders().get("transport"));

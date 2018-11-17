@@ -1,6 +1,7 @@
 package io.gridgo.socket.impl;
 
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.function.Function;
 
 import org.joo.promise4j.Promise;
@@ -64,6 +65,14 @@ public class DefaultSocketResponder extends SingleThreadSendingProducer
 	@Override
 	public Promise<Message, Exception> call(Message request) {
 		return Responder.super.call(request);
+	}
+
+	@Override
+	protected Message accumulateBatch(@NonNull Collection<Message> messages) {
+		if (this.isBatchingEnabled()) {
+			return SocketUtils.accumulateBatch(messages);
+		}
+		throw new IllegalStateException("Batching is disabled");
 	}
 
 	@Override

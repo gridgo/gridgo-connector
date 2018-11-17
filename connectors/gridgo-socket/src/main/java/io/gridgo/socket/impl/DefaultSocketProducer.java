@@ -12,7 +12,6 @@ import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 import io.gridgo.socket.Socket;
 import io.gridgo.socket.SocketConnector;
-import io.gridgo.socket.SocketConstants;
 import io.gridgo.socket.SocketConsumer;
 import io.gridgo.socket.SocketFactory;
 import io.gridgo.socket.SocketOptions;
@@ -94,21 +93,8 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 
 	@Override
 	protected Message accumulateBatch(@NonNull Collection<Message> messages) {
-		if (messages.size() == 1) {
-			return messages.iterator().next();
-		}
-
 		if (this.isBatchingEnabled()) {
-			BArray body = BArray.newDefault();
-			for (Message mess : messages) {
-				Payload payload = mess.getPayload();
-				body.add(BArray.newFromSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody()));
-			}
-			Payload payload = Payload.newDefault(body)//
-					.addHeader(SocketConstants.IS_BATCH, true) //
-					.addHeader(SocketConstants.BATCH_SIZE, messages.size());
-
-			return Message.newDefault(payload);
+			return SocketUtils.accumulateBatch(messages);
 		}
 		throw new IllegalStateException("Batching is disabled");
 	}

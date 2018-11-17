@@ -4,7 +4,7 @@ import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.socket.SocketConnector;
 import io.gridgo.socket.nanomsg.NNSocketFactory;
 
-@ConnectorEndpoint(scheme = "nanomsg", syntax = "{type}:{transport}://{host}:[{port}]")
+@ConnectorEndpoint(scheme = "nanomsg", syntax = "{type}:{transport}:[{role}:]//{host}:[{port}]")
 public class NNConnector extends SocketConnector {
 
 	private static final NNSocketFactory FACTORY = new NNSocketFactory();

@@ -1,6 +1,7 @@
 package io.gridgo.socket.impl;
 
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 
@@ -8,12 +9,31 @@ import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.framework.support.Message;
+import io.gridgo.framework.support.Payload;
 import io.gridgo.socket.Socket;
 import io.gridgo.socket.SocketConstants;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class SocketPollingUtils {
+public class SocketUtils {
+
+	public static Message accumulateBatch(@NonNull Collection<Message> messages) {
+		if (messages.size() == 1) {
+			return messages.iterator().next();
+		}
+
+		BArray body = BArray.newDefault();
+		for (Message mess : messages) {
+			Payload payload = mess.getPayload();
+			body.add(BArray.newFromSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody()));
+		}
+		Payload payload = Payload.newDefault(body)//
+				.addHeader(SocketConstants.IS_BATCH, true) //
+				.addHeader(SocketConstants.BATCH_SIZE, messages.size());
+
+		return Message.newDefault(payload);
+	}
 
 	public static void startPolling( //
 			Socket socket, //

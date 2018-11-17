@@ -6,11 +6,13 @@ import static org.junit.Assert.assertTrue;
 
 import java.text.DecimalFormat;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.joo.promise4j.PromiseException;
 import org.junit.Test;
 
 import io.gridgo.bean.BObject;
+import io.gridgo.bean.BValue;
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.ConnectorResolver;
 import io.gridgo.connector.Consumer;
@@ -25,15 +27,14 @@ public class ZMQConnectorUnitTest {
 	@Test
 	public void testPairDuplex() throws InterruptedException, PromiseException {
 
-		System.out.println("Test pair duplex...");
-
 		String osName = System.getProperty("os.name");
 		if (osName != null && osName.contains("Windows"))
 			return;
 
+		System.out.println("Test pair duplex...");
 		ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.connector");
 
-		String port = "8889";
+		String port = "8080";
 		String host = "localhost";
 		String address = host + ":" + port;
 
@@ -71,18 +72,37 @@ public class ZMQConnectorUnitTest {
 		assertTrue(connector2.getConsumer().isPresent());
 		assertTrue(connector2.getProducer().isPresent());
 
+		Producer responder = connector1.getProducer().get();
+		connector1.getConsumer().get().subscribe((message) -> {
+			responder.send(message);
+		});
+
+		AtomicReference<String> pongDataRef = new AtomicReference<String>(null);
+		final String data = "This is test text";
+
+		final CountDownLatch doneSignal = new CountDownLatch(1);
+		connector2.getConsumer().get().subscribe((message) -> {
+			pongDataRef.set(message.getPayload().getBody().asValue().getString());
+			doneSignal.countDown();
+		});
+
+		connector2.getProducer().get().send(Message.newDefault(Payload.newDefault(BValue.newDefault(data))));
+
+		doneSignal.await();
+		assertEquals(data, pongDataRef.get());
+
 		connector1.stop();
 		connector2.stop();
 	}
 
-	// @Test
+	@Test
 	public void testMonoplex() throws InterruptedException, PromiseException {
-		System.out.println("Test monoplex...");
 
 		String osName = System.getProperty("os.name");
 		if (osName != null && osName.contains("Windows"))
 			return;
 
+		System.out.println("Test tcp monoplex...");
 		ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.connector");
 
 		Connector connector1 = resolver.resolve("zmq:pull:tcp://localhost:8080");
