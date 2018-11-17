@@ -2,6 +2,7 @@ package io.gridgo.socket.test.support;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 
 import org.apache.commons.io.IOUtils;
@@ -33,6 +34,8 @@ public class TestSocket implements Socket {
 		try {
 			if (socket != null)
 				socket.close();
+			if (serverSocket != null)
+				serverSocket.close();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -63,6 +66,8 @@ public class TestSocket implements Socket {
 			arr = IOUtils.toByteArray(socket.getInputStream(), size);
 			buffer.put(arr);
 			return arr.length;
+		} catch (SocketTimeoutException e) {
+			return -1;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
@@ -85,6 +90,7 @@ public class TestSocket implements Socket {
 		this.endpoint = EndpointParser.parse(address);
 		try {
 			serverSocket = new java.net.ServerSocket();
+			serverSocket.setSoTimeout(100);
 			serverSocket.bind(new InetSocketAddress(endpoint.getHost(), endpoint.getPort()));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
