@@ -28,12 +28,12 @@ public class TestSocket extends AbstractSocket {
 	protected int doSend(ByteBuffer buffer, boolean block) {
 		if (socket == null)
 			throw new IllegalStateException("socket is null");
-		byte[] arr = new byte[1 + buffer.remaining()];
-		arr[0] = (byte) (arr.length - 1);
-		buffer.get(arr, 1, arr.length - 1);
+		byte[] arr = new byte[4 + buffer.limit()];
+		ByteBuffer bb = ByteBuffer.wrap(arr);
+		bb.putInt(arr.length - 4);
+		buffer.get(arr, 4, arr.length - 4);
 		try {
 			IOUtils.write(arr, socket.getOutputStream());
-			socket.getOutputStream().flush();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -42,10 +42,19 @@ public class TestSocket extends AbstractSocket {
 
 	@Override
 	protected int doReveive(ByteBuffer buffer, boolean block) {
-		try (var socket = serverSocket.accept()) {
+		try {
+			if (socket == null)
+				socket = serverSocket.accept();
 			byte[] arr;
-			byte[] length = IOUtils.toByteArray(socket.getInputStream(), 1);
-			byte size = length[0];
+			byte[] length;
+			try {
+				length = IOUtils.toByteArray(socket.getInputStream(), 4);
+			} catch (IOException ex) {
+				return -1;
+			}
+			ByteBuffer bb = ByteBuffer.wrap(length);
+			int size = bb.getInt();
+
 			arr = IOUtils.toByteArray(socket.getInputStream(), size);
 			buffer.put(arr);
 			return arr.length;
