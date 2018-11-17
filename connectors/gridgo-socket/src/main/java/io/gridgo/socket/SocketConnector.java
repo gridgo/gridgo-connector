@@ -42,10 +42,10 @@ public class SocketConnector extends AbstractConnector implements Connector {
 	@Override
 	public void onInit() {
 		ConnectorConfig config = getConnectorConfig();
-		String type = config.getPlaceholders().getProperty("type");
-		String transport = config.getPlaceholders().getProperty("transport");
-		String host = config.getPlaceholders().getProperty("host");
-		int port = Integer.parseInt(config.getPlaceholders().getProperty("port"));
+		String type = config.getPlaceholders().getProperty(SocketConstants.TYPE);
+		String transport = config.getPlaceholders().getProperty(SocketConstants.TRANSPORT);
+		String host = config.getPlaceholders().getProperty(SocketConstants.HOST);
+		int port = Integer.parseInt(config.getPlaceholders().getProperty(SocketConstants.PORT));
 
 		this.address = transport + "://" + host + ":" + port;
 

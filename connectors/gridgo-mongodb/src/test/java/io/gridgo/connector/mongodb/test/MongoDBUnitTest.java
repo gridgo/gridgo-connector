@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.bson.Document;
 import org.joo.promise4j.impl.SimpleDonePromise;
@@ -60,13 +61,16 @@ public class MongoDBUnitTest {
 		connector.start();
 		var producer = connector.getProducer().orElseThrow();
 
+		var exRef = new AtomicReference<>();
+
 		var callLatch = new CountDownLatch(1);
-		producer.call(createInsertMessage()) //
+		producer.call(createInsertMessages()) //
+				.pipeDone(msg -> producer.call(createInsertMessage())) //
 				.pipeDone(msg -> producer.call(createCountMessage())) //
 				.pipeDone(msg -> {
 					System.out.println("check count");
 					long count = msg.getPayload().getBody().asValue().getLong();
-					if (count == 3)
+					if (count == 4)
 						return new SimpleDonePromise<Message, Exception>(msg);
 					return new SimpleFailurePromise<Message, Exception>(new RuntimeException());
 				}) //
@@ -82,7 +86,7 @@ public class MongoDBUnitTest {
 				.pipeDone(msg -> {
 					System.out.println("check find all");
 					var doc = msg.getPayload().getBody().asArray();
-					if (doc != null && doc.size() == 2)
+					if (doc != null && doc.size() == 3)
 						return new SimpleDonePromise<Message, Exception>(msg);
 					return new SimpleFailurePromise<Message, Exception>(new RuntimeException());
 				}) //
@@ -91,7 +95,25 @@ public class MongoDBUnitTest {
 				.pipeDone(msg -> {
 					System.out.println("check count");
 					long count = msg.getPayload().getBody().asValue().getLong();
-					if (count == 2)
+					if (count == 3)
+						return new SimpleDonePromise<Message, Exception>(msg);
+					return new SimpleFailurePromise<Message, Exception>(new RuntimeException());
+				}) //
+				.pipeDone(msg -> producer.call(createUpdateRequest()))
+				.pipeDone(msg -> producer.call(createFindAllRequest())) //
+				.pipeDone(msg -> {
+					System.out.println("check find all");
+					var doc = msg.getPayload().getBody().asArray();
+					if (doc != null && doc.size() == 1)
+						return new SimpleDonePromise<Message, Exception>(msg);
+					return new SimpleFailurePromise<Message, Exception>(new RuntimeException());
+				}) //
+				.pipeDone(msg -> producer.call(createUpdateManyRequest()))
+				.pipeDone(msg -> producer.call(createFindAllRequest())) //
+				.pipeDone(msg -> {
+					System.out.println("check find all");
+					var doc = msg.getPayload().getBody().asArray();
+					if (doc != null && doc.size() == 3)
 						return new SimpleDonePromise<Message, Exception>(msg);
 					return new SimpleFailurePromise<Message, Exception>(new RuntimeException());
 				}) //
@@ -105,8 +127,13 @@ public class MongoDBUnitTest {
 					return new SimpleFailurePromise<Message, Exception>(new RuntimeException());
 				}) //
 				.pipeDone(msg -> producer.call(createInsertMessage())) //
-				.done(msg -> callLatch.countDown());
+				.done(msg -> callLatch.countDown()).fail(ex -> {
+					exRef.set(ex);
+					latch.countDown();
+				});
 		callLatch.await();
+
+		Assert.assertNull(exRef.get());
 
 		// test perf
 		var failure = new AtomicInteger(0);
@@ -135,6 +162,20 @@ public class MongoDBUnitTest {
 		Assert.assertEquals(0, failure.get());
 	}
 
+	private Message createUpdateRequest() {
+		var headers = BObject.newDefault().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_UPDATE_ONE)
+				.set(MongoDBConstants.FILTER, BReference.newDefault(Filters.eq("name", "Hello")));
+		var body = BReference.newDefault(new Document("$set", new Document("name", "World")));
+		return Message.newDefault(Payload.newDefault(headers, body));
+	}
+
+	private Message createUpdateManyRequest() {
+		var headers = BObject.newDefault().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_UPDATE_MANY)
+				.set(MongoDBConstants.FILTER, BReference.newDefault(Filters.eq("name", "World")));
+		var body = BReference.newDefault(new Document("$set", new Document("name", "Hello")));
+		return Message.newDefault(Payload.newDefault(headers, body));
+	}
+
 	private Message createDeleteRequest() {
 		var headers = BObject.newDefault().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_DELETE_ONE)
 				.set(MongoDBConstants.FILTER, BReference.newDefault(Filters.eq("key", 1)));
@@ -160,6 +201,14 @@ public class MongoDBUnitTest {
 	}
 
 	private Message createInsertMessage() {
+		var doc1 = new Document("key", 4).append("type", "database").append("name", "Hello").append("info",
+				new Document("x", 203).append("y", 102));
+		BReference ref = BReference.newDefault(doc1);
+		var headers = BObject.newDefault().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_INSERT);
+		return Message.newDefault(Payload.newDefault(headers, ref));
+	}
+
+	private Message createInsertMessages() {
 		var doc1 = new Document("key", 1).append("type", "database").append("name", "Hello").append("info",
 				new Document("x", 203).append("y", 102));
 		var doc2 = new Document("key", 2).append("type", "database").append("name", "Hello").append("info",

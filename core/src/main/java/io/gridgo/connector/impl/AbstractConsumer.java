@@ -43,13 +43,12 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 	}
 
 	protected void publish(@NonNull Message message, Deferred<Message, Exception> deferred) {
-		if (!message.getMisc().containsKey("source")) {
-			message.addMisc("source", this.getName());
-		}
+		message.attachSource(getName());
 		for (var subscriber : this.subscribers) {
 			try {
 				context.getCallbackInvokerStrategy().execute(() -> subscriber.accept(message, deferred));
 			} catch (Exception ex) {
+				getLogger().error("Error while publishing message", ex);
 				if (deferred != null) {
 					deferred.reject(ex);
 				}
