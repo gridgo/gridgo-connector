@@ -13,6 +13,20 @@ public class SocketConstants {
 	public static final String HOST = "host";
 
 	public static final String PORT = "port";
-	
-	
+
+	public static final String BATCHING_ENABLED = "batchingEnabled";
+
+	public static final String MAX_BATCH_SIZE = "maxBatchSize";
+
+	public static final String BUFFER_SIZE = "bufferSize";
+
+	public static final String RING_BUFFER_SIZE = "ringBufferSize";
+
+	public static final String TYPE_PUSH = "push";
+
+	public static final String TYPE_PUBLISH = "pub";
+
+	public static final String TYPE_PULL = "pull";
+
+	public static final String TYPE_SUBSCRIBE = "sub";
 }

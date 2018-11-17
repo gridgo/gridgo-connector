@@ -51,17 +51,17 @@ public class SocketConnector extends AbstractConnector implements Connector {
 
 		this.address = transport + "://" + host + ":" + port;
 
-		this.batchingEnabled = Boolean
-				.valueOf(config.getParameters().getOrDefault("batchingEnabled", this.batchingEnabled).toString());
+		this.batchingEnabled = Boolean.valueOf(
+				config.getParameters().getOrDefault(SocketConstants.BATCHING_ENABLED, this.batchingEnabled).toString());
 
-		this.maxBatchSize = Integer
-				.valueOf(config.getParameters().getOrDefault("maxBatchSize", this.maxBatchSize).toString());
+		this.maxBatchSize = Integer.valueOf(
+				config.getParameters().getOrDefault(SocketConstants.MAX_BATCH_SIZE, this.maxBatchSize).toString());
 
 		this.bufferSize = Integer
-				.valueOf(config.getParameters().getOrDefault("bufferSize", this.bufferSize).toString());
+				.valueOf(config.getParameters().getOrDefault(SocketConstants.BUFFER_SIZE, this.bufferSize).toString());
 
-		this.ringBufferSize = Integer
-				.valueOf(config.getParameters().getOrDefault("ringBufferSize", this.ringBufferSize).toString());
+		this.ringBufferSize = Integer.valueOf(
+				config.getParameters().getOrDefault(SocketConstants.RING_BUFFER_SIZE, this.ringBufferSize).toString());
 
 		this.options = new SocketOptions();
 		this.options.setType(type);
@@ -111,7 +111,8 @@ public class SocketConnector extends AbstractConnector implements Connector {
 	}
 
 	private Optional<Producer> createProducer() {
-		if (this.options.getType().equalsIgnoreCase("push") || this.options.getType().equalsIgnoreCase("pub")) {
+		if (this.options.getType().equalsIgnoreCase(SocketConstants.TYPE_PUSH)
+				|| this.options.getType().equalsIgnoreCase(SocketConstants.TYPE_PUBLISH)) {
 			SocketProducer p = SocketProducer.newDefault(getContext(), factory, options, address, bufferSize,
 					ringBufferSize, batchingEnabled, maxBatchSize);
 			return Optional.of(p);
@@ -120,7 +121,8 @@ public class SocketConnector extends AbstractConnector implements Connector {
 	}
 
 	private Optional<Consumer> createConsumer() {
-		if (this.options.getType().equalsIgnoreCase("pull") || this.options.getType().equalsIgnoreCase("sub")) {
+		if (this.options.getType().equalsIgnoreCase(SocketConstants.TYPE_PULL)
+				|| this.options.getType().equalsIgnoreCase(SocketConstants.TYPE_SUBSCRIBE)) {
 			return Optional.of(SocketConsumer.newDefault(getContext(), factory, options, address, bufferSize));
 		}
 		return Optional.empty();
