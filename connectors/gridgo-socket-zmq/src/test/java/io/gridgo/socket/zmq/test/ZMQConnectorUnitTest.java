@@ -23,7 +23,62 @@ import io.gridgo.framework.support.Payload;
 public class ZMQConnectorUnitTest {
 
 	@Test
-	public void testSimpleTcp() throws InterruptedException, PromiseException {
+	public void testPairDuplex() throws InterruptedException, PromiseException {
+
+		System.out.println("Test pair duplex...");
+
+		String osName = System.getProperty("os.name");
+		if (osName != null && osName.contains("Windows"))
+			return;
+
+		ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.connector");
+
+		String port = "8889";
+		String host = "localhost";
+		String address = host + ":" + port;
+
+		Connector connector1 = resolver.resolve("zmq:pair:tcp:bind://" + address);
+		assertNotNull(connector1);
+		assertNotNull(connector1.getConnectorConfig());
+		assertNotNull(connector1.getConnectorConfig().getRemaining());
+		assertNotNull(connector1.getConnectorConfig().getParameters());
+		assertTrue(connector1 instanceof ZMQConnector);
+		assertEquals("pair:tcp:bind://" + address, connector1.getConnectorConfig().getRemaining());
+		assertEquals("pair", connector1.getConnectorConfig().getPlaceholders().get("type"));
+		assertEquals("tcp", connector1.getConnectorConfig().getPlaceholders().get("transport"));
+		assertEquals("bind", connector1.getConnectorConfig().getPlaceholders().get("role"));
+		assertEquals(host, connector1.getConnectorConfig().getPlaceholders().get("host"));
+		assertEquals(port, connector1.getConnectorConfig().getPlaceholders().get("port"));
+
+		Connector connector2 = resolver.resolve("zmq:pair:tcp:connect://" + address);
+		assertNotNull(connector2);
+		assertNotNull(connector2.getConnectorConfig());
+		assertNotNull(connector2.getConnectorConfig().getRemaining());
+		assertNotNull(connector2.getConnectorConfig().getParameters());
+		assertTrue(connector2 instanceof ZMQConnector);
+		assertEquals("pair:tcp:connect://" + address, connector2.getConnectorConfig().getRemaining());
+		assertEquals("pair", connector2.getConnectorConfig().getPlaceholders().get("type"));
+		assertEquals("tcp", connector2.getConnectorConfig().getPlaceholders().get("transport"));
+		assertEquals("connect", connector2.getConnectorConfig().getPlaceholders().get("role"));
+		assertEquals(host, connector2.getConnectorConfig().getPlaceholders().get("host"));
+		assertEquals(port, connector2.getConnectorConfig().getPlaceholders().get("port"));
+
+		connector1.start();
+		assertTrue(connector1.getConsumer().isPresent());
+		assertTrue(connector1.getProducer().isPresent());
+
+		connector2.start();
+		assertTrue(connector2.getConsumer().isPresent());
+		assertTrue(connector2.getProducer().isPresent());
+
+		connector1.stop();
+		connector2.stop();
+	}
+
+	// @Test
+	public void testMonoplex() throws InterruptedException, PromiseException {
+		System.out.println("Test monoplex...");
+
 		String osName = System.getProperty("os.name");
 		if (osName != null && osName.contains("Windows"))
 			return;

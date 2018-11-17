@@ -40,7 +40,6 @@ public abstract class AbstractResponder extends AbstractProducer implements Resp
 	}
 
 	@Override
-	@SuppressWarnings("deprecation")
 	public final Promise<Message, Exception> call(Message request) {
 		return Responder.super.call(request);
 	}

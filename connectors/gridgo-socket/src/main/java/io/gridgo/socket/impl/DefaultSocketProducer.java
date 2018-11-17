@@ -13,6 +13,7 @@ import io.gridgo.framework.support.Payload;
 import io.gridgo.socket.Socket;
 import io.gridgo.socket.SocketConnector;
 import io.gridgo.socket.SocketConstants;
+import io.gridgo.socket.SocketConsumer;
 import io.gridgo.socket.SocketFactory;
 import io.gridgo.socket.SocketOptions;
 import io.gridgo.socket.SocketProducer;
@@ -76,6 +77,9 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 			socket.connect(address);
 			int bufferSize = Integer.parseInt(
 					(String) options.getConfig().getOrDefault("bufferSize", "" + SocketConnector.DEFAULT_BUFFER_SIZE));
+			if (!options.getConfig().containsKey("receiveTimeout")) {
+				socket.applyConfig("receiveTimeout", SocketConsumer.DEFAULT_RECV_TIMEOUT);
+			}
 			this.setReceiver(new DefaultSocketReceiver(getContext(), this.socket, bufferSize, getUniqueIdentifier()));
 			break;
 		}
@@ -141,7 +145,6 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 
 	@Override
 	public boolean isCallSupported() {
-		// TODO Auto-generated method stub
 		return false;
 	}
 }

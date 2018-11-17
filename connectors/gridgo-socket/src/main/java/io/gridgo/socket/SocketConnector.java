@@ -4,6 +4,8 @@ import java.util.Optional;
 
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.Consumer;
+import io.gridgo.connector.HasReceiver;
+import io.gridgo.connector.HasResponder;
 import io.gridgo.connector.Producer;
 import io.gridgo.connector.impl.AbstractConnector;
 import io.gridgo.connector.support.config.ConnectorConfig;
@@ -67,15 +69,12 @@ public class SocketConnector extends AbstractConnector implements Connector {
 		this.options.setType(type);
 		this.options.getConfig().putAll(config.getParameters());
 
-		this.consumer = createConsumer();
-		this.producer = createProducer();
-
 		this.initConsumerAndProducer();
 	}
 
 	private void initConsumerAndProducer() {
-		SocketProducer p = null;
-		SocketConsumer c = null;
+		Producer p = null;
+		Consumer c = null;
 		switch (this.options.getType().toLowerCase()) {
 		case "push":
 		case "pub":
@@ -95,11 +94,13 @@ public class SocketConnector extends AbstractConnector implements Connector {
 			case "connect":
 				p = SocketProducer.newDefault(getContext(), factory, options, address, bufferSize, ringBufferSize,
 						batchingEnabled, maxBatchSize);
-				c = (SocketConsumer) p.getReceiver();
+				p.start();
+				c = ((HasReceiver) p).getReceiver();
 				break;
 			case "bind":
 				c = SocketConsumer.newDefault(getContext(), factory, options, address, bufferSize);
-				p = (SocketProducer) c.getResponder();
+				c.start();
+				p = ((HasResponder) c).getResponder();
 				break;
 			default:
 				throw new InvalidPlaceholderException("Invalid pair socket role, expected 'connect' or 'bind'");
@@ -108,23 +109,5 @@ public class SocketConnector extends AbstractConnector implements Connector {
 		}
 		this.producer = Optional.ofNullable(p);
 		this.consumer = Optional.ofNullable(c);
-	}
-
-	private Optional<Producer> createProducer() {
-		if (this.options.getType().equalsIgnoreCase(SocketConstants.TYPE_PUSH)
-				|| this.options.getType().equalsIgnoreCase(SocketConstants.TYPE_PUBLISH)) {
-			SocketProducer p = SocketProducer.newDefault(getContext(), factory, options, address, bufferSize,
-					ringBufferSize, batchingEnabled, maxBatchSize);
-			return Optional.of(p);
-		}
-		return Optional.empty();
-	}
-
-	private Optional<Consumer> createConsumer() {
-		if (this.options.getType().equalsIgnoreCase(SocketConstants.TYPE_PULL)
-				|| this.options.getType().equalsIgnoreCase(SocketConstants.TYPE_SUBSCRIBE)) {
-			return Optional.of(SocketConsumer.newDefault(getContext(), factory, options, address, bufferSize));
-		}
-		return Optional.empty();
 	}
 }

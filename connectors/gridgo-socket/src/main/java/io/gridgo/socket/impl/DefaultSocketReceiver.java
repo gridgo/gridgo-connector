@@ -77,6 +77,7 @@ public class DefaultSocketReceiver extends AbstractConsumer
 	@Override
 	protected void onStart() {
 		final AtomicReference<CountDownLatch> doneSignalRef = new AtomicReference<CountDownLatch>();
+
 		this.poller = new Thread(() -> {
 			this.poll(this.socket, (doneSignal) -> {
 				doneSignalRef.set(doneSignal);

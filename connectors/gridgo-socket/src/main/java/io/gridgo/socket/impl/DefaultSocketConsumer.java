@@ -58,7 +58,7 @@ public class DefaultSocketConsumer extends AbstractHasResponderConsumer implemen
 
 	private void poll(Socket socket, Consumer<CountDownLatch> stopDoneTriggerOutput) {
 		final ByteBuffer buffer = ByteBuffer.allocateDirect(this.bufferSize);
-		Thread.currentThread().setName("[POLLER] " + socket.getEndpoint().getAddress());
+		Thread.currentThread().setName("[POLLER] " + this.getName());
 		SocketPollingUtils.startPolling(socket, buffer, (message) -> {
 			ensurePayloadId(message);
 			publish(message, null);
