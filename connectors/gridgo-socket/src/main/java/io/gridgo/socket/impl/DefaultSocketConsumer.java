@@ -1,6 +1,7 @@
 package io.gridgo.socket.impl;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.CountDownLatch;
 
 import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
@@ -32,6 +33,8 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 	private final SocketOptions options;
 	private final String address;
 
+	private CountDownLatch latch;
+
 	public DefaultSocketConsumer(ConnectorContext context, SocketFactory factory, SocketOptions options, String address,
 			int bufferSize) {
 		super(context);
@@ -46,66 +49,76 @@ public class DefaultSocketConsumer extends AbstractConsumer implements SocketCon
 		if (this.poller != null && !this.poller.isInterrupted()) {
 			this.poller.interrupt();
 		}
+		try {
+			latch.await();
+		} catch (InterruptedException e) {
+			getLogger().warn("Interrupted exception while closing socket consumer");
+		}
 	}
 
 	private void poll() {
-		Socket socket = this.factory.createSocket(options);
-		if (!options.getConfig().containsKey("receiveTimeout")) {
-			socket.applyConfig("receiveTimeout", DEFAULT_RECV_TIMEOUT);
-		}
+		try {
+			Socket socket = this.factory.createSocket(options);
+			if (!options.getConfig().containsKey("receiveTimeout")) {
+				socket.applyConfig("receiveTimeout", DEFAULT_RECV_TIMEOUT);
+			}
 
-		switch (options.getType().toLowerCase()) {
-		case "pull":
-			socket.bind(address);
-			break;
-		case "sub":
-			socket.connect(address);
-			break;
-		}
+			switch (options.getType().toLowerCase()) {
+			case "pull":
+				socket.bind(address);
+				break;
+			case "sub":
+				socket.connect(address);
+				break;
+			}
 
-		Thread.currentThread().setName("[POLLER] " + socket.getEndpoint().getAddress());
-		final ByteBuffer buffer = ByteBuffer.allocateDirect(this.bufferSize);
-		while (!Thread.currentThread().isInterrupted()) {
-			buffer.clear();
-			int rc = socket.receive(buffer);
+			Thread.currentThread().setName("[POLLER] " + socket.getEndpoint().getAddress());
+			final ByteBuffer buffer = ByteBuffer.allocateDirect(this.bufferSize);
+			while (!Thread.currentThread().isInterrupted()) {
+				buffer.clear();
+				int rc = socket.receive(buffer);
 
-			if (rc < 0) {
-				if (Thread.currentThread().isInterrupted()) {
-					break;
-				}
-				// otherwise, socket timeout occurred, continue event loop
-			} else {
-				totalRecvBytes += rc;
-
-				Message message = null;
-				try {
-					message = Message.parse(buffer.flip());
-					BObject headers = message.getPayload().getHeaders();
-					if (headers != null && headers.getBoolean(SocketConstants.IS_BATCH, false)) {
-						BArray subMessages = message.getPayload().getBody().asArray();
-						totalRecvMessages += headers.getInteger(SocketConstants.BATCH_SIZE, subMessages.size());
-						for (BElement payload : subMessages) {
-							Message subMessage = Message.parse(payload);
-							this.ensurePayloadId(subMessage);
-							this.publish(subMessage, null);
-						}
-					} else {
-						totalRecvMessages++;
-						this.ensurePayloadId(message);
-						this.publish(message, null);
+				if (rc < 0) {
+					if (Thread.currentThread().isInterrupted()) {
+						break;
 					}
-				} catch (Exception e) {
-					getLogger().error("Error while parse buffer to message", e);
-					getContext().getExceptionHandler().accept(e);
+					// otherwise, socket timeout occurred, continue event loop
+				} else {
+					totalRecvBytes += rc;
+
+					Message message = null;
+					try {
+						message = Message.parse(buffer.flip());
+						BObject headers = message.getPayload().getHeaders();
+						if (headers != null && headers.getBoolean(SocketConstants.IS_BATCH, false)) {
+							BArray subMessages = message.getPayload().getBody().asArray();
+							totalRecvMessages += headers.getInteger(SocketConstants.BATCH_SIZE, subMessages.size());
+							for (BElement payload : subMessages) {
+								Message subMessage = Message.parse(payload);
+								this.ensurePayloadId(subMessage);
+								this.publish(subMessage, null);
+							}
+						} else {
+							totalRecvMessages++;
+							this.ensurePayloadId(message);
+							this.publish(message, null);
+						}
+					} catch (Exception e) {
+						getLogger().error("Error while parse buffer to message", e);
+						getContext().getExceptionHandler().accept(e);
+					}
 				}
 			}
+			socket.close();
+		} finally {
+			latch.countDown();
 		}
-		socket.close();
 		this.poller = null;
 	}
 
 	@Override
 	protected void onStart() {
+		this.latch = new CountDownLatch(1);
 		this.poller = new Thread(this::poll);
 		this.poller.start();
 
