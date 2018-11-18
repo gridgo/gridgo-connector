@@ -20,6 +20,7 @@
 
 	<properties>
 		<gridgo.utils.version>0.1.3</gridgo.utils.version>
+		<gridgo.framework.version>0.1.3</gridgo.framework.version>
 		<gridgo.socket.version>0.1.0-SNAPSHOT</gridgo.socket.version>
 		<gridgo.bean.version>0.1.3</gridgo.bean.version>
 		<junit.version>4.12</junit.version>
