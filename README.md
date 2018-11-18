@@ -29,6 +29,16 @@ Gridgo Connector is the I/O abstraction level of Gridgo. It provides easy-to-use
 </dependency>
 ```
 
+You need to install individual connector as needed. For example to install `gridgo-kafka`:
+
+```xml
+<dependency>
+    <groupId>io.gridgo</groupId>
+    <artifactId>gridgo-kafka</artifactId>
+    <version>SAME_AS_GRIDGO_CONNECTOR_CORE_VERSION</version>
+</dependency>
+```
+
 ### getting started
 
 To start using GridGo Connector, you need to provide an *endpoint*, which is a string specifying the scheme of the protocol and its parameters. For example, following is a Kafka endpoint:
