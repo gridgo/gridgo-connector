@@ -20,7 +20,7 @@ Gridgo Connector is the I/O abstraction level of Gridgo. It provides easy-to-use
 <dependency>
     <groupId>io.gridgo</groupId>
     <artifactId>gridgo-connector-core</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0-SNAPSHOT</version>
 </dependency>
 ```
 
