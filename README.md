@@ -1,13 +1,12 @@
 # gridgo-connector
 
-Gridgo Connector is the I/O abstraction level of Gridgo. It provides easy-to-use I/O connector for various protocols, including Kafka, ZMQ, VertX, etc. Connector consists of Producer and Consumer.
-
-### continuous integration
-
-**release**
-
 [![Maven Central](https://img.shields.io/maven-central/v/io.gridgo/gridgo-connector-core.svg?maxAge=604800)](http://mvnrepository.com/artifact/io.gridgo/gridgo-connector-core)
 [![Javadocs](http://javadoc.io/badge/io.gridgo/gridgo-connector-core.svg)](http://javadoc.io/doc/io.gridgo/gridgo-connector-core)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+Gridgo Connector is the I/O abstraction level of Gridgo. It provides easy-to-use I/O connector for various protocols, including Kafka, ZMQ, VertX, etc. Connector consists of Producer and Consumer.
+
+## build status
 
 **master**
 
@@ -19,7 +18,7 @@ Gridgo Connector is the I/O abstraction level of Gridgo. It provides easy-to-use
 [![Build Status](https://travis-ci.com/gridgo/gridgo-connector.svg?branch=develop)](https://travis-ci.com/gridgo/gridgo-connector)
 [![Coverage Status](https://coveralls.io/repos/github/gridgo/gridgo-connector/badge.svg?branch=develop)](https://coveralls.io/github/gridgo/gridgo-connector?branch=develop)
 
-### install
+## install
 
 ```xml
 <dependency>
@@ -39,7 +38,7 @@ You need to install individual connector as needed. For example to install `grid
 </dependency>
 ```
 
-### getting started
+## getting started
 
 To start using GridGo Connector, you need to provide an *endpoint*, which is a string specifying the scheme of the protocol and its parameters. For example, following is a Kafka endpoint:
 
@@ -137,6 +136,6 @@ var factory = new DefaultConnectorFactory();
 var connector = factory.createConnector(someEndpoint, myResolver);
 ```
 
-### license
+## license
 
 This library is distributed under MIT license, see [LICENSE](LICENSE)
