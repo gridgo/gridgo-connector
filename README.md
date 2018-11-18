@@ -4,6 +4,11 @@ Gridgo Connector is the I/O abstraction level of Gridgo. It provides easy-to-use
 
 ### continuous integration
 
+**release**
+
+[![Maven Central](https://img.shields.io/maven-central/v/io.gridgo/gridgo-connector-core.svg?maxAge=604800)](http://mvnrepository.com/artifact/io.gridgo/gridgo-connector-core)
+[![Javadocs](http://javadoc.io/badge/io.gridgo/gridgo-connector-core.svg)](http://javadoc.io/doc/io.gridgo/gridgo-connector-core)
+
 **master**
 
 [![Build Status](https://travis-ci.com/gridgo/gridgo-connector.svg?branch=master)](https://travis-ci.com/gridgo/gridgo-connector)
