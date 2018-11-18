@@ -16,7 +16,7 @@
 		<dependency>
 			<groupId>io.gridgo</groupId>
 			<artifactId>gridgo-socket</artifactId>
-			<version>${gridgo.socket.version}</version>
+			<version>${project.version}</version>
 		</dependency>
 	</dependencies>
 </project>
