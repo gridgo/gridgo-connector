@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.joo.promise4j.PromiseException;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.gridgo.bean.BObject;
