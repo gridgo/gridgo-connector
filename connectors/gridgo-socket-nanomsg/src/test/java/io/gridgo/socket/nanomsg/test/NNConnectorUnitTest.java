@@ -36,7 +36,7 @@ public class NNConnectorUnitTest {
 		System.out.println("Test pub/sub via TCP");
 
 //		String transport = "pgm";
-//		String address = "192.168.0.156;224.2.3.4:5555";
+//		String address = "en0;224.2.3.4:5555";
 
 		String transport = "tcp";
 		String address = "localhost:5555";
