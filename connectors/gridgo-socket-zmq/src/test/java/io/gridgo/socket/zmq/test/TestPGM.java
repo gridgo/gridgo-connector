@@ -24,9 +24,10 @@ public class TestPGM {
 	public static void main(String[] args) throws Exception {
 		System.out.println("Test pub/sub via TCP");
 
-		String transport = "epgm";
-		String multicastIp = "239.192.1.1";
-		String address = "en0;" + multicastIp + ":5555";
+		String transport = "pgm";
+		String multicastIp = "224.2.2.4";
+		String nic = "ens33";
+		String address = ((nic == null || nic.isBlank()) ? "" : (nic + ";")) + multicastIp + ":5555";
 
 		Connector pubConnector = RESOLVER.resolve("zmq:pub:" + transport + "://" + address);
 		Connector sub1Connector = RESOLVER.resolve("zmq:sub:" + transport + "://" + address + "?topic=topic1");
@@ -80,7 +81,6 @@ public class TestPGM {
 			assertEquals(text2, recv2.get());
 
 		} catch (Exception e) {
-			e.printStackTrace();
 			throw e;
 		} finally {
 			pubConnector.stop();
