@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.text.DecimalFormat;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.joo.promise4j.PromiseException;
@@ -30,22 +31,19 @@ public class ZMQConnectorUnitTest {
 	private static final String host = "localhost";
 	private static final String address = host + ":" + port;
 
-	public static void main(String[] args) {
-		Payload payload = Payload.newDefault(BValue.newDefault(TEXT + 1));
-		System.out.println(payload.toBArray().toBytes().length);
+	@Test
+	public void testPubSubTCP() throws Exception {
+		System.out.println("Test pub/sub via TCP");
+		testPubSub("tcp", "localhost:5555");
 	}
 
 	@Test
-	public void testPubSub() throws Exception {
+	public void testPubSubPGM() throws Exception {
+		System.out.println("Test pub/sub via PGM");
+		testPubSub("pgm", "224.2.3.4:5555");
+	}
 
-		System.out.println("Test pub/sub via TCP");
-
-//		String transport = "pgm";
-//		String address = "192.168.0.156;224.2.3.4:5555";
-
-		String transport = "tcp";
-		String address = "localhost:5555";
-
+	private void testPubSub(String transport, String address) throws Exception {
 		Connector pubConnector = RESOLVER.resolve("zmq:pub:" + transport + "://" + address);
 		Connector sub1Connector = RESOLVER.resolve("zmq:sub:" + transport + "://" + address + "?topic=topic1");
 		Connector sub2Connector = RESOLVER.resolve("zmq:sub:" + transport + "://" + address + "?topic=topic2");
@@ -92,7 +90,7 @@ public class ZMQConnectorUnitTest {
 			publisher.send(
 					Message.newDefault(Payload.newDefault(BValue.newDefault(text2))).setRoutingIdFromAny("topic2"));
 
-			doneSignal.await();
+			doneSignal.await(5, TimeUnit.SECONDS);
 
 			assertEquals(text1, recv1.get());
 			assertEquals(text2, recv2.get());
