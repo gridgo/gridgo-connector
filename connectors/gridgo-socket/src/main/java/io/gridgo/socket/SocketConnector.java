@@ -1,6 +1,9 @@
 package io.gridgo.socket;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.Consumer;
@@ -22,6 +25,8 @@ import io.gridgo.connector.support.exceptions.MalformedEndpointException;
  *
  */
 public class SocketConnector extends AbstractConnector implements Connector {
+
+	public static final Set<String> MULTICAST_TRANSPORTS = new HashSet<>(Arrays.asList("pgm", "epgm"));
 
 	public static final int DEFAULT_BUFFER_SIZE = 128 * 1024;
 
@@ -51,7 +56,12 @@ public class SocketConnector extends AbstractConnector implements Connector {
 		String host = config.getPlaceholders().getProperty(SocketConstants.HOST);
 		int port = Integer.parseInt(config.getPlaceholders().getProperty(SocketConstants.PORT));
 
-		this.address = transport + "://" + host + ":" + port;
+		String nic = null;
+		if (MULTICAST_TRANSPORTS.contains(transport.trim().toLowerCase())) {
+			nic = getPlaceholder("interface");
+		}
+
+		this.address = transport + "://" + ((nic == null || nic.isBlank()) ? "" : (nic + ";")) + host + ":" + port;
 
 		this.batchingEnabled = Boolean.valueOf(
 				config.getParameters().getOrDefault(SocketConstants.BATCHING_ENABLED, this.batchingEnabled).toString());

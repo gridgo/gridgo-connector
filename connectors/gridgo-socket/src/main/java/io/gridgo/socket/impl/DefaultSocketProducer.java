@@ -3,7 +3,6 @@ package io.gridgo.socket.impl;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 
-import io.gridgo.bean.BArray;
 import io.gridgo.connector.Receiver;
 import io.gridgo.connector.impl.SingleThreadSendingProducer;
 import io.gridgo.connector.support.config.ConnectorContext;
@@ -102,16 +101,23 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 	@Override
 	protected void executeSendOnSingleThread(Message message) throws Exception {
 		buffer.clear();
-		Payload payload = message.getPayload();
-		BArray.newFromSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody())
-				.writeBytes(buffer);
-		buffer.flip();
-		int sentBytes = this.socket.send(buffer);
-		if (sentBytes == -1) {
-			throw new SendMessageException();
+		if (options.getType().equalsIgnoreCase("pub")) {
+			if (message.getRoutingId().isPresent()) {
+				buffer.put(message.getRoutingId().get().getRaw());
+			}
 		}
-		totalSentBytes += sentBytes;
-		totalSentMessages++;
+		Payload payload = message.getPayload();
+		if (payload != null) {
+			payload.toBArray().writeBytes(buffer);
+
+			buffer.flip();
+			int sentBytes = this.socket.send(buffer);
+			if (sentBytes == -1) {
+				throw new SendMessageException();
+			}
+			totalSentBytes += sentBytes;
+			totalSentMessages++;
+		}
 	}
 
 	@Override

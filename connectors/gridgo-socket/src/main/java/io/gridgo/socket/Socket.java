@@ -37,6 +37,8 @@ public interface Socket {
 
 	void bind(String address);
 
+	void subscribe(String topic);
+
 	Endpoint getEndpoint();
 
 	void applyConfig(String name, Object value);

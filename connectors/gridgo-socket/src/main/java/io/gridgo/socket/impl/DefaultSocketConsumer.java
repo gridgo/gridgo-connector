@@ -17,6 +17,8 @@ import lombok.Getter;
 
 public class DefaultSocketConsumer extends AbstractHasResponderConsumer implements SocketConsumer {
 
+	private int topicLength = 0;
+
 	@Getter
 	private long totalRecvBytes;
 
@@ -59,7 +61,7 @@ public class DefaultSocketConsumer extends AbstractHasResponderConsumer implemen
 	private void poll(Socket socket, Consumer<CountDownLatch> stopDoneTriggerOutput) {
 		final ByteBuffer buffer = ByteBuffer.allocateDirect(this.bufferSize);
 		Thread.currentThread().setName("[POLLER] " + this.getName());
-		SocketUtils.startPolling(socket, buffer, (message) -> {
+		SocketUtils.startPolling(socket, buffer, this.topicLength, (message) -> {
 			ensurePayloadId(message);
 			publish(message, null);
 		}, (recvBytes) -> {
@@ -84,6 +86,9 @@ public class DefaultSocketConsumer extends AbstractHasResponderConsumer implemen
 			break;
 		case "sub":
 			socket.connect(address);
+			String topic = (String) options.getConfig().getOrDefault("topic", "");
+			socket.subscribe(topic);
+			this.topicLength = topic.length();
 			break;
 		case "pair":
 			socket.bind(address);

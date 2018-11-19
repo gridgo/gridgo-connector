@@ -24,11 +24,88 @@ public class ZMQConnectorUnitTest {
 
 	private final ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
 
-	private final String TEXT = "This is test text";
+	private static final String TEXT = "This is test text";
 
-	private final int port = 8080;
-	private final String host = "localhost";
-	private final String address = host + ":" + port;
+	private static final int port = 8080;
+	private static final String host = "localhost";
+	private static final String address = host + ":" + port;
+
+	public static void main(String[] args) {
+		Payload payload = Payload.newDefault(BValue.newDefault(TEXT + 1));
+		System.out.println(payload.toBArray().toBytes().length);
+	}
+
+	@Test
+	public void testPubSub() throws Exception {
+
+		System.out.println("Test pub/sub via TCP");
+
+//		String transport = "pgm";
+//		String address = "192.168.0.156;224.2.3.4:5555";
+
+		String transport = "tcp";
+		String address = "localhost:5555";
+
+		Connector pubConnector = RESOLVER.resolve("zmq:pub:" + transport + "://" + address);
+		Connector sub1Connector = RESOLVER.resolve("zmq:sub:" + transport + "://" + address + "?topic=topic1");
+		Connector sub2Connector = RESOLVER.resolve("zmq:sub:" + transport + "://" + address + "?topic=topic2");
+
+		try {
+			pubConnector.start();
+			assertTrue(pubConnector.getProducer().isPresent());
+
+			sub1Connector.start();
+			assertTrue(sub1Connector.getConsumer().isPresent());
+
+			sub2Connector.start();
+			assertTrue(sub2Connector.getConsumer().isPresent());
+
+			Producer publisher = pubConnector.getProducer().get();
+			Consumer subscriber1 = sub1Connector.getConsumer().get();
+			Consumer subscriber2 = sub2Connector.getConsumer().get();
+
+			final String text1 = TEXT + 1;
+			final String text2 = TEXT + 2;
+
+			final AtomicReference<String> recv1 = new AtomicReference<String>();
+			final AtomicReference<String> recv2 = new AtomicReference<String>();
+
+			final CountDownLatch doneSignal = new CountDownLatch(2);
+
+			subscriber1.subscribe((msg) -> {
+				String body = msg.getPayload().getBody().asValue().getString();
+				System.out.println("Got msg: " + body);
+				recv1.set(body);
+				doneSignal.countDown();
+			});
+
+			subscriber2.subscribe((msg) -> {
+				String body = msg.getPayload().getBody().asValue().getString();
+				System.out.println("Got msg: " + body);
+				recv2.set(body);
+				doneSignal.countDown();
+			});
+
+			// publish data
+			publisher.send(
+					Message.newDefault(Payload.newDefault(BValue.newDefault(text1))).setRoutingIdFromAny("topic1"));
+			publisher.send(
+					Message.newDefault(Payload.newDefault(BValue.newDefault(text2))).setRoutingIdFromAny("topic2"));
+
+			doneSignal.await();
+
+			assertEquals(text1, recv1.get());
+			assertEquals(text2, recv2.get());
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		} finally {
+			pubConnector.stop();
+			sub1Connector.stop();
+			sub2Connector.stop();
+		}
+	}
 
 	@Test
 	public void testPairPingPong() throws InterruptedException, PromiseException {
