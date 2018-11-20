@@ -41,7 +41,7 @@ public class ZMQConnectorUnitTest {
 	public void testPubSubPGM() throws Exception {
 		System.out.println("Test PGM protocol support");
 
-		String transport = "pgm";
+		String transport = "epgm";
 		String host = "239.192.1.1";
 		int port = 5555;
 		String address = host + ":" + port;
