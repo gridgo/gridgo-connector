@@ -3,6 +3,7 @@ package io.gridgo.socket.impl;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 
+import io.gridgo.bean.BValue;
 import io.gridgo.connector.Receiver;
 import io.gridgo.connector.impl.SingleThreadSendingProducer;
 import io.gridgo.connector.support.config.ConnectorContext;
@@ -24,6 +25,8 @@ import lombok.NonNull;
 import lombok.Setter;
 
 public class DefaultSocketProducer extends SingleThreadSendingProducer implements SocketProducer, Loggable {
+
+	private static final byte ZERO_BYTE = (byte) 0;
 
 	private final ByteBuffer buffer;
 
@@ -74,8 +77,6 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 		case "pub":
 			Endpoint endpoint = EndpointParser.parse(address);
 			if (SocketConnector.MULTICAST_TRANSPORTS.contains(endpoint.getProtocol())) {
-				System.out.println("using multicast transport '" + endpoint.getProtocol()
-						+ "', connect (instead of bind) to " + endpoint.getResolvedAddress());
 				socket.connect(address);
 			} else {
 				socket.bind(address);
@@ -113,9 +114,12 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 		buffer.clear();
 		if (options.getType().equalsIgnoreCase("pub")) {
 			if (message.getRoutingId().isPresent()) {
-				buffer.put(message.getRoutingId().get().getRaw());
+				BValue routingId = message.getRoutingId().get();
+				buffer.put(routingId.getRaw());
 			}
+			buffer.put(ZERO_BYTE);
 		}
+
 		Payload payload = message.getPayload();
 		if (payload != null) {
 			payload.toBArray().writeBytes(buffer);

@@ -5,7 +5,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.text.DecimalFormat;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.joo.promise4j.PromiseException;
@@ -21,7 +20,7 @@ import io.gridgo.connector.impl.resolvers.ClasspathConnectorResolver;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 
-public class ZMQConnectorUnitTest {
+public class ZMQConnectorPushPullUnitTest {
 
 	private final ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
 
@@ -30,89 +29,6 @@ public class ZMQConnectorUnitTest {
 	private static final int port = 8080;
 	private static final String host = "localhost";
 	private static final String address = host + ":" + port;
-
-	@Test
-	public void testPubSubTCP() throws Exception {
-		System.out.println("Test pub/sub via TCP");
-		testPubSub("tcp", "localhost:5555");
-	}
-
-	@Test
-	public void testPubSubPGM() throws Exception {
-		System.out.println("Test PGM protocol support");
-
-		String transport = "epgm";
-		String host = "239.192.1.1";
-		int port = 5555;
-		String address = host + ":" + port;
-
-		Connector connector = RESOLVER.resolve("zmq:pub:" + transport + "://" + address);
-		connector.start();
-		assertTrue(connector.getProducer().isPresent());
-		connector.stop();
-	}
-
-	private void testPubSub(String transport, String address) throws Exception {
-		Connector pubConnector = RESOLVER.resolve("zmq:pub:" + transport + "://" + address);
-		Connector sub1Connector = RESOLVER.resolve("zmq:sub:" + transport + "://" + address + "?topic=topic1");
-		Connector sub2Connector = RESOLVER.resolve("zmq:sub:" + transport + "://" + address + "?topic=topic2");
-
-		try {
-			pubConnector.start();
-			assertTrue(pubConnector.getProducer().isPresent());
-
-			sub1Connector.start();
-			assertTrue(sub1Connector.getConsumer().isPresent());
-
-			sub2Connector.start();
-			assertTrue(sub2Connector.getConsumer().isPresent());
-
-			Producer publisher = pubConnector.getProducer().get();
-			Consumer subscriber1 = sub1Connector.getConsumer().get();
-			Consumer subscriber2 = sub2Connector.getConsumer().get();
-
-			final String text1 = TEXT + 1;
-			final String text2 = TEXT + 2;
-
-			final AtomicReference<String> recv1 = new AtomicReference<String>();
-			final AtomicReference<String> recv2 = new AtomicReference<String>();
-
-			final CountDownLatch doneSignal = new CountDownLatch(2);
-
-			subscriber1.subscribe((msg) -> {
-				String body = msg.getPayload().getBody().asValue().getString();
-				System.out.println("Got msg: " + body);
-				recv1.set(body);
-				doneSignal.countDown();
-			});
-
-			subscriber2.subscribe((msg) -> {
-				String body = msg.getPayload().getBody().asValue().getString();
-				System.out.println("Got msg: " + body);
-				recv2.set(body);
-				doneSignal.countDown();
-			});
-
-			// publish data
-			publisher.send(
-					Message.newDefault(Payload.newDefault(BValue.newDefault(text1))).setRoutingIdFromAny("topic1"));
-			publisher.send(
-					Message.newDefault(Payload.newDefault(BValue.newDefault(text2))).setRoutingIdFromAny("topic2"));
-
-			doneSignal.await(5, TimeUnit.SECONDS);
-
-			assertEquals(text1, recv1.get());
-			assertEquals(text2, recv2.get());
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw e;
-		} finally {
-			pubConnector.stop();
-			sub1Connector.stop();
-			sub2Connector.stop();
-		}
-	}
 
 	@Test
 	public void testPairPingPong() throws InterruptedException, PromiseException {
@@ -151,53 +67,6 @@ public class ZMQConnectorUnitTest {
 
 		doneSignal.await();
 		assertEquals(TEXT, pongDataRef.get());
-
-		connector1.stop();
-		connector2.stop();
-	}
-
-	@Test
-	public void testPairOneWay() throws InterruptedException, PromiseException {
-
-		String osName = System.getProperty("os.name");
-		if (osName != null && osName.contains("Windows"))
-			return;
-
-		System.out.println("Test pair oneway...");
-
-		Connector connector1 = RESOLVER.resolve("zmq:pair:tcp:bind://" + address);
-		Connector connector2 = RESOLVER.resolve("zmq:pair:tcp:connect://" + address);
-
-		connector1.start();
-		assertTrue(connector1.getConsumer().isPresent());
-		assertTrue(connector1.getProducer().isPresent());
-
-		connector2.start();
-		assertTrue(connector2.getConsumer().isPresent());
-		assertTrue(connector2.getProducer().isPresent());
-
-		final CountDownLatch doneSignal = new CountDownLatch(2);
-
-		AtomicReference<String> recvDataRef1 = new AtomicReference<String>(null);
-		AtomicReference<String> recvDataRef2 = new AtomicReference<String>(null);
-
-		connector1.getConsumer().get().subscribe((message) -> {
-			recvDataRef2.set(message.getPayload().getBody().asValue().getString());
-			doneSignal.countDown();
-		});
-
-		connector2.getConsumer().get().subscribe((message) -> {
-			recvDataRef1.set(message.getPayload().getBody().asValue().getString());
-			doneSignal.countDown();
-		});
-
-		connector1.getProducer().get().send(Message.newDefault(Payload.newDefault(BValue.newDefault(TEXT + 1))));
-		connector2.getProducer().get().send(Message.newDefault(Payload.newDefault(BValue.newDefault(TEXT + 2))));
-
-		doneSignal.await();
-
-		assertEquals(TEXT + 1, recvDataRef1.get());
-		assertEquals(TEXT + 2, recvDataRef2.get());
 
 		connector1.stop();
 		connector2.stop();
