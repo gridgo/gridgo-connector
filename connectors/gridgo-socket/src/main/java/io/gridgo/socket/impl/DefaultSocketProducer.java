@@ -15,6 +15,8 @@ import io.gridgo.socket.SocketConsumer;
 import io.gridgo.socket.SocketFactory;
 import io.gridgo.socket.SocketOptions;
 import io.gridgo.socket.SocketProducer;
+import io.gridgo.socket.helper.Endpoint;
+import io.gridgo.socket.helper.EndpointParser;
 import io.gridgo.utils.helper.Loggable;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -64,12 +66,20 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 	@Override
 	protected void onStart() {
 		this.socket = this.factory.createSocket(options);
-		switch (options.getType().trim().toLowerCase()) {
+		String type = options.getType().trim().toLowerCase();
+		switch (type) {
 		case "push":
 			socket.connect(address);
 			break;
 		case "pub":
-			socket.bind(address);
+			Endpoint endpoint = EndpointParser.parse(address);
+			if (SocketConnector.MULTICAST_TRANSPORTS.contains(endpoint.getProtocol())) {
+				System.out.println("using multicast transport '" + endpoint.getProtocol()
+						+ "', connect (instead of bind) to " + endpoint.getResolvedAddress());
+				socket.connect(address);
+			} else {
+				socket.bind(address);
+			}
 			break;
 		case "pair":
 			socket.connect(address);
