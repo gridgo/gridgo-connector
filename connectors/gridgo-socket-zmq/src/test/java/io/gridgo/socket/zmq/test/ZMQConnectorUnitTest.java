@@ -40,8 +40,17 @@ public class ZMQConnectorUnitTest {
 	@Test
 //	@Ignore
 	public void testPubSubPGM() throws Exception {
-		System.out.println("Test pub/sub via PGM");
-		testPubSub("pgm", "224.2.3.4:5555");
+		System.out.println("Test PGM protocol support");
+
+		String transport = "pgm";
+		String host = "239.192.1.1";
+		int port = 5555;
+		String address = host + port;
+
+		Connector connector = RESOLVER.resolve("zmq:pub:" + transport + "://" + address);
+		connector.start();
+		assertTrue(connector.getProducer().isPresent());
+		connector.stop();
 	}
 
 	private void testPubSub(String transport, String address) throws Exception {
