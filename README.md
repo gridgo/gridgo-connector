@@ -8,7 +8,7 @@ Gridgo Connector is the I/O abstraction level of Gridgo. It provides easy-to-use
 
 ## build status
 
-View the [build status](BUILD.md) status for all branches
+View [build status](https://github.com/gridgo/gridgo-connector/wiki/build-status) for all branches
 
 ## install
 
