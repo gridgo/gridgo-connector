@@ -48,10 +48,11 @@ public class ZMQConnectorPubSubUnitTest {
 	}
 
 	private void testPubSub(String transport, String address) throws Exception {
+		
 		Connector pubConnector = RESOLVER.resolve("zmq:pub:" + transport + "://" + address);
 		Connector sub1Connector = RESOLVER.resolve("zmq:sub:" + transport + "://" + address + "?topic=topic1");
 		Connector sub2Connector = RESOLVER.resolve("zmq:sub:" + transport + "://" + address + "?topic=topic2");
-		Connector sub3Connector = RESOLVER.resolve("zmq:sub:" + transport + "://" + address);
+		Connector sub3Connector = RESOLVER.resolve("zmq:sub:" + transport + "://" + address + "?topic=topic");
 
 		try {
 			pubConnector.start();
