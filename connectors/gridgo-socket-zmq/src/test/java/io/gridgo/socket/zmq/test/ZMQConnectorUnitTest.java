@@ -38,7 +38,7 @@ public class ZMQConnectorUnitTest {
 	}
 
 	@Test
-//	@Ignore
+	@Ignore
 	public void testPubSubPGM() throws Exception {
 		System.out.println("Test pub/sub via PGM");
 		testPubSub("pgm", "224.2.3.4:5555");
