@@ -20,7 +20,7 @@ import io.gridgo.connector.impl.resolvers.ClasspathConnectorResolver;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 
-public class ZMQConnectorPubSubUnitTest {
+public class ZMQPubSubUnitTest {
 
 	private final ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
 
