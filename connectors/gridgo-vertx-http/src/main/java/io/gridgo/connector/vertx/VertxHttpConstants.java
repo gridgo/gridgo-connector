@@ -26,6 +26,8 @@ public class VertxHttpConstants {
 
 	public static final String PARAM_METHOD = "method";
 
+	public static final Object PARAM_PARSE_COOKIE = "parseCookie";
+
 	public static final String PARAM_COMPRESSION_SUPPORTED = "compressionSupported";
 
 	public static final String PARAM_COMPRESSION_LEVEL = "compressionLevel";
@@ -37,4 +39,16 @@ public class VertxHttpConstants {
 	public static final String HEADER_STATUS_CODE = "Status-Code";
 
 	public static final String HEADER_QUERY_PARAMETERS = "Query-Params";
+
+	public static final String HEADER_COOKIE = "Parsed-Cookie";
+
+	public static final String COOKIE_DOMAIN = "cookieDomain";
+
+	public static final String COOKIE_PATH = "cookiePath";
+
+	public static final String COOKIE_VALUE = "cookieValue";
+
+	public static final String COOKIE_NAME = "cookieName";
+
+	public static final String HEADER_PATH = "Http-Path";
 }

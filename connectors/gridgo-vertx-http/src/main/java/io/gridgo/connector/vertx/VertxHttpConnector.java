@@ -25,7 +25,8 @@ public class VertxHttpConnector extends AbstractConnector {
 		}
 		var vertxOptions = buildVertxOptions();
 		var httpOptions = buildHttpServerOptions();
-		var vertxConsumer = new VertxHttpConsumer(getContext(), vertx, vertxOptions, httpOptions, path, method, format);
+		var vertxConsumer = new VertxHttpConsumer(getContext(), vertx, vertxOptions, httpOptions, path, method, format,
+				getConnectorConfig().getParameters());
 		this.consumer = Optional.of(vertxConsumer);
 	}
 

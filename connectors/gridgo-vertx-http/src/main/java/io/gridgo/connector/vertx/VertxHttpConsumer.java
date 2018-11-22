@@ -7,6 +7,7 @@ import java.util.function.Function;
 
 import org.joo.promise4j.impl.AsyncDeferredObject;
 
+import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
@@ -47,8 +48,10 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 
 	private Function<Throwable, Message> failureHandler;
 
+	private boolean parseCookie;
+
 	public VertxHttpConsumer(ConnectorContext context, Vertx vertx, VertxOptions vertxOptions,
-			HttpServerOptions options, String path, String method, String format) {
+			HttpServerOptions options, String path, String method, String format, Map<String, Object> params) {
 		super(context);
 		this.vertx = vertx;
 		this.vertxOptions = vertxOptions;
@@ -56,6 +59,8 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 		this.path = path;
 		this.method = method;
 		this.format = format;
+		this.parseCookie = Boolean
+				.valueOf(params.getOrDefault(VertxHttpConstants.PARAM_PARSE_COOKIE, "false").toString());
 	}
 
 	@Override
@@ -156,9 +161,6 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 			return;
 		}
 
-		// remove the Query-Params header
-		response.getPayload().getHeaders().remove(VertxHttpConstants.HEADER_QUERY_PARAMETERS);
-
 		String status = response.getPayload().getHeaders().getString(VertxHttpConstants.HEADER_STATUS, null);
 		if (status != null)
 			serverResponse.setStatusMessage(status);
@@ -167,7 +169,8 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 			serverResponse.setStatusCode(statusCode);
 
 		for (var entry : response.getPayload().getHeaders().entrySet()) {
-			serverResponse.headers().add(entry.getKey(), entry.getValue().toString());
+			if (entry.getValue().isValue())
+				serverResponse.headers().add(entry.getKey(), entry.getValue().toString());
 		}
 		if (response.getPayload().getBody() != null)
 			serverResponse.end(serialize(response.getPayload().getBody()));
@@ -201,14 +204,32 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 			headers.put(entry.getKey(), BValue.newDefault(entry.getValue()));
 		}
 
+		populateCommonHeaders(ctx, headers);
+
+		var body = deserialize(ctx.getBodyAsString());
+		return createMessage(headers, body);
+	}
+
+	private void populateCommonHeaders(RoutingContext ctx, BObject headers) {
 		var queryParams = BObject.newDefault();
 		for (var query : ctx.request().params()) {
 			queryParams.put(query.getKey(), BValue.newDefault(query.getValue()));
 		}
-
 		headers.put(VertxHttpConstants.HEADER_QUERY_PARAMETERS, queryParams);
-		var body = deserialize(ctx.getBodyAsString());
-		return createMessage(headers, body);
+		headers.putAny(VertxHttpConstants.HEADER_PATH, ctx.request().path());
+
+		if (parseCookie) {
+			var cookies = BArray.newDefault();
+			for (var cookie : ctx.cookies()) {
+				var cookieObj = BObject.newDefault() //
+						.setAny(VertxHttpConstants.COOKIE_NAME, cookie.getName())
+						.setAny(VertxHttpConstants.COOKIE_DOMAIN, cookie.getDomain())
+						.setAny(VertxHttpConstants.COOKIE_PATH, cookie.getPath())
+						.setAny(VertxHttpConstants.COOKIE_VALUE, cookie.getValue());
+				cookies.add(cookieObj);
+			}
+			headers.put(VertxHttpConstants.HEADER_COOKIE, cookies);
+		}
 	}
 
 	@Override
