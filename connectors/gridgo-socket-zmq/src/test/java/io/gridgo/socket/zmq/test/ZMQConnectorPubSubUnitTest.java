@@ -28,6 +28,9 @@ public class ZMQConnectorPubSubUnitTest {
 
 	@Test
 	public void testPubSubPGM() throws Exception {
+		String osName = System.getProperty("os.name");
+		if (osName != null && osName.contains("Windows"))
+			return;
 		System.out.println("Test PGM protocol support");
 
 		String transport = "epgm";
@@ -43,6 +46,9 @@ public class ZMQConnectorPubSubUnitTest {
 
 	@Test
 	public void testPubSubTCP() throws Exception {
+		String osName = System.getProperty("os.name");
+		if (osName != null && osName.contains("Windows"))
+			return;
 		System.out.println("Test pub/sub via TCP");
 		testPubSub("tcp", "localhost:5555");
 	}
