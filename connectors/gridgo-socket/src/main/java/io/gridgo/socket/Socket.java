@@ -7,7 +7,7 @@ import java.util.Map.Entry;
 import io.gridgo.socket.helper.Endpoint;
 import io.gridgo.utils.helper.Assert;
 
-public interface Socket {
+public interface Socket extends Configurable {
 
 	boolean isAlive();
 
@@ -36,6 +36,8 @@ public interface Socket {
 	void connect(String address);
 
 	void bind(String address);
+
+	void subscribe(String topic);
 
 	Endpoint getEndpoint();
 

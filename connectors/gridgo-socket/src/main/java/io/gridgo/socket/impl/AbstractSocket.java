@@ -2,6 +2,7 @@ package io.gridgo.socket.impl;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import io.gridgo.socket.Socket;
 import io.gridgo.socket.helper.Endpoint;
@@ -9,6 +10,7 @@ import io.gridgo.socket.helper.EndpointParser;
 import io.gridgo.utils.ThreadUtils;
 import io.gridgo.utils.helper.Loggable;
 import lombok.Getter;
+import lombok.NonNull;
 
 public abstract class AbstractSocket implements Socket, Loggable {
 
@@ -17,6 +19,8 @@ public abstract class AbstractSocket implements Socket, Loggable {
 
 	@Getter
 	private volatile Endpoint endpoint;
+
+	private final AtomicReference<String> topic = new AtomicReference<String>(null);
 
 	@Override
 	public final boolean isAlive() {
@@ -50,6 +54,7 @@ public abstract class AbstractSocket implements Socket, Loggable {
 					this.started = true;
 				} catch (Exception ex) {
 					this.startFlag.set(false);
+					throw ex;
 				}
 			}
 		} else {
@@ -68,6 +73,7 @@ public abstract class AbstractSocket implements Socket, Loggable {
 					this.started = true;
 				} catch (Exception ex) {
 					this.startFlag.set(false);
+					throw ex;
 				}
 			}
 		} else {
@@ -92,6 +98,17 @@ public abstract class AbstractSocket implements Socket, Loggable {
 			throw new IllegalStateException("Socket isn't alive");
 		}
 	}
+
+	@Override
+	public final void subscribe(@NonNull String topic) {
+		if (this.topic.compareAndSet(null, topic)) {
+			this.doSubscribe(this.topic.get());
+		} else {
+			throw new IllegalStateException("Socket already subscribe on other topic: " + this.topic.get());
+		}
+	}
+
+	protected abstract int doSubscribe(String topic);
 
 	protected abstract int doSend(ByteBuffer buffer, boolean block);
 

@@ -38,6 +38,7 @@ public class SocketUtils {
 	public static void startPolling( //
 			Socket socket, //
 			ByteBuffer buffer, //
+			boolean skipTopicHeader, //
 			Consumer<Message> receiver, //
 			Consumer<Integer> recvByteCounter, //
 			Consumer<Integer> recvMsgCounter, //
@@ -63,7 +64,15 @@ public class SocketUtils {
 
 				Message message = null;
 				try {
-					message = Message.parse(buffer.flip());
+					buffer.flip();
+					if (skipTopicHeader) {
+						byte b = buffer.get();
+						while (b != 0) {
+							b = buffer.get();
+						}
+					}
+
+					message = Message.parse(buffer);
 					BObject headers = message.getPayload().getHeaders();
 					if (headers != null && headers.getBoolean(SocketConstants.IS_BATCH, false)) {
 						BArray subMessages = message.getPayload().getBody().asArray();

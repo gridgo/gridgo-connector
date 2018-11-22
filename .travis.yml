@@ -9,5 +9,9 @@ services:
 notifications:
   slack: gridgo:EkUUzu8RhdhIVeNKg9JlcuIv
 
+before_install:
+  - sudo apt-get install -y libpgm-dev 
+  - sudo apt-get install -y libstdc++6
+
 after_success:
 - mvn clean test jacoco:report coveralls:report -DrepoToken=$CoverallsRepoToken

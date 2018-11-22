@@ -61,7 +61,7 @@ public class DefaultSocketReceiver extends AbstractConsumer
 		final ByteBuffer buffer = ByteBuffer.allocateDirect(this.bufferSize);
 		Thread.currentThread().setName("[POLLER] " + socket.getEndpoint().getAddress());
 
-		SocketUtils.startPolling(socket, buffer, (message) -> {
+		SocketUtils.startPolling(socket, buffer, false, (message) -> {
 			ensurePayloadId(message);
 			publish(message, null);
 		}, (recvBytes) -> {

@@ -110,8 +110,15 @@ public class NNSocket extends AbstractSocket {
 			success = this.applyConfig(nanomsg.NN_SNDPRIO, PrimitiveUtils.getIntegerValueFrom(value));
 			break;
 		}
+
 		if (success) {
-			System.out.println("[NNSocket] applied config " + name + " with value " + value);
+			// System.out.println("[NNSocket] applied config " + name + " with value " +
+			// value);
 		}
+	}
+
+	@Override
+	protected int doSubscribe(String topic) {
+		return nanomsg.nn_setsockopt_str(this.id, nanomsg.NN_SUB, nanomsg.NN_SUB_SUBSCRIBE, topic);
 	}
 }
