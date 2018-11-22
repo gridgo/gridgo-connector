@@ -35,4 +35,6 @@ public class VertxHttpConstants {
 	public static final String HEADER_STATUS = "Status";
 
 	public static final String HEADER_STATUS_CODE = "Status-Code";
+
+	public static final String HEADER_QUERY_PARAMETERS = "Query-Params";
 }

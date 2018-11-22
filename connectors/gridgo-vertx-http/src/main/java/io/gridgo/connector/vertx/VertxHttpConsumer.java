@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 
-import org.joo.promise4j.impl.SimpleDeferredObject;
+import org.joo.promise4j.impl.AsyncDeferredObject;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
@@ -139,9 +139,11 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 
 	private void handleRequest(RoutingContext ctx) {
 		var request = buildMessage(ctx);
-		var deferred = new SimpleDeferredObject<Message, Exception>(response -> sendResponse(ctx.response(), response),
-				ex -> sendException(ctx, ex));
+		var deferred = new AsyncDeferredObject<Message, Exception>();
 		publish(request, deferred);
+		deferred.promise() //
+				.done(response -> sendResponse(ctx.response(), response)) //
+				.fail(ex -> sendException(ctx, ex));
 	}
 
 	private void sendException(RoutingContext ctx, Exception ex) {
@@ -153,6 +155,10 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 			serverResponse.end();
 			return;
 		}
+
+		// remove the Query-Params header
+		response.getPayload().getHeaders().remove(VertxHttpConstants.HEADER_QUERY_PARAMETERS);
+
 		String status = response.getPayload().getHeaders().getString(VertxHttpConstants.HEADER_STATUS, null);
 		if (status != null)
 			serverResponse.setStatusMessage(status);
@@ -194,6 +200,13 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 		for (var entry : ctx.request().headers()) {
 			headers.put(entry.getKey(), BValue.newDefault(entry.getValue()));
 		}
+
+		var queryParams = BObject.newDefault();
+		for (var query : ctx.request().params()) {
+			queryParams.put(query.getKey(), BValue.newDefault(query.getValue()));
+		}
+
+		headers.put(VertxHttpConstants.HEADER_QUERY_PARAMETERS, queryParams);
 		var body = deserialize(ctx.getBodyAsString());
 		return createMessage(headers, body);
 	}
