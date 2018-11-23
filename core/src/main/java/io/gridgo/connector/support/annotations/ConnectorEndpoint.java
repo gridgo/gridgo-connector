@@ -12,6 +12,8 @@ import java.lang.annotation.Target;
 public @interface ConnectorEndpoint {
 
 	public String scheme();
-	
+
 	public String syntax();
+
+	public boolean raw() default false;
 }
