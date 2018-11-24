@@ -1,6 +1,7 @@
 package io.gridgo.jetty.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -147,6 +148,9 @@ public class TestJettyHttpServer {
 	public void testLocalhostThenAllInterface() throws URISyntaxException, IOException, InterruptedException {
 		System.out.println("Test create server binding on localhost then all interface (0.0.0.0)");
 
+		String osName = System.getProperty("os.name");
+		System.out.println("os name: " + osName);
+
 		JettyHttpServer localhostServer = serverManager.getOrCreateJettyServer("localhost:8889");
 		localhostServer.start();
 
@@ -155,24 +159,33 @@ public class TestJettyHttpServer {
 			localhostReceived.set(req.getParameter("key"));
 		});
 
+		AtomicReference<Exception> errorRef = new AtomicReference<Exception>(null);
 		JettyHttpServer allInterfaceServer = serverManager.getOrCreateJettyServer("0.0.0.0:8889");
-		allInterfaceServer.start();
+		try {
+			allInterfaceServer.start();
+		} catch (Exception e) {
+			errorRef.set(e);
+		}
 
-		final AtomicReference<String> allInterfaceReceived = new AtomicReference<String>(null);
-		allInterfaceServer.addPathHandler("/*", (req, res) -> {
-			allInterfaceReceived.set(req.getParameter("key"));
-		});
+		if (osName.equalsIgnoreCase("Mac OS X")) {
+			final AtomicReference<String> allInterfaceReceived = new AtomicReference<String>(null);
+			allInterfaceServer.addPathHandler("/*", (req, res) -> {
+				allInterfaceReceived.set(req.getParameter("key"));
+			});
 
-		final String encodedText = URLEncoder.encode(TEST_TEXT, Charset.defaultCharset().name());
-		URI uri = new URI("http://localhost:8889/?key=" + encodedText);
-		HttpRequest request = HttpRequest.newBuilder().GET().uri(uri).build();
-		httpClient.send(request, BodyHandlers.ofString());
+			final String encodedText = URLEncoder.encode(TEST_TEXT, Charset.defaultCharset().name());
+			URI uri = new URI("http://localhost:8889/?key=" + encodedText);
+			HttpRequest request = HttpRequest.newBuilder().GET().uri(uri).build();
+			httpClient.send(request, BodyHandlers.ofString());
 
-		assertNull(allInterfaceReceived.get());
-		assertEquals(TEST_TEXT, localhostReceived.get());
+			assertNull(allInterfaceReceived.get());
+			assertEquals(TEST_TEXT, localhostReceived.get());
+			allInterfaceServer.stop();
+		} else {
+			assertNotNull(errorRef.get());
+		}
 
 		localhostServer.stop();
-		allInterfaceServer.stop();
 		System.out.println("*** DONE ***");
 	}
 }
