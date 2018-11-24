@@ -53,7 +53,7 @@ public class JettyHttpServer extends NonameComponentLifecycle {
 		try {
 			server.start();
 		} catch (Exception e) {
-			throw new RuntimeException("Cannot start server connector for host: " + address);
+			throw new RuntimeException("Cannot start server connector for host: " + address, e);
 		}
 	}
 
