@@ -11,11 +11,41 @@
 
 	<artifactId>gridgo-jetty-http</artifactId>
 
+	<properties>
+		<jetty.version>9.4.14.v20181114</jetty.version>
+		<jetty.alpn.api.version>1.1.2.v20150522</jetty.alpn.api.version>
+	</properties>
+
 	<dependencies>
 		<dependency>
+			<groupId>org.eclipse.jetty.http2</groupId>
+			<artifactId>http2-server</artifactId>
+			<version>${jetty.version}</version>
+		</dependency>
+		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
-			<artifactId>jetty-server</artifactId>
-			<version>9.4.14.v20181114</version>
+			<artifactId>jetty-alpn-server</artifactId>
+			<version>${jetty.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-jmx</artifactId>
+			<version>${jetty.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-servlet</artifactId>
+			<version>${jetty.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-servlets</artifactId>
+			<version>${jetty.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty.alpn</groupId>
+			<artifactId>alpn-api</artifactId>
+			<version>${jetty.alpn.api.version}</version>
 		</dependency>
 	</dependencies>
 </project>
