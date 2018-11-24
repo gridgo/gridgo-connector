@@ -71,6 +71,12 @@ public class ResolverUnitTest {
 		assertEquals(null, props.get("nic"));
 		assertEquals("127.0.0.1", props.get("host"));
 		assertEquals("5555", props.get("port"));
+
+		props = resolver.testResolver("http://127.0.0.1:8080/[api/v1/products]",
+				"http://{host}:{port}/{path}");
+		assertEquals("127.0.0.1", props.get("host"));
+		assertEquals("8080", props.get("port"));
+		assertEquals("[api/v1/products]", props.get("path"));
 	}
 
 	@Test

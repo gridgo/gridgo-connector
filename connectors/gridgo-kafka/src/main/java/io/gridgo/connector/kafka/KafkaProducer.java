@@ -78,6 +78,13 @@ public class KafkaProducer extends AbstractProducer {
 		if (body != null && !body.isValue()) {
 			record.headers().add(KafkaConstants.RAW, new byte[] { 1 });
 		}
+
+		for (var header : headers.entrySet()) {
+			if (header.getValue().isValue()) {
+				record.headers().add(header.getKey(), header.getValue().asValue().toBytes());
+			}
+		}
+
 		return record;
 	}
 

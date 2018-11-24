@@ -16,6 +16,17 @@ import io.gridgo.framework.support.Payload;
 public class ConnectorUnitTest {
 
 	@Test
+	public void testMultiSchemes() {
+		var connector = new DefaultConnectorFactory().createConnector("test:pull:tcp://127.0.0.1:8080?p1=v1&p2=v2");
+		Assert.assertNotNull(connector);
+		Assert.assertTrue(connector instanceof TestConnector);
+		
+		connector = new DefaultConnectorFactory().createConnector("test1:pull:tcp://127.0.0.1:8080?p1=v1&p2=v2");
+		Assert.assertNotNull(connector);
+		Assert.assertTrue(connector instanceof TestConnector);
+	}
+
+	@Test
 	public void testConsumer() {
 		var connector = (TestConnector) new DefaultConnectorFactory()
 				.createConnector("test:pull:tcp://127.0.0.1:8080?p1=v1&p2=v2");
@@ -24,7 +35,7 @@ public class ConnectorUnitTest {
 		Assert.assertEquals("bar", connector.getParamPublic("foo", "bar"));
 		Assert.assertEquals("pull", connector.getPlaceholderPublic("type"));
 		Assert.assertEquals("tcp", connector.getPlaceholderPublic("transport"));
-		
+
 		var consumer = (TestConsumer) connector.getConsumer().orElseThrow();
 		connector.start();
 		var latch = new CountDownLatch(1);

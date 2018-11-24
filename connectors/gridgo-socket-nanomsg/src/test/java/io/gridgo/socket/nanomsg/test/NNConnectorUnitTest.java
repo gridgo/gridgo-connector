@@ -33,6 +33,10 @@ public class NNConnectorUnitTest {
 	@Test
 	public void testPubSub() throws Exception {
 
+		String osName = System.getProperty("os.name");
+		if (osName != null && osName.contains("Windows"))
+			return;
+
 		System.out.println("Test pub/sub via TCP");
 
 //		String transport = "pgm";

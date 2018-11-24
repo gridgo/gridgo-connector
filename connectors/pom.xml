@@ -21,6 +21,7 @@
 		<module>gridgo-vertx-http</module>
 		<module>gridgo-mongodb</module>
 		<module>gridgo-jetty-http</module>
+		<module>gridgo-http</module>
 	</modules>
 
 	<dependencies>

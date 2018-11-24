@@ -19,13 +19,14 @@ public class VertxHttpConnector extends AbstractConnector {
 		String method = getParam(VertxHttpConstants.PARAM_METHOD);
 		String format = getParam(VertxHttpConstants.PARAM_FORMAT);
 		String vertxBean = getParam(VertxHttpConstants.PARAM_VERTX_BEAN);
-		var vertxOptions = buildVertxOptions();
 		Vertx vertx = null;
 		if (vertxBean != null) {
 			vertx = getContext().getRegistry().lookupMandatory(vertxBean, Vertx.class);
 		}
+		var vertxOptions = buildVertxOptions();
 		var httpOptions = buildHttpServerOptions();
-		var vertxConsumer = new VertxHttpConsumer(getContext(), vertx, vertxOptions, httpOptions, path, method, format);
+		var vertxConsumer = new VertxHttpConsumer(getContext(), vertx, vertxOptions, httpOptions, path, method, format,
+				getConnectorConfig().getParameters());
 		this.consumer = Optional.of(vertxConsumer);
 	}
 

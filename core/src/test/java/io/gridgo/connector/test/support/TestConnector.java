@@ -5,7 +5,7 @@ import java.util.Optional;
 import io.gridgo.connector.impl.AbstractConnector;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 
-@ConnectorEndpoint(scheme = "test", syntax = "{type}:{transport}://{host}:{port}")
+@ConnectorEndpoint(scheme = "test,test1", syntax = "{type}:{transport}://{host}:{port}")
 public class TestConnector extends AbstractConnector {
 
 	@Override
