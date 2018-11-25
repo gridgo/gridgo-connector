@@ -53,6 +53,7 @@ public abstract class AbstractHttpRequestParser implements HttpRequestParser, Lo
 				.addMisc(HttpConstants.SERVER_NAME, request.getServerName()) //
 				.addMisc(HttpConstants.SERVER_PORT, request.getServerPort()) //
 				.addMisc(HttpConstants.USER_PRINCIPAL, request.getUserPrincipal()) //
+				.addMisc(HttpConstants.PATH_INFO, request.getPathInfo()) //
 		;
 		if (options != null) {
 			if (options.contains(JettyServletContextHandlerOption.SESSIONS)) {

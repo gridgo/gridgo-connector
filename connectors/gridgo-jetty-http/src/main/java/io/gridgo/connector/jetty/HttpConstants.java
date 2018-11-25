@@ -18,4 +18,5 @@ public final class HttpConstants {
 	public static final String LOCALES = "locales";
 	public static final String SESSION = "session";
 	public static final String USER_PRINCIPAL = "userPrincipal";
+	public static final String PATH_INFO = "pathInfo";
 }
