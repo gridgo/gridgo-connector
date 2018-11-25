@@ -1,5 +1,6 @@
 package io.gridgo.connector.jetty.impl;
 
+import java.util.Set;
 import java.util.function.Function;
 
 import javax.servlet.http.HttpServletRequest;
@@ -11,11 +12,12 @@ import org.joo.promise4j.impl.CompletableDeferredObject;
 import io.gridgo.connector.impl.AbstractHasResponderConsumer;
 import io.gridgo.connector.jetty.JettyConsumer;
 import io.gridgo.connector.jetty.JettyResponder;
+import io.gridgo.connector.jetty.parser.HttpRequestParser;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.gridgo.jetty.JettyHttpServer;
 import io.gridgo.jetty.JettyHttpServerManager;
-import io.gridgo.jetty.support.HttpMessageHelper;
+import io.gridgo.jetty.JettyServletContextHandlerOption;
 import io.gridgo.utils.support.HostAndPort;
 import lombok.NonNull;
 
@@ -30,8 +32,13 @@ public class AbstractJettyConsumer extends AbstractHasResponderConsumer implemen
 
 	private final String uniqueIdentifier;
 
-	public AbstractJettyConsumer(ConnectorContext context, @NonNull HostAndPort address, String path, String httpType) {
+	private final Set<JettyServletContextHandlerOption> options;
+
+	public AbstractJettyConsumer(ConnectorContext context, @NonNull HostAndPort address, String path, String httpType,
+			Set<JettyServletContextHandlerOption> options) {
 		super(context);
+
+		this.options = options;
 
 		this.httpType = (httpType == null || httpType.isBlank()) ? "http" : httpType;
 		if (!HTTP_SERVER_TYPES.contains(this.httpType)) {
@@ -43,7 +50,7 @@ public class AbstractJettyConsumer extends AbstractHasResponderConsumer implemen
 		path = (path == null || path.isBlank()) ? "/*" : path.trim();
 		this.path = path.startsWith("/") ? path : ("/" + path);
 
-		this.httpServer = JettyHttpServerManager.getInstance().getOrCreateJettyServer(this.address);
+		this.httpServer = JettyHttpServerManager.getInstance().getOrCreateJettyServer(this.address, this.options);
 		if (this.httpServer == null) {
 			throw new RuntimeException("Cannot create http server for address: " + this.address);
 		}
@@ -61,20 +68,27 @@ public class AbstractJettyConsumer extends AbstractHasResponderConsumer implemen
 		return (JettyResponder) this.getResponder();
 	}
 
+	protected HttpRequestParser getHttpRequestParser() {
+		var parser = this.getContext().getRegistry().lookup("httpRequestParser");
+		return parser == null ? HttpRequestParser.DEFAULT : (HttpRequestParser) parser;
+	}
+
 	private void onHttpRequest(HttpServletRequest request, HttpServletResponse response) {
 		Message requestMessage = null;
 		try {
 			// parse http servlet request to message object
-			requestMessage = HttpMessageHelper.parse(request);
+			requestMessage = this.getHttpRequestParser().parse(request, this.options);
 		} catch (Exception e) {
+			getLogger().error("error while parsing http request", e);
 			Message responseMessage = this.failureHandler != null ? this.failureHandler.apply(e)
 					: this.getJettyResponder().generateFailureMessage(e);
 			((JettyResponder) this.getResponder()).writeResponse(response, responseMessage);
 		}
 
 		if (requestMessage != null) {
-			var deferred = ((JettyResponder) this.getResponder()).registerRequest(request);
-			this.publish(requestMessage, deferred);
+			var deferredAndRoutingId = ((JettyResponder) this.getResponder()).registerRequest(request);
+			this.publish(requestMessage.setRoutingIdFromAny(deferredAndRoutingId.getRoutingId()),
+					deferredAndRoutingId.getDeferred());
 		}
 	}
 

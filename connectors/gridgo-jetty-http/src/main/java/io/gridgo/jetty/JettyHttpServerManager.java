@@ -3,6 +3,7 @@ package io.gridgo.jetty;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Set;
 
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
 
@@ -39,11 +40,20 @@ public class JettyHttpServerManager {
 		this.servers.remove(address);
 	}
 
+	public JettyHttpServer getOrCreateJettyServer(String address, Set<JettyServletContextHandlerOption> options) {
+		return this.getOrCreateJettyServer(HostAndPort.fromString(address), options);
+	}
+
 	public JettyHttpServer getOrCreateJettyServer(String address) {
-		return this.getOrCreateJettyServer(HostAndPort.fromString(address));
+		return this.getOrCreateJettyServer(HostAndPort.fromString(address), null);
 	}
 
 	public JettyHttpServer getOrCreateJettyServer(@NonNull HostAndPort originAddress) {
+		return getOrCreateJettyServer(originAddress, null);
+	}
+
+	public JettyHttpServer getOrCreateJettyServer(@NonNull HostAndPort originAddress,
+			Set<JettyServletContextHandlerOption> options) {
 		HostAndPort address = originAddress.makeCopy();
 		if (!address.isResolvable()) {
 			throw new RuntimeException("Host '" + originAddress.getHost() + "' cannot be resolved");
@@ -64,7 +74,7 @@ public class JettyHttpServerManager {
 			if (jettyHttpServer == null) {
 				synchronized (this.servers) {
 					if (!this.servers.containsKey(address) && !this.servers.containsKey(allInterface)) {
-						jettyHttpServer = new JettyHttpServer(address, this::onServerStop);
+						jettyHttpServer = new JettyHttpServer(address, options, this::onServerStop);
 						this.servers.put(address, jettyHttpServer);
 					}
 				}

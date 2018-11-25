@@ -1,8 +1,10 @@
 package io.gridgo.jetty;
 
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import javax.servlet.MultipartConfigElement;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -27,14 +29,20 @@ public class JettyHttpServer extends NonameComponentLifecycle {
 
 	private final Consumer<HostAndPort> onStopCallback;
 
-	JettyHttpServer(@NonNull HostAndPort address, Consumer<HostAndPort> onStopCallback) {
+	private final Set<JettyServletContextHandlerOption> options;
+
+	JettyHttpServer(@NonNull HostAndPort address, Set<JettyServletContextHandlerOption> options,
+			Consumer<HostAndPort> onStopCallback) {
 		this.address = address;
 		this.onStopCallback = onStopCallback;
+		this.options = options;
 	}
 
 	public JettyHttpServer addPathHandler(@NonNull String path,
 			@NonNull BiConsumer<HttpServletRequest, HttpServletResponse> handler) {
-		this.handler.addServlet(new ServletHolder(new DelegateServlet(handler)), path);
+		ServletHolder servletHolder = new ServletHolder(new DelegateServlet(handler));
+		servletHolder.getRegistration().setMultipartConfig(new MultipartConfigElement(path));
+		this.handler.addServlet(servletHolder, path);
 		return this;
 	}
 
@@ -47,13 +55,25 @@ public class JettyHttpServer extends NonameComponentLifecycle {
 		connector.setPort(address.getPort());
 		server.addConnector(connector);
 
-		handler = new ServletContextHandler();
+		handler = createServletContextHandler();
 		server.setHandler(handler);
 
 		try {
 			server.start();
 		} catch (Exception e) {
 			throw new RuntimeException("Cannot start server connector for host: " + address, e);
+		}
+	}
+
+	private ServletContextHandler createServletContextHandler() {
+		if (this.options == null || this.options.size() == 0) {
+			return new ServletContextHandler();
+		} else {
+			int options = 0;
+			for (JettyServletContextHandlerOption option : this.options) {
+				options = options | option.getCode();
+			}
+			return new ServletContextHandler(options);
 		}
 	}
 

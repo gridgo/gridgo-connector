@@ -20,6 +20,7 @@ import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.AbstractResponder;
+import io.gridgo.connector.jetty.DeferredAndRoutingId;
 import io.gridgo.connector.jetty.JettyResponder;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
@@ -106,11 +107,11 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 	}
 
 	@Override
-	public Deferred<Message, Exception> registerRequest(@NonNull HttpServletRequest request) {
+	public DeferredAndRoutingId registerRequest(@NonNull HttpServletRequest request) {
 		final Deferred<Message, Exception> deferredResponse = new CompletableDeferredObject<>();
-		final AsyncContext asyncContext = request.getAsyncContext();
-		final long id = ID_SEED.getAndIncrement();
-		this.deferredResponses.put(id, deferredResponse);
+		final AsyncContext asyncContext = request.startAsync();
+		final long routingId = ID_SEED.getAndIncrement();
+		this.deferredResponses.put(routingId, deferredResponse);
 		deferredResponse.promise().always((stt, resp, ex) -> {
 			try {
 				HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();
@@ -118,10 +119,10 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 				writeResponse(response, responseMessage);
 				asyncContext.complete();
 			} finally {
-				deferredResponses.remove(id);
+				deferredResponses.remove(routingId);
 			}
 		});
-		return deferredResponse;
+		return DeferredAndRoutingId.builder().deferred(deferredResponse).routingId(routingId).build();
 	}
 
 	@Override
