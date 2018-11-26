@@ -192,7 +192,7 @@ public class UriConnectorResolver implements ConnectorResolver {
 				return true;
 		}
 		return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_' || c == '-' || c == '.'
-				|| c == ',';
+				|| c == '*' || c == ',';
 	}
 
 	private String extractPlaceholderKey(String syntax, int j, CharBuffer buffer) {
