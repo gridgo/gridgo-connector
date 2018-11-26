@@ -46,13 +46,32 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 		message.attachSource(getName());
 		for (var subscriber : this.subscribers) {
 			try {
-				context.getCallbackInvokerStrategy().execute(() -> subscriber.accept(message, deferred));
+				context.getCallbackInvokerStrategy().execute(() -> {
+					notifySubscriber(message, deferred, subscriber);
+				});
 			} catch (Exception ex) {
-				getLogger().error("Error while publishing message", ex);
-				if (deferred != null) {
-					deferred.reject(ex);
-				}
+				notifyErrors(deferred, ex);
 			}
+		}
+	}
+
+	private void notifySubscriber(Message message, Deferred<Message, Exception> deferred,
+			BiConsumer<Message, Deferred<Message, Exception>> subscriber) {
+		try {
+			subscriber.accept(message, deferred);
+		} catch (Exception ex) {
+			notifyErrors(deferred, ex);
+		}
+	}
+
+	private void notifyErrors(Deferred<Message, Exception> deferred, Exception ex) {
+		try {
+			getLogger().error("Exception caught while publishing message", ex);
+			if (deferred != null)
+				deferred.reject(ex);
+			getContext().getExceptionHandler().accept(ex);
+		} catch (Exception e2) {
+			getLogger().error("Exception caught while trying to handle exception :(", e2);
 		}
 	}
 
