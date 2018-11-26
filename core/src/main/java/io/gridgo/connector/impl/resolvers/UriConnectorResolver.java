@@ -103,6 +103,8 @@ public class UriConnectorResolver implements ConnectorResolver {
 				String placeholderValue = extractPlaceholderValue(schemePart, i, buffer);
 				j += placeholderName.length() + 2;
 				i += placeholderValue.length();
+				if (!placeholderValue.isEmpty() && placeholderValue.charAt(0) == '[')
+					placeholderValue = placeholderValue.substring(1, placeholderValue.length() - 1);
 				if (!placeholderValue.isEmpty()) {
 					if (optional)
 						optionalPlaceholder.put(placeholderName, placeholderValue);
