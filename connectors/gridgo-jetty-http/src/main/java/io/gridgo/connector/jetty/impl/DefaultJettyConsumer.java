@@ -8,9 +8,9 @@ import io.gridgo.utils.support.HostAndPort;
 
 public class DefaultJettyConsumer extends AbstractJettyConsumer {
 
-	public DefaultJettyConsumer(ConnectorContext context, HostAndPort address, String path, String httpType,
+	public DefaultJettyConsumer(ConnectorContext context, HostAndPort address, boolean http2Enabled, String path,
 			Set<JettyServletContextHandlerOption> options) {
-		super(context, address, path, httpType, options);
+		super(context, address, http2Enabled, path, options);
 	}
 
 }

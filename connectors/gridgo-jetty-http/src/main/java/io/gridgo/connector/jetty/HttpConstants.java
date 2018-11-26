@@ -19,4 +19,10 @@ public final class HttpConstants {
 	public static final String SESSION = "session";
 	public static final String USER_PRINCIPAL = "userPrincipal";
 	public static final String PATH_INFO = "pathInfo";
+	public static final String QUERY = "query";
+	public static final String BODY = "body";
+	public static final String CHARSET = "charset";
+	public static final String IS_CONVERTED = "isConverted";
+	public static final String VALUE = "value";
+	public static final String SIZE = "size";
 }

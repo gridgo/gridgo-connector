@@ -23,7 +23,6 @@ import lombok.NonNull;
 
 public class AbstractJettyConsumer extends AbstractHasResponderConsumer implements JettyConsumer {
 
-	private final String httpType;
 	private final HostAndPort address;
 	private final String path;
 
@@ -34,34 +33,30 @@ public class AbstractJettyConsumer extends AbstractHasResponderConsumer implemen
 
 	private final Set<JettyServletContextHandlerOption> options;
 
-	public AbstractJettyConsumer(ConnectorContext context, @NonNull HostAndPort address, String path, String httpType,
-			Set<JettyServletContextHandlerOption> options) {
+	public AbstractJettyConsumer(ConnectorContext context, @NonNull HostAndPort address, boolean http2Enabled,
+			String path, Set<JettyServletContextHandlerOption> options) {
 		super(context);
 
 		this.options = options;
-
-		this.httpType = (httpType == null || httpType.isBlank()) ? "http" : httpType;
-		if (!HTTP_SERVER_TYPES.contains(this.httpType)) {
-			throw new IllegalArgumentException("Http type is invalid, allowed: " + HTTP_SERVER_TYPES);
-		}
 
 		this.address = address;
 
 		path = (path == null || path.isBlank()) ? "/*" : path.trim();
 		this.path = path.startsWith("/") ? path : ("/" + path);
 
-		this.httpServer = JettyHttpServerManager.getInstance().getOrCreateJettyServer(this.address, this.options);
+		this.httpServer = JettyHttpServerManager.getInstance().getOrCreateJettyServer(this.address, http2Enabled,
+				this.options);
 		if (this.httpServer == null) {
 			throw new RuntimeException("Cannot create http server for address: " + this.address);
 		}
 
-		this.uniqueIdentifier = this.httpType + "://" + address.toHostAndPort() + this.path;
+		this.uniqueIdentifier = address.toHostAndPort() + this.path;
 		this.setResponder(new DefaultJettyResponder(getContext(), this.uniqueIdentifier));
 	}
 
 	@Override
 	protected String generateName() {
-		return "consumer.jetty." + this.uniqueIdentifier;
+		return "consumer.jetty.http-server." + this.uniqueIdentifier;
 	}
 
 	protected JettyResponder getJettyResponder() {

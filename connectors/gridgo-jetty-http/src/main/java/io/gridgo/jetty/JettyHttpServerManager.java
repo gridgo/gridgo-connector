@@ -40,19 +40,20 @@ public class JettyHttpServerManager {
 		this.servers.remove(address);
 	}
 
-	public JettyHttpServer getOrCreateJettyServer(String address, Set<JettyServletContextHandlerOption> options) {
-		return this.getOrCreateJettyServer(HostAndPort.fromString(address), options);
+	public JettyHttpServer getOrCreateJettyServer(String address, boolean http2Enabled,
+			Set<JettyServletContextHandlerOption> options) {
+		return this.getOrCreateJettyServer(HostAndPort.fromString(address), http2Enabled, options);
 	}
 
-	public JettyHttpServer getOrCreateJettyServer(String address) {
-		return this.getOrCreateJettyServer(HostAndPort.fromString(address), null);
+	public JettyHttpServer getOrCreateJettyServer(String address, boolean http2Enabled) {
+		return this.getOrCreateJettyServer(HostAndPort.fromString(address), http2Enabled, null);
 	}
 
-	public JettyHttpServer getOrCreateJettyServer(@NonNull HostAndPort originAddress) {
-		return getOrCreateJettyServer(originAddress, null);
+	public JettyHttpServer getOrCreateJettyServer(@NonNull HostAndPort originAddress, boolean http2Enabled) {
+		return getOrCreateJettyServer(originAddress, http2Enabled, null);
 	}
 
-	public JettyHttpServer getOrCreateJettyServer(@NonNull HostAndPort originAddress,
+	public JettyHttpServer getOrCreateJettyServer(@NonNull HostAndPort originAddress, boolean http2Enabled,
 			Set<JettyServletContextHandlerOption> options) {
 		HostAndPort address = originAddress.makeCopy();
 		if (!address.isResolvable()) {
@@ -74,7 +75,7 @@ public class JettyHttpServerManager {
 			if (jettyHttpServer == null) {
 				synchronized (this.servers) {
 					if (!this.servers.containsKey(address) && !this.servers.containsKey(allInterface)) {
-						jettyHttpServer = new JettyHttpServer(address, options, this::onServerStop);
+						jettyHttpServer = new JettyHttpServer(address, http2Enabled, options, this::onServerStop);
 						this.servers.put(address, jettyHttpServer);
 					}
 				}

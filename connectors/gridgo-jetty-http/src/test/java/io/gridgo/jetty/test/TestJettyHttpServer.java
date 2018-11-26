@@ -38,7 +38,7 @@ public class TestJettyHttpServer {
 	@Test
 	public void testPingPong() throws IOException, InterruptedException, URISyntaxException {
 		System.out.println("Test ping pong");
-		JettyHttpServer httpServer = serverManager.getOrCreateJettyServer(address);
+		JettyHttpServer httpServer = serverManager.getOrCreateJettyServer(address, true);
 		httpServer.start();
 
 		final CountDownLatch doneSignal = new CountDownLatch(1);
@@ -81,7 +81,7 @@ public class TestJettyHttpServer {
 	@Test
 	public void testMultiPath() throws IOException, InterruptedException, URISyntaxException {
 		System.out.println("Test handling on multi path");
-		JettyHttpServer httpServer = serverManager.getOrCreateJettyServer(address);
+		JettyHttpServer httpServer = serverManager.getOrCreateJettyServer(address, true);
 		httpServer.start();
 
 		final CountDownLatch doneSignal = new CountDownLatch(3);
@@ -129,9 +129,9 @@ public class TestJettyHttpServer {
 	public void testAllInterfaceThenLocalhost() {
 		System.out.println("Test create server binding on all interface (0.0.0.0) then localhost");
 
-		JettyHttpServer httpServer1 = serverManager.getOrCreateJettyServer("0.0.0.0:8889");
-		JettyHttpServer httpServer2 = serverManager.getOrCreateJettyServer("localhost:8889");
-		JettyHttpServer httpServer3 = serverManager.getOrCreateJettyServer("*:8889");
+		JettyHttpServer httpServer1 = serverManager.getOrCreateJettyServer("0.0.0.0:8889", true);
+		JettyHttpServer httpServer2 = serverManager.getOrCreateJettyServer("localhost:8889", true);
+		JettyHttpServer httpServer3 = serverManager.getOrCreateJettyServer("*:8889", true);
 
 		assertTrue(httpServer1 == httpServer2);
 		assertTrue(httpServer1 == httpServer3);
@@ -151,7 +151,7 @@ public class TestJettyHttpServer {
 		String osName = System.getProperty("os.name");
 		System.out.println("os name: " + osName);
 
-		JettyHttpServer localhostServer = serverManager.getOrCreateJettyServer("localhost:8889");
+		JettyHttpServer localhostServer = serverManager.getOrCreateJettyServer("localhost:8889", true);
 		localhostServer.start();
 
 		final AtomicReference<String> localhostReceived = new AtomicReference<String>(null);
@@ -160,7 +160,7 @@ public class TestJettyHttpServer {
 		});
 
 		AtomicReference<Exception> errorRef = new AtomicReference<Exception>(null);
-		JettyHttpServer allInterfaceServer = serverManager.getOrCreateJettyServer("0.0.0.0:8889");
+		JettyHttpServer allInterfaceServer = serverManager.getOrCreateJettyServer("0.0.0.0:8889", true);
 		try {
 			allInterfaceServer.start();
 		} catch (Exception e) {

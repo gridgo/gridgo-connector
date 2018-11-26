@@ -10,12 +10,11 @@ import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.jetty.JettyServletContextHandlerOption;
 import io.gridgo.utils.support.HostAndPort;
 
-@ConnectorEndpoint(scheme = "jetty", syntax = "{type}://{host}[:{port}][/{path}]")
+@ConnectorEndpoint(scheme = "jetty", syntax = "http://{host}[:{port}][/{path}]")
 public class JettyConnector extends AbstractConnector {
 
 	@Override
 	protected void onInit() {
-		String type = getPlaceholder("type");
 		String host = getPlaceholder("host");
 
 		String portStr = getPlaceholder("port");
@@ -27,9 +26,10 @@ public class JettyConnector extends AbstractConnector {
 		}
 
 		Set<JettyServletContextHandlerOption> options = readOptions();
+		boolean http2Enabled = Boolean.valueOf(getParam("http2Enabled", "true"));
 
-		var jettyConsumer = new DefaultJettyConsumer(getContext(), HostAndPort.newInstance(host, port), path, type,
-				options);
+		var jettyConsumer = new DefaultJettyConsumer(getContext(), HostAndPort.newInstance(host, port), http2Enabled,
+				path, options);
 
 		this.consumer = Optional.of(jettyConsumer);
 		this.producer = Optional.of(jettyConsumer.getResponder());

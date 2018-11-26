@@ -13,18 +13,12 @@
 
 	<properties>
 		<jetty.version>9.4.14.v20181114</jetty.version>
-		<jetty.alpn.api.version>1.1.2.v20150522</jetty.alpn.api.version>
 	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>org.eclipse.jetty.http2</groupId>
 			<artifactId>http2-server</artifactId>
-			<version>${jetty.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.eclipse.jetty</groupId>
-			<artifactId>jetty-alpn-server</artifactId>
 			<version>${jetty.version}</version>
 		</dependency>
 		<dependency>
@@ -38,11 +32,12 @@
 			<version>${jetty.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>org.eclipse.jetty.alpn</groupId>
-			<artifactId>alpn-api</artifactId>
-			<version>${jetty.alpn.api.version}</version>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-alpn-server</artifactId>
+			<version>${jetty.version}</version>
 		</dependency>
 
+		<!-- DEPENDENCIES for test... -->
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
@@ -55,6 +50,5 @@
 			<version>4.5.3</version>
 			<scope>test</scope>
 		</dependency>
-
 	</dependencies>
 </project>
