@@ -75,20 +75,22 @@ public abstract class AbstractHttpRequestParser implements HttpRequestParser, Lo
 
 	protected Map<String, String> extractQueryString(String query, Charset charset) {
 		Map<String, String> queryPairs = new LinkedHashMap<>();
-		String[] pairs = query.split("&");
-		for (String pair : pairs) {
-			if (pair.isBlank()) {
-				continue;
-			}
+		if (query != null && !query.isBlank()) {
+			String[] pairs = query.split("&");
+			for (String pair : pairs) {
+				if (pair.isBlank()) {
+					continue;
+				}
 
-			int idx = pair.indexOf("=");
-			if (idx < 0) {
-				queryPairs.put(pair, "");
-			} else if (idx == 0) {
-				queryPairs.put("", URLDecoder.decode(pair.substring(idx + 1), charset));
-			} else {
-				queryPairs.put(URLDecoder.decode(pair.substring(0, idx), charset),
-						URLDecoder.decode(pair.substring(idx + 1), charset));
+				int idx = pair.indexOf("=");
+				if (idx < 0) {
+					queryPairs.put(pair, "");
+				} else if (idx == 0) {
+					queryPairs.put("", URLDecoder.decode(pair.substring(idx + 1), charset));
+				} else {
+					queryPairs.put(URLDecoder.decode(pair.substring(0, idx), charset),
+							URLDecoder.decode(pair.substring(idx + 1), charset));
+				}
 			}
 		}
 		return queryPairs;
