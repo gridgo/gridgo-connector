@@ -19,10 +19,9 @@ import org.asynchttpclient.Response;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.CompletableDeferredObject;
 
-import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.http.support.ConnectionException;
-import io.gridgo.connector.impl.AbstractProducer;
+import io.gridgo.connector.httpcommon.AbstractHttpProducer;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.netty.handler.codec.http.HttpHeaders;
@@ -30,7 +29,7 @@ import io.netty.resolver.NameResolver;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class HttpProducer extends AbstractProducer {
+public class HttpProducer extends AbstractHttpProducer {
 
 	private String endpointUri;
 
@@ -38,16 +37,13 @@ public class HttpProducer extends AbstractProducer {
 
 	private Builder config;
 
-	private String format;
-
 	private NameResolver<InetAddress> nameResolver;
 
 	public HttpProducer(ConnectorContext context, String endpointUri, Builder config, String format,
 			NameResolver<InetAddress> nameResolver) {
-		super(context);
+		super(context, format);
 		this.endpointUri = endpointUri;
 		this.config = config;
-		this.format = format;
 		this.nameResolver = nameResolver;
 	}
 
@@ -135,21 +131,18 @@ public class HttpProducer extends AbstractProducer {
 		return deferred.promise();
 	}
 
-	@Override
-	public boolean isCallSupported() {
-		return true;
-	}
-
 	private Request buildRequest(Message message) {
 		if (message == null)
 			return new RequestBuilder().setUrl(endpointUri).build();
-		var payload = message.getPayload();
-		var method = payload.getHeaders().getString(HttpConstants.HEADER_HTTP_METHOD, "GET");
-		var body = serialize(payload.getBody());
-		var params = buildParams(
-				payload.getHeaders().getObject(HttpConstants.HEADER_QUERY_PARAMS, BObject.newDefault()));
-		return new RequestBuilder(method).setUrl(endpointUri).setBody(body).setQueryParams(params)
-				.setNameResolver(nameResolver).build();
+		var method = getMethod(message, "GET");
+		var params = buildParams(getQueryParams(message));
+		var body = serialize(message.getPayload().getBody());
+		return new RequestBuilder(method) //
+				.setUrl(endpointUri) //
+				.setBody(body) //
+				.setQueryParams(params) //
+				.setNameResolver(nameResolver) //
+				.build();
 	}
 
 	private List<Param> buildParams(BObject object) {
@@ -174,21 +167,5 @@ public class HttpProducer extends AbstractProducer {
 			return obj;
 		entries.forEach(e -> obj.putAny(e.getKey(), e.getValue()));
 		return obj;
-	}
-
-	private BElement deserialize(String responseBody) {
-		if (responseBody == null)
-			return null;
-		if ("xml".equals(responseBody))
-			return BElement.fromXml(responseBody);
-		return BElement.fromJson(responseBody);
-	}
-
-	private String serialize(BElement body) {
-		if (body == null)
-			return null;
-		if ("xml".equals(format))
-			return body.toXml();
-		return body.toJson();
 	}
 }
