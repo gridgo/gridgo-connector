@@ -6,8 +6,8 @@ import java.util.Set;
 
 import io.gridgo.connector.impl.AbstractConnector;
 import io.gridgo.connector.jetty.impl.DefaultJettyConsumer;
+import io.gridgo.connector.jetty.server.JettyServletContextHandlerOption;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
-import io.gridgo.jetty.JettyServletContextHandlerOption;
 import io.gridgo.utils.support.HostAndPort;
 
 @ConnectorEndpoint(scheme = "jetty", syntax = "http://{host}[:{port}][/{path}]")

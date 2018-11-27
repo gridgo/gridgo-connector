@@ -13,11 +13,11 @@ import io.gridgo.connector.impl.AbstractHasResponderConsumer;
 import io.gridgo.connector.jetty.JettyConsumer;
 import io.gridgo.connector.jetty.JettyResponder;
 import io.gridgo.connector.jetty.parser.HttpRequestParser;
+import io.gridgo.connector.jetty.server.JettyHttpServer;
+import io.gridgo.connector.jetty.server.JettyHttpServerManager;
+import io.gridgo.connector.jetty.server.JettyServletContextHandlerOption;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
-import io.gridgo.jetty.JettyHttpServer;
-import io.gridgo.jetty.JettyHttpServerManager;
-import io.gridgo.jetty.JettyServletContextHandlerOption;
 import io.gridgo.utils.support.HostAndPort;
 import lombok.NonNull;
 

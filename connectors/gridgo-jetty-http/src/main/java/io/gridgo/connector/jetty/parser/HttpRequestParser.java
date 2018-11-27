@@ -4,8 +4,8 @@ import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
+import io.gridgo.connector.jetty.server.JettyServletContextHandlerOption;
 import io.gridgo.framework.support.Message;
-import io.gridgo.jetty.JettyServletContextHandlerOption;
 
 public interface HttpRequestParser {
 

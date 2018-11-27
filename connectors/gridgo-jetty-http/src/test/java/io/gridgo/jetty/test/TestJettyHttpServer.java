@@ -23,8 +23,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.junit.Test;
 
-import io.gridgo.jetty.JettyHttpServer;
-import io.gridgo.jetty.JettyHttpServerManager;
+import io.gridgo.connector.jetty.server.JettyHttpServer;
+import io.gridgo.connector.jetty.server.JettyHttpServerManager;
 
 public class TestJettyHttpServer {
 
