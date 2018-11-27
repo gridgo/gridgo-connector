@@ -3,20 +3,16 @@ package io.gridgo.connector.vertx;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.Function;
 
 import org.joo.promise4j.impl.AsyncDeferredObject;
 
 import io.gridgo.bean.BArray;
-import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.Consumer;
-import io.gridgo.connector.impl.AbstractConsumer;
+import io.gridgo.connector.httpcommon.AbstractHttpConsumer;
 import io.gridgo.connector.support.ConnectionRef;
 import io.gridgo.connector.support.config.ConnectorContext;
-import io.gridgo.connector.support.exceptions.FailureHandlerAware;
-import io.gridgo.connector.vertx.support.exceptions.UnsupportedFormatException;
 import io.gridgo.framework.support.Message;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
@@ -28,7 +24,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
-public class VertxHttpConsumer extends AbstractConsumer implements Consumer, FailureHandlerAware<VertxHttpConsumer> {
+public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer {
 
 	private static final Map<String, ConnectionRef<ServerRouterTuple>> SERVER_MAP = new HashMap<>();
 
@@ -44,21 +40,16 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 
 	private String method;
 
-	private String format;
-
-	private Function<Throwable, Message> failureHandler;
-
 	private boolean parseCookie;
 
 	public VertxHttpConsumer(ConnectorContext context, Vertx vertx, VertxOptions vertxOptions,
 			HttpServerOptions options, String path, String method, String format, Map<String, Object> params) {
-		super(context);
+		super(context, format);
 		this.vertx = vertx;
 		this.vertxOptions = vertxOptions;
 		this.httpOptions = options;
 		this.path = path;
 		this.method = method;
-		this.format = format;
 		this.parseCookie = Boolean
 				.valueOf(params.getOrDefault(VertxHttpConstants.PARAM_PARSE_COOKIE, "false").toString());
 	}
@@ -120,8 +111,8 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 	}
 
 	private void handleException(RoutingContext ctx) {
-		if (failureHandler != null) {
-			var msg = failureHandler.apply(ctx.failure());
+		var msg = buildFailureMessage(ctx.failure());
+		if (msg != null) {
 			msg.getPayload().getHeaders().putIfAbsent(VertxHttpConstants.HEADER_STATUS_CODE,
 					BValue.newDefault(DEFAULT_EXCEPTION_STATUS_CODE));
 			sendResponse(ctx.response(), msg);
@@ -178,26 +169,6 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 			serverResponse.end();
 	}
 
-	private BElement deserialize(String bodyAsString) {
-		if (bodyAsString == null)
-			return null;
-		if (format == null || format.equals("json"))
-			return BElement.fromJson(bodyAsString);
-		if (format.equals("xml"))
-			return BElement.fromXml(bodyAsString);
-		throw new UnsupportedFormatException(format);
-	}
-
-	private String serialize(BElement body) {
-		if (body == null)
-			return null;
-		if (format == null || format.equals("json"))
-			return body.toJson();
-		if (format.equals("xml"))
-			return body.toXml();
-		throw new UnsupportedFormatException(format);
-	}
-
 	private Message buildMessage(RoutingContext ctx) {
 		var headers = BObject.newDefault();
 		for (var entry : ctx.request().headers()) {
@@ -215,8 +186,9 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 		for (var query : ctx.request().params()) {
 			queryParams.put(query.getKey(), BValue.newDefault(query.getValue()));
 		}
-		headers.put(VertxHttpConstants.HEADER_QUERY_PARAMETERS, queryParams);
-		headers.putAny(VertxHttpConstants.HEADER_PATH, ctx.request().path());
+		headers.set(VertxHttpConstants.HEADER_QUERY_PARAMS, queryParams)
+				.setAny(VertxHttpConstants.HEADER_HTTP_METHOD, ctx.request().method().name())
+				.setAny(VertxHttpConstants.HEADER_PATH, ctx.request().path());
 
 		if (parseCookie) {
 			var cookies = BArray.newDefault();
@@ -263,12 +235,6 @@ public class VertxHttpConsumer extends AbstractConsumer implements Consumer, Fai
 			this.server = server;
 			this.router = router;
 		}
-	}
-
-	@Override
-	public VertxHttpConsumer setFailureHandler(Function<Throwable, Message> failureHandler) {
-		this.failureHandler = failureHandler;
-		return this;
 	}
 
 	@Override

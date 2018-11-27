@@ -25,9 +25,10 @@ public class HttpConnector extends AbstractConnector {
 	protected void onInit() {
 		var endpoint = getConnectorConfig().getNonQueryEndpoint();
 		var config = buildConfiguration();
-		var format = getParam("format");
+		var format = getParam(HttpConstants.PARAM_FORMAT);
+		var method = getParam(HttpConstants.PARAM_METHOD);
 		var nameResolver = getNameResolver();
-		this.producer = Optional.of(new HttpProducer(getContext(), endpoint, config, format, nameResolver));
+		this.producer = Optional.of(new HttpProducer(getContext(), endpoint, config, format, nameResolver, method));
 	}
 
 	private Builder buildConfiguration() {
