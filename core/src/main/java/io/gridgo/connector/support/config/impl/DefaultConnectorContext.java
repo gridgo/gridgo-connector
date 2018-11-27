@@ -8,6 +8,7 @@ import io.gridgo.framework.execution.ExecutionStrategy;
 import io.gridgo.framework.execution.impl.DefaultExecutionStrategy;
 import io.gridgo.framework.support.Registry;
 import io.gridgo.framework.support.generators.IdGenerator;
+import io.gridgo.framework.support.generators.impl.NoOpIdGenerator;
 import io.gridgo.framework.support.impl.SimpleRegistry;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,7 +21,7 @@ public class DefaultConnectorContext implements ConnectorContext {
 	private static final java.util.function.Consumer<Throwable> DEFAULT_EXCEPTION_HANDLER = ex -> {
 	};
 
-	private Optional<IdGenerator> idGenerator = Optional.empty();
+	private IdGenerator idGenerator = new NoOpIdGenerator();
 
 	@Setter
 	private Registry registry = new SimpleRegistry();
@@ -40,7 +41,8 @@ public class DefaultConnectorContext implements ConnectorContext {
 	public DefaultConnectorContext(IdGenerator idGenerator, Registry registry, Consumer<Throwable> exceptionHandler,
 			ExecutionStrategy callbackInvokerStrategy, ExecutionStrategy consumerExecutionStrategy,
 			ExecutionStrategy producerExecutionStrategy) {
-		this.idGenerator = Optional.ofNullable(idGenerator);
+		if (idGenerator != null)
+			this.idGenerator = idGenerator;
 		if (registry != null)
 			this.registry = registry;
 		if (exceptionHandler != null)

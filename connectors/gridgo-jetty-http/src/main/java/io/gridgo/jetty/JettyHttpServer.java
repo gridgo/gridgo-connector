@@ -8,10 +8,14 @@ import javax.servlet.MultipartConfigElement;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.eclipse.jetty.http2.server.HTTP2CServerConnectionFactory;
+import org.eclipse.jetty.server.HttpConfiguration;
+import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import io.gridgo.framework.NonameComponentLifecycle;
 import io.gridgo.utils.support.HostAndPort;
@@ -31,11 +35,14 @@ public class JettyHttpServer extends NonameComponentLifecycle {
 
 	private final Set<JettyServletContextHandlerOption> options;
 
-	JettyHttpServer(@NonNull HostAndPort address, Set<JettyServletContextHandlerOption> options,
+	private final boolean http2Enabled;
+
+	JettyHttpServer(@NonNull HostAndPort address, boolean http2Enabled, Set<JettyServletContextHandlerOption> options,
 			Consumer<HostAndPort> onStopCallback) {
 		this.address = address;
 		this.onStopCallback = onStopCallback;
 		this.options = options;
+		this.http2Enabled = http2Enabled;
 	}
 
 	public JettyHttpServer addPathHandler(@NonNull String path,
@@ -49,14 +56,28 @@ public class JettyHttpServer extends NonameComponentLifecycle {
 	@Override
 	protected void onStart() {
 		server = new Server();
+		ServerConnector connector;
 
-		ServerConnector connector = new ServerConnector(server);
+		HttpConfiguration config = new HttpConfiguration();
+		HttpConnectionFactory http1 = new HttpConnectionFactory(config);
+
+		if (http2Enabled) {
+			System.out.println("HTTP2 enabled...");
+			HTTP2CServerConnectionFactory http2c = new HTTP2CServerConnectionFactory(config);
+			connector = new ServerConnector(server, http1, http2c);
+		} else {
+			connector = new ServerConnector(server, http1);
+		}
+
 		connector.setHost(address.getResolvedIp());
 		connector.setPort(address.getPort());
+
 		server.addConnector(connector);
 
 		handler = createServletContextHandler();
 		server.setHandler(handler);
+
+		((QueuedThreadPool) server.getThreadPool()).setName(this.getName());
 
 		try {
 			server.start();

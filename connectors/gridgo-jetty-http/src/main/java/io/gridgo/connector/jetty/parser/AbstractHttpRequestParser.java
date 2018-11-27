@@ -70,26 +70,27 @@ public abstract class AbstractHttpRequestParser implements HttpRequestParser, Lo
 			String headerName = headerNames.nextElement();
 			result.putAny(headerName, request.getHeader(headerName));
 		}
-		result.putAny("method", request.getMethod());
 		return result;
 	}
 
 	protected Map<String, String> extractQueryString(String query, Charset charset) {
 		Map<String, String> queryPairs = new LinkedHashMap<>();
-		String[] pairs = query.split("&");
-		for (String pair : pairs) {
-			if (pair.isBlank()) {
-				continue;
-			}
+		if (query != null && !query.isBlank()) {
+			String[] pairs = query.split("&");
+			for (String pair : pairs) {
+				if (pair.isBlank()) {
+					continue;
+				}
 
-			int idx = pair.indexOf("=");
-			if (idx < 0) {
-				queryPairs.put(pair, "");
-			} else if (idx == 0) {
-				queryPairs.put("", URLDecoder.decode(pair.substring(idx + 1), charset));
-			} else {
-				queryPairs.put(URLDecoder.decode(pair.substring(0, idx), charset),
-						URLDecoder.decode(pair.substring(idx + 1), charset));
+				int idx = pair.indexOf("=");
+				if (idx < 0) {
+					queryPairs.put(pair, "");
+				} else if (idx == 0) {
+					queryPairs.put("", URLDecoder.decode(pair.substring(idx + 1), charset));
+				} else {
+					queryPairs.put(URLDecoder.decode(pair.substring(0, idx), charset),
+							URLDecoder.decode(pair.substring(idx + 1), charset));
+				}
 			}
 		}
 		return queryPairs;
@@ -105,12 +106,12 @@ public abstract class AbstractHttpRequestParser implements HttpRequestParser, Lo
 		}
 
 		// custom extract query string to prevent the request auto parse multipart data
-		result.put("query", BObject.newDefault(extractQueryString(queryString, Charset.forName(encoding))));
+		result.put(HttpConstants.QUERY, BObject.newDefault(extractQueryString(queryString, Charset.forName(encoding))));
 
 		if (!NO_BODY_METHODS.contains(request.getMethod().toLowerCase().trim())) {
 			String contentType = request.getContentType();
 			if (contentType != null && contentType.trim().toLowerCase().contains("multipart/form-data")) {
-				result.put("body", extractMultiPartBody(request));
+				result.put(HttpConstants.BODY, extractMultiPartBody(request));
 			} else {
 				try (InputStream is = request.getInputStream()) {
 					result.put("body", extractInputStreamBody(is));
@@ -143,10 +144,11 @@ public abstract class AbstractHttpRequestParser implements HttpRequestParser, Lo
 					}
 					results.add(BObject.newDefault() //
 							.setAny("name", part.getName()) //
-							.setAny("contentType", contentTypeSplitted[0]) //
-							.setAny("charset", charset.toString()) //
-							.setAny("isConverted", true) //
-							.setAny("value", BValue.newDefault(readInputStreamAsString(part.getInputStream(), charset))) //
+							.setAny(HttpConstants.CONTENT_TYPE, contentTypeSplitted[0]) //
+							.setAny(HttpConstants.CHARSET, charset.toString()) //
+							.setAny(HttpConstants.IS_CONVERTED, true) //
+							.setAny(HttpConstants.VALUE,
+									BValue.newDefault(readInputStreamAsString(part.getInputStream(), charset))) //
 					);
 				} else {
 					BObject partHeaders = BObject.newDefault();
@@ -156,9 +158,9 @@ public abstract class AbstractHttpRequestParser implements HttpRequestParser, Lo
 					}
 
 					results.add(BObject.newDefault() //
-							.setAny("isConverted", false) //
-							.setAny("contentType", contentType) //
-							.setAny("size", part.getSize()) //
+							.setAny(HttpConstants.IS_CONVERTED, false) //
+							.setAny(HttpConstants.CONTENT_TYPE, contentType) //
+							.setAny(HttpConstants.SIZE, part.getSize()) //
 							.setAny("name", part.getName()) //
 							.setAny("submittedFileName", part.getSubmittedFileName()) //
 							.set("inputStream", BReference.newDefault(part.getInputStream())) //

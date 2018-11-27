@@ -64,7 +64,7 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 
 	@Override
 	protected String generateName() {
-		return "producer.jetty." + this.uniqueIdentifier;
+		return "producer.jetty.http-server." + this.uniqueIdentifier;
 	}
 
 	@Override
