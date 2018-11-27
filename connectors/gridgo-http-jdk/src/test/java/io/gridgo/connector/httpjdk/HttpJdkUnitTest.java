@@ -112,7 +112,7 @@ public class HttpJdkUnitTest {
 
 	private Connector createConnector() {
 		var connector = new DefaultConnectorFactory().createConnector(
-				"https-jdk://raw.githubusercontent.com/gridgo/gridgo-connector/dungba/developing/connectors/gridgo-http/src/test/resources/test.txt");
+				"https2://raw.githubusercontent.com/gridgo/gridgo-connector/dungba/developing/connectors/gridgo-http/src/test/resources/test.txt");
 		return connector;
 	}
 
