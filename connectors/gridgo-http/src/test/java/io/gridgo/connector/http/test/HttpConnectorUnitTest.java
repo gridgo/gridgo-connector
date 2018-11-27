@@ -32,7 +32,7 @@ public class HttpConnectorUnitTest {
 
 	@Test
 	public void testHttp() throws InterruptedException {
-		var url = "https://raw.githubusercontent.com/gridgo/gridgo-connector/dungba/developing/connectors/gridgo-http/src/test/resources/test.txt?nameResolverBean=nameResolver&useProxy=true&proxyHost=www-proxy.us.oracle.com";
+		var url = "https://raw.githubusercontent.com/gridgo/gridgo-connector/dungba/developing/connectors/gridgo-http/src/test/resources/test.txt?nameResolverBean=nameResolver";
 		var eventLoopGroup = new NioEventLoopGroup();
 		var factory = new DefaultConnectorFactory();
 		var nameResolver = new DnsNameResolverBuilder() //
