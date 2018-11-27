@@ -11,7 +11,7 @@ import java.util.Optional;
 import io.gridgo.connector.impl.AbstractConnector;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 
-@ConnectorEndpoint(scheme = "http-jdk,https-jdk", syntax = "httpUri", raw = true)
+@ConnectorEndpoint(scheme = "http2,https2", syntax = "httpUri", raw = true)
 public class HttpJdkConnector extends AbstractConnector {
 
 	protected void onInit() {
@@ -35,12 +35,7 @@ public class HttpJdkConnector extends AbstractConnector {
 		if (priority != null)
 			builder.priority(Integer.parseInt(priority));
 
-		// HTTP/2 enabled
-		var http2Enabled = getParam(HttpJdkConstants.PARAM_HTTP2_ENABLED);
-		if ("true".equals(http2Enabled))
-			builder.version(Version.HTTP_2);
-		else
-			builder.version(Version.HTTP_1_1);
+		builder.version(Version.HTTP_2);
 
 		var redirect = getParam(HttpJdkConstants.PARAM_REDIRECT);
 		if (redirect != null)

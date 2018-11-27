@@ -12,7 +12,7 @@ public interface ConnectorContext extends RegistryAware {
 
 	public Registry getRegistry();
 
-	public Optional<IdGenerator> getIdGenerator();
+	public IdGenerator getIdGenerator();
 
 	public Consumer<Throwable> getExceptionHandler();
 
