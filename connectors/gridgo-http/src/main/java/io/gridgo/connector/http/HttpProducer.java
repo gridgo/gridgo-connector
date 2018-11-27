@@ -159,7 +159,7 @@ public class HttpProducer extends AbstractHttpProducer {
 
 	private Message buildMessage(Response response) {
 		var headers = buildHeaders(response.getHeaders());
-		var body = deserialize(response.getResponseBody());
+		var body = deserialize(response.getResponseBodyAsBytes());
 		return createMessage(headers, body);
 	}
 

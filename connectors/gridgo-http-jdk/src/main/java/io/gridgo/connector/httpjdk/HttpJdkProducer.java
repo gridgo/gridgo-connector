@@ -59,7 +59,7 @@ public class HttpJdkProducer extends AbstractHttpProducer {
 	public Promise<Message, Exception> call(Message message) {
 		var deferred = new CompletableDeferredObject<Message, Exception>();
 		var request = buildRequest(message);
-		this.httpClient.sendAsync(request, BodyHandlers.ofString()) //
+		this.httpClient.sendAsync(request, BodyHandlers.ofByteArray()) //
 				.whenComplete((response, ex) -> {
 					if (ex != null)
 						deferred.reject(new ConnectionException(ex));
@@ -69,7 +69,7 @@ public class HttpJdkProducer extends AbstractHttpProducer {
 		return deferred.promise();
 	}
 
-	private Message buildMessage(HttpResponse<String> response) {
+	private Message buildMessage(HttpResponse<byte[]> response) {
 		var headers = buildHeaders(response.headers());
 		var body = deserialize(response.body());
 		return createMessage(headers, body);
@@ -91,7 +91,7 @@ public class HttpJdkProducer extends AbstractHttpProducer {
 
 		if (message != null && message.getPayload() != null) {
 			var body = message.getPayload().getBody();
-			bodyPublisher = body != null ? BodyPublishers.ofString(serialize(body)) : BodyPublishers.noBody();
+			bodyPublisher = body != null ? BodyPublishers.ofByteArray(serialize(body)) : BodyPublishers.noBody();
 			endpoint = endpointUri + parseParams(getQueryParams(message));
 			method = getMethod(message, defaultMethod);
 		}
