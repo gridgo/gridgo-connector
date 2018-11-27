@@ -1,8 +1,8 @@
 package io.gridgo.connector.http;
 
-import io.gridgo.connector.httpcommon.HttpCommonConstants;
+import io.gridgo.connector.httpcommon.HttpCommonProducerConstants;
 
-public class HttpConstants extends HttpCommonConstants {
+public class HttpConstants extends HttpCommonProducerConstants {
 
 	public static final String NAME_RESOLVER_CLASS = "nameResolverClass";
 
