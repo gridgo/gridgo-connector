@@ -20,8 +20,8 @@ import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.CompletableDeferredObject;
 
 import io.gridgo.bean.BObject;
-import io.gridgo.connector.http.support.ConnectionException;
 import io.gridgo.connector.httpcommon.AbstractHttpProducer;
+import io.gridgo.connector.httpcommon.support.exceptions.ConnectionException;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.netty.handler.codec.http.HttpHeaders;

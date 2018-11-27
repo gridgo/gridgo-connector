@@ -1,4 +1,4 @@
-package io.gridgo.connector.http.support;
+package io.gridgo.connector.httpcommon.support.exceptions;
 
 public class ConnectionException extends Exception {
 
