@@ -31,6 +31,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class HttpProducer extends AbstractHttpProducer {
 
+	private static final String DEFAULT_METHOD = "GET";
+
 	private String endpointUri;
 
 	private AsyncHttpClient asyncHttpClient;
@@ -39,12 +41,15 @@ public class HttpProducer extends AbstractHttpProducer {
 
 	private NameResolver<InetAddress> nameResolver;
 
+	private String defaultMethod;
+
 	public HttpProducer(ConnectorContext context, String endpointUri, Builder config, String format,
-			NameResolver<InetAddress> nameResolver) {
+			NameResolver<InetAddress> nameResolver, String defaultMethod) {
 		super(context, format);
 		this.endpointUri = endpointUri;
 		this.config = config;
 		this.nameResolver = nameResolver;
+		this.defaultMethod = defaultMethod != null ? defaultMethod : DEFAULT_METHOD;
 	}
 
 	@Override
@@ -134,7 +139,7 @@ public class HttpProducer extends AbstractHttpProducer {
 	private Request buildRequest(Message message) {
 		if (message == null)
 			return new RequestBuilder().setUrl(endpointUri).build();
-		var method = getMethod(message, "GET");
+		var method = getMethod(message, defaultMethod);
 		var params = buildParams(getQueryParams(message));
 		var body = serialize(message.getPayload().getBody());
 		return new RequestBuilder(method) //

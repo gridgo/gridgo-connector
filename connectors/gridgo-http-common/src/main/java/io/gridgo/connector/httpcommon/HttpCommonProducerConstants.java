@@ -1,6 +1,6 @@
 package io.gridgo.connector.httpcommon;
 
-public class HttpCommonProducerConstants {
+public class HttpCommonProducerConstants extends HttpCommonConstants {
 
 	public static final String CONNECT_TIMEOUT = "connectTimeout";
 
@@ -29,18 +29,4 @@ public class HttpCommonProducerConstants {
 	public static final String NON_PROXY_HOSTS = "nonProxyHosts";
 
 	public static final String PROXY_TYPE = "proxyType";
-
-	public static final String HEADER_HTTP_METHOD = "Http-Method";
-
-	public static final String HEADER_QUERY_PARAMS = "Query-Params";
-	
-	public static final String HEADER_STATUS = "Status";
-
-	public static final String HEADER_STATUS_CODE = "Status-Code";
-	
-	public static final String PARAM_FORMAT = "format";
-
-	public static final String PARAM_METHOD = "method";
-	
-	public static final String HEADER_PATH = "Http-Path";
 }
