@@ -112,18 +112,16 @@ public abstract class AbstractHttpRequestParser implements HttpRequestParser, Lo
 
 	protected BElement extractBody(HttpServletRequest request) {
 		if (!NO_BODY_METHODS.contains(request.getMethod().toLowerCase().trim())) {
-			BObject result = BObject.newDefault();
 			String contentType = request.getContentType();
 			if (contentType != null && contentType.trim().toLowerCase().contains("multipart/form-data")) {
-				result.put(HttpConstants.BODY, extractMultiPartBody(request));
+				return extractMultiPartBody(request);
 			} else {
 				try (InputStream is = request.getInputStream()) {
-					result.put("body", extractInputStreamBody(is));
+					return extractInputStreamBody(is);
 				} catch (IOException e) {
 					throw new HttpRequestParsingException("Error while reading request's body as input stream", e);
 				}
 			}
-			return result;
 		}
 		return null;
 	}

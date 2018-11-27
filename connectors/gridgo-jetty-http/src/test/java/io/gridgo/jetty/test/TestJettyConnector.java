@@ -20,6 +20,7 @@ import java.util.concurrent.Executors;
 import org.junit.Test;
 
 import io.gridgo.bean.BElement;
+import io.gridgo.bean.BObject;
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.ConnectorResolver;
 import io.gridgo.connector.Consumer;
@@ -28,6 +29,7 @@ import io.gridgo.connector.impl.resolvers.ClasspathConnectorResolver;
 import io.gridgo.connector.jetty.JettyConnector;
 import io.gridgo.connector.jetty.JettyConsumer;
 import io.gridgo.connector.jetty.JettyResponder;
+import io.gridgo.connector.jetty.support.HttpHeader;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
 import io.gridgo.framework.execution.impl.ExecutorExecutionStrategy;
@@ -81,8 +83,8 @@ public class TestJettyConnector {
 			Producer producer = connector.getProducer().get();
 
 			consumer.subscribe((msg) -> {
-				producer.send(
-						Message.newDefault(msg.getRoutingId().get(), Payload.newDefault(msg.getPayload().getBody())));
+				var queryParams = msg.getPayload().getHeaders().get(HttpHeader.QUERY_PARAMS.asString());
+				producer.send(Message.newDefault(msg.getRoutingId().get(), Payload.newDefault(queryParams)));
 			});
 
 			final String encodedText = URLEncoder.encode(TEST_TEXT, Charset.defaultCharset().name());
@@ -93,9 +95,7 @@ public class TestJettyConnector {
 			BElement respObj = BElement.fromJson(response.body());
 			assertNotNull(respObj);
 			assertTrue(respObj.isObject());
-			assertTrue(respObj.asObject().containsKey("query"));
-			assertTrue(respObj.asObject().get("query").isObject());
-			assertEquals(TEST_TEXT, respObj.asObject().getObject("query").getString("key"));
+			assertEquals(TEST_TEXT, respObj.asObject().getString("key"));
 		} finally {
 			connector.stop();
 		}
@@ -113,8 +113,11 @@ public class TestJettyConnector {
 			Producer producer = connector.getProducer().get();
 
 			consumer.subscribe((msg) -> {
-				producer.send(
-						Message.newDefault(msg.getRoutingId().get(), Payload.newDefault(msg.getPayload().getBody())));
+				var queryParams = msg.getPayload().getHeaders().get(HttpHeader.QUERY_PARAMS.asString());
+				var body = msg.getPayload().getBody();
+				System.out.println("Got body: " + body);
+				var response = BObject.newDefault().set("query", queryParams).set("body", body);
+				producer.send(Message.newDefault(msg.getRoutingId().get(), Payload.newDefault(response)));
 			});
 
 			URI uri = new URI(HTTP_LOCALHOST_8888 + "/" + path + "?paramName=abc");
@@ -122,11 +125,14 @@ public class TestJettyConnector {
 			HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
 
 			BElement respObj = BElement.fromJson(response.body());
+			System.out.println(respObj);
 			assertNotNull(respObj);
 			assertTrue(respObj.isObject());
-			assertTrue(respObj.asObject().containsKey("body"));
+
 			assertTrue(respObj.asObject().containsKey("query"));
-			assertEquals(respObj.asObject().getObject("query").getString("paramName"), "abc");
+			assertEquals("abc", respObj.asObject().getObject("query").getString("paramName"));
+
+			assertTrue(respObj.asObject().containsKey("body"));
 			assertEquals(TEST_TEXT, respObj.asObject().getString("body"));
 		} finally {
 			connector.stop();
