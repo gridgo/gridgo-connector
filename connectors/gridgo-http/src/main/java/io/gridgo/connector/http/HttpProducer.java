@@ -158,7 +158,9 @@ public class HttpProducer extends AbstractHttpProducer {
 	}
 
 	private Message buildMessage(Response response) {
-		var headers = buildHeaders(response.getHeaders());
+		var headers = buildHeaders(response.getHeaders()) //
+				.setAny(HttpConstants.HEADER_STATUS, response.getStatusText())
+				.setAny(HttpConstants.HEADER_STATUS_CODE, response.getStatusCode());
 		var body = deserialize(response.getResponseBodyAsBytes());
 		return createMessage(headers, body);
 	}

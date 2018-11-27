@@ -75,7 +75,8 @@ public class HttpJdkProducer extends AbstractHttpProducer {
 	}
 
 	private Message buildMessage(HttpResponse<byte[]> response) {
-		var headers = buildHeaders(response.headers());
+		var headers = buildHeaders(response.headers()) //
+				.setAny(HttpJdkConstants.HEADER_STATUS_CODE, response.statusCode());
 		var body = deserialize(response.body());
 		return createMessage(headers, body);
 	}

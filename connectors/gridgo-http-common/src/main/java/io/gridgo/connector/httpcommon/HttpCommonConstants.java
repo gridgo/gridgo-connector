@@ -11,4 +11,8 @@ public class HttpCommonConstants {
 	public static final String HEADER_HTTP_METHOD = "Http-Method";
 
 	public static final String HEADER_QUERY_PARAMS = "Query-Params";
+	
+	public static final String HEADER_STATUS = "Http-Status";
+
+	public static final String HEADER_STATUS_CODE = "Http-Status-Code";
 }
