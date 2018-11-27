@@ -85,31 +85,31 @@ public class HttpProducer extends AbstractHttpProducer {
 
 			@Override
 			public State onBodyPartReceived(HttpResponseBodyPart bodyPart) throws Exception {
-				deferred.resolve(null);
+				ack(deferred);
 				return State.CONTINUE;
 			}
 
 			@Override
 			public Object onCompleted() throws Exception {
-				deferred.resolve(null);
+				ack(deferred);
 				return State.CONTINUE;
 			}
 
 			@Override
 			public State onHeadersReceived(HttpHeaders headers) throws Exception {
-				deferred.resolve(null);
+				ack(deferred);
 				return State.CONTINUE;
 			}
 
 			@Override
 			public State onStatusReceived(HttpResponseStatus responseStatus) throws Exception {
-				deferred.resolve(null);
+				ack(deferred);
 				return State.CONTINUE;
 			}
 
 			@Override
 			public void onThrowable(Throwable t) {
-				deferred.reject(new ConnectionException(t));
+				ack(deferred, new ConnectionException(t));
 			}
 		});
 		return deferred.promise();
@@ -123,13 +123,13 @@ public class HttpProducer extends AbstractHttpProducer {
 
 			@Override
 			public void onThrowable(Throwable t) {
-				deferred.reject(new ConnectionException(t));
+				ack(deferred, new ConnectionException(t));
 			}
 
 			@Override
 			public Object onCompleted(Response response) throws Exception {
 				var message = buildMessage(response);
-				deferred.resolve(message);
+				ack(deferred, message);
 				return response;
 			}
 		});

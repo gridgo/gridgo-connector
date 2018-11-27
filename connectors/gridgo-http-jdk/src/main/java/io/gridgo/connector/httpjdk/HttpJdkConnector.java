@@ -1,5 +1,11 @@
 package io.gridgo.connector.httpjdk;
 
+import java.net.InetSocketAddress;
+import java.net.ProxySelector;
+import java.net.http.HttpClient;
+import java.net.http.HttpClient.Redirect;
+import java.net.http.HttpClient.Version;
+import java.time.Duration;
 import java.util.Optional;
 
 import io.gridgo.connector.impl.AbstractConnector;
@@ -12,7 +18,45 @@ public class HttpJdkConnector extends AbstractConnector {
 		var endpoint = parseEndpoint();
 		var format = getParam(HttpJdkConstants.PARAM_FORMAT);
 		var method = getParam(HttpJdkConstants.PARAM_METHOD);
-		this.producer = Optional.of(new HttpJdkProducer(getContext(), endpoint, format, method));
+		var builder = createBuilder();
+		this.producer = Optional.of(new HttpJdkProducer(getContext(), builder, endpoint, format, method));
+	}
+
+	private HttpClient.Builder createBuilder() {
+		var builder = HttpClient.newBuilder();
+
+		// connection timeout
+		var connectTimeout = getParam(HttpJdkConstants.CONNECT_TIMEOUT);
+		if (connectTimeout != null)
+			builder.connectTimeout(Duration.ofMillis(Integer.parseInt(connectTimeout)));
+
+		// request priority
+		var priority = getParam(HttpJdkConstants.PARAM_PRIORITY);
+		if (priority != null)
+			builder.priority(Integer.parseInt(priority));
+
+		// HTTP/2 enabled
+		var http2Enabled = getParam(HttpJdkConstants.PARAM_HTTP2_ENABLED);
+		if ("true".equals(http2Enabled))
+			builder.version(Version.HTTP_2);
+		else
+			builder.version(Version.HTTP_1_1);
+
+		var redirect = getParam(HttpJdkConstants.PARAM_REDIRECT);
+		if (redirect != null)
+			builder.followRedirects(Redirect.valueOf(redirect));
+
+		var useProxy = getParam(HttpJdkConstants.USE_PROXY);
+		if ("true".equals(useProxy)) {
+			var proxyHost = getParam(HttpJdkConstants.PROXY_HOST);
+			var proxyPort = getParam(HttpJdkConstants.PROXY_PORT);
+
+			var port = proxyPort != null ? Integer.parseInt(proxyPort) : HttpJdkConstants.DEFAULT_PROXY_PORT;
+
+			builder.proxy(ProxySelector.of(new InetSocketAddress(proxyHost, port)));
+		}
+
+		return builder;
 	}
 
 	private String parseEndpoint() {

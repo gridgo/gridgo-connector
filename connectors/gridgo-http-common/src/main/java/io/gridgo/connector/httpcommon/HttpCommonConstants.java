@@ -1,6 +1,8 @@
 package io.gridgo.connector.httpcommon;
 
 public class HttpCommonConstants {
+	
+	public static final int DEFAULT_PROXY_PORT = 80;
 
 	public static final String PARAM_FORMAT = "format";
 

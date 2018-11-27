@@ -3,6 +3,7 @@ package io.gridgo.connector.httpjdk;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
+import java.net.http.HttpClient.Builder;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
@@ -29,8 +30,12 @@ public class HttpJdkProducer extends AbstractHttpProducer {
 
 	private HttpClient httpClient;
 
-	public HttpJdkProducer(ConnectorContext context, String endpointUri, String format, String defaultMethod) {
+	private Builder builder;
+
+	public HttpJdkProducer(ConnectorContext context, HttpClient.Builder builder, String endpointUri, String format,
+			String defaultMethod) {
 		super(context, format);
+		this.builder = builder;
 		this.endpointUri = endpointUri;
 		this.defaultMethod = defaultMethod != null ? defaultMethod : DEFAULT_METHOD;
 	}
@@ -48,9 +53,9 @@ public class HttpJdkProducer extends AbstractHttpProducer {
 		this.httpClient.sendAsync(request, BodyHandlers.discarding()) //
 				.whenComplete((response, ex) -> {
 					if (ex != null)
-						deferred.reject(new ConnectionException(ex));
+						ack(deferred, new ConnectionException(ex));
 					else
-						deferred.resolve(null);
+						ack(deferred);
 				});
 		return deferred.promise();
 	}
@@ -62,9 +67,9 @@ public class HttpJdkProducer extends AbstractHttpProducer {
 		this.httpClient.sendAsync(request, BodyHandlers.ofByteArray()) //
 				.whenComplete((response, ex) -> {
 					if (ex != null)
-						deferred.reject(new ConnectionException(ex));
+						ack(deferred, new ConnectionException(ex));
 					else
-						deferred.resolve(buildMessage(response));
+						ack(deferred, buildMessage(response));
 				});
 		return deferred.promise();
 	}
@@ -120,7 +125,7 @@ public class HttpJdkProducer extends AbstractHttpProducer {
 
 	@Override
 	protected void onStart() {
-		this.httpClient = HttpClient.newHttpClient();
+		this.httpClient = builder.build();
 	}
 
 	@Override

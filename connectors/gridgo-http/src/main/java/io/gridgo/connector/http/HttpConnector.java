@@ -20,45 +20,62 @@ import io.netty.resolver.NameResolver;
 public class HttpConnector extends AbstractConnector {
 
 	private static final int DEFAULT_MAX_REDIRECTS = 3;
-	private static final int DEFAULT_PROXY_PORT = 80;
 
 	protected void onInit() {
 		var endpoint = getConnectorConfig().getNonQueryEndpoint();
-		var config = buildConfiguration();
+		var config = createBuilder();
 		var format = getParam(HttpConstants.PARAM_FORMAT);
 		var method = getParam(HttpConstants.PARAM_METHOD);
 		var nameResolver = getNameResolver();
 		this.producer = Optional.of(new HttpProducer(getContext(), endpoint, config, format, nameResolver, method));
 	}
 
-	private Builder buildConfiguration() {
+	private Builder createBuilder() {
 		var config = Dsl.config();
+
+		// connection timeout
 		var connectTimeout = getParam(HttpConstants.CONNECT_TIMEOUT);
 		if (connectTimeout != null)
 			config.setConnectTimeout(Integer.parseInt(connectTimeout));
+
+		// request timeout
 		var requestTimeout = getParam(HttpConstants.REQUEST_TIMEOUT);
 		if (requestTimeout != null)
 			config.setRequestTimeout(Integer.parseInt(requestTimeout));
+
+		// max retries
 		var maxRetries = getParam(HttpConstants.MAX_RETRIES);
 		if (maxRetries != null)
 			config.setMaxRequestRetry(Integer.parseInt(maxRetries));
+
+		// max connections
 		var maxConnections = getParam(HttpConstants.MAX_CONNECTIONS);
 		if (maxConnections != null)
 			config.setMaxConnections(Integer.parseInt(maxConnections));
+
+		// max redirects
 		var maxRedirects = getParam(HttpConstants.MAX_REDIRECTS);
 		if (maxRedirects != null)
 			config.setMaxRedirects(Integer.parseInt(maxRedirects));
 		else
 			config.setMaxRedirects(DEFAULT_MAX_REDIRECTS);
+
+		// keep-alive
 		var keepAlive = getParam(HttpConstants.KEEP_ALIVE);
 		if (keepAlive != null)
 			config.setKeepAlive(Boolean.valueOf(keepAlive));
+
+		// compression
 		var compression = getParam(HttpConstants.COMPRESSION);
 		if (compression != null)
 			config.setCompressionEnforced(Boolean.valueOf(compression));
+
+		// I/O threads count
 		var ioThreadsCount = getParam(HttpConstants.IO_THREADS_COUNT);
 		if (ioThreadsCount != null)
 			config.setIoThreadsCount(Integer.parseInt(ioThreadsCount));
+
+		// proxy settings
 		var useProxy = getParam(HttpConstants.USE_PROXY);
 		if (Boolean.valueOf(useProxy)) {
 			var host = getParam(HttpConstants.PROXY_HOST);
@@ -69,8 +86,8 @@ public class HttpConnector extends AbstractConnector {
 			var realmBean = getParam(HttpConstants.PROXY_REALM_BEAN);
 			config.setProxyServer(new ProxyServer( //
 					host, //
-					port != null ? Integer.parseInt(port) : DEFAULT_PROXY_PORT,
-					securedPort != null ? Integer.parseInt(securedPort) : DEFAULT_PROXY_PORT, //
+					port != null ? Integer.parseInt(port) : HttpConstants.DEFAULT_PROXY_PORT,
+					securedPort != null ? Integer.parseInt(securedPort) : HttpConstants.DEFAULT_PROXY_PORT, //
 					realmBean != null ? getContext().getRegistry().lookupMandatory(realmBean, Realm.class) : null, //
 					nonProxyHosts != null ? Arrays.asList(nonProxyHosts.split(",")) : Collections.emptyList(),
 					proxyType != null ? ProxyType.valueOf(proxyType) : ProxyType.HTTP));
