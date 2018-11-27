@@ -16,6 +16,7 @@ import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
@@ -163,10 +164,12 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 			if (entry.getValue().isValue())
 				serverResponse.headers().add(entry.getKey(), entry.getValue().toString());
 		}
-		if (response.getPayload().getBody() != null)
-			serverResponse.end(serialize(response.getPayload().getBody()));
-		else
+		if (response.getPayload().getBody() == null) {
 			serverResponse.end();
+			return;
+		}
+		var buffer = Buffer.buffer(serialize(response.getPayload().getBody()));
+		serverResponse.end(buffer);
 	}
 
 	private Message buildMessage(RoutingContext ctx) {
@@ -177,7 +180,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 
 		populateCommonHeaders(ctx, headers);
 
-		var body = deserialize(ctx.getBodyAsString());
+		var body = deserialize(ctx.getBody().getBytes());
 		return createMessage(headers, body);
 	}
 

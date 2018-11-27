@@ -5,6 +5,8 @@ import java.util.Properties;
 
 public interface ConnectorConfig {
 	
+	public String getScheme();
+	
 	public String getNonQueryEndpoint();
 
 	public String getRemaining();

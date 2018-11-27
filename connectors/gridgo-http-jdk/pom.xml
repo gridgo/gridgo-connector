@@ -14,5 +14,10 @@
 	</properties>
 
 	<dependencies>
+		<dependency>
+			<groupId>io.gridgo</groupId>
+			<artifactId>gridgo-http-common</artifactId>
+			<version>${project.version}</version>
+		</dependency>
 	</dependencies>
 </project>

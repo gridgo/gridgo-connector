@@ -20,8 +20,8 @@ import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.CompletableDeferredObject;
 
 import io.gridgo.bean.BObject;
-import io.gridgo.connector.http.support.ConnectionException;
 import io.gridgo.connector.httpcommon.AbstractHttpProducer;
+import io.gridgo.connector.httpcommon.support.exceptions.ConnectionException;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.netty.handler.codec.http.HttpHeaders;
@@ -85,31 +85,31 @@ public class HttpProducer extends AbstractHttpProducer {
 
 			@Override
 			public State onBodyPartReceived(HttpResponseBodyPart bodyPart) throws Exception {
-				deferred.resolve(null);
+				ack(deferred);
 				return State.CONTINUE;
 			}
 
 			@Override
 			public Object onCompleted() throws Exception {
-				deferred.resolve(null);
+				ack(deferred);
 				return State.CONTINUE;
 			}
 
 			@Override
 			public State onHeadersReceived(HttpHeaders headers) throws Exception {
-				deferred.resolve(null);
+				ack(deferred);
 				return State.CONTINUE;
 			}
 
 			@Override
 			public State onStatusReceived(HttpResponseStatus responseStatus) throws Exception {
-				deferred.resolve(null);
+				ack(deferred);
 				return State.CONTINUE;
 			}
 
 			@Override
 			public void onThrowable(Throwable t) {
-				deferred.reject(new ConnectionException(t));
+				ack(deferred, new ConnectionException(t));
 			}
 		});
 		return deferred.promise();
@@ -123,13 +123,13 @@ public class HttpProducer extends AbstractHttpProducer {
 
 			@Override
 			public void onThrowable(Throwable t) {
-				deferred.reject(new ConnectionException(t));
+				ack(deferred, new ConnectionException(t));
 			}
 
 			@Override
 			public Object onCompleted(Response response) throws Exception {
 				var message = buildMessage(response);
-				deferred.resolve(message);
+				ack(deferred, message);
 				return response;
 			}
 		});
@@ -158,8 +158,10 @@ public class HttpProducer extends AbstractHttpProducer {
 	}
 
 	private Message buildMessage(Response response) {
-		var headers = buildHeaders(response.getHeaders());
-		var body = deserialize(response.getResponseBody());
+		var headers = buildHeaders(response.getHeaders()) //
+				.setAny(HttpConstants.HEADER_STATUS, response.getStatusText())
+				.setAny(HttpConstants.HEADER_STATUS_CODE, response.getStatusCode());
+		var body = deserialize(response.getResponseBodyAsBytes());
 		return createMessage(headers, body);
 	}
 

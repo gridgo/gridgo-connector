@@ -32,7 +32,7 @@ public class HttpConnectorUnitTest {
 
 	@Test
 	public void testHttp() throws InterruptedException {
-		var url = "https://raw.githubusercontent.com/dungba88/cleaner_robot/master/README.md?nameResolverBean=nameResolver";
+		var url = "https://raw.githubusercontent.com/gridgo/gridgo-connector/dungba/developing/connectors/gridgo-http/src/test/resources/test.txt?nameResolverBean=nameResolver";
 		var eventLoopGroup = new NioEventLoopGroup();
 		var factory = new DefaultConnectorFactory();
 		var nameResolver = new DnsNameResolverBuilder() //
@@ -54,8 +54,14 @@ public class HttpConnectorUnitTest {
 			latch.countDown();
 		});
 		producer.call(null).always((status, response, ex) -> {
-			if (ex != null)
+			if (ex != null) {
 				atomic.set(ex);
+			} else {
+				var body = response.getPayload().getBody().asValue().getString();
+				if (!"hello".equals(body)) {
+					atomic.set(new RuntimeException("expected 'hello', got '" + body + "'"));
+				}
+			}
 			latch.countDown();
 		});
 

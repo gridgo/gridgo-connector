@@ -66,7 +66,7 @@ public class UriConnectorResolver implements ConnectorResolver {
 
 		var params = extractParameters(queryPart);
 		var placeholders = extractPlaceholders(schemePart);
-		return new DefaultConnectorConfig(scheme + ":" + schemePart, schemePart, params, placeholders);
+		return new DefaultConnectorConfig(scheme, scheme + ":" + schemePart, schemePart, params, placeholders);
 	}
 
 	private Properties extractPlaceholders(String schemePart) {
