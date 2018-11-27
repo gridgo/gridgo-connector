@@ -1,4 +1,4 @@
-package io.gridgo.connector.jetty;
+package io.gridgo.connector.jetty.support;
 
 import org.joo.promise4j.Deferred;
 

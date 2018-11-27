@@ -23,9 +23,10 @@ import io.gridgo.bean.BReference;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.jetty.HttpConstants;
 import io.gridgo.connector.jetty.exceptions.HttpRequestParsingException;
+import io.gridgo.connector.jetty.server.JettyServletContextHandlerOption;
+import io.gridgo.connector.jetty.support.HttpHeader;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
-import io.gridgo.jetty.JettyServletContextHandlerOption;
 import io.gridgo.utils.helper.Loggable;
 import lombok.NonNull;
 
@@ -70,6 +71,19 @@ public abstract class AbstractHttpRequestParser implements HttpRequestParser, Lo
 			String headerName = headerNames.nextElement();
 			result.putAny(headerName, request.getHeader(headerName));
 		}
+
+		String queryString = request.getQueryString();
+		String encoding = request.getCharacterEncoding();
+		if (encoding == null || encoding.isBlank()) {
+			encoding = "UTF-8";
+		}
+
+		// custom extract query string to prevent the request auto parse multipart data
+		result.putAny(HttpHeader.QUERY_PARAMS.asString(),
+				BObject.newDefault(extractQueryString(queryString, Charset.forName(encoding))));
+
+		result.putAny(HttpHeader.HTTP_METHOD.asString(), request.getMethod());
+
 		return result;
 	}
 
@@ -97,18 +111,8 @@ public abstract class AbstractHttpRequestParser implements HttpRequestParser, Lo
 	}
 
 	protected BElement extractBody(HttpServletRequest request) {
-		BObject result = BObject.newDefault();
-
-		String queryString = request.getQueryString();
-		String encoding = request.getCharacterEncoding();
-		if (encoding == null || encoding.isBlank()) {
-			encoding = "UTF-8";
-		}
-
-		// custom extract query string to prevent the request auto parse multipart data
-		result.put(HttpConstants.QUERY, BObject.newDefault(extractQueryString(queryString, Charset.forName(encoding))));
-
 		if (!NO_BODY_METHODS.contains(request.getMethod().toLowerCase().trim())) {
+			BObject result = BObject.newDefault();
 			String contentType = request.getContentType();
 			if (contentType != null && contentType.trim().toLowerCase().contains("multipart/form-data")) {
 				result.put(HttpConstants.BODY, extractMultiPartBody(request));
@@ -119,9 +123,9 @@ public abstract class AbstractHttpRequestParser implements HttpRequestParser, Lo
 					throw new HttpRequestParsingException("Error while reading request's body as input stream", e);
 				}
 			}
+			return result;
 		}
-
-		return result;
+		return null;
 	}
 
 	protected abstract BElement extractInputStreamBody(InputStream inputStream);

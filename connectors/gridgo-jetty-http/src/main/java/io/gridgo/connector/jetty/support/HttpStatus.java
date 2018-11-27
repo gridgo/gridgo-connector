@@ -1,4 +1,7 @@
-package io.gridgo.jetty.support;
+package io.gridgo.connector.jetty.support;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -90,6 +93,22 @@ public enum HttpStatus {
 
 	MAX_CODE(511, "max code");
 	;
+
+	private static final Map<Integer, HttpStatus> CACHE = new HashMap<>();
+	static {
+		for (HttpStatus status : values()) {
+			CACHE.put(status.getCode(), status);
+		}
+	}
+
+	public static final HttpStatus lookUp(int code) {
+		return CACHE.get(code);
+	}
+
+	public static final HttpStatus lookUpOrDefault(int code, HttpStatus defaultStatus) {
+		var result = lookUp(code);
+		return result == null ? defaultStatus : result;
+	}
 
 	private final int code;
 	private final String defaultMessage;

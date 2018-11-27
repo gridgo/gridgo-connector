@@ -1,4 +1,4 @@
-package io.gridgo.jetty;
+package io.gridgo.connector.jetty.server;
 
 import java.io.IOException;
 import java.util.function.BiConsumer;

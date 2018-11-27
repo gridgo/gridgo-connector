@@ -1,4 +1,4 @@
-package io.gridgo.jetty;
+package io.gridgo.connector.jetty.server;
 
 public enum JettyServletContextHandlerOption {
 
