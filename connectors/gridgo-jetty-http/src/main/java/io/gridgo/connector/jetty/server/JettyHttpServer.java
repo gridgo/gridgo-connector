@@ -62,7 +62,6 @@ public class JettyHttpServer extends NonameComponentLifecycle {
 		HttpConnectionFactory http1 = new HttpConnectionFactory(config);
 
 		if (http2Enabled) {
-			System.out.println("HTTP2 enabled...");
 			HTTP2CServerConnectionFactory http2c = new HTTP2CServerConnectionFactory(config);
 			connector = new ServerConnector(server, http1, http2c);
 		} else {

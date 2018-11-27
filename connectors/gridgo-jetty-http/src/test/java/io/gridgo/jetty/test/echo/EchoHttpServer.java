@@ -63,7 +63,7 @@ public class EchoHttpServer {
 	private void onRequest(Message message) {
 		System.out.println("Got message payload: " + message.getPayload().toBArray());
 
-		BElement body = message.getPayload().getBody();
+		BElement body = message.getPayload().toBArray();
 		Payload payload = Payload.newDefault(body);
 		Message response = Message.newDefault(payload).setRoutingIdFromAny(message.getRoutingId().get());
 

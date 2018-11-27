@@ -34,6 +34,7 @@ import io.gridgo.connector.impl.resolvers.ClasspathConnectorResolver;
 import io.gridgo.connector.jetty.JettyConnector;
 import io.gridgo.connector.jetty.JettyConsumer;
 import io.gridgo.connector.jetty.JettyResponder;
+import io.gridgo.connector.jetty.support.HttpHeader;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
 import io.gridgo.framework.execution.impl.ExecutorExecutionStrategy;
@@ -121,7 +122,7 @@ public class TestMultiPart {
 			}
 
 			BObject response = BObject.newDefault();
-			response.put("query", msg.getPayload().getBody().asObject().get("query"));
+			response.put("query", msg.getPayload().getHeaders().get(HttpHeader.QUERY_PARAMS.asString()));
 			response.put("body", responseBody);
 
 			producer.send(Message.newDefault(msg.getRoutingId().get(), Payload.newDefault(response)));
