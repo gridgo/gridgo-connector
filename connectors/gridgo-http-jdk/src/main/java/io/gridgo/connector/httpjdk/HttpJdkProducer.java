@@ -45,7 +45,7 @@ public class HttpJdkProducer extends AbstractHttpProducer {
 	public Promise<Message, Exception> sendWithAck(Message message) {
 		var deferred = new CompletableDeferredObject<Message, Exception>();
 		var request = buildRequest(message);
-		this.httpClient.sendAsync(request, BodyHandlers.ofString()) //
+		this.httpClient.sendAsync(request, BodyHandlers.discarding()) //
 				.whenComplete((response, ex) -> {
 					if (ex != null)
 						deferred.reject(new ConnectionException(ex));
