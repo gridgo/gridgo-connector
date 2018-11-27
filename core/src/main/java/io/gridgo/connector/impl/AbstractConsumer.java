@@ -95,8 +95,8 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 	 * @param payload the payload
 	 */
 	protected void ensurePayloadId(Payload payload) {
-		if (payload != null && payload.getId().isEmpty() && context.getIdGenerator().isPresent()) {
-			payload.setId(context.getIdGenerator().get().generateId());
+		if (payload != null && payload.getId().isEmpty()) {
+			payload.setId(context.getIdGenerator().generateId());
 		}
 	}
 
