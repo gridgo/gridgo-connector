@@ -1,17 +1,17 @@
-package io.gridgo.connector.file.engines;
+package io.gridgo.connector.file.support.engines;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.connector.Producer;
+import io.gridgo.connector.file.FileRotater;
 import io.gridgo.connector.support.FormattedMarshallable;
 
 public interface FileProducerEngine extends Producer, FormattedMarshallable {
 
-	public void setRandomAccessFile(RandomAccessFile randomAccessFile);
+	public void setRotater(FileRotater rotater);
 
 	public long getTotalSentBytes();
 

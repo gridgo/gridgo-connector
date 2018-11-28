@@ -3,9 +3,9 @@ package io.gridgo.connector.file;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
-import io.gridgo.connector.file.engines.FileProducerEngine;
-import io.gridgo.connector.file.engines.LengthPrependedFileConsumerEngine;
-import io.gridgo.connector.file.engines.SimpleFileConsumerEngine;
+import io.gridgo.connector.file.support.engines.FileProducerEngine;
+import io.gridgo.connector.file.support.engines.LengthPrependedFileConsumerEngine;
+import io.gridgo.connector.file.support.engines.SimpleFileConsumerEngine;
 import io.gridgo.connector.impl.AbstractConsumer;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;

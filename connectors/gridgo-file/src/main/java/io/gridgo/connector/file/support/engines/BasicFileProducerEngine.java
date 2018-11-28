@@ -1,12 +1,12 @@
-package io.gridgo.connector.file.engines;
+package io.gridgo.connector.file.support.engines;
 
-import java.io.RandomAccessFile;
+import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.CompletableDeferredObject;
 
+import io.gridgo.connector.file.FileRotater;
 import io.gridgo.connector.impl.AbstractProducer;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
@@ -19,9 +19,7 @@ public class BasicFileProducerEngine extends AbstractProducer implements FilePro
 	private String format;
 
 	@Setter
-	private RandomAccessFile randomAccessFile;
-
-	private FileChannel channel;
+	private FileRotater rotater;
 
 	private boolean lengthPrepend;
 
@@ -51,7 +49,10 @@ public class BasicFileProducerEngine extends AbstractProducer implements FilePro
 
 	private void doSend(Message message, CompletableDeferredObject<Message, Exception> deferred) {
 		try {
-			totalSentBytes += writeToFile(message.getPayload().toBArray(), lengthPrepend, buffer, channel);
+			var channel = this.rotater.getFileChannel();
+			var currentSent = writeToFile(message.getPayload().toBArray(), lengthPrepend, buffer, channel);
+			this.totalSentBytes += currentSent;
+			this.rotater.putBytes(currentSent);
 		} catch (Exception ex) {
 			ack(deferred, ex);
 			return;
@@ -62,12 +63,20 @@ public class BasicFileProducerEngine extends AbstractProducer implements FilePro
 	@Override
 	protected void onStart() {
 		this.totalSentBytes = 0;
-		this.channel = randomAccessFile.getChannel();
+		try {
+			this.rotater.start();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
 	protected void onStop() {
-
+		try {
+			this.rotater.stop();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
