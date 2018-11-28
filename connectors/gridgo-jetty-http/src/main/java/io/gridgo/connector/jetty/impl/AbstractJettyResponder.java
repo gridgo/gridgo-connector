@@ -1,11 +1,12 @@
 package io.gridgo.connector.jetty.impl;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicLong;
@@ -13,10 +14,14 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import javax.servlet.AsyncContext;
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.StringBody;
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
 import org.joo.promise4j.Deferred;
 import org.joo.promise4j.DeferredStatus;
@@ -29,10 +34,10 @@ import io.gridgo.bean.BReference;
 import io.gridgo.bean.BType;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.AbstractResponder;
-import io.gridgo.connector.jetty.HttpConstants;
 import io.gridgo.connector.jetty.HttpContentTypes;
 import io.gridgo.connector.jetty.JettyResponder;
 import io.gridgo.connector.jetty.support.DeferredAndRoutingId;
+import io.gridgo.connector.jetty.support.HttpConstants;
 import io.gridgo.connector.jetty.support.HttpHeader;
 import io.gridgo.connector.jetty.support.HttpStatus;
 import io.gridgo.connector.support.config.ConnectorContext;
@@ -105,33 +110,39 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 		 * process header
 		 */
 		BObject headers = message.getPayload().getHeaders();
+		BElement body = message.getPayload().getBody();
 
-		int statusCode = headers.getInteger(HttpHeader.HTTP_STATUS.asString(), HttpStatus.OK_200.getCode());
+		var contentType = HttpContentTypes.forValue(headers.getString(HttpConstants.CONTENT_TYPE, null));
+
+		if (contentType == null) {
+			if (body instanceof BValue) {
+				contentType = HttpContentTypes.TEXT_PLAIN;
+			} else if (body instanceof BReference) {
+				contentType = HttpContentTypes.APPLICATION_OCTET_STREAM;
+			} else {
+				contentType = HttpContentTypes.APPLICATION_JSON;
+			}
+		}
+
+		int statusCode = headers.getInteger(HttpConstants.HTTP_STATUS, HttpStatus.OK_200.getCode());
 		response.setStatus(statusCode);
 
-		String charset = headers.getString(HttpHeader.CHARSET.asString(), "UTF-8");
+		String charset = headers.getString(HttpConstants.CHARSET, "UTF-8");
 		response.setCharacterEncoding(charset);
 
-		this.writeHeaders(headers, response);
+		if (!headers.containsKey(HttpConstants.CONTENT_TYPE)) {
+			headers.setAny(HttpConstants.CONTENT_TYPE, contentType.getValue());
+		}
+
+		if (contentType != HttpContentTypes.MULTIPART_FORM_DATA || body == null) {
+			this.writeHeaders(headers, response);
+		}
 
 		/* ------------------------------------------ */
 		/**
 		 * process body
 		 */
-		BElement body = message.getPayload().getBody();
 		if (body != null) {
-			var contentType = HttpContentTypes.forValue(headers.getString(HttpConstants.CONTENT_TYPE, null));
-
-			if (contentType == null) {
-				if (body instanceof BValue) {
-					contentType = HttpContentTypes.TEXT_PLAIN;
-				} else if (body instanceof BReference) {
-					contentType = HttpContentTypes.APPLICATION_OCTET_STREAM;
-				} else {
-					contentType = HttpContentTypes.APPLICATION_JSON;
-				}
-			}
-
 			switch (contentType) {
 			case APPLICATION_JSON:
 				this.writeBodyJson(body, response);
@@ -140,7 +151,10 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 				this.writeBodyBinary(body, response);
 				break;
 			case MULTIPART_FORM_DATA:
-				this.writeBodyBinary(body, response);
+				this.writeBodyMultipart(body, response, contentTypeWithBoundary -> {
+					headers.setAny(HttpConstants.CONTENT_TYPE, contentTypeWithBoundary);
+					this.writeHeaders(headers, response);
+				});
 				break;
 			case TEXT_PLAIN:
 			default:
@@ -148,6 +162,7 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 				break;
 			}
 		}
+
 	}
 
 	protected void takeWriter(HttpServletResponse response, Consumer<PrintWriter> writerConsumer) {
@@ -168,8 +183,8 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 		}
 	}
 
-	protected void takeOutputStream(HttpServletResponse response, Consumer<OutputStream> osConsumer) {
-		OutputStream outputStream = null;
+	protected void takeOutputStream(HttpServletResponse response, Consumer<ServletOutputStream> osConsumer) {
+		ServletOutputStream outputStream = null;
 
 		try {
 			outputStream = response.getOutputStream();
@@ -247,20 +262,26 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 				inputStream = new ByteBufferInputStream((ByteBuffer) obj);
 			} else if (obj instanceof byte[]) {
 				inputStream = new ByteArrayInputStream((byte[]) obj);
+			} else if (obj instanceof File || obj instanceof Path) {
+				var file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
+				builder.addBinaryBody(name, file);
+				return;
 			} else {
 				inputStream = null;
 			}
+
 			if (inputStream != null) {
 				builder.addBinaryBody(name, inputStream);
 			} else {
 				throw new IllegalArgumentException("cannot make input stream from BReferrence");
 			}
 		} else {
-			builder.addTextBody(name, value.toJson());
+			builder.addPart(name, new StringBody(value.toJson(), ContentType.APPLICATION_JSON));
 		}
 	}
 
-	protected void writeBodyMultipart(BElement body, HttpServletResponse response) {
+	protected void writeBodyMultipart(@NonNull BElement body, @NonNull HttpServletResponse response,
+			@NonNull Consumer<String> contentTypeConsumer) {
 		final MultipartEntityBuilder builder = MultipartEntityBuilder.create();
 		if (body instanceof BObject) {
 			for (Entry<String, BElement> entry : body.asObject().entrySet()) {
@@ -277,11 +298,15 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 
 		takeOutputStream(response, (outstream) -> {
 			try {
-				builder.build().writeTo(outstream);
+				HttpEntity entity = builder.build();
+				contentTypeConsumer.accept(entity.getContentType().getValue());
+
+				entity.writeTo(outstream);
 			} catch (IOException e) {
 				throw new RuntimeException("Cannot write multipart", e);
 			}
 		});
+
 	}
 
 	protected void writeBodyTextPlain(BElement body, HttpServletResponse response) {
@@ -298,7 +323,7 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 		HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR_500;
 		BElement body = BValue.newDefault(status.getDefaultMessage());
 
-		Payload payload = Payload.newDefault(body).addHeader(HttpHeader.HTTP_STATUS.asString(), status.getCode());
+		Payload payload = Payload.newDefault(body).addHeader(HttpConstants.HTTP_STATUS, status.getCode());
 		return Message.newDefault(payload);
 	}
 

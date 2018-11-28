@@ -1,0 +1,207 @@
+package io.gridgo.jetty.test;
+
+import static io.gridgo.connector.jetty.support.HttpEntityHelper.parseAsMultiPart;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.nio.charset.Charset;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import org.apache.http.Header;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.gridgo.bean.BArray;
+import io.gridgo.bean.BElement;
+import io.gridgo.bean.BObject;
+import io.gridgo.bean.BValue;
+import io.gridgo.connector.Connector;
+import io.gridgo.connector.ConnectorResolver;
+import io.gridgo.connector.Consumer;
+import io.gridgo.connector.Producer;
+import io.gridgo.connector.impl.resolvers.ClasspathConnectorResolver;
+import io.gridgo.connector.jetty.HttpContentTypes;
+import io.gridgo.connector.jetty.JettyConnector;
+import io.gridgo.connector.jetty.JettyConsumer;
+import io.gridgo.connector.jetty.JettyResponder;
+import io.gridgo.connector.jetty.support.HttpConstants;
+import io.gridgo.connector.support.config.ConnectorContext;
+import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
+import io.gridgo.framework.execution.impl.ExecutorExecutionStrategy;
+import io.gridgo.framework.support.Message;
+import io.gridgo.framework.support.Payload;
+
+public class TestJettyResponseContentType {
+
+	private static final String TEST_TEXT = "this is test text";
+
+	private static final String URI = "http://localhost:8888/";
+	private static final String SERVER_ENDPOINT = "jetty:" + URI;
+
+	private final HttpClient httpClient = HttpClientBuilder.create().build();
+
+	private final ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.connector");
+	private final ExecutorService executor = Executors.newCachedThreadPool();
+
+	{
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			executor.shutdown();
+		}));
+	}
+
+	private Connector createConnector(String endpoint) {
+		ConnectorContext connectorContext = new DefaultConnectorContextBuilder() //
+				.setCallbackInvokerStrategy(new ExecutorExecutionStrategy(executor)) //
+				.setExceptionHandler((ex) -> {
+					ex.printStackTrace();
+				}) //
+				.build();
+
+		Connector connector = resolver.resolve(endpoint, connectorContext);
+
+		assertNotNull(connector);
+		assertTrue(connector instanceof JettyConnector);
+
+		assertTrue(connector.getConsumer().isPresent());
+		assertTrue(connector.getProducer().isPresent());
+
+		assertTrue(connector.getConsumer().get() instanceof JettyConsumer);
+		assertTrue(connector.getProducer().get() instanceof JettyResponder);
+
+		return connector;
+	}
+
+	protected String readInputStreamAsString(InputStream inputStream) {
+		ByteArrayOutputStream result = new ByteArrayOutputStream();
+		byte[] buffer = new byte[1024];
+		int length;
+		try {
+			while ((length = inputStream.read(buffer)) != -1) {
+				result.write(buffer, 0, length);
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		return result.toString(Charset.defaultCharset());
+	}
+
+	@Test
+	public void testResponseJson() throws URISyntaxException, IOException, InterruptedException {
+
+		System.out.println("Test response content type application/json");
+
+		Connector connector = createConnector(SERVER_ENDPOINT);
+		connector.start();
+
+		try {
+			Consumer consumer = connector.getConsumer().get();
+			Producer responder = connector.getProducer().get();
+
+			consumer.subscribe(msg -> {
+				Payload payload = Payload.newDefault(BObject.newFromSequence("testText", TEST_TEXT));
+				payload.addHeader(HttpConstants.CONTENT_TYPE, HttpContentTypes.APPLICATION_JSON.getValue());
+				Message message = Message.newDefault(payload).setRoutingId(msg.getRoutingId().get());
+				responder.send(message);
+			});
+
+			var request = RequestBuilder.get(URI).build();
+			var response = httpClient.execute(request);
+			Header[] contentType = response.getHeaders(HttpConstants.CONTENT_TYPE);
+			assertNotNull(contentType);
+			assertTrue(contentType.length > 0);
+			assertThat(contentType[0].getValue(), Matchers.startsWith(HttpContentTypes.APPLICATION_JSON.getValue()));
+
+			BElement responseData = BElement.fromJson(EntityUtils.toString(response.getEntity()));
+			assertNotNull(responseData);
+			assertTrue(responseData.isObject());
+			assertEquals(TEST_TEXT, responseData.asObject().getString("testText"));
+		} finally {
+			connector.stop();
+		}
+	}
+
+	@Test
+	public void testResponseTextPlain() throws URISyntaxException, IOException, InterruptedException {
+
+		System.out.println("Test response content type text/plain");
+
+		Connector connector = createConnector(SERVER_ENDPOINT);
+		connector.start();
+
+		try {
+			Consumer consumer = connector.getConsumer().get();
+			Producer responder = connector.getProducer().get();
+
+			consumer.subscribe(msg -> {
+				Payload payload = Payload.newDefault(BValue.newDefault(TEST_TEXT));
+				payload.addHeader(HttpConstants.CONTENT_TYPE, HttpContentTypes.TEXT_PLAIN.getValue());
+				Message message = Message.newDefault(payload).setRoutingId(msg.getRoutingId().get());
+				responder.send(message);
+			});
+			var request = RequestBuilder.get(URI).build();
+			var response = httpClient.execute(request);
+			Header[] contentType = response.getHeaders(HttpConstants.CONTENT_TYPE);
+			assertNotNull(contentType);
+			assertTrue(contentType.length > 0);
+			assertThat(contentType[0].getValue(), Matchers.startsWith(HttpContentTypes.TEXT_PLAIN.getValue()));
+
+			BElement responseData = BElement.fromJson(EntityUtils.toString(response.getEntity()));
+			assertNotNull(responseData);
+			assertTrue(responseData.isValue());
+			assertEquals(TEST_TEXT, responseData.asValue().getString());
+		} finally {
+			connector.stop();
+		}
+	}
+
+	@Test
+	public void testResponseMultiPart() throws URISyntaxException, IOException, InterruptedException {
+
+		System.out.println("Test response content type multipart/form-data");
+
+		Connector connector = createConnector(SERVER_ENDPOINT);
+		connector.start();
+
+		try {
+			Consumer consumer = connector.getConsumer().get();
+			Producer responder = connector.getProducer().get();
+
+			consumer.subscribe(msg -> {
+				Payload payload = Payload.newDefault( //
+						BObject.newDefault() //
+								.setAny("testText", TEST_TEXT) //
+								.setAny("testFile", getClass().getClassLoader().getResourceAsStream("test.txt")) //
+								.setAny("testJsonObject",
+										BObject.newFromSequence("keyString", "valueString", "keyNumber", 100)) //
+								.setAny("testJsonArray", BArray.newFromSequence("string", 100, true)) //
+				);
+
+				payload.addHeader(HttpConstants.CONTENT_TYPE, HttpContentTypes.MULTIPART_FORM_DATA.getValue());
+				Message message = Message.newDefault(payload).setRoutingId(msg.getRoutingId().get());
+				responder.send(message);
+			});
+
+			var request = RequestBuilder.get(URI).build();
+			var response = httpClient.execute(request);
+
+			String contentType = response.getEntity().getContentType().getValue();
+			assertThat(contentType, Matchers.startsWith(HttpContentTypes.MULTIPART_FORM_DATA.getValue()));
+
+			BArray responseMultiPart = parseAsMultiPart(response.getEntity());
+			System.out.println("Response multipart: " + responseMultiPart);
+		} finally {
+			connector.stop();
+		}
+	}
+}

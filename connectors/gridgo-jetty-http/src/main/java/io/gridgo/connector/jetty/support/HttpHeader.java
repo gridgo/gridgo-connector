@@ -9,14 +9,6 @@ public enum HttpHeader {
 
 	/* ------------------------------------------------------------ */
 	/**
-	 * Custom Fields
-	 */
-	HTTP_STATUS("Http-Status", false, true, true),
-	HTTP_METHOD("Http-Method", true, false, true),
-	QUERY_PARAMS("Query-Params", true, false, true),
-	CHARSET("Charset", true, true, true),
-	/* ------------------------------------------------------------ */
-	/**
 	 * General Fields.
 	 */
 	CONNECTION("Connection", true, true),
@@ -128,7 +120,21 @@ public enum HttpHeader {
 	C_PATH(":path", true, true),
 	C_STATUS(":status", true, true),
 
-	UNKNOWN("::UNKNOWN::", true, true);
+	UNKNOWN("::UNKNOWN::", true, true),
+
+	/* ------------------------------------------------------------ */
+	/**
+	 * Custom Fields
+	 */
+	HTTP_STATUS("Http-Status", false, true, true),
+	HTTP_METHOD("Http-Method", true, false, true),
+	QUERY_PARAMS("Query-Params", true, false, true),
+	CHARSET("Charset", true, true, true),
+	PATH_INFO("Path-Info", true, false, true),
+	SCHEME("Scheme", true, false, true),
+	REMOTE_ADDR("Remote-Addr", true, false, true),
+	LOCAL_ADDR("Local-Addr", true, false, true),
+	CONTEXT_PATH("Context-Path", true, false, true);
 
 	/* ------------------------------------------------------------ */
 	private final static Trie<HttpHeader> CACHE = new ArrayTrie<>(1024);

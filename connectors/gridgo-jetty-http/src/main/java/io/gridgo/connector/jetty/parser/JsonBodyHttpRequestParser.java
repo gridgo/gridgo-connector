@@ -1,5 +1,7 @@
 package io.gridgo.connector.jetty.parser;
 
+import static io.gridgo.connector.jetty.support.HttpEntityHelper.parseAsString;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -21,7 +23,7 @@ public class JsonBodyHttpRequestParser extends AbstractHttpRequestParser {
 			if (inputStream.markSupported()) {
 				try {
 					inputStream.reset();
-					return BValue.newDefault(readInputStreamAsString(inputStream, Charset.forName("UTF-8")));
+					return BValue.newDefault(parseAsString(inputStream, Charset.forName("UTF-8")));
 				} catch (IOException e) {
 					throw new RuntimeException("Cannot read inputStream", e);
 				}

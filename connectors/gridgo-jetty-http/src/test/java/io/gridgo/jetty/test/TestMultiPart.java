@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
+import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -23,9 +24,9 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.junit.Test;
 
-import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
+import io.gridgo.bean.BReference;
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.ConnectorResolver;
 import io.gridgo.connector.Consumer;
@@ -34,6 +35,7 @@ import io.gridgo.connector.impl.resolvers.ClasspathConnectorResolver;
 import io.gridgo.connector.jetty.JettyConnector;
 import io.gridgo.connector.jetty.JettyConsumer;
 import io.gridgo.connector.jetty.JettyResponder;
+import io.gridgo.connector.jetty.support.HttpConstants;
 import io.gridgo.connector.jetty.support.HttpHeader;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
@@ -102,66 +104,79 @@ public class TestMultiPart {
 		Connector connector = createConnector(endpoint);
 		connector.start();
 
-		Consumer consumer = connector.getConsumer().get();
-		Producer producer = connector.getProducer().get();
+		try {
+			Consumer consumer = connector.getConsumer().get();
+			Producer producer = connector.getProducer().get();
 
-		consumer.subscribe((msg) -> {
-			BArray arr = msg.getPayload().getBody().asArray();
+			consumer.subscribe((msg) -> {
+				BObject response = BObject.newDefault();
+				response.put("query", msg.getPayload().getHeaders().get(HttpHeader.QUERY_PARAMS.asString()));
 
-			BObject responseBody = BObject.newDefault();
-			for (BElement ele : arr) {
-				String key = ele.asObject().getString("name");
-				String value = null;
-				if (ele.asObject().getBoolean("isConverted")) {
-					value = ele.asObject().getString("value");
-				} else {
-					value = readInputStreamAsString(
-							(InputStream) ele.asObject().getReference("inputStream").getReference());
+				// rebuild body from multipart array to object
+				BObject body = BObject.newDefault();
+				for (BElement element : msg.getPayload().getBody().asArray()) {
+					BObject part = element.asObject();
+					BElement partBody = part.get(HttpConstants.BODY);
+					if (partBody instanceof BReference) {
+						String partBodyAsString = readInputStreamAsString(
+								(InputStream) partBody.asReference().getReference());
+						body.putAny(part.getString(HttpConstants.NAME), partBodyAsString);
+					} else {
+						body.putAny(part.getString(HttpConstants.NAME), partBody.toJson());
+					}
 				}
-				responseBody.putAny(key, value);
+				response.put("body", body);
+				
+				Message responseMessage = Message.newDefault(msg.getRoutingId().get(), Payload.newDefault(response));
+				producer.send(responseMessage);
+			});
+
+			byte[] rawData = new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+			InputStream testTXT = getClass().getClassLoader().getResourceAsStream("test.txt");
+
+			HttpEntity entity = MultipartEntityBuilder.create() //
+					.addBinaryBody("file:test.txt", testTXT) //
+					.addBinaryBody("rawData", rawData) //
+					.addTextBody("testText", TEST_TEXT) //
+					.build();
+
+			URI uri = URI.create(HTTP_LOCALHOST_8888 + "/" + path + "?param=abc");
+			HttpUriRequest request = RequestBuilder.post(uri).setEntity(entity).build();
+
+			HttpResponse response = httpClient.execute(request);
+
+			BElement respObj = BElement.fromJson(EntityUtils.toString(response.getEntity()));
+
+			assertNotNull(respObj);
+			assertTrue(respObj.isObject());
+
+			assertTrue(respObj.asObject().containsKey("query"));
+			assertEquals(respObj.asObject().getObject("query").getString("param"), "abc");
+
+			assertTrue(respObj.asObject().containsKey("body"));
+			assertTrue(respObj.asObject().get("body").isObject());
+
+			BObject body = respObj.asObject().getObject("body");
+			assertEquals(3, body.size());
+			for (Entry<String, BElement> entry : body.entrySet()) {
+				String name = entry.getKey();
+				switch (name) {
+				case "file:test.txt":
+					String fileContent = readInputStreamAsString(
+							getClass().getClassLoader().getResourceAsStream("test.txt"));
+					assertEquals(fileContent, entry.getValue().asValue().getString());
+					break;
+				case "rawData":
+					String rawDataAsString = new String(rawData);
+					assertEquals(rawDataAsString, entry.getValue().asValue().getString());
+					break;
+				case "testText":
+					assertEquals(TEST_TEXT, entry.getValue().asValue().getString());
+					break;
+				}
 			}
-
-			BObject response = BObject.newDefault();
-			response.put("query", msg.getPayload().getHeaders().get(HttpHeader.QUERY_PARAMS.asString()));
-			response.put("body", responseBody);
-
-			producer.send(Message.newDefault(msg.getRoutingId().get(), Payload.newDefault(response)));
-		});
-
-		byte[] rawData = new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-		InputStream testTXT = getClass().getClassLoader().getResourceAsStream("test.txt");
-
-		HttpEntity entity = MultipartEntityBuilder.create() //
-				.addBinaryBody("file:test.txt", testTXT) //
-				.addBinaryBody("rawData", rawData) //
-				.addTextBody("testText", TEST_TEXT) //
-				.build();
-
-		URI uri = URI.create(HTTP_LOCALHOST_8888 + "/" + path + "?param=abc");
-		HttpUriRequest request = RequestBuilder.post(uri).setEntity(entity).build();
-
-		HttpResponse response = httpClient.execute(request);
-
-		BElement respObj = BElement.fromJson(EntityUtils.toString(response.getEntity()));
-
-		System.out.println("Got response: " + respObj);
-
-		assertNotNull(respObj);
-		assertTrue(respObj.isObject());
-
-		assertTrue(respObj.asObject().containsKey("query"));
-		assertEquals(respObj.asObject().getObject("query").getString("param"), "abc");
-
-		String fileContent = readInputStreamAsString(getClass().getClassLoader().getResourceAsStream("test.txt"));
-
-		assertTrue(respObj.asObject().containsKey("body"));
-		assertTrue(respObj.asObject().get("body").isObject());
-
-		BObject body = respObj.asObject().getObject("body");
-		assertEquals(TEST_TEXT, body.getString("testText"));
-		assertEquals(fileContent, body.getString("file:test.txt"));
-		assertEquals(new String(rawData), body.getString("rawData"));
-
-		connector.stop();
+		} finally {
+			connector.stop();
+		}
 	}
 }
