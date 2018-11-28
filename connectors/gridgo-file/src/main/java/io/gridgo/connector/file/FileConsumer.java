@@ -52,11 +52,8 @@ public class FileConsumer extends AbstractConsumer {
 
 	private void readAndPublish() {
 		var engine = lengthPrepend ? new LengthPrependedFileConsumerEngine(this) : new SimpleFileConsumerEngine(this);
-		try {
-			engine.readAndPublish();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		getContext().getConsumerExecutionStrategy()
+				.ifPresentOrElse(strategy -> strategy.execute(engine::readAndPublish), engine::readAndPublish);
 	}
 
 	@Override

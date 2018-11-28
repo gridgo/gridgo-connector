@@ -20,30 +20,34 @@ public class LengthPrependedFileConsumerEngine implements FileConsumerEngine {
 	}
 
 	@Override
-	public void readAndPublish() throws IOException {
+	public void readAndPublish() {
 		var randomAccessFile = this.fileConsumer.getRandomAccessFile();
 		var buffer = this.fileConsumer.getBuffer();
-		while (true) {
-			var length = tryGetLength(randomAccessFile);
-			if (length == -1)
-				break;
-			if (length > buffer.length) {
-				log.warn("Buffer overflow detected. Limit: %d. Required: %d", buffer.length, length);
-				buffer = new byte[length];
-			}
-			int read = randomAccessFile.read(buffer, 0, length);
-			if (read != length)
-				throw new LengthMismatchException(length, read);
-			var payload = deserialize(buffer, length);
-			var msg = Message.parse(payload);
-			if (msg instanceof MultipartMessage) {
-				var messages = ((MultipartMessage) msg).buildOriginalMessages();
-				for (var message : messages) {
-					this.fileConsumer.publishMessage(message);
+		try {
+			while (true) {
+				var length = tryGetLength(randomAccessFile);
+				if (length == -1)
+					break;
+				if (length > buffer.length) {
+					log.warn("Buffer overflow detected. Limit: %d. Required: %d", buffer.length, length);
+					buffer = new byte[length];
 				}
-			} else {
-				this.fileConsumer.publishMessage(msg);
+				int read = randomAccessFile.read(buffer, 0, length);
+				if (read != length)
+					throw new LengthMismatchException(length, read);
+				var payload = deserialize(buffer, length);
+				var msg = Message.parse(payload);
+				if (msg instanceof MultipartMessage) {
+					var messages = ((MultipartMessage) msg).buildOriginalMessages();
+					for (var message : messages) {
+						this.fileConsumer.publishMessage(message);
+					}
+				} else {
+					this.fileConsumer.publishMessage(msg);
+				}
 			}
+		} catch (IOException ex) {
+			throw new RuntimeException(ex);
 		}
 	}
 

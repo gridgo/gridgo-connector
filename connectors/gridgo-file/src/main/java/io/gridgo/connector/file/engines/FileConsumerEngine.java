@@ -1,7 +1,5 @@
 package io.gridgo.connector.file.engines;
 
-import java.io.IOException;
-
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.support.FormattedMarshallable;
@@ -9,7 +7,7 @@ import io.gridgo.connector.support.exceptions.UnsupportedFormatException;
 
 public interface FileConsumerEngine extends FormattedMarshallable {
 
-	public void readAndPublish() throws IOException;
+	public void readAndPublish();
 
 	public default BElement deserialize(byte[] responseBody, int length) {
 		if (responseBody == null)

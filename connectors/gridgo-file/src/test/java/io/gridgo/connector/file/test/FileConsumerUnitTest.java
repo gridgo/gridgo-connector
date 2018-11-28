@@ -10,6 +10,8 @@ import org.junit.Test;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.file.FileProducer;
 import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
+import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
+import io.gridgo.framework.execution.impl.ExecutorExecutionStrategy;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 
@@ -39,8 +41,11 @@ public class FileConsumerUnitTest {
 			throws InterruptedException {
 		var totalSentBytes = prepareFile(scheme, format, batchEnabled, lengthPrepend);
 
-		var connector = new DefaultConnectorFactory().createConnector(scheme + "://[test." + lengthPrepend + "."
-				+ format + "]?format=" + format + "&deleteOnShutdown=true&lengthPrepend=" + lengthPrepend);
+		var endpoint = scheme + "://[test." + lengthPrepend + "." + format + "]?format=" + format
+				+ "&deleteOnShutdown=true&lengthPrepend=" + lengthPrepend;
+		var strategy = new ExecutorExecutionStrategy(1);
+		var context = new DefaultConnectorContextBuilder().setConsumerExecutionStrategy(strategy).build();
+		var connector = new DefaultConnectorFactory().createConnector(endpoint, context);
 		var consumer = connector.getConsumer().orElseThrow();
 		var latch = new CountDownLatch(NUM_MESSAGES);
 		var exRef = new AtomicReference<>();
@@ -58,8 +63,9 @@ public class FileConsumerUnitTest {
 		printPace("Consumer (format=" + format + ", batchingEnabled=" + batchEnabled + ", lengthPrepend="
 				+ lengthPrepend + ")\n", NUM_MESSAGES, elapsed, totalSentBytes);
 
-		Assert.assertNull(exRef.get());
 		connector.stop();
+		strategy.stop();
+		Assert.assertNull(exRef.get());
 	}
 
 	private long prepareFile(String scheme, String format, String batchEnabled, String lengthPrepend)

@@ -1,7 +1,5 @@
 package io.gridgo.connector.file.engines;
 
-import java.io.IOException;
-
 import io.gridgo.connector.file.FileConsumer;
 
 public class SimpleFileConsumerEngine implements FileConsumerEngine {
@@ -13,7 +11,7 @@ public class SimpleFileConsumerEngine implements FileConsumerEngine {
 	}
 
 	@Override
-	public void readAndPublish() throws IOException {
+	public void readAndPublish() {
 		throw new UnsupportedOperationException("Non-length-prepended mode is not supported for FileConsumer");
 	}
 
