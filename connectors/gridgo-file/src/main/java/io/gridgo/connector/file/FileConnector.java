@@ -2,9 +2,9 @@ package io.gridgo.connector.file;
 
 import java.util.Optional;
 
-import io.gridgo.connector.file.engines.BasicFileProducerEngine;
-import io.gridgo.connector.file.engines.DisruptorFileProducerEngine;
-import io.gridgo.connector.file.engines.FileProducerEngine;
+import io.gridgo.connector.file.support.engines.BasicFileProducerEngine;
+import io.gridgo.connector.file.support.engines.DisruptorFileProducerEngine;
+import io.gridgo.connector.file.support.engines.FileProducerEngine;
 import io.gridgo.connector.impl.AbstractConnector;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 
@@ -16,6 +16,10 @@ public class FileConnector extends AbstractConnector {
 	public static final int DEFAULT_MAX_BATCH_SIZE = 1000;
 
 	private static final int DEFAULT_BUFFER_SIZE = 1024 * 1024;
+
+	private static final long DEFAULT_LIMIT = -1;
+
+	private static final int DEFAULT_COUNT = 10;
 
 	@Override
 	protected void onInit() {
@@ -43,10 +47,19 @@ public class FileConnector extends AbstractConnector {
 		var deleteOnStartup = "true".equals(getParam("deleteOnStartup"));
 		var deleteOnShutdown = "true".equals(getParam("deleteOnShutdown"));
 
-		var producer = new FileProducer(getContext(), path, mode, engine, deleteOnStartup, deleteOnShutdown);
+		var strLimit = getParam("limitSize");
+		var limit = strLimit != null ? Long.parseLong(strLimit) : DEFAULT_LIMIT;
+
+		var strCount = getParam("rotationCount");
+		var count = strCount != null ? Integer.parseInt(strCount) : DEFAULT_COUNT;
+
+		var producer = new FileProducer(getContext(), path, mode, engine, deleteOnStartup, deleteOnShutdown, limit,
+				count);
 		this.producer = Optional.of(producer);
-		if (!producerOnly)
-			this.consumer = Optional.of(new FileConsumer(getContext(), path, format, bufferSize, lengthPrepend));
+		if (!producerOnly) {
+			this.consumer = Optional
+					.of(new FileConsumer(getContext(), path, format, bufferSize, lengthPrepend, limit > 0, count));
+		}
 	}
 
 	private FileProducerEngine createBasicProducer(String format, int bufferSize, boolean lengthPrepend) {
