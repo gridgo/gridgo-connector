@@ -56,8 +56,10 @@ public class FileConnector extends AbstractConnector {
 		var producer = new FileProducer(getContext(), path, mode, engine, deleteOnStartup, deleteOnShutdown, limit,
 				count);
 		this.producer = Optional.of(producer);
-		if (!producerOnly)
-			this.consumer = Optional.of(new FileConsumer(getContext(), path, format, bufferSize, lengthPrepend));
+		if (!producerOnly) {
+			this.consumer = Optional
+					.of(new FileConsumer(getContext(), path, format, bufferSize, lengthPrepend, limit > 0, count));
+		}
 	}
 
 	private FileProducerEngine createBasicProducer(String format, int bufferSize, boolean lengthPrepend) {

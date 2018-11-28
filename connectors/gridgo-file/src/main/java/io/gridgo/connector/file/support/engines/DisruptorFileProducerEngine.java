@@ -6,7 +6,7 @@ import java.util.Collection;
 
 import org.joo.promise4j.Promise;
 
-import io.gridgo.connector.file.FileRotater;
+import io.gridgo.connector.file.support.rotaters.FileProducerRotater;
 import io.gridgo.connector.impl.SingleThreadSendingProducer;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
@@ -25,7 +25,7 @@ public class DisruptorFileProducerEngine extends SingleThreadSendingProducer imp
 	private long totalSentBytes;
 
 	@Setter
-	private FileRotater rotater;
+	private FileProducerRotater rotater;
 
 	private ByteBuffer buffer;
 

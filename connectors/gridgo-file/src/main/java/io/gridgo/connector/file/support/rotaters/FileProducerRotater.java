@@ -1,4 +1,4 @@
-package io.gridgo.connector.file;
+package io.gridgo.connector.file.support.rotaters;
 
 import java.io.File;
 import java.io.IOException;
@@ -7,7 +7,7 @@ import java.nio.channels.FileChannel;
 
 import lombok.Getter;
 
-public class FileRotater {
+public class FileProducerRotater {
 
 	private String basePath;
 
@@ -30,7 +30,7 @@ public class FileRotater {
 
 	private boolean deleteOnShutdown;
 
-	public FileRotater(String basePath, String mode, long limit, int count, boolean deleteOnStartup,
+	public FileProducerRotater(String basePath, String mode, long limit, int count, boolean deleteOnStartup,
 			boolean deleteOnShutdown) throws IOException {
 		this.basePath = basePath;
 		this.mode = mode;

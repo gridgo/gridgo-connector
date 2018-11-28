@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.joo.promise4j.Promise;
 
 import io.gridgo.connector.file.support.engines.FileProducerEngine;
+import io.gridgo.connector.file.support.rotaters.FileProducerRotater;
 import io.gridgo.connector.impl.AbstractProducer;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
@@ -42,7 +43,7 @@ public class FileProducer extends AbstractProducer {
 	@Override
 	protected void onStart() {
 		try {
-			var rotater = new FileRotater(path, mode, limit, count, deleteOnStartup, deleteOnShutdown);
+			var rotater = new FileProducerRotater(path, mode, limit, count, deleteOnStartup, deleteOnShutdown);
 			this.engine.setRotater(rotater);
 			this.engine.start();
 		} catch (IOException e) {

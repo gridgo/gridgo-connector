@@ -6,7 +6,7 @@ import java.nio.ByteBuffer;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.CompletableDeferredObject;
 
-import io.gridgo.connector.file.FileRotater;
+import io.gridgo.connector.file.support.rotaters.FileProducerRotater;
 import io.gridgo.connector.impl.AbstractProducer;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
@@ -19,7 +19,7 @@ public class BasicFileProducerEngine extends AbstractProducer implements FilePro
 	private String format;
 
 	@Setter
-	private FileRotater rotater;
+	private FileProducerRotater rotater;
 
 	private boolean lengthPrepend;
 
