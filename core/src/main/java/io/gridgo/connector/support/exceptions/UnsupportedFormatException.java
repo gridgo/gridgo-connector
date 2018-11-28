@@ -1,4 +1,4 @@
-package io.gridgo.connector.httpcommon.support.exceptions;
+package io.gridgo.connector.support.exceptions;
 
 public class UnsupportedFormatException extends RuntimeException {
 
