@@ -211,7 +211,7 @@ public class TestJettyResponseContentType {
 	@Test
 	public void testResponseBinary() throws URISyntaxException, IOException, InterruptedException {
 
-		System.out.println("Test response content type multipart/form-data");
+		System.out.println("Test response content type application/octet-stream");
 
 		Connector connector = createConnector(SERVER_ENDPOINT);
 		connector.start();
