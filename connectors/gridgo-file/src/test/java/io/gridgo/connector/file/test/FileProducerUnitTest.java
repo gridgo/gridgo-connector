@@ -12,7 +12,7 @@ import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 
-public class FileUnitTest {
+public class FileProducerUnitTest {
 
 	private static final int NUM_MESSAGES = 1;
 	private static final int BYTE_SIZE = 1;
@@ -53,7 +53,7 @@ public class FileUnitTest {
 			throws InterruptedException {
 		var connector = new DefaultConnectorFactory().createConnector(scheme + "://[test." + lengthPrepend + "."
 				+ format + "]?format=" + format + "&batchingEnabled=" + batchEnabled + "&lengthPrepend=" + lengthPrepend
-				+ "&deleteOnShutdown=true&deleteOnStartup=true&maxBatchSize=1000");
+				+ "&deleteOnShutdown=true&deleteOnStartup=true&maxBatchSize=1000&producerOnly=true");
 		connector.start();
 
 		var producer = (FileProducer) connector.getProducer().orElseThrow();

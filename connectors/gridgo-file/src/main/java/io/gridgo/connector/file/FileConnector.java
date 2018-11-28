@@ -25,6 +25,8 @@ public class FileConnector extends AbstractConnector {
 
 		var lengthPrepend = !"false".equals(getParam("lengthPrepend"));
 
+		var producerOnly = "true".equals(getParam("producerOnly"));
+
 		var strBufferSize = getParam("bufferSize");
 		var bufferSize = strBufferSize != null ? Integer.parseInt(strBufferSize) : DEFAULT_BUFFER_SIZE;
 
@@ -41,8 +43,10 @@ public class FileConnector extends AbstractConnector {
 		var deleteOnStartup = "true".equals(getParam("deleteOnStartup"));
 		var deleteOnShutdown = "true".equals(getParam("deleteOnShutdown"));
 
-		this.producer = Optional
-				.of(new FileProducer(getContext(), path, mode, engine, deleteOnStartup, deleteOnShutdown));
+		var producer = new FileProducer(getContext(), path, mode, engine, deleteOnStartup, deleteOnShutdown);
+		this.producer = Optional.of(producer);
+		if (!producerOnly)
+			this.consumer = Optional.of(new FileConsumer(getContext(), path, format, bufferSize, lengthPrepend));
 	}
 
 	private FileProducerEngine createBasicProducer(String format, int bufferSize, boolean lengthPrepend) {

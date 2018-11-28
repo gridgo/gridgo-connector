@@ -78,7 +78,7 @@ public class FileProducer extends AbstractProducer {
 
 	@Override
 	protected String generateName() {
-		return "consumer.file:" + engine.getName() + "." + path;
+		return "producer.file:" + engine.getName() + "." + path;
 	}
 
 	@Override
