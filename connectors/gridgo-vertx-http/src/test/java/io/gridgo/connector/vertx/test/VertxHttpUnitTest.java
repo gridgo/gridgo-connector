@@ -6,10 +6,13 @@ import java.io.InputStreamReader;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.joo.promise4j.Deferred;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -21,6 +24,63 @@ import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 
 public class VertxHttpUnitTest {
+
+	@Test
+	public void testMultiConnector() throws ClientProtocolException, IOException {
+		var connector1 = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8083/");
+		var connector2 = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8083/api1");
+		var connector3 = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8083/api2");
+		connector1.start();
+		connector2.start();
+		connector3.start();
+
+		var consumer1 = connector1.getConsumer().orElseThrow();
+		var consumer2 = connector2.getConsumer().orElseThrow();
+		var consumer3 = connector3.getConsumer().orElseThrow();
+
+		consumer1.subscribe((request, deferred) -> resolveSimple(request, deferred, 1));
+		consumer2.subscribe((request, deferred) -> resolveSimple(request, deferred, 2));
+		consumer3.subscribe((request, deferred) -> resolveSimple(request, deferred, 3));
+
+		var client = HttpClientBuilder.create().build();
+		testRoot(client);
+		testApi1(client);
+		testApi2(client);
+
+		connector1.stop();
+
+		var request4 = new HttpGet("http://127.0.0.1:8083");
+		var response4 = client.execute(request4);
+		Assert.assertEquals(404, response4.getStatusLine().getStatusCode());
+
+		testApi1(client);
+		testApi2(client);
+
+		connector2.stop();
+		connector3.stop();
+	}
+
+	private void testRoot(CloseableHttpClient client) throws IOException, ClientProtocolException {
+		var request1 = new HttpGet("http://127.0.0.1:8083");
+		var result1 = readResponse(client.execute(request1)).toString();
+		Assert.assertEquals("1", result1);
+	}
+
+	private void testApi2(CloseableHttpClient client) throws IOException, ClientProtocolException {
+		var request3 = new HttpGet("http://127.0.0.1:8083/api2");
+		var result3 = readResponse(client.execute(request3)).toString();
+		Assert.assertEquals("3", result3);
+	}
+
+	private void testApi1(CloseableHttpClient client) throws IOException, ClientProtocolException {
+		var request2 = new HttpGet("http://127.0.0.1:8083/api1");
+		var result2 = readResponse(client.execute(request2)).toString();
+		Assert.assertEquals("2", result2);
+	}
+
+	private Deferred<Message, Exception> resolveSimple(Message request, Deferred<Message, Exception> deferred, int i) {
+		return deferred.resolve(Message.newDefault(Payload.newDefault(BValue.newDefault(i))));
+	}
 
 	@Test
 	public void testCustomFailureHandler() throws ClientProtocolException, IOException {
@@ -132,7 +192,7 @@ public class VertxHttpUnitTest {
 		Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
 		var result = readResponse(response);
 		Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
-		
+
 		var putRequest = new HttpPut(url);
 		putRequest.addHeader("test-header", "XYZ");
 		putRequest.setEntity(new StringEntity("{'abc':'def'}"));
@@ -146,7 +206,7 @@ public class VertxHttpUnitTest {
 
 		connector.stop();
 	}
-	
+
 	@Test
 	public void testAllMethodsWithPath() throws ClientProtocolException, IOException {
 		var connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8080/api");
@@ -165,7 +225,7 @@ public class VertxHttpUnitTest {
 		Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
 		var result = readResponse(response);
 		Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
-		
+
 		var putRequest = new HttpPut(url);
 		putRequest.addHeader("test-header", "XYZ");
 		putRequest.setEntity(new StringEntity("{'abc':'def'}"));
