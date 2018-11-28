@@ -14,8 +14,8 @@ import io.gridgo.framework.support.Payload;
 
 public class FileUnitTest {
 
-	private static final int NUM_MESSAGES = 1;
-	private static final int BYTE_SIZE = 1;
+	private static final int NUM_MESSAGES = 100000;
+	private static final int BYTE_SIZE = 1024;
 
 	@Test
 	public void testBatchNoLengthPrepend() throws InterruptedException {
@@ -51,9 +51,9 @@ public class FileUnitTest {
 
 	private void doTestFile(String scheme, String format, String batchEnabled, String lengthPrepend)
 			throws InterruptedException {
-		var connector = new DefaultConnectorFactory().createConnector(
-				scheme + "://[test.txt]?format=" + format + "&batchingEnabled=" + batchEnabled + "&lengthPrepend="
-						+ lengthPrepend + "&deleteOnStartup=true&deleteOnShutdown=true&maxBatchSize=1000");
+		var connector = new DefaultConnectorFactory().createConnector(scheme + "://[test." + lengthPrepend + "."
+				+ format + "]?format=" + format + "&batchingEnabled=" + batchEnabled + "&lengthPrepend=" + lengthPrepend
+				+ "&deleteOnShutdown=true&deleteOnStartup=true&maxBatchSize=1000");
 		connector.start();
 
 		var producer = (FileProducer) connector.getProducer().orElseThrow();
@@ -85,6 +85,7 @@ public class FileUnitTest {
 
 	private void printPace(String name, int numMessages, long elapsed, long totalSentBytes) {
 		DecimalFormat df = new DecimalFormat("###,###.##");
+		System.out.println("Total sent bytes: " + df.format(totalSentBytes));
 		System.out.println(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6)
 				+ "ms -> pace: " + df.format(1e9 * numMessages / elapsed) + "ops/s" + " with bandwidth of "
 				+ df.format(1e9 * totalSentBytes / elapsed / 1024 / 1024) + "MB/s");

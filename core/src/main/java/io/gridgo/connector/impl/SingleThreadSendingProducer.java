@@ -29,13 +29,15 @@ public abstract class SingleThreadSendingProducer extends AbstractProducer {
 
 		private final List<Message> batch = new LinkedList<>();
 
+		private final List<Deferred<Message, Exception>> deferreds = new LinkedList<>();
+
 		@Override
 		public void onEvent(ProducerEvent event, long sequence, boolean endOfBatch) throws Exception {
 			Message message = null;
 
 			if (isBatchingEnabled()) {
 				batch.add(event.getMessage());
-				ack(event.getDeferred());
+				deferreds.add(event.getDeferred());
 				if (endOfBatch || (batch.size() >= maxBatchSize)) {
 					message = accumulateBatch(batch);
 					batch.clear();
@@ -53,6 +55,11 @@ public abstract class SingleThreadSendingProducer extends AbstractProducer {
 				} finally {
 					if (!isBatchingEnabled()) {
 						ack(event.getDeferred(), exception);
+					} else {
+						for (var deferred : deferreds) {
+							ack(deferred);
+						}
+						deferreds.clear();
 					}
 				}
 			}

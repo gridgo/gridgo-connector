@@ -1,6 +1,7 @@
 package io.gridgo.connector.file.engines;
 
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.CompletableDeferredObject;
@@ -24,8 +25,11 @@ public class BasicFileProducerEngine extends AbstractProducer implements FilePro
 	@Getter
 	private long totalSentBytes;
 
-	public BasicFileProducerEngine(ConnectorContext context, String format, boolean lengthPrepend) {
+	private ByteBuffer buffer;
+
+	public BasicFileProducerEngine(ConnectorContext context, String format, int bufferSize, boolean lengthPrepend) {
 		super(context);
+		this.buffer = ByteBuffer.allocate(bufferSize);
 		this.format = format;
 		this.lengthPrepend = lengthPrepend;
 	}
@@ -44,9 +48,7 @@ public class BasicFileProducerEngine extends AbstractProducer implements FilePro
 
 	private void doSend(Message message, CompletableDeferredObject<Message, Exception> deferred) {
 		try {
-			byte[] bytesToSend = serialize(message.getPayload().toBArray(), lengthPrepend);
-			randomAccessFile.write(bytesToSend);
-			totalSentBytes += bytesToSend.length;
+			totalSentBytes += writeToFile(message.getPayload().toBArray(), lengthPrepend, buffer, randomAccessFile);
 		} catch (Exception ex) {
 			ack(deferred, ex);
 			return;
