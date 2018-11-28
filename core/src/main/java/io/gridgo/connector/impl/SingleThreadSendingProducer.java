@@ -59,6 +59,11 @@ public abstract class SingleThreadSendingProducer extends AbstractProducer {
 		}
 	};
 
+	protected SingleThreadSendingProducer(ConnectorContext context, int ringBufferSize, boolean batchingEnabled,
+			int maxBatchSize) {
+		this(context, ringBufferSize, Thread::new, batchingEnabled, maxBatchSize);
+	}
+
 	protected SingleThreadSendingProducer(ConnectorContext context, int ringBufferSize, ThreadFactory threadFactory,
 			boolean batchingEnabled, int maxBatchSize) {
 		super(context);

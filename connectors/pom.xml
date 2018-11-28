@@ -23,6 +23,7 @@
 		<module>gridgo-http-common</module>
 		<module>gridgo-jetty-http</module>
 		<module>gridgo-http</module>
+		<module>gridgo-file</module>
 	</modules>
 
 	<dependencies>
