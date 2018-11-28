@@ -21,6 +21,53 @@ public class FileConsumerUnitTest {
 	private static final int LIMIT = 100;
 
 	@Test
+	public void testMultiConnector() throws InterruptedException {
+		var msg = Message.newDefault(Payload.newDefault(BValue.newDefault("hello")));
+
+		var numMessages = 1;
+		var endpoint1 = "file://[testTwice.txt]?format=raw&batchingEnabled=true&lengthPrepend=true&deleteOnStartup=true&producerOnly=true";
+
+		appendFile(msg, numMessages, endpoint1);
+
+		var endpoint2 = "file://[testTwice.txt]?format=raw&batchingEnabled=true&lengthPrepend=true&producerOnly=true";
+		appendFile(msg, numMessages, endpoint2);
+
+		var endpoint = "file://[testTwice.txt]?format=raw&deleteOnShutdown=true&lengthPrepend=true";
+		var strategy = new ExecutorExecutionStrategy(1);
+		var context = new DefaultConnectorContextBuilder().setConsumerExecutionStrategy(strategy).build();
+		var connector = new DefaultConnectorFactory().createConnector(endpoint, context);
+		var consumer = connector.getConsumer().orElseThrow();
+		var latch = new CountDownLatch(numMessages * 2);
+		var exRef = new AtomicReference<>();
+		consumer.subscribe(request -> {
+			var response = request.getPayload().getBody().asValue().getString();
+			if (!"hello".equals(response))
+				exRef.set(new RuntimeException("Expected: hello. Actual: " + response));
+			latch.countDown();
+		});
+		connector.start();
+		latch.await();
+
+		connector.stop();
+		strategy.stop();
+		Assert.assertNull(exRef.get());
+	}
+
+	private long appendFile(Message msg, int numMessages, String endpoint) throws InterruptedException {
+		var connector1 = new DefaultConnectorFactory().createConnector(endpoint);
+		connector1.start();
+
+		var producer = (FileProducer) connector1.getProducer().orElseThrow();
+		var latch = new CountDownLatch(numMessages);
+		for (int i = 0; i < numMessages; i++) {
+			producer.sendWithAck(msg).always((s, r, e) -> latch.countDown());
+		}
+		latch.await();
+		connector1.stop();
+		return producer.getEngine().getTotalSentBytes();
+	}
+
+	@Test
 	public void testBatchWithLengthPrepend() throws InterruptedException {
 		System.out.println("Test batching with length prepend\n");
 		doTestFile("file:disruptor", "xml", "true", "true");
