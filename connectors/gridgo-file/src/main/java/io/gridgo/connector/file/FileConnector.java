@@ -37,7 +37,7 @@ public class FileConnector extends AbstractConnector {
 			throw new IllegalArgumentException("Unsupported file producer engine: " + engineName);
 		}
 		var path = getPlaceholder("path");
-		var mode = getParam("mode", "rwd");
+		var mode = getParam("mode", "rw");
 		var deleteOnStartup = "true".equals(getParam("deleteOnStartup"));
 		var deleteOnShutdown = "true".equals(getParam("deleteOnShutdown"));
 
