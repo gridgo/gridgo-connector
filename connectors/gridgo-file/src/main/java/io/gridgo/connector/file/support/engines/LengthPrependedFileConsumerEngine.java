@@ -19,41 +19,35 @@ public class LengthPrependedFileConsumerEngine implements FileConsumerEngine {
 
 	private FileConsumer fileConsumer;
 
-	private Collection<RandomAccessFile> files;
+	private Collection<File> files;
 
 	public LengthPrependedFileConsumerEngine(FileConsumer fileConsumer) throws FileNotFoundException {
 		this.fileConsumer = fileConsumer;
 		this.files = initFiles();
 	}
 
-	private Collection<RandomAccessFile> initFiles() throws FileNotFoundException {
-		var list = new LinkedList<RandomAccessFile>();
+	private Collection<File> initFiles() throws FileNotFoundException {
+		var list = new LinkedList<File>();
 		if (this.fileConsumer.isHasRotation()) {
 			var count = this.fileConsumer.getCount();
 			for (int i = count - 1; i >= 1; i--) {
 				var file = new File(this.fileConsumer.getPath() + "." + (i - 1));
 				if (file.exists())
-					list.add(new RandomAccessFile(file, "r"));
+					list.add(file);
 			}
 		}
-		list.add(new RandomAccessFile(this.fileConsumer.getPath(), "r"));
+		list.add(new File(this.fileConsumer.getPath()));
 		return list;
 	}
 
 	@Override
 	public void readAndPublish() {
 		var buffer = this.fileConsumer.getBuffer();
-		for (var randomAccessFile : files) {
-			try {
+		for (var file : files) {
+			try (var randomAccessFile = new RandomAccessFile(file, "r")) {
 				buffer = readAndPublish(buffer, randomAccessFile);
 			} catch (IOException ex) {
 				throw new RuntimeException(ex);
-			} finally {
-				try {
-					randomAccessFile.close();
-				} catch (IOException e) {
-
-				}
 			}
 		}
 	}
