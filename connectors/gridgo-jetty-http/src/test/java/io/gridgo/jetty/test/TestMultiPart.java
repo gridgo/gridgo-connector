@@ -106,7 +106,7 @@ public class TestMultiPart {
 		Producer producer = connector.getProducer().get();
 
 		consumer.subscribe((msg) -> {
-			BArray arr = msg.getPayload().getBody().asObject().getArray("body");
+			BArray arr = msg.getPayload().getBody().asArray();
 
 			BObject responseBody = BObject.newDefault();
 			for (BElement ele : arr) {
