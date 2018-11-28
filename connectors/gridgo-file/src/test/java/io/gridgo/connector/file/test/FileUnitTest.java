@@ -14,8 +14,8 @@ import io.gridgo.framework.support.Payload;
 
 public class FileUnitTest {
 
-	private static final int NUM_MESSAGES = 100000;
-	private static final int BYTE_SIZE = 1024;
+	private static final int NUM_MESSAGES = 1;
+	private static final int BYTE_SIZE = 1;
 
 	@Test
 	public void testBatchNoLengthPrepend() throws InterruptedException {
