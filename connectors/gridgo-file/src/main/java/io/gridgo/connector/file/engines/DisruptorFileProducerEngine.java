@@ -2,8 +2,8 @@ package io.gridgo.connector.file.engines;
 
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.Collection;
-import java.util.Objects;
 
 import org.joo.promise4j.Promise;
 
@@ -29,19 +29,21 @@ public class DisruptorFileProducerEngine extends SingleThreadSendingProducer imp
 
 	private ByteBuffer buffer;
 
+	private FileChannel channel;
+
 	public DisruptorFileProducerEngine(ConnectorContext context, String format, int bufferSize, int ringBufferSize,
 			boolean batchingEnabled, int maxBatchSize, boolean lengthPrepend) {
 		super(context, ringBufferSize, batchingEnabled, maxBatchSize);
-		this.buffer = ByteBuffer.allocate(bufferSize);
+		this.buffer = ByteBuffer.allocateDirect(bufferSize);
 		this.format = format;
 		this.lengthPrepend = lengthPrepend;
 	}
 
 	@Override
 	protected void onStart() {
-		Objects.requireNonNull(this.randomAccessFile);
-
 		this.totalSentBytes = 0;
+		this.channel = randomAccessFile.getChannel();
+
 		super.onStart();
 	}
 
@@ -52,7 +54,7 @@ public class DisruptorFileProducerEngine extends SingleThreadSendingProducer imp
 
 	@Override
 	protected void executeSendOnSingleThread(Message message) throws Exception {
-		totalSentBytes += writeToFile(message.getPayload().toBArray(), lengthPrepend, buffer, randomAccessFile);
+		totalSentBytes += writeToFile(message.getPayload().toBArray(), lengthPrepend, buffer, channel);
 	}
 
 	@Override

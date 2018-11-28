@@ -3,6 +3,7 @@ package io.gridgo.connector.file.engines;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.connector.Producer;
@@ -14,32 +15,26 @@ public interface FileProducerEngine extends Producer, FormattedMarshallable {
 
 	public long getTotalSentBytes();
 
-	public default long writeToFile(BElement payload, boolean lengthPrepend, ByteBuffer buffer,
-			RandomAccessFile randomAccessFile) throws IOException {
+	public default long writeToFile(BElement payload, boolean lengthPrepend, ByteBuffer buffer, FileChannel fileChannel)
+			throws IOException {
 		if ("raw".equals(getFormat()))
-			return writeBuffer(payload, buffer, randomAccessFile, lengthPrepend);
+			return writeWithBuffer(payload, buffer, fileChannel, lengthPrepend);
 		byte[] bytesToSend = serialize(payload);
 		if (lengthPrepend)
 			bytesToSend = appendWithLength(bytesToSend);
-		randomAccessFile.write(bytesToSend);
+		fileChannel.write(ByteBuffer.wrap(bytesToSend));
 		return bytesToSend.length;
 	}
 
-	public default long writeBuffer(BElement payload, ByteBuffer buffer, RandomAccessFile randomAccessFile,
-			boolean lengthPrepend) throws IOException {
+	public default long writeWithBuffer(BElement payload, ByteBuffer buffer, FileChannel channel, boolean lengthPrepend)
+			throws IOException {
 		buffer.clear();
 		if (lengthPrepend)
 			writeBytesWithLength(payload, buffer);
 		else
 			payload.writeBytes(buffer);
 		buffer.flip();
-		if (buffer.isDirect()) {
-			var bytes = new byte[buffer.remaining()];
-			buffer.get(bytes);
-			randomAccessFile.write(bytes);
-		} else {
-			randomAccessFile.write(buffer.array(), 0, buffer.limit());
-		}
+		channel.write(buffer);
 		return buffer.limit();
 	}
 
