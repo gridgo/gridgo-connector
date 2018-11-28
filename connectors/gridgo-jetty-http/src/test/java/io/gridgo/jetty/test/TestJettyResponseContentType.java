@@ -25,6 +25,7 @@ import org.junit.Test;
 import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
+import io.gridgo.bean.BReference;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.ConnectorResolver;
@@ -36,6 +37,7 @@ import io.gridgo.connector.jetty.JettyConnector;
 import io.gridgo.connector.jetty.JettyConsumer;
 import io.gridgo.connector.jetty.JettyResponder;
 import io.gridgo.connector.jetty.support.HttpConstants;
+import io.gridgo.connector.jetty.support.HttpEntityHelper;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
 import io.gridgo.framework.execution.impl.ExecutorExecutionStrategy;
@@ -199,7 +201,45 @@ public class TestJettyResponseContentType {
 			assertThat(contentType, Matchers.startsWith(HttpContentTypes.MULTIPART_FORM_DATA.getValue()));
 
 			BArray responseMultiPart = parseAsMultiPart(response.getEntity());
-			System.out.println("Response multipart: " + responseMultiPart);
+			assertEquals(4, responseMultiPart.size());
+
+		} finally {
+			connector.stop();
+		}
+	}
+
+	@Test
+	public void testResponseBinary() throws URISyntaxException, IOException, InterruptedException {
+
+		System.out.println("Test response content type multipart/form-data");
+
+		Connector connector = createConnector(SERVER_ENDPOINT);
+		connector.start();
+
+		try {
+			Consumer consumer = connector.getConsumer().get();
+			Producer responder = connector.getProducer().get();
+
+			consumer.subscribe(msg -> {
+				Payload payload = Payload
+						.newDefault(BReference.newDefault(getClass().getClassLoader().getResourceAsStream("test.txt")));
+
+				payload.addHeader(HttpConstants.CONTENT_TYPE, HttpContentTypes.APPLICATION_OCTET_STREAM.getValue());
+				Message message = Message.newDefault(payload).setRoutingId(msg.getRoutingId().get());
+				responder.send(message);
+			});
+
+			var request = RequestBuilder.get(URI).build();
+			var response = httpClient.execute(request);
+
+			String contentType = response.getEntity().getContentType().getValue();
+			assertThat(contentType, Matchers.startsWith(HttpContentTypes.APPLICATION_OCTET_STREAM.getValue()));
+
+			String content = HttpEntityHelper.parseAsString(response.getEntity().getContent());
+			String fileContent = HttpEntityHelper
+					.parseAsString(getClass().getClassLoader().getResourceAsStream("test.txt"));
+
+			assertEquals(fileContent, content);
 		} finally {
 			connector.stop();
 		}
