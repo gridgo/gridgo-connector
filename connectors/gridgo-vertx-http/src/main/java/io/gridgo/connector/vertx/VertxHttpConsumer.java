@@ -21,6 +21,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -42,6 +43,8 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 	private String method;
 
 	private boolean parseCookie;
+
+	private Route route;
 
 	public VertxHttpConsumer(ConnectorContext context, Vertx vertx, VertxOptions vertxOptions,
 			HttpServerOptions options, String path, String method, String format, Map<String, Object> params) {
@@ -74,7 +77,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 					ownedVertx = true;
 				}
 				var server = vertx.createHttpServer(httpOptions);
-				var router = Router.router(vertx);
+				var router = initializeRouter(vertx);
 				server.requestHandler(router::accept);
 				connRef = new ConnectionRef<>(new ServerRouterTuple(ownedVertx ? vertx : null, server, router));
 				SERVER_MAP.put(connectionKey, connRef);
@@ -91,24 +94,28 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 		configureRouter(connRef.getConnection().router);
 	}
 
+	private Router initializeRouter(Vertx vertx) {
+		var router = Router.router(vertx);
+		router.route("/*").handler(BodyHandler.create());
+		return router;
+	}
+
 	private String buildConnectionKey() {
 		return httpOptions.getHost() + ":" + httpOptions.getPort();
 	}
 
 	private void configureRouter(Router router) {
-		var route = router.route("/*").handler(BodyHandler.create());
-
 		if (method != null && !method.isEmpty()) {
 			if (path == null || path.isEmpty())
 				path = "/";
-			route = router.route(HttpMethod.valueOf(method), path).handler(this::handleRequest);
+			this.route = router.route(HttpMethod.valueOf(method), path).handler(this::handleRequest);
 		} else {
 			if (path == null || path.isEmpty())
-				route = router.route().handler(this::handleRequest);
+				this.route = router.route("/").handler(this::handleRequest);
 			else
-				route = router.route(path).handler(this::handleRequest);
+				this.route = router.route(path).handler(this::handleRequest);
 		}
-		route.failureHandler(this::handleException);
+		this.route.failureHandler(this::handleException);
 	}
 
 	private void handleException(RoutingContext ctx) {
@@ -211,6 +218,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 	protected void onStop() {
 		String connectionKey = buildConnectionKey();
 		synchronized (SERVER_MAP) {
+			this.route.remove();
 			if (SERVER_MAP.containsKey(connectionKey)) {
 				var connRef = SERVER_MAP.get(connectionKey);
 				if (connRef.deref() == 0) {
