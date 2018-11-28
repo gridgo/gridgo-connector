@@ -242,8 +242,8 @@ public class VertxHttpUnitTest {
 
 	@Test
 	public void testCompression() throws ClientProtocolException, IOException {
-		var connector = new DefaultConnectorFactory().createConnector(
-				"vertx:http://127.0.0.1:8080/?method=POST&compressionSupported=true&compressionLevel=5");
+		var connector = new DefaultConnectorFactory()
+				.createConnector("vertx:http://127.0.0.1:8080/?method=POST&gzip=true&compressionLevel=5");
 		connector.start();
 		var consumer = connector.getConsumer().orElseThrow();
 		consumer.subscribe((msg, deferred) -> deferred.resolve(msg));

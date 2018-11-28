@@ -26,8 +26,6 @@ public class VertxHttpConstants extends HttpCommonConsumerConstants {
 
 	public static final Object PARAM_PARSE_COOKIE = "parseCookie";
 
-	public static final String PARAM_COMPRESSION_SUPPORTED = "compressionSupported";
-
 	public static final String PARAM_COMPRESSION_LEVEL = "compressionLevel";
 
 	public static final String PARAM_VERTX_BEAN = "vertxBean";
