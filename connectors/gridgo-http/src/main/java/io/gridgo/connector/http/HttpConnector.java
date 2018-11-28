@@ -66,7 +66,7 @@ public class HttpConnector extends AbstractConnector {
 			config.setKeepAlive(Boolean.valueOf(keepAlive));
 
 		// compression
-		var compression = getParam(HttpConstants.COMPRESSION);
+		var compression = getParam(HttpConstants.PARAM_COMPRESSION_SUPPORTED);
 		if (compression != null)
 			config.setCompressionEnforced(Boolean.valueOf(compression));
 

@@ -16,8 +16,6 @@ public class HttpCommonProducerConstants extends HttpCommonConstants {
 
 	public static final String IO_THREADS_COUNT = "ioThreadsCount";
 
-	public static final String COMPRESSION = "compression";
-
 	public static final String USE_PROXY = "useProxy";
 
 	public static final String PROXY_HOST = "proxyHost";

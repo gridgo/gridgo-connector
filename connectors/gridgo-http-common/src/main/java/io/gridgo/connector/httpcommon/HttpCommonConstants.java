@@ -7,6 +7,8 @@ public class HttpCommonConstants {
 	public static final String PARAM_FORMAT = "format";
 
 	public static final String PARAM_METHOD = "method";
+	
+	public static final String PARAM_COMPRESSION_SUPPORTED = "gzip";
 
 	public static final String HEADER_HTTP_METHOD = "Http-Method";
 
