@@ -52,6 +52,7 @@ public class FileConnector extends AbstractConnector {
 		}
 		var path = getPlaceholder("path");
 		var mode = getParam("mode", "rw");
+		var override = "true".equals(getParam("override"));
 		var deleteOnStartup = "true".equals(getParam("deleteOnStartup"));
 		var deleteOnShutdown = "true".equals(getParam("deleteOnShutdown"));
 
@@ -63,7 +64,7 @@ public class FileConnector extends AbstractConnector {
 
 		var strLimitStrategy = getParam("limitStrategy");
 		this.limitStrategy = createLimitStrategy(strLimitStrategy, path, mode, limit, count, deleteOnStartup,
-				deleteOnShutdown);
+				deleteOnShutdown, override);
 
 		var producer = new FileProducer(getContext(), path, engine);
 		this.producer = Optional.of(producer);
@@ -97,14 +98,16 @@ public class FileConnector extends AbstractConnector {
 	}
 
 	private FileLimitStrategy createLimitStrategy(String limitStrategy, String path, String mode, long limit, int count,
-			boolean deleteOnStartup, boolean deleteOnShutdown) {
+			boolean deleteOnStartup, boolean deleteOnShutdown, boolean override) {
 		try {
 			if (limitStrategy == null)
-				return new NoLimitStrategy(path, mode, deleteOnStartup, deleteOnShutdown);
+				return new NoLimitStrategy(path, mode, deleteOnStartup, deleteOnShutdown, override);
 			if (limitStrategy.equals("rotate"))
-				return new RotatingFileLimitStrategy(path, mode, limit, count, deleteOnStartup, deleteOnShutdown);
+				return new RotatingFileLimitStrategy(path, mode, limit, count, deleteOnStartup, deleteOnShutdown,
+						override);
 			if (limitStrategy.equals("autoincrement"))
-				return new AutoIncrementedFileLimitStrategy(path, mode, limit, deleteOnStartup, deleteOnShutdown);
+				return new AutoIncrementedFileLimitStrategy(path, mode, limit, deleteOnStartup, deleteOnShutdown,
+						override);
 		} catch (IOException ex) {
 			throw new RuntimeException("Cannot create limit strategy", ex);
 		}

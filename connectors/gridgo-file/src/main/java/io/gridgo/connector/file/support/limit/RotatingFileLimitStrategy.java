@@ -30,14 +30,17 @@ public class RotatingFileLimitStrategy implements FileLimitStrategy {
 
 	private boolean deleteOnShutdown;
 
+	private boolean override;
+
 	public RotatingFileLimitStrategy(String basePath, String mode, long limit, int count, boolean deleteOnStartup,
-			boolean deleteOnShutdown) throws IOException {
+			boolean deleteOnShutdown, boolean override) throws IOException {
 		this.basePath = basePath;
 		this.mode = mode;
 		this.limit = limit;
 		this.count = count;
 		this.deleteOnStartup = deleteOnStartup;
 		this.deleteOnShutdown = deleteOnShutdown;
+		this.override = override;
 		this.files = initFiles();
 	}
 
@@ -76,9 +79,13 @@ public class RotatingFileLimitStrategy implements FileLimitStrategy {
 
 	private void resetFile() throws IOException {
 		this.file = new RandomAccessFile(basePath, mode);
-		var length = this.file.length();
-		this.file.seek(length);
-		this.written = length;
+		if (!override) {
+			var length = this.file.length();
+			this.file.seek(length);
+			this.written = length;
+		} else {
+			this.written = 0;
+		}
 		this.fileChannel = this.file.getChannel();
 	}
 
