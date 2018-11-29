@@ -6,12 +6,12 @@ import java.nio.channels.FileChannel;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.connector.Producer;
-import io.gridgo.connector.file.support.rotaters.FileProducerRotater;
+import io.gridgo.connector.file.support.limit.FileLimitStrategy;
 import io.gridgo.connector.support.FormattedMarshallable;
 
 public interface FileProducerEngine extends Producer, FormattedMarshallable {
 
-	public void setRotater(FileProducerRotater rotater);
+	public void setLimitStrategy(FileLimitStrategy limitStrategy);
 
 	public long getTotalSentBytes();
 
