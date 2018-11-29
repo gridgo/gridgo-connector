@@ -12,7 +12,7 @@ import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 
-public class FileRotationUnitTest {
+public class FileAutoIncrementUnitTest {
 
 	private static final int NUM_MESSAGES = 2;
 	private static final int BYTE_SIZE = 2;
@@ -57,7 +57,7 @@ public class FileRotationUnitTest {
 		var connector = new DefaultConnectorFactory().createConnector(scheme + "://[test." + lengthPrepend + "."
 				+ batchEnabled + "." + format + "]?format=" + format + "&batchingEnabled=" + batchEnabled
 				+ "&lengthPrepend=" + lengthPrepend
-				+ "&limitStrategy=rotate&deleteOnStartup=true&deleteOnShutdown=true&maxBatchSize=1000&limitSize="
+				+ "&limitStrategy=autoincrement&deleteOnStartup=true&deleteOnShutdown=true&maxBatchSize=1000&limitSize="
 				+ limit + "&rotationCount=" + count + "&producerOnly=true");
 		connector.start();
 
