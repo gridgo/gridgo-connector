@@ -20,10 +20,10 @@ import javax.servlet.http.Part;
 import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
-import io.gridgo.connector.jetty.HttpContentTypes;
 import io.gridgo.connector.jetty.exceptions.HttpRequestParsingException;
 import io.gridgo.connector.jetty.server.JettyServletContextHandlerOption;
 import io.gridgo.connector.jetty.support.HttpConstants;
+import io.gridgo.connector.jetty.support.HttpContentType;
 import io.gridgo.connector.jetty.support.HttpHeader;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
@@ -124,7 +124,7 @@ public abstract class AbstractHttpRequestParser implements HttpRequestParser, Lo
 		if (!NO_BODY_METHODS.contains(request.getMethod().toLowerCase().trim())) {
 			String contentType = request.getContentType();
 			if (contentType != null
-					&& contentType.trim().toLowerCase().contains(HttpContentTypes.MULTIPART_FORM_DATA.getValue())) {
+					&& contentType.trim().toLowerCase().contains(HttpContentType.MULTIPART_FORM_DATA.getMime())) {
 				return extractMultiPartBody(request.getParts());
 			} else {
 				try (InputStream is = request.getInputStream()) {

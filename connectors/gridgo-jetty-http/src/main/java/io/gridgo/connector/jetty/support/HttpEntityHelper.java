@@ -15,7 +15,6 @@ import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BReference;
-import io.gridgo.connector.jetty.HttpContentTypes;
 
 public class HttpEntityHelper {
 
@@ -31,7 +30,7 @@ public class HttpEntityHelper {
 		BArray results = BArray.newDefault();
 		for (Part part : parts) {
 			final String contentType = part.getContentType();
-			if (!contentType.toLowerCase().contains(HttpContentTypes.APPLICATION_OCTET_STREAM.getValue())) {
+			if (!contentType.toLowerCase().contains(HttpContentType.APPLICATION_OCTET_STREAM.getMime())) {
 				results.add(BObject.newDefault() //
 						.setAny(HttpConstants.NAME, part.getName()) //
 						.setAny(HttpConstants.CONTENT_TYPE, contentType)//

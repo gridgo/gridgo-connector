@@ -2,6 +2,8 @@ package io.gridgo.connector.jetty.impl;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
@@ -34,10 +36,10 @@ import io.gridgo.bean.BReference;
 import io.gridgo.bean.BType;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.AbstractResponder;
-import io.gridgo.connector.jetty.HttpContentTypes;
 import io.gridgo.connector.jetty.JettyResponder;
 import io.gridgo.connector.jetty.support.DeferredAndRoutingId;
 import io.gridgo.connector.jetty.support.HttpConstants;
+import io.gridgo.connector.jetty.support.HttpContentType;
 import io.gridgo.connector.jetty.support.HttpHeader;
 import io.gridgo.connector.jetty.support.HttpStatus;
 import io.gridgo.connector.support.config.ConnectorContext;
@@ -103,6 +105,15 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 		}
 	}
 
+	protected void handleException(Throwable e) {
+		Consumer<Throwable> exceptionHandler = getContext().getExceptionHandler();
+		if (exceptionHandler != null) {
+			exceptionHandler.accept(e);
+		} else {
+			getLogger().error("Cannot close input stream", e);
+		}
+	}
+
 	@Override
 	public void writeResponse(HttpServletResponse response, Message message) {
 		/* -------------------------------------- */
@@ -112,29 +123,36 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 		BObject headers = message.getPayload().getHeaders();
 		BElement body = message.getPayload().getBody();
 
-		var contentType = HttpContentTypes.forValue(headers.getString(HttpConstants.CONTENT_TYPE, null));
+		var contentType = HttpContentType.forValue(headers.getString(HttpConstants.CONTENT_TYPE, null));
 
 		if (contentType == null) {
 			if (body instanceof BValue) {
-				contentType = HttpContentTypes.TEXT_PLAIN;
+				contentType = HttpContentType.DEFAULT_TEXT;
 			} else if (body instanceof BReference) {
-				contentType = HttpContentTypes.APPLICATION_OCTET_STREAM;
+				var ref = body.asReference().getReference();
+				if (ref instanceof File || ref instanceof Path) {
+					contentType = HttpContentType.forFile(ref instanceof File ? (File) ref : ((Path) ref).toFile());
+				} else {
+					contentType = HttpContentType.DEFAULT_BINARY;
+				}
 			} else {
-				contentType = HttpContentTypes.APPLICATION_JSON;
+				contentType = HttpContentType.DEFAULT_JSON;
 			}
 		}
 
 		int statusCode = headers.getInteger(HttpConstants.HTTP_STATUS, HttpStatus.OK_200.getCode());
 		response.setStatus(statusCode);
 
-		String charset = headers.getString(HttpConstants.CHARSET, "UTF-8");
-		response.setCharacterEncoding(charset);
-
-		if (!headers.containsKey(HttpConstants.CONTENT_TYPE)) {
-			headers.setAny(HttpConstants.CONTENT_TYPE, contentType.getValue());
+		if (contentType.isTextFormat()) {
+			String charset = headers.getString(HttpConstants.CHARSET, "UTF-8");
+			response.setCharacterEncoding(charset);
 		}
 
-		if (contentType != HttpContentTypes.MULTIPART_FORM_DATA || body == null) {
+		if (!headers.containsKey(HttpConstants.CONTENT_TYPE)) {
+			headers.setAny(HttpConstants.CONTENT_TYPE, contentType.getMime());
+		}
+
+		if (contentType != HttpContentType.MULTIPART_FORM_DATA || body == null) {
 			this.writeHeaders(headers, response);
 		}
 
@@ -143,26 +161,19 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 		 * process body
 		 */
 		if (body != null) {
-			switch (contentType) {
-			case APPLICATION_JSON:
+			if (contentType.isJsonFormat()) {
 				this.writeBodyJson(body, response);
-				break;
-			case APPLICATION_OCTET_STREAM:
+			} else if (contentType.isBinaryFormat()) {
 				this.writeBodyBinary(body, response);
-				break;
-			case MULTIPART_FORM_DATA:
+			} else if (contentType.isMultipartFormat()) {
 				this.writeBodyMultipart(body, response, contentTypeWithBoundary -> {
 					headers.setAny(HttpConstants.CONTENT_TYPE, contentTypeWithBoundary);
 					this.writeHeaders(headers, response);
 				});
-				break;
-			case TEXT_PLAIN:
-			default:
+			} else {
 				this.writeBodyTextPlain(body, response);
-				break;
 			}
 		}
-
 	}
 
 	protected void takeWriter(HttpServletResponse response, Consumer<PrintWriter> writerConsumer) {
@@ -189,7 +200,7 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 		try {
 			outputStream = response.getOutputStream();
 		} catch (IOException e) {
-			throw new RuntimeException("Cannot get writer from HttpSerletResponse instance", e);
+			handleException(e);
 		}
 
 		if (outputStream != null) {
@@ -199,7 +210,7 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 				try {
 					outputStream.flush();
 				} catch (IOException e) {
-					throw new RuntimeException("Cannot flush output stream", e);
+					handleException(e);
 				}
 			}
 		}
@@ -216,7 +227,7 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 	}
 
 	protected void writeBodyBinary(BElement body, HttpServletResponse response) {
-		final InputStream inputStream;
+		InputStream inputStream = null;
 		if (body instanceof BReference) {
 			var obj = body.asReference().getReference();
 			if (obj instanceof InputStream) {
@@ -225,22 +236,32 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 				inputStream = new ByteBufferInputStream((ByteBuffer) obj);
 			} else if (obj instanceof byte[]) {
 				inputStream = new ByteArrayInputStream((byte[]) obj);
-			} else {
-				inputStream = null;
+			} else if (obj instanceof File || obj instanceof Path) {
+				File file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
+				try {
+					inputStream = new FileInputStream(file);
+				} catch (FileNotFoundException e) {
+					handleException(e);
+				}
 			}
-		} else {
-			inputStream = null;
 		}
 
-		takeOutputStream(response, (outputStream) -> {
-			if (inputStream != null) {
+		final var input = inputStream;
+		takeOutputStream(response, (output) -> {
+			if (input != null) {
 				try {
-					inputStream.transferTo(outputStream);
-				} catch (IOException e) {
-					throw new RuntimeException("Cannot transfer data from");
+					input.transferTo(output);
+				} catch (Exception e) {
+					handleException(e);
+				} finally {
+					try {
+						input.close();
+					} catch (IOException e) {
+						handleException(e);
+					}
 				}
 			} else {
-				body.writeBytes(outputStream);
+				body.writeBytes(output);
 			}
 		});
 	}
@@ -273,7 +294,7 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 			if (inputStream != null) {
 				builder.addBinaryBody(name, inputStream);
 			} else {
-				throw new IllegalArgumentException("cannot make input stream from BReferrence");
+				handleException(new IllegalArgumentException("cannot make input stream from BReferrence"));
 			}
 		} else {
 			builder.addPart(name, new StringBody(value.toJson(), ContentType.APPLICATION_JSON));
@@ -300,18 +321,19 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 			try {
 				HttpEntity entity = builder.build();
 				contentTypeConsumer.accept(entity.getContentType().getValue());
-
 				entity.writeTo(outstream);
 			} catch (IOException e) {
-				throw new RuntimeException("Cannot write multipart", e);
+				handleException(new RuntimeException("Cannot write multipart", e));
 			}
 		});
 
 	}
 
 	protected void writeBodyTextPlain(BElement body, HttpServletResponse response) {
-		if (body instanceof BValue) {
-			takeWriter(response, (writer) -> writer.write(body.asValue().getString()));
+		if (body instanceof BReference) {
+			writeBodyBinary(body, response);
+		} else {
+			takeWriter(response, (writer) -> writer.write(body.toJson()));
 		}
 	}
 
@@ -336,11 +358,13 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 		deferredResponse.promise().always((stt, resp, ex) -> {
 			try {
 				HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();
-				Message responseMessage = (stt == DeferredStatus.RESOLVED) ? resp : failureHandler.apply(ex);
+				Message responseMessage = stt == DeferredStatus.RESOLVED ? resp : this.failureHandler.apply(ex);
 				writeResponse(response, responseMessage);
+			} catch (Exception e) {
+				handleException(e);
 			} finally {
-				asyncContext.complete();
 				deferredResponses.remove(routingId);
+				asyncContext.complete();
 			}
 		});
 		return DeferredAndRoutingId.builder().deferred(deferredResponse).routingId(routingId).build();
