@@ -1,8 +1,6 @@
 package io.gridgo.jetty.test.file;
 
 import java.io.File;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
@@ -16,7 +14,6 @@ import io.gridgo.connector.impl.resolvers.ClasspathConnectorResolver;
 import io.gridgo.connector.jetty.support.HttpConstants;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
-import io.gridgo.framework.execution.impl.ExecutorExecutionStrategy;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 import io.gridgo.utils.ThreadUtils;
@@ -24,7 +21,7 @@ import io.gridgo.utils.ThreadUtils;
 public class TestFileServer {
 	private static final ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.connector");
 
-	private final ExecutorService executor = Executors.newCachedThreadPool();
+//	private final ExecutorService executor = Executors.newCachedThreadPool();
 
 	private Connector connector;
 	private Consumer consumer;
@@ -58,7 +55,7 @@ public class TestFileServer {
 		}
 
 		ConnectorContext connectorContext = new DefaultConnectorContextBuilder() //
-				.setCallbackInvokerStrategy(new ExecutorExecutionStrategy(executor)) //
+				// .setCallbackInvokerStrategy(new ExecutorExecutionStrategy(executor)) //
 				.setExceptionHandler((ex) -> {
 					ex.printStackTrace();
 				}) //
@@ -77,8 +74,6 @@ public class TestFileServer {
 	}
 
 	private void onRequest(Message message) {
-		System.out.println("Got message payload: " + message.getPayload().toBArray());
-
 		BObject headers = BObject.newDefault();
 		BElement body = null;
 
