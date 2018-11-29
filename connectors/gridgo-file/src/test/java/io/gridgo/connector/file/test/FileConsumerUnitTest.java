@@ -90,7 +90,7 @@ public class FileConsumerUnitTest {
 		var totalSentBytes = prepareFile(scheme, format, batchEnabled, lengthPrepend);
 
 		var endpoint = scheme + "://[test." + lengthPrepend + "." + batchEnabled + "." + format + "]?format=" + format
-				+ "&limitSize=" + LIMIT + "&deleteOnShutdown=true&lengthPrepend=" + lengthPrepend;
+				+ "&limitStrategy=rotate&limitSize=" + LIMIT + "&deleteOnShutdown=true&lengthPrepend=" + lengthPrepend;
 		var strategy = new ExecutorExecutionStrategy(1);
 		var context = new DefaultConnectorContextBuilder().setConsumerExecutionStrategy(strategy).build();
 		var connector = new DefaultConnectorFactory().createConnector(endpoint, context);
@@ -118,10 +118,10 @@ public class FileConsumerUnitTest {
 
 	private long prepareFile(String scheme, String format, String batchEnabled, String lengthPrepend)
 			throws InterruptedException {
-		var connector = new DefaultConnectorFactory()
-				.createConnector(scheme + "://[test." + lengthPrepend + "." + batchEnabled + "." + format + "]?format="
-						+ format + "&batchingEnabled=" + batchEnabled + "&lengthPrepend=" + lengthPrepend
-						+ "&limitSize=" + LIMIT + "&deleteOnStartup=true&maxBatchSize=1000&producerOnly=true");
+		var connector = new DefaultConnectorFactory().createConnector(scheme + "://[test." + lengthPrepend + "."
+				+ batchEnabled + "." + format + "]?format=" + format + "&batchingEnabled=" + batchEnabled
+				+ "&lengthPrepend=" + lengthPrepend + "&limitStrategy=rotate&limitSize=" + LIMIT
+				+ "&deleteOnStartup=true&maxBatchSize=1000&producerOnly=true");
 		connector.start();
 
 		var producer = (FileProducer) connector.getProducer().orElseThrow();

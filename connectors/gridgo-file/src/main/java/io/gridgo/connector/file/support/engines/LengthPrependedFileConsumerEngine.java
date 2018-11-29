@@ -1,12 +1,8 @@
 package io.gridgo.connector.file.support.engines;
 
 import java.io.EOFException;
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.Collection;
-import java.util.LinkedList;
 
 import io.gridgo.connector.file.FileConsumer;
 import io.gridgo.connector.file.support.exceptions.LengthMismatchException;
@@ -19,40 +15,24 @@ public class LengthPrependedFileConsumerEngine implements FileConsumerEngine {
 
 	private FileConsumer fileConsumer;
 
-	private Collection<File> files;
-
-	public LengthPrependedFileConsumerEngine(FileConsumer fileConsumer) throws FileNotFoundException {
+	public LengthPrependedFileConsumerEngine(FileConsumer fileConsumer) {
 		this.fileConsumer = fileConsumer;
-		this.files = initFiles();
-	}
-
-	private Collection<File> initFiles() throws FileNotFoundException {
-		var list = new LinkedList<File>();
-		if (this.fileConsumer.isHasRotation()) {
-			var count = this.fileConsumer.getCount();
-			for (int i = count - 1; i >= 1; i--) {
-				var file = new File(this.fileConsumer.getPath() + "." + (i - 1));
-				if (file.exists())
-					list.add(file);
-			}
-		}
-		list.add(new File(this.fileConsumer.getPath()));
-		return list;
 	}
 
 	@Override
 	public void readAndPublish() {
 		var buffer = this.fileConsumer.getBuffer();
-		for (var file : files) {
-			try (var randomAccessFile = new RandomAccessFile(file, "r")) {
-				buffer = readAndPublish(buffer, randomAccessFile);
-			} catch (IOException ex) {
-				throw new RuntimeException(ex);
-			}
+		try {
+			this.fileConsumer.getLimitStrategy().readWith(raf -> {
+				readAndPublish(buffer, raf);
+			});
+		} catch (IOException ex) {
+			log.error("Exception caught when processing file", ex);
+			throw new RuntimeException(ex);
 		}
 	}
 
-	private byte[] readAndPublish(byte[] buffer, RandomAccessFile randomAccessFile) throws IOException {
+	private void readAndPublish(byte[] buffer, RandomAccessFile randomAccessFile) throws IOException {
 		while (true) {
 			var length = tryGetLength(randomAccessFile);
 			if (length == -1)
@@ -75,7 +55,6 @@ public class LengthPrependedFileConsumerEngine implements FileConsumerEngine {
 				this.fileConsumer.publishMessage(msg);
 			}
 		}
-		return buffer;
 	}
 
 	private int tryGetLength(RandomAccessFile randomAccessFile) throws IOException {

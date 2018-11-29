@@ -1,4 +1,4 @@
-package io.gridgo.connector.file.support.rotaters;
+package io.gridgo.connector.file.support.limit;
 
 import java.io.File;
 import java.io.IOException;
@@ -7,7 +7,7 @@ import java.nio.channels.FileChannel;
 
 import lombok.Getter;
 
-public class FileProducerRotater {
+public class RotatingFileLimitStrategy implements FileLimitStrategy {
 
 	private String basePath;
 
@@ -30,7 +30,7 @@ public class FileProducerRotater {
 
 	private boolean deleteOnShutdown;
 
-	public FileProducerRotater(String basePath, String mode, long limit, int count, boolean deleteOnStartup,
+	public RotatingFileLimitStrategy(String basePath, String mode, long limit, int count, boolean deleteOnStartup,
 			boolean deleteOnShutdown) throws IOException {
 		this.basePath = basePath;
 		this.mode = mode;
@@ -41,12 +41,14 @@ public class FileProducerRotater {
 		this.files = initFiles();
 	}
 
+	@Override
 	public void start() throws IOException {
 		if (deleteOnStartup)
 			deleteFiles();
 		resetFile();
 	}
 
+	@Override
 	public void stop() throws IOException {
 		closeFile();
 		if (deleteOnShutdown)
@@ -80,6 +82,7 @@ public class FileProducerRotater {
 		this.fileChannel = this.file.getChannel();
 	}
 
+	@Override
 	public void putBytes(long bytes) throws IOException {
 		this.written += bytes;
 		if (this.limit > 0 && this.written > this.limit) {
@@ -99,5 +102,16 @@ public class FileProducerRotater {
 			}
 		}
 		resetFile();
+	}
+
+	@Override
+	public void readWith(RandomAccessFileHandler consumer) throws IOException {
+		for (int i = files.length - 1; i >= 0; i--) {
+			if (!files[i].exists())
+				continue;
+			try (var raf = new RandomAccessFile(files[i], "r")) {
+				consumer.process(raf);
+			}
+		}
 	}
 }
