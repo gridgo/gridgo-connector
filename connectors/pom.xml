@@ -20,6 +20,10 @@
 		<module>gridgo-rabbitmq</module>
 		<module>gridgo-vertx-http</module>
 		<module>gridgo-mongodb</module>
+		<module>gridgo-http-common</module>
+		<module>gridgo-jetty-http</module>
+		<module>gridgo-http</module>
+		<module>gridgo-file</module>
 	</modules>
 
 	<dependencies>

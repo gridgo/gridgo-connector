@@ -21,19 +21,26 @@ import io.gridgo.connector.support.exceptions.MalformedEndpointException;
 public class UriConnectorResolver implements ConnectorResolver {
 
 	private static final int MAX_PLACEHOLDER_NAME = 1024;
+
 	private final Class<? extends Connector> clazz;
+
 	private final String syntax;
-	private String scheme;
+
+	private final String scheme;
+
+	private final boolean raw;
 
 	public UriConnectorResolver(String scheme, Class<? extends Connector> clazz) {
 		this.scheme = scheme;
 		this.clazz = clazz;
-		this.syntax = extractSyntax(clazz);
-	}
-
-	private String extractSyntax(Class<? extends Connector> clazz) {
 		var annotations = clazz.getAnnotationsByType(ConnectorEndpoint.class);
-		return annotations.length > 0 ? annotations[0].syntax() : null;
+		if (annotations.length > 0) {
+			this.syntax = annotations[0].syntax();
+			this.raw = annotations[0].raw();
+		} else {
+			this.syntax = null;
+			this.raw = false;
+		}
 	}
 
 	@Override
@@ -59,10 +66,12 @@ public class UriConnectorResolver implements ConnectorResolver {
 
 		var params = extractParameters(queryPart);
 		var placeholders = extractPlaceholders(schemePart);
-		return new DefaultConnectorConfig(scheme + ":" + schemePart, schemePart, params, placeholders);
+		return new DefaultConnectorConfig(scheme, scheme + ":" + schemePart, schemePart, params, placeholders);
 	}
 
 	private Properties extractPlaceholders(String schemePart) {
+		if (raw)
+			return new Properties();
 		return extractPlaceholders(schemePart, syntax);
 	}
 
@@ -94,6 +103,8 @@ public class UriConnectorResolver implements ConnectorResolver {
 				String placeholderValue = extractPlaceholderValue(schemePart, i, buffer);
 				j += placeholderName.length() + 2;
 				i += placeholderValue.length();
+				if (!placeholderValue.isEmpty() && placeholderValue.charAt(0) == '[')
+					placeholderValue = placeholderValue.substring(1, placeholderValue.length() - 1);
 				if (!placeholderValue.isEmpty()) {
 					if (optional)
 						optionalPlaceholder.put(placeholderName, placeholderValue);
@@ -178,8 +189,12 @@ public class UriConnectorResolver implements ConnectorResolver {
 	}
 
 	private boolean isPlaceholder(char c, boolean insideBracket) {
+		if (insideBracket) {
+			if (c == ':' || c == '/')
+				return true;
+		}
 		return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_' || c == '-' || c == '.'
-				|| c == ',' || c == ':' && insideBracket;
+				|| c == '*' || c == ',';
 	}
 
 	private String extractPlaceholderKey(String syntax, int j, CharBuffer buffer) {

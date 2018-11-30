@@ -53,11 +53,14 @@ public class ClasspathConnectorResolver implements ConnectorResolver {
 			return;
 		}
 		var endpoint = endpointAnnotations[0];
-		String scheme = endpoint.scheme();
-		if (classMappings.containsKey(scheme)) {
-			// TODO log warning
-		} else {
-			classMappings.put(scheme, clzz);
+		String[] schemes = endpoint.scheme().split(",");
+		for (String scheme : schemes) {
+			scheme = scheme.trim();
+			if (classMappings.containsKey(scheme)) {
+				// TODO log warning
+			} else {
+				classMappings.put(scheme, clzz);
+			}
 		}
 	}
 

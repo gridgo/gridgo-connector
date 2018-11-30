@@ -42,13 +42,13 @@ public class VertxHttpConnector extends AbstractConnector {
 	}
 
 	private HttpServerOptions buildHttpServerOptions() {
-		String compressionLevel = getParam(VertxHttpConstants.PARAM_COMPRESSION_LEVEL);
-		String compressionSupported = getParam(VertxHttpConstants.PARAM_COMPRESSION_SUPPORTED);
-		boolean useAlpn = Boolean.valueOf(getParam(VertxHttpConstants.PARAM_USE_ALPN, "false"));
-		boolean ssl = Boolean.valueOf(getParam(VertxHttpConstants.PARAM_SSL, "false"));
+		var compressionLevel = getParam(VertxHttpConstants.PARAM_COMPRESSION_LEVEL);
+		var compressionSupported = getParam(VertxHttpConstants.PARAM_COMPRESSION_SUPPORTED);
+		var useAlpn = Boolean.valueOf(getParam(VertxHttpConstants.PARAM_USE_ALPN, "false"));
+		var ssl = Boolean.valueOf(getParam(VertxHttpConstants.PARAM_SSL, "false"));
 		var clientAuth = ClientAuth.valueOf(getParam(VertxHttpConstants.PARAM_CLIENT_AUTH, ClientAuth.NONE.toString()));
-		String keyStorePath = getParam(VertxHttpConstants.PARAM_KEY_STORE_PATH);
-		String keyStorePassword = getParam(VertxHttpConstants.PARAM_KEY_STORE_PASSWORD);
+		var keyStorePath = getParam(VertxHttpConstants.PARAM_KEY_STORE_PATH);
+		var keyStorePassword = getParam(VertxHttpConstants.PARAM_KEY_STORE_PASSWORD);
 		var keyStoreOptions = keyStorePath != null
 				? new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword)
 				: null;

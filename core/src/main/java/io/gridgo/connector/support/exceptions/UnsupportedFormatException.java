@@ -1,4 +1,4 @@
-package io.gridgo.connector.vertx.support.exceptions;
+package io.gridgo.connector.support.exceptions;
 
 public class UnsupportedFormatException extends RuntimeException {
 

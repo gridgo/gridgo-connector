@@ -39,9 +39,7 @@ public class KafkaConsumer extends AbstractConsumer {
 
 	static {
 		DEFAULT_EXECUTION_STRATEGY.start();
-		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			DEFAULT_EXECUTION_STRATEGY.stop();
-		}));
+		Runtime.getRuntime().addShutdownHook(new Thread(DEFAULT_EXECUTION_STRATEGY::stop));
 	}
 
 	private final KafkaConfiguration configuration;

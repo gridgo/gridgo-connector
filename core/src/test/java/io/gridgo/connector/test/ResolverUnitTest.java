@@ -48,7 +48,7 @@ public class ResolverUnitTest {
 		Assert.assertNull(props.get("path"));
 
 		props = resolver.testResolver("test://[127.0.0.1:5672,23.45.56.67:4567]/path", "test://{address}[/{path}]");
-		assertEquals("[127.0.0.1:5672,23.45.56.67:4567]", props.get("address"));
+		assertEquals("127.0.0.1:5672,23.45.56.67:4567", props.get("address"));
 		assertEquals("path", props.get("path"));
 
 		props = resolver.testResolver("pull:tcp://eth0;127.0.0.1:5555",
@@ -71,6 +71,16 @@ public class ResolverUnitTest {
 		assertEquals(null, props.get("nic"));
 		assertEquals("127.0.0.1", props.get("host"));
 		assertEquals("5555", props.get("port"));
+
+		props = resolver.testResolver("http://127.0.0.1:8080/[api/v1/products]", "http://{host}:{port}/{path}");
+		assertEquals("127.0.0.1", props.get("host"));
+		assertEquals("8080", props.get("port"));
+		assertEquals("api/v1/products", props.get("path"));
+
+		props = resolver.testResolver("http://127.0.0.1:8080/*", "http://{host}:{port}/{path}");
+		assertEquals("127.0.0.1", props.get("host"));
+		assertEquals("8080", props.get("port"));
+		assertEquals("*", props.get("path"));
 	}
 
 	@Test
@@ -130,7 +140,7 @@ public class ResolverUnitTest {
 		Assert.assertEquals("v2", connector.getConnectorConfig().getParameters().get("p2"));
 		Assert.assertEquals("pull", connector.getConnectorConfig().getPlaceholders().get("type"));
 		Assert.assertEquals("tcp", connector.getConnectorConfig().getPlaceholders().get("transport"));
-		Assert.assertEquals("[2001:db8:1f70::999:de8:7648:6e8]",
+		Assert.assertEquals("2001:db8:1f70::999:de8:7648:6e8",
 				connector.getConnectorConfig().getPlaceholders().get("host"));
 		Assert.assertEquals("8080", connector.getConnectorConfig().getPlaceholders().get("port"));
 	}
