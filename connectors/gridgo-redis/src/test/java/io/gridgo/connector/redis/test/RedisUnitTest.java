@@ -23,21 +23,25 @@ public class RedisUnitTest {
 		var connector = new DefaultConnectorFactory().createConnector("redis:single://[localhost:6379]/1", context);
 		connector.start();
 
-		assertTrue(connector.getProducer().isPresent());
-		Producer producer = connector.getProducer().get();
+		try {
+			assertTrue(connector.getProducer().isPresent());
+			Producer producer = connector.getProducer().get();
 
-		BObject object = BObject.newDefault();
-		object.setAny("key", "5").setAny("value", "do thanh tung");
-		BElement bElement = BElement.fromAny(object);
+			BObject object = BObject.newDefault();
+			object.setAny("key", "5").setAny("value", "do thanh tung");
+			BElement bElement = BElement.fromAny(object);
 
-		var headers = BObject.newDefault().setAny(RedisConstants.COMMAND, RedisConstants.COMMAND_APPEND);
-		producer.call(Message.newDefault(Payload.newDefault(headers, bElement))).done(response -> {
-			System.out.println(response.getPayload().getBody().asValue().getLong());
-		}).fail(ex -> {
-			System.out.println("Error while handling request");
-		});
+			var headers = BObject.newDefault().setAny(RedisConstants.COMMAND, RedisConstants.COMMAND_APPEND);
+			producer.call(Message.newDefault(Payload.newDefault(headers, bElement))).done(response -> {
+				System.out.println(response.getPayload().getBody().asValue().getLong());
+			}).fail(ex -> {
+				System.out.println("Error while handling request");
+			});
 
-		Thread.sleep(10000);
+			// TODO add more aserts here...
+		} finally {
+			connector.stop();
+		}
 	}
 
 }
