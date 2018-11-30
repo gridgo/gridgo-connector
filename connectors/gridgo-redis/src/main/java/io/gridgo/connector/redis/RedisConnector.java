@@ -3,9 +3,12 @@ package io.gridgo.connector.redis;
 import java.util.Optional;
 
 import io.gridgo.connector.impl.AbstractConnector;
+import io.gridgo.connector.redis.adapter.RedisClient;
+import io.gridgo.connector.redis.adapter.RedisConfig;
+import io.gridgo.connector.redis.adapter.RedisServerType;
+import io.gridgo.connector.redis.adapter.jedis.JedisClientFactory;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.exceptions.InvalidPlaceholderException;
-import io.gridgo.jedis.JedisClientFactory;
 import io.gridgo.utils.support.HostAndPortSet;
 
 @ConnectorEndpoint(scheme = "redis", syntax = "{mode}://[{password}@]{address}/[{databaseNumber}][#{master}]")

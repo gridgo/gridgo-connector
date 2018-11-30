@@ -1,12 +1,12 @@
-package io.gridgo.jedis;
+package io.gridgo.connector.redis.adapter.jedis;
 
-import io.gridgo.connector.redis.RedisClient;
-import io.gridgo.connector.redis.RedisClientFactory;
-import io.gridgo.connector.redis.RedisConfig;
-import io.gridgo.connector.redis.RedisServerType;
-import io.gridgo.jedis.impl.ClusterJedisClient;
-import io.gridgo.jedis.impl.SentinelJedisClient;
-import io.gridgo.jedis.impl.SingleJedisClient;
+import io.gridgo.connector.redis.adapter.RedisClient;
+import io.gridgo.connector.redis.adapter.RedisClientFactory;
+import io.gridgo.connector.redis.adapter.RedisConfig;
+import io.gridgo.connector.redis.adapter.RedisServerType;
+import io.gridgo.connector.redis.adapter.jedis.impl.ClusterJedisClient;
+import io.gridgo.connector.redis.adapter.jedis.impl.SentinelJedisClient;
+import io.gridgo.connector.redis.adapter.jedis.impl.SingleJedisClient;
 
 public class JedisClientFactory implements RedisClientFactory {
 

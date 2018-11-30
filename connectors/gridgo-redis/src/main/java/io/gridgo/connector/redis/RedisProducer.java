@@ -12,12 +12,18 @@ import org.joo.promise4j.impl.SimpleFailurePromise;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.AbstractProducer;
+import io.gridgo.connector.redis.adapter.RedisClient;
+import io.gridgo.connector.redis.adapter.RedisConstants;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RedisProducer extends AbstractProducer {
+
+	@Getter
+	private final boolean callSupported = true;
 
 	private RedisClient redisClient;
 	private Map<String, BiConsumer<Message, Deferred<Message, Exception>>> operations = new HashMap<>();
@@ -32,7 +38,6 @@ public class RedisProducer extends AbstractProducer {
 	}
 
 	public void send(Message message) {
-
 	}
 
 	public Promise<Message, Exception> sendWithAck(Message message) {
@@ -45,8 +50,6 @@ public class RedisProducer extends AbstractProducer {
 	}
 
 	private Promise<Message, Exception> _call(Message request, CompletableDeferredObject<Message, Exception> deferred) {
-		// đầu tiên, anh thấy em định nghĩa command trong header. Nếu là command, anh thấy nên đặt một lớp riêng kiểu RedisCommand thay vì đặt chung vào constats
-		// chỗ này nó có tính nghiệp vụ cao hơn so với cái const 
 		var operation = request.getPayload().getHeaders().getString(RedisConstants.COMMAND);
 		var handler = operations.get(operation);
 		if (handler == null) {
@@ -62,10 +65,6 @@ public class RedisProducer extends AbstractProducer {
 		return deferred != null ? deferred.promise() : null;
 	}
 
-	public boolean isCallSupported() {
-		return false;
-	}
-
 	@Override
 	protected String generateName() {
 		return null;
@@ -73,18 +72,12 @@ public class RedisProducer extends AbstractProducer {
 
 	@Override
 	protected void onStart() {
-		// em định bind từng cmd ở đây luôn á??? :| hie tnai thi vang a
-		// đệch :| :| Cai nay lam sao cho hop ly at
-		// thường thì tất cả cmd đều có sẵn bên cái RedisClient impl rồi đúng ko?
-		// giờ em chỉ cần có một cách nào đó lôi được cái hàm tương ứng ra mà xài?
-		// neu ma k bind kieu nay thi van fai switch case ma :-? 
-		// chỗ 
 		bind(RedisConstants.COMMAND_APPEND, this::append);
 	}
 
 	@Override
 	protected void onStop() {
-
+		this.redisClient.stop();
 	}
 
 	public void append(Message msg, Deferred<Message, Exception> deferred) {

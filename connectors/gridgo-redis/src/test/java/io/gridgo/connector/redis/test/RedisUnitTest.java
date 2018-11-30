@@ -7,7 +7,7 @@ import org.junit.Test;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
-import io.gridgo.connector.redis.RedisConstants;
+import io.gridgo.connector.redis.adapter.RedisConstants;
 import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;

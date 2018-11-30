@@ -1,16 +1,17 @@
-package io.gridgo.jedis;
+package io.gridgo.connector.redis.adapter.jedis;
 
-import io.gridgo.connector.redis.RedisClient;
+import io.gridgo.connector.redis.adapter.RedisClient;
+import io.gridgo.connector.redis.adapter.RedisConfig;
 import io.gridgo.framework.AbstractComponentLifecycle;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 @AllArgsConstructor
 public abstract class JedisClient extends AbstractComponentLifecycle implements RedisClient {
 
-	@Override
-	protected void onStart() {
-
-	}
+	@Getter(AccessLevel.PROTECTED)
+	private final RedisConfig config;
 
 	@Override
 	protected String generateName() {

@@ -1,4 +1,4 @@
-package io.gridgo.connector.redis;
+package io.gridgo.connector.redis.adapter;
 
 import io.gridgo.utils.support.HostAndPortSet;
 import lombok.Data;

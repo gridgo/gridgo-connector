@@ -1,4 +1,4 @@
-package io.gridgo.jedis.impl;
+package io.gridgo.connector.redis.adapter.jedis.impl;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -7,8 +7,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import io.gridgo.connector.redis.RedisConfig;
-import io.gridgo.jedis.JedisClient;
+import io.gridgo.connector.redis.adapter.RedisConfig;
+import io.gridgo.connector.redis.adapter.jedis.JedisClient;
 import lombok.NonNull;
 import redis.clients.jedis.BinaryClient.LIST_POSITION;
 import redis.clients.jedis.BinaryJedisPubSub;
@@ -42,13 +42,18 @@ import redis.clients.util.Slowlog;
 @SuppressWarnings("deprecation")
 public class ClusterJedisClient extends JedisClient {
 
-	private final JedisCluster jedisCluster;
+	private JedisCluster jedisCluster;
 
 	public ClusterJedisClient(@NonNull RedisConfig config) {
-		Set<HostAndPort> clusters = new HashSet<>();
-		config.getAddress().forEach((address) -> {
-			clusters.add(new HostAndPort(address.getHost(), address.getPort()));
-		});
+		super(config);
+	}
+
+	@Override
+	protected void onStart() {
+		RedisConfig config = this.getConfig();
+		Set<HostAndPort> clusters = new HashSet<>(config.getAddress().convert(address -> {
+			return new HostAndPort(address.getHost(), address.getPort());
+		}));
 		this.jedisCluster = new JedisCluster(clusters);
 	}
 
@@ -79,10 +84,6 @@ public class ClusterJedisClient extends JedisClient {
 
 	public Boolean exists(byte[] key) {
 		return jedisCluster.exists(key);
-	}
-
-	public boolean equals(Object obj) {
-		return jedisCluster.equals(obj);
 	}
 
 	public String set(String key, String value) {
@@ -1371,10 +1372,6 @@ public class ClusterJedisClient extends JedisClient {
 
 	public Object evalsha(String script, String key) {
 		return jedisCluster.evalsha(script, key);
-	}
-
-	public String shutdown() {
-		return jedisCluster.shutdown();
 	}
 
 	public Boolean scriptExists(String sha1, String key) { // hàm này chả lẽ bên single ko có??

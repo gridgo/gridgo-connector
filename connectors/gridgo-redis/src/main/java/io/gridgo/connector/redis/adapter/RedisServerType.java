@@ -1,4 +1,4 @@
-package io.gridgo.connector.redis;
+package io.gridgo.connector.redis.adapter;
 
 public enum RedisServerType {
 

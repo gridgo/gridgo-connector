@@ -1,8 +1,11 @@
-package io.gridgo.connector.redis;
+package io.gridgo.connector.redis.adapter;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import io.gridgo.framework.ComponentLifecycle;
+
 import java.util.Map.Entry;
 
 import redis.clients.jedis.BinaryJedisPubSub;
@@ -14,6 +17,7 @@ import redis.clients.jedis.GeoCoordinate;
 import redis.clients.jedis.GeoRadiusResponse;
 import redis.clients.jedis.GeoUnit;
 import redis.clients.jedis.JedisMonitor;
+import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPubSub;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.PipelineBlock;
@@ -32,7 +36,11 @@ import redis.clients.jedis.params.sortedset.ZIncrByParams;
 import redis.clients.util.Slowlog;
 
 @SuppressWarnings("deprecation")
-public interface RedisClient {
+public interface RedisClient extends ComponentLifecycle {
+
+	default public Map<String, JedisPool> getClusterNodes() {
+		throw new UnsupportedOperationException("unsupported method");
+	}
 
 	public String set(String key, String value);
 
@@ -650,8 +658,6 @@ public interface RedisClient {
 
 	public Long lastsave();
 
-	public String shutdown();
-
 	public List<String> sentinelGetMasterAddrByName(String masterName);
 
 	public String info();
@@ -766,17 +772,21 @@ public interface RedisClient {
 
 	public Long getDB();
 
+	public byte[] scriptLoad(byte[] script, byte[] key);
+
 	public Object eval(byte[] script, List<byte[]> keys, List<byte[]> args);
+
+	public Object eval(byte[] script, byte[] key);
+
+	public Object eval(byte[] script, byte[] keyCount, byte[]... params);
+
+	public Object eval(byte[] script, int keyCount, byte[]... params);
 
 	public ScanResult<String> scan(String cursor);
 
 	public ScanResult<String> scan(String cursor, ScanParams params);
 
-	public Object eval(byte[] script, byte[] keyCount, byte[]... params);
-
 	public ScanResult<Entry<String, String>> hscan(String key, String cursor);
-
-	public Object eval(byte[] script, int keyCount, byte[]... params);
 
 	public ScanResult<Entry<String, String>> hscan(String key, String cursor, ScanParams params);
 
@@ -793,6 +803,14 @@ public interface RedisClient {
 	public Long scriptExists(byte[] sha1);
 
 	public List<Long> scriptExists(byte[]... sha1);
+
+	default public String scriptFlush(byte[] key) {
+		throw new UnsupportedOperationException("unsupported method");
+	}
+
+	default public String scriptKill(byte[] key) {
+		throw new UnsupportedOperationException("unsupported method");
+	}
 
 	public ScanResult<String> sscan(String key, String cursor);
 
