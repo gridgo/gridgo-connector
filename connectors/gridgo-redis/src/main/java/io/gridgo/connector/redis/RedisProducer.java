@@ -13,10 +13,13 @@ import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.AbstractProducer;
 import io.gridgo.connector.redis.adapter.RedisClient;
+import io.gridgo.connector.redis.adapter.RedisClientFactory;
+import io.gridgo.connector.redis.adapter.RedisConfig;
 import io.gridgo.connector.redis.adapter.RedisConstants;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -25,16 +28,14 @@ public class RedisProducer extends AbstractProducer {
 	@Getter
 	private final boolean callSupported = true;
 
+	private final RedisConfig config;
+
 	private RedisClient redisClient;
 	private Map<String, BiConsumer<Message, Deferred<Message, Exception>>> operations = new HashMap<>();
 
-	protected RedisProducer(ConnectorContext context, RedisClient redisClient) {
+	public RedisProducer(ConnectorContext context, @NonNull RedisConfig config) {
 		super(context);
-		this.redisClient = redisClient;
-	}
-
-	protected void bind(String name, BiConsumer<Message, Deferred<Message, Exception>> handler) {
-		operations.put(name, handler);
+		this.config = config;
 	}
 
 	public void send(Message message) {
@@ -72,12 +73,15 @@ public class RedisProducer extends AbstractProducer {
 
 	@Override
 	protected void onStart() {
-		bind(RedisConstants.COMMAND_APPEND, this::append);
+		this.redisClient = RedisClientFactory.DEFAULT.getRedisClient(this.config);
+
+		this.operations.put(RedisConstants.COMMAND_APPEND, this::append);
 	}
 
 	@Override
 	protected void onStop() {
 		this.redisClient.stop();
+		this.redisClient = null;
 	}
 
 	public void append(Message msg, Deferred<Message, Exception> deferred) {

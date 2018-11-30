@@ -3,10 +3,8 @@ package io.gridgo.connector.redis;
 import java.util.Optional;
 
 import io.gridgo.connector.impl.AbstractConnector;
-import io.gridgo.connector.redis.adapter.RedisClient;
 import io.gridgo.connector.redis.adapter.RedisConfig;
 import io.gridgo.connector.redis.adapter.RedisServerType;
-import io.gridgo.connector.redis.adapter.jedis.JedisClientFactory;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.exceptions.InvalidPlaceholderException;
 import io.gridgo.utils.support.HostAndPortSet;
@@ -16,13 +14,6 @@ public class RedisConnector extends AbstractConnector {
 
 	@Override
 	protected void onInit() {
-		RedisConfig config = extractConfig();
-		RedisClient jedisService = new JedisClientFactory().getRedisClient(config);
-
-		this.producer = Optional.of(new RedisProducer(getContext(), jedisService));
-	}
-
-	private RedisConfig extractConfig() {
 		var mode = getPlaceholder("mode");
 		var password = getPlaceholder("password");
 		var databaseNumber = getPlaceholder("databaseNumber");
@@ -38,6 +29,6 @@ public class RedisConnector extends AbstractConnector {
 		config.setPassword(password);
 		config.setDatabaseNumber(Integer.parseInt(databaseNumber));
 
-		return config;
+		this.producer = Optional.of(new RedisProducer(getContext(), config));
 	}
 }
