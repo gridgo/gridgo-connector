@@ -2,15 +2,16 @@ package io.gridgo.connector.httpcommon.support;
 
 import org.joo.promise4j.Deferred;
 
+import io.gridgo.bean.BValue;
 import io.gridgo.framework.support.Message;
 import lombok.Builder;
 import lombok.Data;
 
 @Data
 @Builder
-public class DeferredAndRoutingId<T> {
+public class DeferredAndRoutingId {
 
 	private Deferred<Message, Exception> deferred;
 
-	private T routingId;
+	private BValue routingId;
 }

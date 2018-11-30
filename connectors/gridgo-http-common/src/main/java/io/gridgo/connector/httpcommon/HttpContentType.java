@@ -1,4 +1,4 @@
-package io.gridgo.connector.jetty.support;
+package io.gridgo.connector.httpcommon;
 
 import java.io.File;
 
@@ -69,6 +69,7 @@ public enum HttpContentType {
 
 	;
 
+	public static final String APPLICATION_TYPE_PREFIX = "application/";
 	public static final HttpContentType DEFAULT_TEXT = TEXT_PLAIN;
 	public static final HttpContentType DEFAULT_MULTIPART = MULTIPART_FORM_DATA;
 	public static final HttpContentType DEFAULT_JSON = APPLICATION_JSON;
@@ -167,14 +168,22 @@ public enum HttpContentType {
 		return DEFAULT_BINARY;
 	}
 
+	public static final boolean isBinaryType(@NonNull String mime) {
+		var contentType = forValue(mime);
+		if (contentType != null) {
+			return contentType.isBinaryFormat();
+		}
+		return mime.toLowerCase().startsWith(APPLICATION_TYPE_PREFIX);
+	}
+
 	public static final boolean isSupported(String value) {
 		return forValue(value) != null;
 	}
 
-	public static final HttpContentType forValue(String value) {
-		if (value != null) {
+	public static final HttpContentType forValue(String mime) {
+		if (mime != null) {
 			for (HttpContentType contentType : values()) {
-				if (contentType.getMime().equalsIgnoreCase(value)) {
+				if (contentType.getMime().equalsIgnoreCase(mime)) {
 					return contentType;
 				}
 			}

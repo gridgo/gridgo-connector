@@ -6,6 +6,7 @@ import org.cliffc.high_scale_lib.NonBlockingHashMap;
 import org.joo.promise4j.Deferred;
 import org.joo.promise4j.impl.CompletableDeferredObject;
 
+import io.gridgo.bean.BValue;
 import io.gridgo.connector.httpcommon.support.DeferredAndRoutingId;
 import io.gridgo.connector.impl.AbstractResponder;
 import io.gridgo.connector.support.config.ConnectorContext;
@@ -13,7 +14,7 @@ import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.generators.IdGenerator;
 import io.gridgo.framework.support.generators.impl.AtomicIdGenerator;
 
-public abstract class AbstractTraceableResponder<R> extends AbstractResponder implements TraceableResponder {
+public abstract class AbstractTraceableResponder extends AbstractResponder implements TraceableResponder {
 
 	private final static IdGenerator ID_SEED = new AtomicIdGenerator();
 
@@ -49,13 +50,16 @@ public abstract class AbstractTraceableResponder<R> extends AbstractResponder im
 	}
 
 	@Override
-	public DeferredAndRoutingId<?> registerTraceable() {
+	public DeferredAndRoutingId registerTraceable() {
 		var deferredResponse = new CompletableDeferredObject<Message, Exception>();
 		var routingId = ID_SEED.generateId().orElseThrow().getData();
 		this.deferredResponses.put(routingId, deferredResponse);
 		deferredResponse.promise().always((stt, resp, ex) -> {
 			deferredResponses.remove(routingId);
 		});
-		return DeferredAndRoutingId.builder().deferred(deferredResponse).routingId(routingId).build();
+		return DeferredAndRoutingId.builder() //
+				.deferred(deferredResponse) //
+				.routingId(BValue.newDefault(routingId)) //
+				.build();
 	}
 }

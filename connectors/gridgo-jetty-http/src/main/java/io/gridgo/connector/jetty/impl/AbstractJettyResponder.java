@@ -35,20 +35,20 @@ import io.gridgo.bean.BObject;
 import io.gridgo.bean.BReference;
 import io.gridgo.bean.BType;
 import io.gridgo.bean.BValue;
-import io.gridgo.connector.impl.AbstractResponder;
+import io.gridgo.connector.httpcommon.AbstractTraceableResponder;
+import io.gridgo.connector.httpcommon.HttpCommonConstants;
+import io.gridgo.connector.httpcommon.HttpContentType;
+import io.gridgo.connector.httpcommon.HttpHeader;
+import io.gridgo.connector.httpcommon.HttpStatus;
 import io.gridgo.connector.jetty.JettyResponder;
 import io.gridgo.connector.jetty.support.DeferredAndRoutingId;
-import io.gridgo.connector.jetty.support.HttpConstants;
-import io.gridgo.connector.jetty.support.HttpContentType;
-import io.gridgo.connector.jetty.support.HttpHeader;
-import io.gridgo.connector.jetty.support.HttpStatus;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 import io.gridgo.utils.wrapper.ByteBufferInputStream;
 import lombok.NonNull;
 
-public class AbstractJettyResponder extends AbstractResponder implements JettyResponder {
+public class AbstractJettyResponder extends AbstractTraceableResponder implements JettyResponder {
 
 	private static final AtomicLong ID_SEED = new AtomicLong(0);
 
@@ -123,7 +123,7 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 		BObject headers = message.getPayload().getHeaders();
 		BElement body = message.getPayload().getBody();
 
-		var contentType = HttpContentType.forValue(headers.getString(HttpConstants.CONTENT_TYPE, null));
+		var contentType = HttpContentType.forValue(headers.getString(HttpCommonConstants.CONTENT_TYPE, null));
 
 		if (contentType == null) {
 			if (body instanceof BValue) {
@@ -140,16 +140,16 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 			}
 		}
 
-		int statusCode = headers.getInteger(HttpConstants.HTTP_STATUS, HttpStatus.OK_200.getCode());
+		int statusCode = headers.getInteger(HttpCommonConstants.HEADER_STATUS, HttpStatus.OK_200.getCode());
 		response.setStatus(statusCode);
 
 		if (contentType.isTextFormat()) {
-			String charset = headers.getString(HttpConstants.CHARSET, "UTF-8");
+			String charset = headers.getString(HttpCommonConstants.CHARSET, "UTF-8");
 			response.setCharacterEncoding(charset);
 		}
 
-		if (!headers.containsKey(HttpConstants.CONTENT_TYPE)) {
-			headers.setAny(HttpConstants.CONTENT_TYPE, contentType.getMime());
+		if (!headers.containsKey(HttpCommonConstants.CONTENT_TYPE)) {
+			headers.setAny(HttpCommonConstants.CONTENT_TYPE, contentType.getMime());
 		}
 
 		if (contentType != HttpContentType.MULTIPART_FORM_DATA || body == null) {
@@ -167,7 +167,7 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 				this.writeBodyBinary(body, response);
 			} else if (contentType.isMultipartFormat()) {
 				this.writeBodyMultipart(body, response, contentTypeWithBoundary -> {
-					headers.setAny(HttpConstants.CONTENT_TYPE, contentTypeWithBoundary);
+					headers.setAny(HttpCommonConstants.CONTENT_TYPE, contentTypeWithBoundary);
 					this.writeHeaders(headers, response);
 				});
 			} else {
@@ -345,7 +345,7 @@ public class AbstractJettyResponder extends AbstractResponder implements JettyRe
 		HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR_500;
 		BElement body = BValue.newDefault(status.getDefaultMessage());
 
-		Payload payload = Payload.newDefault(body).addHeader(HttpConstants.HTTP_STATUS, status.getCode());
+		Payload payload = Payload.newDefault(body).addHeader(HttpCommonConstants.HEADER_STATUS, status.getCode());
 		return Message.newDefault(payload);
 	}
 

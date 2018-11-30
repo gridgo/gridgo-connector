@@ -10,8 +10,8 @@ import io.gridgo.connector.Connector;
 import io.gridgo.connector.ConnectorResolver;
 import io.gridgo.connector.Consumer;
 import io.gridgo.connector.Producer;
+import io.gridgo.connector.httpcommon.HttpCommonConstants;
 import io.gridgo.connector.impl.resolvers.ClasspathConnectorResolver;
-import io.gridgo.connector.jetty.support.HttpConstants;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
 import io.gridgo.framework.support.Message;
@@ -51,7 +51,7 @@ public class TestFileServer {
 		this.rootDir = new File(directory);
 
 		if (!rootDir.exists()) {
-			throw new RuntimeException("Root directory at: " + rootDir.getAbsolutePath() + " is not exists");
+			throw new RuntimeException("Root directory at: " + rootDir.getAbsolutePath() + " doesn't exist");
 		}
 
 		ConnectorContext connectorContext = new DefaultConnectorContextBuilder() //
@@ -77,16 +77,20 @@ public class TestFileServer {
 		BObject headers = BObject.newDefault();
 		BElement body = null;
 
-		String pathInfo = message.getPayload().getHeaders().getString(HttpConstants.PATH_INFO);
+		String pathInfo = message.getPayload().getHeaders().getString(HttpCommonConstants.PATH_INFO);
 		if (pathInfo != null) {
-			File file = new File(rootDir, pathInfo);
-			if (file.exists() && file.isFile()) {
-				body = BReference.newDefault(file);
+			if (pathInfo.equalsIgnoreCase("/upload")) {
+				System.out.println("got request: " + message.getPayload().toBArray());
+			} else {
+				File file = new File(rootDir, pathInfo);
+				if (file.exists() && file.isFile()) {
+					body = BReference.newDefault(file);
+				}
 			}
 		}
 
 		if (body == null) {
-			headers.setAny(HttpConstants.HTTP_STATUS, "404");
+			headers.setAny(HttpCommonConstants.HEADER_STATUS, 404);
 			body = BValue.newDefault("Not found");
 		}
 

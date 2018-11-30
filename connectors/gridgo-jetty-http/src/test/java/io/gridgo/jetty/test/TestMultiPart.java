@@ -31,12 +31,12 @@ import io.gridgo.connector.Connector;
 import io.gridgo.connector.ConnectorResolver;
 import io.gridgo.connector.Consumer;
 import io.gridgo.connector.Producer;
+import io.gridgo.connector.httpcommon.HttpCommonConstants;
+import io.gridgo.connector.httpcommon.HttpHeader;
 import io.gridgo.connector.impl.resolvers.ClasspathConnectorResolver;
 import io.gridgo.connector.jetty.JettyConnector;
 import io.gridgo.connector.jetty.JettyConsumer;
 import io.gridgo.connector.jetty.JettyResponder;
-import io.gridgo.connector.jetty.support.HttpConstants;
-import io.gridgo.connector.jetty.support.HttpHeader;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
 import io.gridgo.framework.execution.impl.ExecutorExecutionStrategy;
@@ -116,13 +116,13 @@ public class TestMultiPart {
 				BObject body = BObject.newDefault();
 				for (BElement element : msg.getPayload().getBody().asArray()) {
 					BObject part = element.asObject();
-					BElement partBody = part.get(HttpConstants.BODY);
+					BElement partBody = part.get(HttpCommonConstants.BODY);
 					if (partBody instanceof BReference) {
 						String partBodyAsString = readInputStreamAsString(
 								(InputStream) partBody.asReference().getReference());
-						body.putAny(part.getString(HttpConstants.NAME), partBodyAsString);
+						body.putAny(part.getString(HttpCommonConstants.NAME), partBodyAsString);
 					} else {
-						body.putAny(part.getString(HttpConstants.NAME), partBody.toJson());
+						body.putAny(part.getString(HttpCommonConstants.NAME), partBody.toJson());
 					}
 				}
 				response.put("body", body);

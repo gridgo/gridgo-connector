@@ -20,11 +20,11 @@ import javax.servlet.http.Part;
 import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
+import io.gridgo.connector.httpcommon.HttpCommonConstants;
+import io.gridgo.connector.httpcommon.HttpContentType;
+import io.gridgo.connector.httpcommon.HttpHeader;
 import io.gridgo.connector.jetty.exceptions.HttpRequestParsingException;
 import io.gridgo.connector.jetty.server.JettyServletContextHandlerOption;
-import io.gridgo.connector.jetty.support.HttpConstants;
-import io.gridgo.connector.jetty.support.HttpContentType;
-import io.gridgo.connector.jetty.support.HttpHeader;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 import io.gridgo.utils.helper.Loggable;
@@ -41,20 +41,20 @@ public abstract class AbstractHttpRequestParser implements HttpRequestParser, Lo
 		try {
 			body = extractBody(request);
 			Message message = Message.newDefault(Payload.newDefault(headers, body)) //
-					.addMisc(HttpConstants.COOKIES, request.getCookies()) //
+					.addMisc(HttpCommonConstants.COOKIES, request.getCookies()) //
 
-					.addMisc(HttpConstants.LOCAL_NAME, request.getLocalName()) //
-					.addMisc(HttpConstants.SERVER_NAME, request.getServerName()) //
-					.addMisc(HttpConstants.SERVER_PORT, request.getServerPort()) //
+					.addMisc(HttpCommonConstants.LOCAL_NAME, request.getLocalName()) //
+					.addMisc(HttpCommonConstants.SERVER_NAME, request.getServerName()) //
+					.addMisc(HttpCommonConstants.SERVER_PORT, request.getServerPort()) //
 
-					.addMisc(HttpConstants.LOCALE, request.getLocale()) //
-					.addMisc(HttpConstants.LOCALES, request.getLocales()) //
+					.addMisc(HttpCommonConstants.LOCALE, request.getLocale()) //
+					.addMisc(HttpCommonConstants.LOCALES, request.getLocales()) //
 
-					.addMisc(HttpConstants.USER_PRINCIPAL, request.getUserPrincipal()) //
+					.addMisc(HttpCommonConstants.USER_PRINCIPAL, request.getUserPrincipal()) //
 			;
 			if (options != null) {
 				if (options.contains(JettyServletContextHandlerOption.SESSIONS)) {
-					message.addMisc(HttpConstants.SESSION, request.getSession());
+					message.addMisc(HttpCommonConstants.SESSION, request.getSession());
 				}
 			}
 			return message;
@@ -75,7 +75,7 @@ public abstract class AbstractHttpRequestParser implements HttpRequestParser, Lo
 		String queryString = request.getQueryString();
 		String encoding = request.getCharacterEncoding();
 		if (encoding == null || encoding.isBlank()) {
-			encoding = HttpConstants.UTF_8;
+			encoding = HttpCommonConstants.UTF_8;
 		}
 
 		result.putAny(HttpHeader.CHARSET.asString(), encoding);

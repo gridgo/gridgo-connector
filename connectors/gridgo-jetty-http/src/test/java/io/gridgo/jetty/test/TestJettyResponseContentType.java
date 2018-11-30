@@ -28,12 +28,12 @@ import io.gridgo.connector.Connector;
 import io.gridgo.connector.ConnectorResolver;
 import io.gridgo.connector.Consumer;
 import io.gridgo.connector.Producer;
+import io.gridgo.connector.httpcommon.HttpCommonConstants;
+import io.gridgo.connector.httpcommon.HttpContentType;
 import io.gridgo.connector.impl.resolvers.ClasspathConnectorResolver;
 import io.gridgo.connector.jetty.JettyConnector;
 import io.gridgo.connector.jetty.JettyConsumer;
 import io.gridgo.connector.jetty.JettyResponder;
-import io.gridgo.connector.jetty.support.HttpConstants;
-import io.gridgo.connector.jetty.support.HttpContentType;
 import io.gridgo.connector.jetty.support.HttpEntityHelper;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
@@ -95,14 +95,14 @@ public class TestJettyResponseContentType {
 
 			consumer.subscribe(msg -> {
 				Payload payload = Payload.newDefault(BObject.newFromSequence("testText", TEST_TEXT));
-				payload.addHeader(HttpConstants.CONTENT_TYPE, HttpContentType.APPLICATION_JSON.getMime());
+				payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.APPLICATION_JSON.getMime());
 				Message message = Message.newDefault(payload).setRoutingId(msg.getRoutingId().get());
 				responder.send(message);
 			});
 
 			var request = RequestBuilder.get(URI).build();
 			var response = httpClient.execute(request);
-			Header[] contentType = response.getHeaders(HttpConstants.CONTENT_TYPE);
+			Header[] contentType = response.getHeaders(HttpCommonConstants.CONTENT_TYPE);
 			assertNotNull(contentType);
 			assertTrue(contentType.length > 0);
 			assertThat(contentType[0].getValue(), Matchers.startsWith(HttpContentType.APPLICATION_JSON.getMime()));
@@ -130,13 +130,13 @@ public class TestJettyResponseContentType {
 
 			consumer.subscribe(msg -> {
 				Payload payload = Payload.newDefault(BValue.newDefault(TEST_TEXT));
-				payload.addHeader(HttpConstants.CONTENT_TYPE, HttpContentType.TEXT_PLAIN.getMime());
+				payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.TEXT_PLAIN.getMime());
 				Message message = Message.newDefault(payload).setRoutingId(msg.getRoutingId().get());
 				responder.send(message);
 			});
 			var request = RequestBuilder.get(URI).build();
 			var response = httpClient.execute(request);
-			Header[] contentType = response.getHeaders(HttpConstants.CONTENT_TYPE);
+			Header[] contentType = response.getHeaders(HttpCommonConstants.CONTENT_TYPE);
 			assertNotNull(contentType);
 			assertTrue(contentType.length > 0);
 			assertThat(contentType[0].getValue(), Matchers.startsWith(HttpContentType.TEXT_PLAIN.getMime()));
@@ -172,7 +172,7 @@ public class TestJettyResponseContentType {
 								.setAny("testJsonArray", BArray.newFromSequence("string", 100, true)) //
 				);
 
-				payload.addHeader(HttpConstants.CONTENT_TYPE, HttpContentType.MULTIPART_FORM_DATA.getMime());
+				payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.MULTIPART_FORM_DATA.getMime());
 				Message message = Message.newDefault(payload).setRoutingId(msg.getRoutingId().get());
 				responder.send(message);
 			});
@@ -207,7 +207,7 @@ public class TestJettyResponseContentType {
 				Payload payload = Payload
 						.newDefault(BReference.newDefault(getClass().getClassLoader().getResourceAsStream("test.txt")));
 
-				payload.addHeader(HttpConstants.CONTENT_TYPE, HttpContentType.APPLICATION_OCTET_STREAM.getMime());
+				payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.APPLICATION_OCTET_STREAM.getMime());
 				Message message = Message.newDefault(payload).setRoutingId(msg.getRoutingId().get());
 				responder.send(message);
 			});
