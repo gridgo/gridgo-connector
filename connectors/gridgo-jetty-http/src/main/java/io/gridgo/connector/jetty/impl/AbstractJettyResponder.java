@@ -40,8 +40,8 @@ import io.gridgo.connector.httpcommon.HttpCommonConstants;
 import io.gridgo.connector.httpcommon.HttpContentType;
 import io.gridgo.connector.httpcommon.HttpHeader;
 import io.gridgo.connector.httpcommon.HttpStatus;
+import io.gridgo.connector.httpcommon.support.DeferredAndRoutingId;
 import io.gridgo.connector.jetty.JettyResponder;
-import io.gridgo.connector.jetty.support.DeferredAndRoutingId;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
@@ -367,7 +367,8 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
 				asyncContext.complete();
 			}
 		});
-		return DeferredAndRoutingId.builder().deferred(deferredResponse).routingId(routingId).build();
+		return DeferredAndRoutingId.builder().deferred(deferredResponse).routingId(BValue.newDefault(routingId))
+				.build();
 	}
 
 	@Override
