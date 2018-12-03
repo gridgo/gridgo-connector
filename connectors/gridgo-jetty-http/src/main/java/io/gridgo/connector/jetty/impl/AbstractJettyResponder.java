@@ -123,7 +123,8 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
 		BObject headers = message.getPayload().getHeaders();
 		BElement body = message.getPayload().getBody();
 
-		var contentType = HttpContentType.forValue(headers.getString(HttpCommonConstants.CONTENT_TYPE, null));
+		var headerSetContentType = headers.getString(HttpCommonConstants.CONTENT_TYPE, null);
+		var contentType = HttpContentType.forValue(headerSetContentType);
 
 		if (contentType == null) {
 			if (body instanceof BValue) {
@@ -227,6 +228,10 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
 	}
 
 	protected void writeBodyBinary(BElement body, HttpServletResponse response) {
+		writeBodyBinary(body, response, null);
+	}
+
+	protected void writeBodyBinary(BElement body, HttpServletResponse response, Consumer<Long> contentLengthConsumer) {
 		InputStream inputStream = null;
 		if (body instanceof BReference) {
 			var obj = body.asReference().getReference();
@@ -250,6 +255,9 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
 		takeOutputStream(response, (output) -> {
 			if (input != null) {
 				try {
+					if (contentLengthConsumer != null) {
+						contentLengthConsumer.accept((long) input.available());
+					}
 					input.transferTo(output);
 				} catch (Exception e) {
 					handleException(e);
@@ -331,7 +339,9 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
 
 	protected void writeBodyTextPlain(BElement body, HttpServletResponse response) {
 		if (body instanceof BReference) {
-			writeBodyBinary(body, response);
+			writeBodyBinary(body, response, (contentLength) -> {
+				response.addHeader(HttpCommonConstants.CONTENT_LENGTH, String.valueOf(contentLength));
+			});
 		} else {
 			takeWriter(response, (writer) -> writer.write(body.toJson()));
 		}

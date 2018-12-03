@@ -17,6 +17,7 @@ public enum HttpContentType {
 	APPLICATION_XML("application/xml", true, false, false, false),
 	TEXT_HTML("text/html", true, false, false, false),
 	TEXT_PLAIN("text/plain", true, false, false, false),
+	TEXT_CSS("text/css", true, false, false, false),
 	TEXT_XML("text/xml", true, false, false, false),
 	WILDCARD("*/*", true, false, false, false), //
 
@@ -81,8 +82,7 @@ public enum HttpContentType {
 	private final boolean multipartFormat;
 	private final boolean jsonFormat;
 
-	public static final HttpContentType forFile(@NonNull File file) {
-		String fileName = file.getName();
+	public static final HttpContentType forFileName(String fileName) {
 		String[] splittedFileName = fileName.split("\\.");
 
 		if (splittedFileName.length > 1) {
@@ -162,10 +162,17 @@ public enum HttpContentType {
 			case "html":
 			case "htm":
 				return TEXT_HTML;
+			case "css":
+				return TEXT_CSS;
 			}
 		}
 
 		return DEFAULT_BINARY;
+	}
+
+	public static final HttpContentType forFile(@NonNull File file) {
+		String fileName = file.getName();
+		return forFileName(fileName);
 	}
 
 	public static final boolean isBinaryType(@NonNull String mime) {
