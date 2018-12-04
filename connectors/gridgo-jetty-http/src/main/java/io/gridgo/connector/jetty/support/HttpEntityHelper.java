@@ -15,7 +15,8 @@ import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BReference;
-import io.gridgo.connector.jetty.HttpContentTypes;
+import io.gridgo.connector.httpcommon.HttpCommonConstants;
+import io.gridgo.connector.httpcommon.HttpContentType;
 
 public class HttpEntityHelper {
 
@@ -31,18 +32,18 @@ public class HttpEntityHelper {
 		BArray results = BArray.newDefault();
 		for (Part part : parts) {
 			final String contentType = part.getContentType();
-			if (!contentType.toLowerCase().contains(HttpContentTypes.APPLICATION_OCTET_STREAM.getValue())) {
+			if (contentType != null && HttpContentType.isBinaryType(contentType)) {
 				results.add(BObject.newDefault() //
-						.setAny(HttpConstants.NAME, part.getName()) //
-						.setAny(HttpConstants.CONTENT_TYPE, contentType)//
-						.setAny(HttpConstants.BODY, BElement.fromJson(part.getInputStream())) //
+						.setAny(HttpCommonConstants.NAME, part.getName()) //
+						.setAny(HttpCommonConstants.CONTENT_TYPE, contentType) //
+						.setAny(HttpCommonConstants.SUBMITTED_FILE_NAME, part.getSubmittedFileName()) //
+						.setAny(HttpCommonConstants.BODY, BReference.newDefault(part.getInputStream())) //
 				);
 			} else {
 				results.add(BObject.newDefault() //
-						.setAny(HttpConstants.NAME, part.getName()) //
-						.setAny(HttpConstants.CONTENT_TYPE, contentType) //
-						.setAny(HttpConstants.SUBMITTED_FILE_NAME, part.getSubmittedFileName()) //
-						.setAny(HttpConstants.BODY, BReference.newDefault(part.getInputStream())) //
+						.setAny(HttpCommonConstants.NAME, part.getName()) //
+						.setAny(HttpCommonConstants.CONTENT_TYPE, contentType)//
+						.setAny(HttpCommonConstants.BODY, BElement.fromJson(part.getInputStream())) //
 				);
 			}
 		}

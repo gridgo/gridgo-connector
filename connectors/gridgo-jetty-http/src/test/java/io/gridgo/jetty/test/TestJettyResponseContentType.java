@@ -6,11 +6,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URISyntaxException;
-import java.nio.charset.Charset;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -31,12 +28,12 @@ import io.gridgo.connector.Connector;
 import io.gridgo.connector.ConnectorResolver;
 import io.gridgo.connector.Consumer;
 import io.gridgo.connector.Producer;
+import io.gridgo.connector.httpcommon.HttpCommonConstants;
+import io.gridgo.connector.httpcommon.HttpContentType;
 import io.gridgo.connector.impl.resolvers.ClasspathConnectorResolver;
-import io.gridgo.connector.jetty.HttpContentTypes;
 import io.gridgo.connector.jetty.JettyConnector;
 import io.gridgo.connector.jetty.JettyConsumer;
 import io.gridgo.connector.jetty.JettyResponder;
-import io.gridgo.connector.jetty.support.HttpConstants;
 import io.gridgo.connector.jetty.support.HttpEntityHelper;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
@@ -84,20 +81,6 @@ public class TestJettyResponseContentType {
 		return connector;
 	}
 
-	protected String readInputStreamAsString(InputStream inputStream) {
-		ByteArrayOutputStream result = new ByteArrayOutputStream();
-		byte[] buffer = new byte[1024];
-		int length;
-		try {
-			while ((length = inputStream.read(buffer)) != -1) {
-				result.write(buffer, 0, length);
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		return result.toString(Charset.defaultCharset());
-	}
-
 	@Test
 	public void testResponseJson() throws URISyntaxException, IOException, InterruptedException {
 
@@ -112,17 +95,17 @@ public class TestJettyResponseContentType {
 
 			consumer.subscribe(msg -> {
 				Payload payload = Payload.newDefault(BObject.newFromSequence("testText", TEST_TEXT));
-				payload.addHeader(HttpConstants.CONTENT_TYPE, HttpContentTypes.APPLICATION_JSON.getValue());
+				payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.APPLICATION_JSON.getMime());
 				Message message = Message.newDefault(payload).setRoutingId(msg.getRoutingId().get());
 				responder.send(message);
 			});
 
 			var request = RequestBuilder.get(URI).build();
 			var response = httpClient.execute(request);
-			Header[] contentType = response.getHeaders(HttpConstants.CONTENT_TYPE);
+			Header[] contentType = response.getHeaders(HttpCommonConstants.CONTENT_TYPE);
 			assertNotNull(contentType);
 			assertTrue(contentType.length > 0);
-			assertThat(contentType[0].getValue(), Matchers.startsWith(HttpContentTypes.APPLICATION_JSON.getValue()));
+			assertThat(contentType[0].getValue(), Matchers.startsWith(HttpContentType.APPLICATION_JSON.getMime()));
 
 			BElement responseData = BElement.fromJson(EntityUtils.toString(response.getEntity()));
 			assertNotNull(responseData);
@@ -147,16 +130,16 @@ public class TestJettyResponseContentType {
 
 			consumer.subscribe(msg -> {
 				Payload payload = Payload.newDefault(BValue.newDefault(TEST_TEXT));
-				payload.addHeader(HttpConstants.CONTENT_TYPE, HttpContentTypes.TEXT_PLAIN.getValue());
+				payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.TEXT_PLAIN.getMime());
 				Message message = Message.newDefault(payload).setRoutingId(msg.getRoutingId().get());
 				responder.send(message);
 			});
 			var request = RequestBuilder.get(URI).build();
 			var response = httpClient.execute(request);
-			Header[] contentType = response.getHeaders(HttpConstants.CONTENT_TYPE);
+			Header[] contentType = response.getHeaders(HttpCommonConstants.CONTENT_TYPE);
 			assertNotNull(contentType);
 			assertTrue(contentType.length > 0);
-			assertThat(contentType[0].getValue(), Matchers.startsWith(HttpContentTypes.TEXT_PLAIN.getValue()));
+			assertThat(contentType[0].getValue(), Matchers.startsWith(HttpContentType.TEXT_PLAIN.getMime()));
 
 			BElement responseData = BElement.fromJson(EntityUtils.toString(response.getEntity()));
 			assertNotNull(responseData);
@@ -189,7 +172,7 @@ public class TestJettyResponseContentType {
 								.setAny("testJsonArray", BArray.newFromSequence("string", 100, true)) //
 				);
 
-				payload.addHeader(HttpConstants.CONTENT_TYPE, HttpContentTypes.MULTIPART_FORM_DATA.getValue());
+				payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.MULTIPART_FORM_DATA.getMime());
 				Message message = Message.newDefault(payload).setRoutingId(msg.getRoutingId().get());
 				responder.send(message);
 			});
@@ -198,7 +181,7 @@ public class TestJettyResponseContentType {
 			var response = httpClient.execute(request);
 
 			String contentType = response.getEntity().getContentType().getValue();
-			assertThat(contentType, Matchers.startsWith(HttpContentTypes.MULTIPART_FORM_DATA.getValue()));
+			assertThat(contentType, Matchers.startsWith(HttpContentType.MULTIPART_FORM_DATA.getMime()));
 
 			BArray responseMultiPart = parseAsMultiPart(response.getEntity());
 			assertEquals(4, responseMultiPart.size());
@@ -224,7 +207,7 @@ public class TestJettyResponseContentType {
 				Payload payload = Payload
 						.newDefault(BReference.newDefault(getClass().getClassLoader().getResourceAsStream("test.txt")));
 
-				payload.addHeader(HttpConstants.CONTENT_TYPE, HttpContentTypes.APPLICATION_OCTET_STREAM.getValue());
+				payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.APPLICATION_OCTET_STREAM.getMime());
 				Message message = Message.newDefault(payload).setRoutingId(msg.getRoutingId().get());
 				responder.send(message);
 			});
@@ -233,7 +216,7 @@ public class TestJettyResponseContentType {
 			var response = httpClient.execute(request);
 
 			String contentType = response.getEntity().getContentType().getValue();
-			assertThat(contentType, Matchers.startsWith(HttpContentTypes.APPLICATION_OCTET_STREAM.getValue()));
+			assertThat(contentType, Matchers.startsWith(HttpContentType.APPLICATION_OCTET_STREAM.getMime()));
 
 			String content = HttpEntityHelper.parseAsString(response.getEntity().getContent());
 			String fileContent = HttpEntityHelper

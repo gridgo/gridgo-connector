@@ -1,7 +1,7 @@
-package io.gridgo.connector.jetty.support;
+package io.gridgo.connector.httpcommon;
 
-import org.eclipse.jetty.util.ArrayTrie;
-import org.eclipse.jetty.util.Trie;
+import java.util.HashMap;
+import java.util.Map;
 
 import lombok.Getter;
 
@@ -137,13 +137,11 @@ public enum HttpHeader {
 	CONTEXT_PATH("Context-Path", true, false, true);
 
 	/* ------------------------------------------------------------ */
-	private final static Trie<HttpHeader> CACHE = new ArrayTrie<>(1024);
+	private final static Map<String, HttpHeader> CACHE = new HashMap<>();
 	static {
 		for (HttpHeader header : HttpHeader.values()) {
 			if (header != UNKNOWN) {
-				if (!CACHE.put(header.toString().trim().toLowerCase(), header)) {
-					throw new IllegalStateException("cannot put " + header.toString() + " to CACHE");
-				}
+				CACHE.putIfAbsent(header.toString().trim().toLowerCase(), header);
 			}
 		}
 	}

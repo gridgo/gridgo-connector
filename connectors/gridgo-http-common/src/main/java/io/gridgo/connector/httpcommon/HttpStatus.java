@@ -1,4 +1,4 @@
-package io.gridgo.connector.jetty.support;
+package io.gridgo.connector.httpcommon;
 
 import java.util.HashMap;
 import java.util.Map;
