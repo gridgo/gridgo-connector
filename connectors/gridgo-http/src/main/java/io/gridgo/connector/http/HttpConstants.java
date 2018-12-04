@@ -11,4 +11,6 @@ public class HttpConstants extends HttpCommonProducerConstants {
 	public static final String IO_THREADS_COUNT = "ioThreadsCount";
 
 	public static final String PROXY_REALM_BEAN = "proxyRealmBean";
+
+	public static final String SSL_CONTEXT = "sslContextBean";
 }
