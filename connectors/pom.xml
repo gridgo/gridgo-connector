@@ -25,7 +25,6 @@
 		<module>gridgo-jetty-http</module>
 		<module>gridgo-http</module>
 		<module>gridgo-file</module>
-		<module>gridgo-redis</module>
 	</modules>
 
 	<dependencies>
