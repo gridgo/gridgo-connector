@@ -29,13 +29,16 @@ public class AutoIncrementedFileLimitStrategy implements FileLimitStrategy {
 
 	private boolean deleteOnShutdown;
 
+	private boolean override;
+
 	public AutoIncrementedFileLimitStrategy(String basePath, String mode, long limit, boolean deleteOnStartup,
-			boolean deleteOnShutdown) throws IOException {
+			boolean deleteOnShutdown, boolean override) throws IOException {
 		this.basePath = basePath;
 		this.mode = mode;
 		this.limit = limit;
 		this.deleteOnStartup = deleteOnStartup;
 		this.deleteOnShutdown = deleteOnShutdown;
+		this.override = override;
 	}
 
 	@Override
@@ -96,9 +99,13 @@ public class AutoIncrementedFileLimitStrategy implements FileLimitStrategy {
 
 	private void resetFile() throws IOException {
 		this.file = new RandomAccessFile(files.getLast(), mode);
-		var length = this.file.length();
-		this.file.seek(length);
-		this.written = length;
+		if (!override) {
+			var length = this.file.length();
+			this.file.seek(length);
+			this.written = length;
+		} else {
+			this.written = 0;
+		}
 		this.fileChannel = this.file.getChannel();
 	}
 

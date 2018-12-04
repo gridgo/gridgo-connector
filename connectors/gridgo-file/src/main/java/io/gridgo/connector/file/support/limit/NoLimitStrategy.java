@@ -24,11 +24,15 @@ public class NoLimitStrategy implements FileLimitStrategy {
 
 	private RandomAccessFile raf;
 
-	public NoLimitStrategy(String path, String mode, boolean deleteOnStartup, boolean deleteOnShutdown) {
+	private boolean override;
+
+	public NoLimitStrategy(String path, String mode, boolean deleteOnStartup, boolean deleteOnShutdown,
+			boolean override) {
 		this.path = path;
 		this.mode = mode;
 		this.deleteOnStartup = deleteOnStartup;
 		this.deleteOnShutdown = deleteOnShutdown;
+		this.override = override;
 	}
 
 	@Override
@@ -38,7 +42,8 @@ public class NoLimitStrategy implements FileLimitStrategy {
 			this.file.delete();
 		this.raf = new RandomAccessFile(file, mode);
 		this.fileChannel = raf.getChannel();
-		this.raf.seek(this.raf.length());
+		if (!override)
+			this.raf.seek(this.raf.length());
 	}
 
 	@Override

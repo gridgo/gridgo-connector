@@ -12,6 +12,7 @@ import io.gridgo.connector.test.support.TestConsumer;
 import io.gridgo.connector.test.support.TestProducer;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
+import io.gridgo.framework.support.impl.SimpleRegistry;
 
 public class ConnectorUnitTest {
 
@@ -20,10 +21,27 @@ public class ConnectorUnitTest {
 		var connector = new DefaultConnectorFactory().createConnector("test:pull:tcp://127.0.0.1:8080?p1=v1&p2=v2");
 		Assert.assertNotNull(connector);
 		Assert.assertTrue(connector instanceof TestConnector);
-		
+
 		connector = new DefaultConnectorFactory().createConnector("test1:pull:tcp://127.0.0.1:8080?p1=v1&p2=v2");
 		Assert.assertNotNull(connector);
 		Assert.assertTrue(connector instanceof TestConnector);
+	}
+
+	@Test
+	public void testRegistrySubstitution() {
+		var registry = new SimpleRegistry() //
+				.register("host", "localhost") //
+				.register("port", "8080") //
+				.register("v1", "value1") //
+				.register("v2", "value2");
+		var factory = new DefaultConnectorFactory();
+		factory.setRegistry(registry);
+
+		var connector = (TestConnector) factory.createConnector("test:pull:tcp://${host}:${port}?p1=${v1}&p2=${v2}");
+		Assert.assertEquals("localhost", connector.getPlaceholderPublic("host"));
+		Assert.assertEquals("8080", connector.getPlaceholderPublic("port"));
+		Assert.assertEquals("value1", connector.getParamPublic("p1"));
+		Assert.assertEquals("value2", connector.getParamPublic("p2"));
 	}
 
 	@Test
