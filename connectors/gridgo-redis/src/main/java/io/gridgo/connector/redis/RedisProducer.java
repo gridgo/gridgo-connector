@@ -28,12 +28,14 @@ public class RedisProducer extends AbstractProducer {
 	@Getter
 	private final boolean callSupported = true;
 
-	private final RedisClient redisClient;
+	private final RedisConfig config;
+
+	private RedisClient redisClient;
 	private Map<String, BiConsumer<Message, Deferred<Message, Exception>>> operations = new HashMap<>();
 
 	public RedisProducer(ConnectorContext context, @NonNull RedisConfig config) {
 		super(context);
-		this.redisClient = RedisClientFactory.DEFAULT.getRedisClient(config);
+		this.config = config;
 	}
 
 	public void send(Message message) {
@@ -71,13 +73,15 @@ public class RedisProducer extends AbstractProducer {
 
 	@Override
 	protected void onStart() {
-		this.redisClient.start();
+		this.redisClient = RedisClientFactory.DEFAULT.getRedisClient(this.config);
+
 		this.operations.put(RedisConstants.COMMAND_APPEND, this::append);
 	}
 
 	@Override
 	protected void onStop() {
 		this.redisClient.stop();
+		this.redisClient = null;
 	}
 
 	public void append(Message msg, Deferred<Message, Exception> deferred) {
