@@ -162,7 +162,7 @@ public class MongoDBProducer extends AbstractProducer {
 		if (numToSkip != -1)
 			filterable.skip(numToSkip);
 		if (limit != -1)
-			filterable.skip(limit);
+			filterable.limit(limit);
 		if (sortBy != null)
 			filterable.sort(sortBy);
 		filterable.into(new ArrayList<>(), (result, throwable) -> {
