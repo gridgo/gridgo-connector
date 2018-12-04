@@ -22,7 +22,7 @@ import lombok.Setter;
 public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 
 	@Getter(AccessLevel.PROTECTED)
-	private final BObject configs = BObject.newDefault();
+	private final BObject configs = BObject.ofEmpty();
 
 	@Getter
 	@Setter(AccessLevel.PROTECTED)

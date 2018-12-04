@@ -23,7 +23,7 @@ public interface SocketProducer extends Producer, HasReceiver {
 		return false;
 	}
 
-	static SocketProducer newDefault(ConnectorContext context, SocketFactory factory, SocketOptions options,
+	static SocketProducer of(ConnectorContext context, SocketFactory factory, SocketOptions options,
 			String address, int bufferSize, int ringBufferSize, boolean batchingEnabled, int maxBatchSize) {
 		return new DefaultSocketProducer(context, factory, options, address, bufferSize, ringBufferSize,
 				batchingEnabled, maxBatchSize);

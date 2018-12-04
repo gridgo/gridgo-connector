@@ -13,7 +13,7 @@ public interface SocketConsumer extends Consumer,HasResponder {
 
 	long getTotalRecvMessages();
 
-	static SocketConsumer newDefault(ConnectorContext context, SocketFactory factory, SocketOptions options, String address, int bufferSize) {
+	static SocketConsumer of(ConnectorContext context, SocketFactory factory, SocketOptions options, String address, int bufferSize) {
 		return new DefaultSocketConsumer(context, factory, options, address, bufferSize);
 	}
 

@@ -88,12 +88,12 @@ public class SocketConnector extends AbstractConnector implements Connector {
 		switch (this.options.getType().toLowerCase()) {
 		case "push":
 		case "pub":
-			p = SocketProducer.newDefault(getContext(), factory, options, address, bufferSize, ringBufferSize,
+			p = SocketProducer.of(getContext(), factory, options, address, bufferSize, ringBufferSize,
 					batchingEnabled, maxBatchSize);
 			break;
 		case "pull":
 		case "sub":
-			c = SocketConsumer.newDefault(getContext(), factory, options, address, bufferSize);
+			c = SocketConsumer.of(getContext(), factory, options, address, bufferSize);
 			break;
 		case "pair":
 			String role = this.getPlaceholder("role");
@@ -102,13 +102,13 @@ public class SocketConnector extends AbstractConnector implements Connector {
 			}
 			switch (role.trim().toLowerCase()) {
 			case "connect":
-				p = SocketProducer.newDefault(getContext(), factory, options, address, bufferSize, ringBufferSize,
+				p = SocketProducer.of(getContext(), factory, options, address, bufferSize, ringBufferSize,
 						batchingEnabled, maxBatchSize);
 				p.start();
 				c = ((HasReceiver) p).getReceiver();
 				break;
 			case "bind":
-				c = SocketConsumer.newDefault(getContext(), factory, options, address, bufferSize);
+				c = SocketConsumer.of(getContext(), factory, options, address, bufferSize);
 				c.start();
 				p = ((HasResponder) c).getResponder();
 				break;

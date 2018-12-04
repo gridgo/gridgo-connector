@@ -41,7 +41,7 @@ public class SocketUnitTest {
 		connector1.start();
 		connector2.start();
 
-		connector2.getProducer().get().send(Message.newDefault(Payload.newDefault(BValue.newDefault(1))));
+		connector2.getProducer().get().send(Message.of(Payload.of(BValue.of(1))));
 
 		latch.await();
 
@@ -76,7 +76,7 @@ public class SocketUnitTest {
 
 		for (int i = 0; i < NUM_MESSAGES; i++)
 			connector2.getProducer().get() //
-					.send(Message.newDefault(Payload.newDefault(BValue.newDefault(1))));
+					.send(Message.of(Payload.of(BValue.of(1))));
 
 		latch.await();
 		connector2.stop();

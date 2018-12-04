@@ -23,16 +23,16 @@ public class SocketUtils {
 			return messages.iterator().next();
 		}
 
-		BArray body = BArray.newDefault();
+		BArray body = BArray.ofEmpty();
 		for (Message mess : messages) {
 			Payload payload = mess.getPayload();
 			body.add(BArray.newFromSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody()));
 		}
-		Payload payload = Payload.newDefault(body)//
+		Payload payload = Payload.of(body)//
 				.addHeader(SocketConstants.IS_BATCH, true) //
 				.addHeader(SocketConstants.BATCH_SIZE, messages.size());
 
-		return Message.newDefault(payload);
+		return Message.of(payload);
 	}
 
 	public static void startPolling( //
