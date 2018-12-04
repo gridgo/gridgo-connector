@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.ConnectorResolver;
@@ -17,10 +18,15 @@ import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.config.impl.DefaultConnectorConfig;
 import io.gridgo.connector.support.exceptions.ConnectorResolutionException;
 import io.gridgo.connector.support.exceptions.MalformedEndpointException;
+import io.gridgo.framework.support.Registry;
 
 public class UriConnectorResolver implements ConnectorResolver {
 
 	private static final int MAX_PLACEHOLDER_NAME = 1024;
+
+	private static final Pattern REGISTRY_SUB_PATTERN = Pattern.compile("\\$\\{([^\\{]*)\\}");
+
+	private CharBuffer buffer = CharBuffer.allocate(MAX_PLACEHOLDER_NAME);
 
 	private final Class<? extends Connector> clazz;
 
@@ -46,7 +52,7 @@ public class UriConnectorResolver implements ConnectorResolver {
 	@Override
 	public Connector resolve(String endpoint, ConnectorContext context) {
 		try {
-			var config = resolveConfig(endpoint);
+			var config = resolveConfig(endpoint, context.getRegistry());
 			return clazz.getConstructor().newInstance().initialize(config, context);
 		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
 				| NoSuchMethodException | SecurityException e) {
@@ -54,9 +60,13 @@ public class UriConnectorResolver implements ConnectorResolver {
 		}
 	}
 
-	private ConnectorConfig resolveConfig(String endpoint) {
+	private ConnectorConfig resolveConfig(String endpoint, Registry registry) {
 		String schemePart = endpoint;
 		String queryPart = null;
+
+		if (registry != null) {
+			endpoint = substituteRegistries(endpoint, registry);
+		}
 
 		int queryPartIdx = endpoint.indexOf('?');
 		if (queryPartIdx != -1) {
@@ -69,6 +79,18 @@ public class UriConnectorResolver implements ConnectorResolver {
 		return new DefaultConnectorConfig(scheme, scheme + ":" + schemePart, schemePart, params, placeholders);
 	}
 
+	private String substituteRegistries(String endpoint, Registry registry) {
+		if (endpoint.indexOf('$') == -1)
+			return endpoint;
+		var matcher = REGISTRY_SUB_PATTERN.matcher(endpoint);
+		if (!matcher.find())
+			return endpoint;
+		return matcher.replaceAll(result -> {
+			var obj = registry.lookup(result.group(1));
+			return obj != null ? obj.toString() : "";
+		});
+	}
+
 	private Properties extractPlaceholders(String schemePart) {
 		if (raw)
 			return new Properties();
@@ -79,7 +101,8 @@ public class UriConnectorResolver implements ConnectorResolver {
 		var props = new Properties();
 		if (syntax == null)
 			return props;
-		var buffer = CharBuffer.allocate(MAX_PLACEHOLDER_NAME);
+
+		buffer.clear();
 
 		int i = 0, j = 0;
 		boolean optional = false;
