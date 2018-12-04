@@ -79,7 +79,7 @@ public class VertxHttpUnitTest {
 	}
 
 	private Deferred<Message, Exception> resolveSimple(Message request, Deferred<Message, Exception> deferred, int i) {
-		return deferred.resolve(Message.newDefault(Payload.newDefault(BValue.newDefault(i))));
+		return deferred.resolve(Message.of(Payload.of(BValue.of(i))));
 	}
 
 	@Test
@@ -95,8 +95,8 @@ public class VertxHttpUnitTest {
 		var consumer = connector.getConsumer().orElseThrow();
 		if (consumer instanceof FailureHandlerAware) {
 			((FailureHandlerAware<?>) consumer).setFailureHandler(ex -> {
-				BObject headers = BObject.newDefault().setAny("error", true).setAny("cause", ex.getMessage());
-				return Message.newDefault(Payload.newDefault(headers, BValue.newDefault("Error")));
+				BObject headers = BObject.ofEmpty().setAny("error", true).setAny("cause", ex.getMessage());
+				return Message.of(Payload.of(headers, BValue.of("Error")));
 			});
 		}
 		consumer.subscribe((msg, deferred) -> deferred.resolve(msg));

@@ -122,7 +122,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 		var msg = buildFailureMessage(ctx.failure());
 		if (msg != null) {
 			msg.getPayload().getHeaders().putIfAbsent(VertxHttpConstants.HEADER_STATUS_CODE,
-					BValue.newDefault(DEFAULT_EXCEPTION_STATUS_CODE));
+					BValue.of(DEFAULT_EXCEPTION_STATUS_CODE));
 			sendResponse(ctx.response(), msg);
 		} else {
 			defaultHandleException(ctx);
@@ -180,9 +180,9 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 	}
 
 	private Message buildMessage(RoutingContext ctx) {
-		var headers = BObject.newDefault();
+		var headers = BObject.ofEmpty();
 		for (var entry : ctx.request().headers()) {
-			headers.put(entry.getKey(), BValue.newDefault(entry.getValue()));
+			headers.put(entry.getKey(), BValue.of(entry.getValue()));
 		}
 
 		populateCommonHeaders(ctx, headers);
@@ -192,18 +192,18 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 	}
 
 	private void populateCommonHeaders(RoutingContext ctx, BObject headers) {
-		var queryParams = BObject.newDefault();
+		var queryParams = BObject.ofEmpty();
 		for (var query : ctx.request().params()) {
-			queryParams.put(query.getKey(), BValue.newDefault(query.getValue()));
+			queryParams.put(query.getKey(), BValue.of(query.getValue()));
 		}
 		headers.set(VertxHttpConstants.HEADER_QUERY_PARAMS, queryParams)
 				.setAny(VertxHttpConstants.HEADER_HTTP_METHOD, ctx.request().method().name())
 				.setAny(VertxHttpConstants.HEADER_PATH, ctx.request().path());
 
 		if (parseCookie) {
-			var cookies = BArray.newDefault();
+			var cookies = BArray.ofEmpty();
 			for (var cookie : ctx.cookies()) {
-				var cookieObj = BObject.newDefault() //
+				var cookieObj = BObject.ofEmpty() //
 						.setAny(VertxHttpConstants.COOKIE_NAME, cookie.getName())
 						.setAny(VertxHttpConstants.COOKIE_DOMAIN, cookie.getDomain())
 						.setAny(VertxHttpConstants.COOKIE_PATH, cookie.getPath())
