@@ -8,6 +8,8 @@ import org.junit.Test;
 
 import io.gridgo.connector.http.HttpConnector;
 import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
+import io.gridgo.framework.support.Message;
+import io.gridgo.framework.support.Payload;
 import io.gridgo.framework.support.impl.SimpleRegistry;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioDatagramChannel;
@@ -53,7 +55,44 @@ public class HttpConnectorUnitTest {
 				atomic.set(ex);
 			latch.countDown();
 		});
-		producer.call(null).always((status, response, ex) -> {
+		producer.call(Message.newDefault(Payload.newDefault(null))).always((status, response, ex) -> {
+			if (ex != null) {
+				atomic.set(ex);
+			} else {
+				var body = response.getPayload().getBody().asValue().getString();
+				if (!"hello".equals(body)) {
+					atomic.set(new RuntimeException("expected 'hello', got '" + body + "'"));
+				}
+			}
+			latch.countDown();
+		});
+
+		latch.await();
+
+		if (atomic.get() != null)
+			atomic.get().printStackTrace();
+
+		Assert.assertNull(atomic.get());
+	}
+
+	@Test
+	public void testHttpNoNameResolver() throws InterruptedException {
+		var url = "https://raw.githubusercontent.com/gridgo/gridgo-connector/dungba/developing/connectors/gridgo-http/src/test/resources/test.txt";
+		var factory = new DefaultConnectorFactory();
+
+		var connector = factory.createConnector(url);
+		var producer = connector.getProducer().orElseThrow();
+		connector.start();
+
+		producer.send(null);
+		var latch = new CountDownLatch(2);
+		var atomic = new AtomicReference<Exception>();
+		producer.sendWithAck(null).always((status, response, ex) -> {
+			if (ex != null)
+				atomic.set(ex);
+			latch.countDown();
+		});
+		producer.call(Message.newDefault(Payload.newDefault(null))).always((status, response, ex) -> {
 			if (ex != null) {
 				atomic.set(ex);
 			} else {

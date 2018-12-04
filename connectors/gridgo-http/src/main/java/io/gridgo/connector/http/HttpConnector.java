@@ -14,6 +14,7 @@ import org.asynchttpclient.proxy.ProxyType;
 
 import io.gridgo.connector.impl.AbstractConnector;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
+import io.netty.handler.ssl.SslContext;
 import io.netty.resolver.NameResolver;
 
 @ConnectorEndpoint(scheme = "http,https", syntax = "httpUri", raw = true)
@@ -92,6 +93,10 @@ public class HttpConnector extends AbstractConnector {
 					nonProxyHosts != null ? Arrays.asList(nonProxyHosts.split(",")) : Collections.emptyList(),
 					proxyType != null ? ProxyType.valueOf(proxyType) : ProxyType.HTTP));
 		}
+
+		var sslContextBean = getParam(HttpConstants.SSL_CONTEXT);
+		if (sslContextBean != null)
+			config.setSslContext(getContext().getRegistry().lookupMandatory(sslContextBean, SslContext.class));
 		return config;
 	}
 

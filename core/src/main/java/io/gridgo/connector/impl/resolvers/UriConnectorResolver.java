@@ -8,7 +8,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.regex.Pattern;
 
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.ConnectorResolver;
@@ -23,8 +22,6 @@ import io.gridgo.framework.support.Registry;
 public class UriConnectorResolver implements ConnectorResolver {
 
 	private static final int MAX_PLACEHOLDER_NAME = 1024;
-
-	private static final Pattern REGISTRY_SUB_PATTERN = Pattern.compile("\\$\\{([^\\{]*)\\}");
 
 	private CharBuffer buffer = CharBuffer.allocate(MAX_PLACEHOLDER_NAME);
 
@@ -65,7 +62,7 @@ public class UriConnectorResolver implements ConnectorResolver {
 		String queryPart = null;
 
 		if (registry != null) {
-			endpoint = substituteRegistries(endpoint, registry);
+			endpoint = registry.substituteRegistries(endpoint);
 		}
 
 		int queryPartIdx = endpoint.indexOf('?');
@@ -77,18 +74,6 @@ public class UriConnectorResolver implements ConnectorResolver {
 		var params = extractParameters(queryPart);
 		var placeholders = extractPlaceholders(schemePart);
 		return new DefaultConnectorConfig(scheme, scheme + ":" + schemePart, schemePart, params, placeholders);
-	}
-
-	private String substituteRegistries(String endpoint, Registry registry) {
-		if (endpoint.indexOf('$') == -1)
-			return endpoint;
-		var matcher = REGISTRY_SUB_PATTERN.matcher(endpoint);
-		if (!matcher.find())
-			return endpoint;
-		return matcher.replaceAll(result -> {
-			var obj = registry.lookup(result.group(1));
-			return obj != null ? obj.toString() : "";
-		});
 	}
 
 	private Properties extractPlaceholders(String schemePart) {
