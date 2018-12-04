@@ -1,6 +1,7 @@
 package io.gridgo.connector.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -81,6 +82,14 @@ public class ResolverUnitTest {
 		assertEquals("127.0.0.1", props.get("host"));
 		assertEquals("8080", props.get("port"));
 		assertEquals("*", props.get("path"));
+
+		props = resolver.testResolver("push:ipc://client_to_game",
+				"{type}:{transport}:[{role}:]//[{interface};]{host}[:{port}]");
+		assertEquals("push", props.get("type"));
+		assertEquals("ipc", props.get("transport"));
+		assertEquals("client_to_game", props.get("host"));
+		assertNull(props.get("port"));
+		assertNull(props.get("interface"));
 	}
 
 	@Test

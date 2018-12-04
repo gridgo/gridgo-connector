@@ -102,13 +102,11 @@ public class UriConnectorResolver implements ConnectorResolver {
 		if (syntax == null)
 			return props;
 
-		buffer.clear();
-
 		int i = 0, j = 0;
 		boolean optional = false;
 		int optionalIndex = -1;
 		var optionalPlaceholder = new HashMap<String, String>();
-		while (i < schemePart.length() && j < syntax.length()) {
+		while (j < syntax.length()) {
 			char syntaxChar = syntax.charAt(j);
 			if (syntaxChar == '[') {
 				optional = true;
@@ -134,7 +132,7 @@ public class UriConnectorResolver implements ConnectorResolver {
 					else
 						props.put(placeholderName, placeholderValue);
 				}
-			} else {
+			} else if (i < schemePart.length()) {
 				char schemeChar = schemePart.charAt(i);
 				if (syntaxChar != schemeChar) {
 					if (optional) {
@@ -150,6 +148,13 @@ public class UriConnectorResolver implements ConnectorResolver {
 				}
 				i++;
 				j++;
+			} else {
+				if (!optional)
+					break;
+				i = optionalIndex;
+				j = skipOptionalPart(syntax, j);
+				optionalIndex = -1;
+				optional = false;
 			}
 		}
 
@@ -188,6 +193,9 @@ public class UriConnectorResolver implements ConnectorResolver {
 	private String extractPlaceholderValue(String schemePart, int i, CharBuffer buffer) {
 		buffer.clear();
 		char c;
+
+		if (i >= schemePart.length())
+			return "";
 
 		boolean insideBracket = schemePart.charAt(i) == '[';
 		if (insideBracket) {
