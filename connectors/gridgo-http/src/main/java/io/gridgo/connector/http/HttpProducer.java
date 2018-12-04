@@ -137,17 +137,23 @@ public class HttpProducer extends AbstractHttpProducer {
 	}
 
 	private Request buildRequest(Message message) {
+		var builder = createBuilder(message);
+		if (nameResolver != null)
+			builder.setNameResolver(nameResolver);
+		return builder.build();
+	}
+
+	private RequestBuilder createBuilder(Message message) {
 		if (message == null)
-			return new RequestBuilder().setUrl(endpointUri).build();
+			return new RequestBuilder().setUrl(endpointUri);
 		var method = getMethod(message, defaultMethod);
 		var params = buildParams(getQueryParams(message));
 		var body = serialize(message.getPayload().getBody());
 		return new RequestBuilder(method) //
 				.setUrl(endpointUri) //
 				.setBody(body) //
-				.setQueryParams(params) //
-				.setNameResolver(nameResolver) //
-				.build();
+				.setQueryParams(params);
+
 	}
 
 	private List<Param> buildParams(BObject object) {
