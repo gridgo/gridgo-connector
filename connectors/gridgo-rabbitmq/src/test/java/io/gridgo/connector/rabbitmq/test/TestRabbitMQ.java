@@ -81,7 +81,7 @@ public class TestRabbitMQ {
 				triggerDone.run();
 			});
 
-			producer.send(Message.newDefault(Payload.newDefault(BElement.fromAny(TEXT))));
+			producer.send(Message.of(Payload.of(BElement.fromAny(TEXT))));
 
 			waitForDone.run();
 			assertEquals(TEXT, receivedTextRef.get());
@@ -99,15 +99,15 @@ public class TestRabbitMQ {
 			consumer.subscribe((message, deferred) -> {
 				System.out.println("got message from source: " + message.getMisc().get("source"));
 				try {
-					Payload responsePayload = Payload.newDefault(message.getPayload().getBody());
-					deferred.resolve(Message.newDefault(responsePayload));
+					Payload responsePayload = Payload.of(message.getPayload().getBody());
+					deferred.resolve(Message.of(responsePayload));
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
 			});
 
 			final AtomicReference<String> receivedTextRef = new AtomicReference<String>(null);
-			Message msg = Message.newDefault(Payload.newDefault(BElement.fromAny(TEXT)));
+			Message msg = Message.of(Payload.of(BElement.fromAny(TEXT)));
 			Promise<Message, Exception> promise = producer.call(msg);
 			promise.done((message) -> {
 				receivedTextRef.set(message.getPayload().getBody().asValue().getString());
@@ -150,7 +150,7 @@ public class TestRabbitMQ {
 			doneSignal.countDown();
 		});
 
-		producer.send(Message.newDefault(Payload.newDefault(BElement.fromAny(TEXT))));
+		producer.send(Message.of(Payload.of(BElement.fromAny(TEXT))));
 
 		doneSignal.await();
 		assertEquals(TEXT, receivedTextRef1.get());
@@ -197,8 +197,8 @@ public class TestRabbitMQ {
 			doneSignal.countDown();
 		});
 
-		producer1.send(Message.newDefault(BValue.newDefault("key1"), Payload.newDefault(BElement.fromAny(text1))));
-		producer1.send(Message.newDefault(BValue.newDefault("key2"), Payload.newDefault(BElement.fromAny(text2))));
+		producer1.send(Message.of(BValue.of("key1"), Payload.of(BElement.fromAny(text1))));
+		producer1.send(Message.of(BValue.of("key2"), Payload.of(BElement.fromAny(text2))));
 
 		doneSignal.await();
 		assertEquals(text1, receivedTextRef1.get());
@@ -230,8 +230,8 @@ public class TestRabbitMQ {
 
 		BiConsumer<Message, Deferred<Message, Exception>> echoMessageHandler = (message, deferred) -> {
 			try {
-				Payload responsePayload = Payload.newDefault(message.getPayload().getBody());
-				deferred.resolve(Message.newDefault(responsePayload));
+				Payload responsePayload = Payload.of(message.getPayload().getBody());
+				deferred.resolve(Message.of(responsePayload));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -240,8 +240,8 @@ public class TestRabbitMQ {
 		consumer1.subscribe(echoMessageHandler);
 		consumer2.subscribe(echoMessageHandler);
 
-		Message req1 = Message.newDefault(BValue.newDefault("key1"), Payload.newDefault(BElement.fromAny(text1)));
-		Message req2 = Message.newDefault(BValue.newDefault("key2"), Payload.newDefault(BElement.fromAny(text2)));
+		Message req1 = Message.of(BValue.of("key1"), Payload.of(BElement.fromAny(text1)));
+		Message req2 = Message.of(BValue.of("key2"), Payload.of(BElement.fromAny(text2)));
 
 		Message resp1 = producer.call(req1).get();
 		Message resp2 = producer.call(req2).get();
