@@ -22,6 +22,7 @@ import com.mongodb.async.client.MongoDatabase;
 import com.mongodb.client.model.CountOptions;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.InsertManyOptions;
+import com.mongodb.client.model.Projections;
 
 import io.gridgo.bean.BArray;
 import io.gridgo.bean.BObject;
@@ -149,8 +150,11 @@ public class MongoDBProducer extends AbstractProducer {
 
 	public void findAllDocuments(Message msg, Deferred<Message, Exception> deferred) {
 		var filter = getHeaderAs(msg, MongoDBConstants.FILTER, Bson.class);
+		var project = getHeaderAs(msg, MongoDBConstants.PROJECT, Bson.class);
 
 		var headers = msg.getPayload().getHeaders();
+		var projectInclude = headers.getArray(MongoDBConstants.PROJECT_INCLUDE, null);
+		var projectExclude = headers.getArray(MongoDBConstants.PROJECT_EXCLUDE, null);
 		int batchSize = headers.getInteger(MongoDBConstants.BATCH_SIZE, -1);
 		int numToSkip = headers.getInteger(MongoDBConstants.NUM_TO_SKIP, -1);
 		int limit = headers.getInteger(MongoDBConstants.LIMIT, -1);
@@ -162,12 +166,26 @@ public class MongoDBProducer extends AbstractProducer {
 		if (numToSkip != -1)
 			filterable.skip(numToSkip);
 		if (limit != -1)
-			filterable.skip(limit);
+			filterable.limit(limit);
 		if (sortBy != null)
 			filterable.sort(sortBy);
+		if (project != null || projectInclude != null || projectExclude != null) {
+			if (projectInclude != null)
+				project = Projections.include(toStringArray(projectInclude));
+			else if (projectExclude != null)
+				project = Projections.exclude(toStringArray(projectExclude));
+			filterable.projection(project);
+		}
 		filterable.into(new ArrayList<>(), (result, throwable) -> {
 			ack(deferred, result, throwable);
 		});
+	}
+
+	private String[] toStringArray(BArray array) {
+		return array.stream() //
+				.filter(element -> element.isValue()) //
+				.map(element -> element.asValue().getString()) //
+				.toArray(size -> new String[size]);
 	}
 
 	public void findById(Message msg, Deferred<Message, Exception> deferred) {
