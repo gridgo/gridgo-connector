@@ -83,11 +83,11 @@ public class HttpJdkProducer extends AbstractHttpProducer {
 
 	private BObject buildHeaders(HttpHeaders headers) {
 		if (headers == null)
-			return BObject.newDefault();
+			return BObject.ofEmpty();
 		var map = headers.map();
 		if (map == null)
-			return BObject.newDefault();
-		return BObject.newDefault(map);
+			return BObject.ofEmpty();
+		return BObject.of(map);
 	}
 
 	private HttpRequest buildRequest(Message message) {
