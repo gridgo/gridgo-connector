@@ -125,7 +125,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 			if (!bindFuture.await().isSuccess()) {
 				deferred.reject(bindFuture.cause());
 			} else {
-				getLogger().info("Bind success to %s", host.toIpAndPort());
+				getLogger().info("Bind success to {}", host.toIpAndPort());
 				// this.setHost(host);
 				this.serverChannel = bindFuture.channel();
 
