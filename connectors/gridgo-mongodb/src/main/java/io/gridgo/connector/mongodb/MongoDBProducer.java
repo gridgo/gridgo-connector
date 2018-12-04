@@ -16,6 +16,7 @@ import org.joo.promise4j.impl.CompletableDeferredObject;
 import org.joo.promise4j.impl.SimpleDonePromise;
 import org.joo.promise4j.impl.SimpleFailurePromise;
 
+import com.mongodb.async.client.FindIterable;
 import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;
@@ -150,11 +151,8 @@ public class MongoDBProducer extends AbstractProducer {
 
 	public void findAllDocuments(Message msg, Deferred<Message, Exception> deferred) {
 		var filter = getHeaderAs(msg, MongoDBConstants.FILTER, Bson.class);
-		var project = getHeaderAs(msg, MongoDBConstants.PROJECT, Bson.class);
 
 		var headers = msg.getPayload().getHeaders();
-		var projectInclude = headers.getArray(MongoDBConstants.PROJECT_INCLUDE, null);
-		var projectExclude = headers.getArray(MongoDBConstants.PROJECT_EXCLUDE, null);
 		int batchSize = headers.getInteger(MongoDBConstants.BATCH_SIZE, -1);
 		int numToSkip = headers.getInteger(MongoDBConstants.NUM_TO_SKIP, -1);
 		int limit = headers.getInteger(MongoDBConstants.LIMIT, -1);
@@ -169,6 +167,17 @@ public class MongoDBProducer extends AbstractProducer {
 			filterable.limit(limit);
 		if (sortBy != null)
 			filterable.sort(sortBy);
+		applyProjection(msg, filterable);
+		filterable.into(new ArrayList<>(), (result, throwable) -> {
+			ack(deferred, result, throwable);
+		});
+	}
+
+	private void applyProjection(Message msg, FindIterable<Document> filterable) {
+		var headers = msg.getPayload().getHeaders();
+		var project = getHeaderAs(msg, MongoDBConstants.PROJECT, Bson.class);
+		var projectInclude = headers.getArray(MongoDBConstants.PROJECT_INCLUDE, null);
+		var projectExclude = headers.getArray(MongoDBConstants.PROJECT_EXCLUDE, null);
 		if (project != null || projectInclude != null || projectExclude != null) {
 			if (projectInclude != null)
 				project = Projections.include(toStringArray(projectInclude));
@@ -176,9 +185,6 @@ public class MongoDBProducer extends AbstractProducer {
 				project = Projections.exclude(toStringArray(projectExclude));
 			filterable.projection(project);
 		}
-		filterable.into(new ArrayList<>(), (result, throwable) -> {
-			ack(deferred, result, throwable);
-		});
 	}
 
 	private String[] toStringArray(BArray array) {
@@ -193,7 +199,9 @@ public class MongoDBProducer extends AbstractProducer {
 		String idField = headers.getString(MongoDBConstants.ID_FIELD);
 		Object id = msg.getPayload().getBody().asValue().getData();
 
-		collection.find(Filters.eq(idField, id)).first((result, throwable) -> ack(deferred, result, throwable));
+		var filterable = collection.find(Filters.eq(idField, id));
+		applyProjection(msg, filterable);
+		filterable.first((result, throwable) -> ack(deferred, result, throwable));
 	}
 
 	public void countCollection(Message msg, Deferred<Message, Exception> deferred) {
