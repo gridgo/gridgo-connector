@@ -231,19 +231,19 @@ public class MongoDBProducer extends AbstractProducer {
 		if (result == null)
 			return null;
 		if (result instanceof Long)
-			return createMessage(BObject.newDefault(), BValue.newDefault(result));
+			return createMessage(BObject.ofEmpty(), BValue.of(result));
 		if (result instanceof Document)
-			return createMessage(BObject.newDefault(), toReference((Document) result));
+			return createMessage(BObject.ofEmpty(), toReference((Document) result));
 		if (result instanceof List<?>) {
 			var cloned = StreamSupport.stream(((List<Document>) result).spliterator(), false).map(this::toReference)
 					.collect(Collectors.toList());
-			return createMessage(BObject.newDefault(), BArray.newDefault(cloned));
+			return createMessage(BObject.ofEmpty(), BArray.of(cloned));
 		}
 		return null;
 	}
 
 	private BObject toReference(Document doc) {
-		return BObject.newDefault(doc);
+		return BObject.of(doc);
 	}
 
 	private List<Document> convertToDocuments(BArray body) {

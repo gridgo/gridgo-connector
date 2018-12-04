@@ -50,8 +50,8 @@ public class KafkaProducerUnitTest {
 
 		String key = "test-key";
 		String value = "test-message";
-		BObject headers = BObject.newDefault().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
-		Message msg = Message.newDefault(Payload.newDefault(headers, BValue.newDefault(value)));
+		BObject headers = BObject.ofEmpty().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
+		Message msg = Message.of(Payload.of(headers, BValue.of(value)));
 
 		long started = System.nanoTime();
 
@@ -79,9 +79,9 @@ public class KafkaProducerUnitTest {
 		connector.start();
 
 		String key = "test-key";
-		BObject headers = BObject.newDefault().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
-		Message msg = Message.newDefault(
-				Payload.newDefault(headers, BObject.newDefault().setAny("test", 1).setAny("hello", "world")));
+		BObject headers = BObject.ofEmpty().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
+		Message msg = Message.of(
+				Payload.of(headers, BObject.ofEmpty().setAny("test", 1).setAny("hello", "world")));
 
 		long started = System.nanoTime();
 
@@ -111,8 +111,8 @@ public class KafkaProducerUnitTest {
 
 		String key = "test-key";
 		String value = "test-message";
-		BObject headers = BObject.newDefault().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
-		Message msg = Message.newDefault(Payload.newDefault(headers, BValue.newDefault(value)));
+		BObject headers = BObject.ofEmpty().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
+		Message msg = Message.of(Payload.of(headers, BValue.of(value)));
 
 		CountDownLatch latch = new CountDownLatch(NUM_MESSAGES);
 
@@ -150,8 +150,8 @@ public class KafkaProducerUnitTest {
 
 		String key = "test-key";
 		String value = "test-message";
-		BObject headers = BObject.newDefault().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
-		Message msg = Message.newDefault(Payload.newDefault(headers, BValue.newDefault(value)));
+		BObject headers = BObject.ofEmpty().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
+		Message msg = Message.of(Payload.of(headers, BValue.of(value)));
 
 		CountDownLatch latch = new CountDownLatch(NUM_MESSAGES);
 
@@ -193,8 +193,8 @@ public class KafkaProducerUnitTest {
 
 		String key = "test-key";
 		String value = "test-message";
-		BObject headers = BObject.newDefault().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
-		Message msg = Message.newDefault(Payload.newDefault(headers, BValue.newDefault(value)));
+		BObject headers = BObject.ofEmpty().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
+		Message msg = Message.of(Payload.of(headers, BValue.of(value)));
 
 		long started = System.nanoTime();
 

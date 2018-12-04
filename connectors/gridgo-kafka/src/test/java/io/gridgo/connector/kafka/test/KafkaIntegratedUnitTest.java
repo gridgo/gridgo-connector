@@ -195,7 +195,7 @@ public class KafkaIntegratedUnitTest {
 		long started = System.nanoTime();
 		// Produce it & wait for it to complete.
 		for (int i = 0; i < numMessages; i++) {
-			Message msg = Message.newDefault(Payload.newDefault(BObject.newDefault().setAny("test", 1)));
+			Message msg = Message.of(Payload.of(BObject.ofEmpty().setAny("test", 1)));
 			producer.send(msg);
 		}
 		long elapsed = System.nanoTime() - started;
@@ -208,7 +208,7 @@ public class KafkaIntegratedUnitTest {
 		long started = System.nanoTime();
 		// Produce it & wait for it to complete.
 		for (int i = 0; i < numMessages; i++) {
-			Message msg = Message.newDefault(Payload.newDefault(BValue.newDefault(i + "")));
+			Message msg = Message.of(Payload.of(BValue.of(i + "")));
 			producer.send(msg);
 		}
 		long elapsed = System.nanoTime() - started;

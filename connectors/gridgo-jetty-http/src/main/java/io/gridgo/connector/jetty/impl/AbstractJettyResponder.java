@@ -353,10 +353,10 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
 		getLogger().error("Error while handling request", ex);
 
 		HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR_500;
-		BElement body = BValue.newDefault(status.getDefaultMessage());
+		BElement body = BValue.of(status.getDefaultMessage());
 
-		Payload payload = Payload.newDefault(body).addHeader(HttpCommonConstants.HEADER_STATUS, status.getCode());
-		return Message.newDefault(payload);
+		Payload payload = Payload.of(body).addHeader(HttpCommonConstants.HEADER_STATUS, status.getCode());
+		return Message.of(payload);
 	}
 
 	@Override
@@ -377,7 +377,7 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
 				asyncContext.complete();
 			}
 		});
-		return DeferredAndRoutingId.builder().deferred(deferredResponse).routingId(BValue.newDefault(routingId))
+		return DeferredAndRoutingId.builder().deferred(deferredResponse).routingId(BValue.of(routingId))
 				.build();
 	}
 

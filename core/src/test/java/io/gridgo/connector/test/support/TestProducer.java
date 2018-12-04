@@ -31,7 +31,7 @@ public class TestProducer extends AbstractProducer {
 	public Promise<Message, Exception> call(Message request) {
 		var deferred = new CompletableDeferredObject<Message, Exception>();
 		int body = request.getPayload().getBody().asValue().getInteger();
-		var message = Message.newDefault(Payload.newDefault(BValue.newDefault(body + 1)));
+		var message = Message.of(Payload.of(BValue.of(body + 1)));
 		ack(deferred, message, null);
 		return deferred.promise();
 	}

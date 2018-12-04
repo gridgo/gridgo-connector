@@ -94,9 +94,9 @@ public class TestJettyResponseContentType {
 			Producer responder = connector.getProducer().get();
 
 			consumer.subscribe(msg -> {
-				Payload payload = Payload.newDefault(BObject.newFromSequence("testText", TEST_TEXT));
+				Payload payload = Payload.of(BObject.newFromSequence("testText", TEST_TEXT));
 				payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.APPLICATION_JSON.getMime());
-				Message message = Message.newDefault(payload).setRoutingId(msg.getRoutingId().get());
+				Message message = Message.of(payload).setRoutingId(msg.getRoutingId().get());
 				responder.send(message);
 			});
 
@@ -129,9 +129,9 @@ public class TestJettyResponseContentType {
 			Producer responder = connector.getProducer().get();
 
 			consumer.subscribe(msg -> {
-				Payload payload = Payload.newDefault(BValue.newDefault(TEST_TEXT));
+				Payload payload = Payload.of(BValue.of(TEST_TEXT));
 				payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.TEXT_PLAIN.getMime());
-				Message message = Message.newDefault(payload).setRoutingId(msg.getRoutingId().get());
+				Message message = Message.of(payload).setRoutingId(msg.getRoutingId().get());
 				responder.send(message);
 			});
 			var request = RequestBuilder.get(URI).build();
@@ -163,8 +163,8 @@ public class TestJettyResponseContentType {
 			Producer responder = connector.getProducer().get();
 
 			consumer.subscribe(msg -> {
-				Payload payload = Payload.newDefault( //
-						BObject.newDefault() //
+				Payload payload = Payload.of( //
+						BObject.ofEmpty() //
 								.setAny("testText", TEST_TEXT) //
 								.setAny("testFile", getClass().getClassLoader().getResourceAsStream("test.txt")) //
 								.setAny("testJsonObject",
@@ -173,7 +173,7 @@ public class TestJettyResponseContentType {
 				);
 
 				payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.MULTIPART_FORM_DATA.getMime());
-				Message message = Message.newDefault(payload).setRoutingId(msg.getRoutingId().get());
+				Message message = Message.of(payload).setRoutingId(msg.getRoutingId().get());
 				responder.send(message);
 			});
 
@@ -205,10 +205,10 @@ public class TestJettyResponseContentType {
 
 			consumer.subscribe(msg -> {
 				Payload payload = Payload
-						.newDefault(BReference.newDefault(getClass().getClassLoader().getResourceAsStream("test.txt")));
+						.of(BReference.of(getClass().getClassLoader().getResourceAsStream("test.txt")));
 
 				payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.APPLICATION_OCTET_STREAM.getMime());
-				Message message = Message.newDefault(payload).setRoutingId(msg.getRoutingId().get());
+				Message message = Message.of(payload).setRoutingId(msg.getRoutingId().get());
 				responder.send(message);
 			});
 

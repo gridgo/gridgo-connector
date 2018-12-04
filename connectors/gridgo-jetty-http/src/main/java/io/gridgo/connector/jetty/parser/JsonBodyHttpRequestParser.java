@@ -23,7 +23,7 @@ public class JsonBodyHttpRequestParser extends AbstractHttpRequestParser {
 			if (inputStream.markSupported()) {
 				try {
 					inputStream.reset();
-					return BValue.newDefault(parseAsString(inputStream, Charset.forName("UTF-8")));
+					return BValue.of(parseAsString(inputStream, Charset.forName("UTF-8")));
 				} catch (IOException e) {
 					throw new RuntimeException("Cannot read inputStream", e);
 				}

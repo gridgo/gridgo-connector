@@ -61,8 +61,8 @@ public class ZMQPairUnitTest {
 			doneSignal.countDown();
 		});
 
-		connector1.getProducer().get().send(Message.newDefault(Payload.newDefault(BValue.newDefault(TEXT + 1))));
-		connector2.getProducer().get().send(Message.newDefault(Payload.newDefault(BValue.newDefault(TEXT + 2))));
+		connector1.getProducer().get().send(Message.of(Payload.of(BValue.of(TEXT + 1))));
+		connector2.getProducer().get().send(Message.of(Payload.of(BValue.of(TEXT + 2))));
 
 		doneSignal.await();
 
@@ -106,7 +106,7 @@ public class ZMQPairUnitTest {
 				doneSignal.countDown();
 			});
 
-			connector2.getProducer().get().send(Message.newDefault(Payload.newDefault(BValue.newDefault(TEXT))));
+			connector2.getProducer().get().send(Message.of(Payload.of(BValue.of(TEXT))));
 
 			doneSignal.await(5, TimeUnit.SECONDS);
 			assertEquals(TEXT, pongDataRef.get());

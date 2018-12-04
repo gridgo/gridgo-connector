@@ -66,7 +66,7 @@ public class FileRotationUnitTest {
 		var randomBytes = new byte[BYTE_SIZE];
 		new Random().nextBytes(randomBytes);
 
-		var msg = Message.newDefault(Payload.newDefault(BValue.newDefault(randomBytes)));
+		var msg = Message.of(Payload.of(BValue.of(randomBytes)));
 
 		var warmUpLatch = new CountDownLatch(1);
 		producer.sendWithAck(msg).always((s, r, e) -> warmUpLatch.countDown());

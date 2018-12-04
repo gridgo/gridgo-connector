@@ -84,7 +84,7 @@ public class TestJettyConnector {
 
 			consumer.subscribe((msg) -> {
 				var queryParams = msg.getPayload().getHeaders().get(HttpHeader.QUERY_PARAMS.asString());
-				producer.send(Message.newDefault(msg.getRoutingId().get(), Payload.newDefault(queryParams)));
+				producer.send(Message.of(msg.getRoutingId().get(), Payload.of(queryParams)));
 			});
 
 			final String encodedText = URLEncoder.encode(TEST_TEXT, Charset.defaultCharset().name());
@@ -116,8 +116,8 @@ public class TestJettyConnector {
 				var queryParams = msg.getPayload().getHeaders().get(HttpHeader.QUERY_PARAMS.asString());
 				var body = msg.getPayload().getBody();
 				System.out.println("Got body: " + body);
-				var response = BObject.newDefault().set("query", queryParams).set("body", body);
-				producer.send(Message.newDefault(msg.getRoutingId().get(), Payload.newDefault(response)));
+				var response = BObject.ofEmpty().set("query", queryParams).set("body", body);
+				producer.send(Message.of(msg.getRoutingId().get(), Payload.of(response)));
 			});
 
 			URI uri = new URI(HTTP_LOCALHOST_8888 + "/" + path + "?paramName=abc");

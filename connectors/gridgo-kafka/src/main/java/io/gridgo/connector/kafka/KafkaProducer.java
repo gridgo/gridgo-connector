@@ -99,10 +99,10 @@ public class KafkaProducer extends AbstractProducer {
 	private Message buildAckMessage(RecordMetadata metadata) {
 		if (metadata == null)
 			return null;
-		var headers = BObject.newDefault().setAny(KafkaConstants.IS_ACK_MSG, "true")
+		var headers = BObject.ofEmpty().setAny(KafkaConstants.IS_ACK_MSG, "true")
 				.setAny(KafkaConstants.TIMESTAMP, metadata.timestamp()).setAny(KafkaConstants.OFFSET, metadata.offset())
 				.setAny(KafkaConstants.PARTITION, metadata.partition()).setAny(KafkaConstants.TOPIC, metadata.topic());
-		return createMessage(headers, BValue.newDefault());
+		return createMessage(headers, BValue.ofEmpty());
 	}
 
 	@Override

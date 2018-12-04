@@ -109,11 +109,11 @@ public class TestMultiPart {
 			Producer producer = connector.getProducer().get();
 
 			consumer.subscribe((msg) -> {
-				BObject response = BObject.newDefault();
+				BObject response = BObject.ofEmpty();
 				response.put("query", msg.getPayload().getHeaders().get(HttpHeader.QUERY_PARAMS.asString()));
 
 				// rebuild body from multipart array to object
-				BObject body = BObject.newDefault();
+				BObject body = BObject.ofEmpty();
 				for (BElement element : msg.getPayload().getBody().asArray()) {
 					BObject part = element.asObject();
 					BElement partBody = part.get(HttpCommonConstants.BODY);
@@ -127,7 +127,7 @@ public class TestMultiPart {
 				}
 				response.put("body", body);
 				
-				Message responseMessage = Message.newDefault(msg.getRoutingId().get(), Payload.newDefault(response));
+				Message responseMessage = Message.of(msg.getRoutingId().get(), Payload.of(response));
 				producer.send(responseMessage);
 			});
 

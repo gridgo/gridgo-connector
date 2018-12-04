@@ -40,7 +40,7 @@ public abstract class AbstractHttpRequestParser implements HttpRequestParser, Lo
 		BElement body;
 		try {
 			body = extractBody(request);
-			Message message = Message.newDefault(Payload.newDefault(headers, body)) //
+			Message message = Message.of(Payload.of(headers, body)) //
 					.addMisc(HttpCommonConstants.COOKIES, request.getCookies()) //
 
 					.addMisc(HttpCommonConstants.LOCAL_NAME, request.getLocalName()) //
@@ -65,7 +65,7 @@ public abstract class AbstractHttpRequestParser implements HttpRequestParser, Lo
 	}
 
 	protected BObject extractHeaders(HttpServletRequest request) {
-		BObject result = BObject.newDefault();
+		BObject result = BObject.ofEmpty();
 		Enumeration<String> headerNames = request.getHeaderNames();
 		while (headerNames.hasMoreElements()) {
 			String headerName = headerNames.nextElement();
@@ -83,7 +83,7 @@ public abstract class AbstractHttpRequestParser implements HttpRequestParser, Lo
 
 		// custom extract query string to prevent the request auto parse multipart data
 		result.putAny(HttpHeader.QUERY_PARAMS.asString(),
-				BObject.newDefault(extractQueryString(queryString, Charset.forName(encoding))));
+				BObject.of(extractQueryString(queryString, Charset.forName(encoding))));
 
 		result.putAny(HttpHeader.SCHEME.asString(), request.getScheme());
 		result.putAny(HttpHeader.HTTP_METHOD.asString(), request.getMethod());

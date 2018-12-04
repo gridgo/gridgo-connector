@@ -59,7 +59,7 @@ public abstract class AbstractTraceableResponder extends AbstractResponder imple
 		});
 		return DeferredAndRoutingId.builder() //
 				.deferred(deferredResponse) //
-				.routingId(BValue.newDefault(routingId)) //
+				.routingId(BValue.of(routingId)) //
 				.build();
 	}
 }

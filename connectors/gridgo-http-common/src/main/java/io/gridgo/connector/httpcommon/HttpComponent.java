@@ -8,9 +8,9 @@ public interface HttpComponent extends FormattedMarshallable {
 
 	public default BObject getQueryParams(Message message) {
 		if (message.getPayload() == null)
-			return BObject.newDefault();
+			return BObject.ofEmpty();
 		return message.getPayload().getHeaders().getObject(HttpCommonConsumerConstants.HEADER_QUERY_PARAMS,
-				BObject.newDefault());
+				BObject.ofEmpty());
 	}
 
 	public default String getMethod(Message message, String defaultMethod) {

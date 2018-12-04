@@ -22,7 +22,7 @@ public class FileConsumerUnitTest {
 
 	@Test
 	public void testMultiConnector() throws InterruptedException {
-		var msg = Message.newDefault(Payload.newDefault(BValue.newDefault("hello")));
+		var msg = Message.of(Payload.of(BValue.of("hello")));
 
 		var numMessages = 1;
 		var endpoint1 = "file://[testTwice.txt]?format=raw&batchingEnabled=true&lengthPrepend=true&deleteOnStartup=true&producerOnly=true";
@@ -126,7 +126,7 @@ public class FileConsumerUnitTest {
 
 		var producer = (FileProducer) connector.getProducer().orElseThrow();
 
-		var msg = Message.newDefault(Payload.newDefault(BValue.newDefault("hello")));
+		var msg = Message.of(Payload.of(BValue.of("hello")));
 
 		var latch = new CountDownLatch(NUM_MESSAGES);
 

@@ -22,7 +22,7 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 	}
 
 	protected Message createMessage(BObject headers, BElement body) {
-		return Message.newDefault(new DefaultPayload(context.getIdGenerator().generateId(), headers, body));
+		return Message.of(new DefaultPayload(context.getIdGenerator().generateId(), headers, body));
 	}
 
 	protected void ack(Deferred<Message, Exception> deferred, Message response, Exception exception) {

@@ -74,7 +74,7 @@ public class TestFileServer {
 	}
 
 	private void onRequest(Message message) {
-		BObject headers = BObject.newDefault();
+		BObject headers = BObject.ofEmpty();
 		BElement body = null;
 
 		String pathInfo = message.getPayload().getHeaders().getString(HttpCommonConstants.PATH_INFO);
@@ -84,18 +84,18 @@ public class TestFileServer {
 			} else {
 				File file = new File(rootDir, pathInfo);
 				if (file.exists() && file.isFile()) {
-					body = BReference.newDefault(file);
+					body = BReference.of(file);
 				}
 			}
 		}
 
 		if (body == null) {
 			headers.setAny(HttpCommonConstants.HEADER_STATUS, 404);
-			body = BValue.newDefault("Not found");
+			body = BValue.of("Not found");
 		}
 
-		Payload payload = Payload.newDefault(headers, body);
-		Message response = Message.newDefault(payload).setRoutingIdFromAny(message.getRoutingId().get());
+		Payload payload = Payload.of(headers, body);
+		Message response = Message.of(payload).setRoutingIdFromAny(message.getRoutingId().get());
 		this.responder.send(response);
 	}
 

@@ -64,8 +64,8 @@ public class EchoHttpServer {
 		System.out.println("Got message payload: " + message.getPayload().toBArray());
 
 		BElement body = message.getPayload().toBArray();
-		Payload payload = Payload.newDefault(body);
-		Message response = Message.newDefault(payload).setRoutingIdFromAny(message.getRoutingId().get());
+		Payload payload = Payload.of(body);
+		Message response = Message.of(payload).setRoutingIdFromAny(message.getRoutingId().get());
 
 		this.responder.send(response);
 	}

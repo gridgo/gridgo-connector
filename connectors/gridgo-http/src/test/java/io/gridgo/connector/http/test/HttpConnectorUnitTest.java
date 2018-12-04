@@ -55,7 +55,7 @@ public class HttpConnectorUnitTest {
 				atomic.set(ex);
 			latch.countDown();
 		});
-		producer.call(Message.newDefault(Payload.newDefault(null))).always((status, response, ex) -> {
+		producer.call(Message.of(Payload.of(null))).always((status, response, ex) -> {
 			if (ex != null) {
 				atomic.set(ex);
 			} else {
@@ -92,7 +92,7 @@ public class HttpConnectorUnitTest {
 				atomic.set(ex);
 			latch.countDown();
 		});
-		producer.call(Message.newDefault(Payload.newDefault(null))).always((status, response, ex) -> {
+		producer.call(Message.of(Payload.of(null))).always((status, response, ex) -> {
 			if (ex != null) {
 				atomic.set(ex);
 			} else {

@@ -90,7 +90,7 @@ public class ConnectorUnitTest {
 		}
 
 		var callLatch = new CountDownLatch(1);
-		producer.call(Message.newDefault(Payload.newDefault(BValue.newDefault(1)))).done(response -> {
+		producer.call(Message.of(Payload.of(BValue.of(1)))).done(response -> {
 			if (response.getPayload().getBody().asValue().getInteger() == 2)
 				callLatch.countDown();
 		});

@@ -15,7 +15,7 @@ public interface FormattedMarshallable {
 		if (format.equals("xml"))
 			return BElement.fromXml(new String(responseBody));
 		if (format.equals("string"))
-			return BValue.newDefault(responseBody);
+			return BValue.of(responseBody);
 		if (format.equals("raw"))
 			return BElement.fromRaw(responseBody);
 		throw new UnsupportedFormatException(format);

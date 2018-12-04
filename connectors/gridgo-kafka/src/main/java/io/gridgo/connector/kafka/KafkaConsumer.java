@@ -305,7 +305,7 @@ public class KafkaConsumer extends AbstractConsumer {
 		}
 
 		private Message buildMessage(ConsumerRecord<Object, Object> record) {
-			var headers = BObject.newDefault();
+			var headers = BObject.ofEmpty();
 
 			populateCommonHeaders(headers, record);
 

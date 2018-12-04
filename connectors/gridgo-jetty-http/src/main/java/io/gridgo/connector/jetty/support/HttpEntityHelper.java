@@ -29,18 +29,18 @@ public class HttpEntityHelper {
 	}
 
 	public static BArray parseAsMultiPart(Collection<Part> parts) throws IOException {
-		BArray results = BArray.newDefault();
+		BArray results = BArray.ofEmpty();
 		for (Part part : parts) {
 			final String contentType = part.getContentType();
 			if (contentType != null && HttpContentType.isBinaryType(contentType)) {
-				results.add(BObject.newDefault() //
+				results.add(BObject.ofEmpty() //
 						.setAny(HttpCommonConstants.NAME, part.getName()) //
 						.setAny(HttpCommonConstants.CONTENT_TYPE, contentType) //
 						.setAny(HttpCommonConstants.SUBMITTED_FILE_NAME, part.getSubmittedFileName()) //
-						.setAny(HttpCommonConstants.BODY, BReference.newDefault(part.getInputStream())) //
+						.setAny(HttpCommonConstants.BODY, BReference.of(part.getInputStream())) //
 				);
 			} else {
-				results.add(BObject.newDefault() //
+				results.add(BObject.ofEmpty() //
 						.setAny(HttpCommonConstants.NAME, part.getName()) //
 						.setAny(HttpCommonConstants.CONTENT_TYPE, contentType)//
 						.setAny(HttpCommonConstants.BODY, BElement.fromJson(part.getInputStream())) //

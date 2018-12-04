@@ -172,7 +172,7 @@ public class HttpProducer extends AbstractHttpProducer {
 	}
 
 	private BObject buildHeaders(HttpHeaders headers) {
-		var obj = BObject.newDefault();
+		var obj = BObject.ofEmpty();
 		if (headers == null)
 			return obj;
 		var entries = headers.entries();

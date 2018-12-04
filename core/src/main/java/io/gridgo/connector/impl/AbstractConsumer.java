@@ -109,9 +109,9 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 	 * @return the message
 	 */
 	protected Message createMessage(@NonNull BObject headers, BElement body) {
-		Payload payload = Payload.newDefault(headers, body);
+		Payload payload = Payload.of(headers, body);
 		this.ensurePayloadId(payload);
-		return Message.newDefault(payload);
+		return Message.of(payload);
 	}
 
 	/**
@@ -121,7 +121,7 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 	 * @return the message
 	 */
 	protected Message createMessage(BElement body) {
-		return createMessage(BObject.newDefault(), body);
+		return createMessage(BObject.ofEmpty(), body);
 	}
 
 	/**
@@ -131,7 +131,7 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
 	 * @return the message
 	 */
 	protected Message createMessage() {
-		return Message.newDefault(null);
+		return Message.of(null);
 	}
 
 	protected Message parseMessage(BElement data) {

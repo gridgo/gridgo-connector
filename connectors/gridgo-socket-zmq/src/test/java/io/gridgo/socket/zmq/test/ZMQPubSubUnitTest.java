@@ -101,9 +101,9 @@ public class ZMQPubSubUnitTest {
 
 			// publish data
 			publisher.send(
-					Message.newDefault(Payload.newDefault(BValue.newDefault(text1))).setRoutingIdFromAny("topic1"));
+					Message.of(Payload.of(BValue.of(text1))).setRoutingIdFromAny("topic1"));
 			publisher.send(
-					Message.newDefault(Payload.newDefault(BValue.newDefault(text2))).setRoutingIdFromAny("topic2"));
+					Message.of(Payload.of(BValue.of(text2))).setRoutingIdFromAny("topic2"));
 
 			doneSignal.await(5, TimeUnit.SECONDS);
 
