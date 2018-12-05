@@ -54,14 +54,15 @@ public class SocketConnector extends AbstractConnector implements Connector {
 		String type = config.getPlaceholders().getProperty(SocketConstants.TYPE);
 		String transport = config.getPlaceholders().getProperty(SocketConstants.TRANSPORT);
 		String host = config.getPlaceholders().getProperty(SocketConstants.HOST);
-		int port = Integer.parseInt(config.getPlaceholders().getProperty(SocketConstants.PORT));
+		String portPlaceholder = config.getPlaceholders().getProperty(SocketConstants.PORT);
+		int port = portPlaceholder != null ? Integer.parseInt(portPlaceholder) : 0;
 
 		String nic = null;
 		if (MULTICAST_TRANSPORTS.contains(transport.trim().toLowerCase())) {
 			nic = getPlaceholder("interface");
 		}
 
-		this.address = transport + "://" + ((nic == null || nic.isBlank()) ? "" : (nic + ";")) + host + ":" + port;
+		this.address = transport + "://" + ((nic == null || nic.isBlank()) ? "" : (nic + ";")) + host + (port > 0 ? (":" + port) : "");
 
 		this.batchingEnabled = Boolean.valueOf(
 				config.getParameters().getOrDefault(SocketConstants.BATCHING_ENABLED, this.batchingEnabled).toString());
@@ -88,8 +89,8 @@ public class SocketConnector extends AbstractConnector implements Connector {
 		switch (this.options.getType().toLowerCase()) {
 		case "push":
 		case "pub":
-			p = SocketProducer.of(getContext(), factory, options, address, bufferSize, ringBufferSize,
-					batchingEnabled, maxBatchSize);
+			p = SocketProducer.of(getContext(), factory, options, address, bufferSize, ringBufferSize, batchingEnabled,
+					maxBatchSize);
 			break;
 		case "pull":
 		case "sub":

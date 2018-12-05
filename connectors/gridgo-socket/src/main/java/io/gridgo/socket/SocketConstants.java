@@ -29,4 +29,6 @@ public class SocketConstants {
 	public static final String TYPE_PULL = "pull";
 
 	public static final String TYPE_SUBSCRIBE = "sub";
+
+	public static final String SOCKET_MESSAGE_TYPE = "socketMessageType";
 }
