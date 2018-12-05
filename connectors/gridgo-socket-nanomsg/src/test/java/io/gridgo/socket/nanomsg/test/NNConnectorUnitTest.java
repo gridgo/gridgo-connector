@@ -86,10 +86,8 @@ public class NNConnectorUnitTest {
 			});
 
 			// publish data
-			publisher.send(
-					Message.of(Payload.of(BValue.of(text1))).setRoutingIdFromAny("topic1"));
-			publisher.send(
-					Message.of(Payload.of(BValue.of(text2))).setRoutingIdFromAny("topic2"));
+			publisher.send(Message.of(Payload.of(BValue.of(text1))).setRoutingIdFromAny("topic1"));
+			publisher.send(Message.of(Payload.of(BValue.of(text2))).setRoutingIdFromAny("topic2"));
 
 			doneSignal.await();
 
@@ -235,7 +233,7 @@ public class NNConnectorUnitTest {
 			System.out.println("Got message from source: " + msg.getMisc().get("source"));
 			doneSignal.countDown();
 		});
-		producer.send(Message.of(Payload.of(BObject.newFromSequence("cmd", "start"))));
+		producer.send(Message.of(Payload.of(BObject.ofSequence("cmd", "start"))));
 		doneSignal.await();
 		System.out.println("Warmup done");
 		consumer.clearSubscribers();
@@ -250,7 +248,7 @@ public class NNConnectorUnitTest {
 		});
 		long start = System.nanoTime();
 		for (int i = 0; i < numMessages; i++) {
-			producer.send(Message.of(Payload.of(BObject.newFromSequence("index", i))));
+			producer.send(Message.of(Payload.of(BObject.ofSequence("index", i))));
 		}
 
 		doneSignal.await();
@@ -272,7 +270,7 @@ public class NNConnectorUnitTest {
 
 		long start = System.nanoTime();
 		for (int i = 0; i < numMessages; i++) {
-			producer.sendWithAck(Message.of(Payload.of(BObject.newFromSequence("index", i)))).get();
+			producer.sendWithAck(Message.of(Payload.of(BObject.ofSequence("index", i)))).get();
 		}
 
 		doneSignal.await();

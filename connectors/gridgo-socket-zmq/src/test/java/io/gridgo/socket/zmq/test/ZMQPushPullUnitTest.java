@@ -65,7 +65,7 @@ public class ZMQPushPullUnitTest {
 			System.out.println("Got message from source: " + msg.getMisc().get("source"));
 			doneSignal.countDown();
 		});
-		producer.send(Message.of(Payload.of(BObject.newFromSequence("cmd", "start"))));
+		producer.send(Message.of(Payload.of(BObject.ofSequence("cmd", "start"))));
 		doneSignal.await();
 		System.out.println("Warmup done");
 		consumer.clearSubscribers();
@@ -80,7 +80,7 @@ public class ZMQPushPullUnitTest {
 		});
 		long start = System.nanoTime();
 		for (int i = 0; i < numMessages; i++) {
-			producer.send(Message.of(Payload.of(BObject.newFromSequence("index", i))));
+			producer.send(Message.of(Payload.of(BObject.ofSequence("index", i))));
 		}
 
 		if (doneSignal.await(1, TimeUnit.MINUTES)) {
@@ -107,7 +107,7 @@ public class ZMQPushPullUnitTest {
 
 		long start = System.nanoTime();
 		for (int i = 0; i < numMessages; i++) {
-			producer.sendWithAck(Message.of(Payload.of(BObject.newFromSequence("index", i)))).get();
+			producer.sendWithAck(Message.of(Payload.of(BObject.ofSequence("index", i)))).get();
 		}
 
 		if (doneSignal.await(1, TimeUnit.MINUTES)) {

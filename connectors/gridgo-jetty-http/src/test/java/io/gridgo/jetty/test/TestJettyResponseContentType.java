@@ -94,7 +94,7 @@ public class TestJettyResponseContentType {
 			Producer responder = connector.getProducer().get();
 
 			consumer.subscribe(msg -> {
-				Payload payload = Payload.of(BObject.newFromSequence("testText", TEST_TEXT));
+				Payload payload = Payload.of(BObject.ofSequence("testText", TEST_TEXT));
 				payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.APPLICATION_JSON.getMime());
 				Message message = Message.of(payload).setRoutingId(msg.getRoutingId().get());
 				responder.send(message);
@@ -168,7 +168,7 @@ public class TestJettyResponseContentType {
 								.setAny("testText", TEST_TEXT) //
 								.setAny("testFile", getClass().getClassLoader().getResourceAsStream("test.txt")) //
 								.setAny("testJsonObject",
-										BObject.newFromSequence("keyString", "valueString", "keyNumber", 100)) //
+										BObject.ofSequence("keyString", "valueString", "keyNumber", 100)) //
 								.setAny("testJsonArray", BArray.newFromSequence("string", 100, true)) //
 				);
 
