@@ -32,6 +32,9 @@ where:
 - **bossThreads**: (server only) number of thread use for boss group. Default: 1
 - **workerThreads**: (client and server) number of thread use for worker group. Default: 1
 
+### other config
+- **frameType**: (client and server ws only) can be ``TEXT`` or ``BINARY`` (case insensitive) to indicate transmitted frame format 
+
 ## binary format
 default gridgo-socket-netty4 connector using BFactory default serializer for serialize/deserialize binary stream. 
 <br/><br/>
