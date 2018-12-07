@@ -31,7 +31,7 @@ public class DefaultNetty4Server extends AbstractNetty4Server {
 	@Override
 	protected void onConnectionClose(String channelId) {
 		Message message = this.createMessage().setRoutingIdFromAny(channelId);
-		message.getMisc().putAll(this.getSocketServer().getChannelDetails(channelId));
+		// message.getMisc().putAll(this.getSocketServer().getChannelDetails(channelId));
 		message.addMisc("socketMessageType", "close");
 		publishMessage(message);
 	}
