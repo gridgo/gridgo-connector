@@ -33,7 +33,7 @@ where:
 - **workerThreads**: (client and server) number of thread use for worker group. Default: 1
 
 ### other config
-- **frameType**: (client and server ws only) can be ``TEXT`` or ``BINARY`` (case insensitive) to indicate transmitted frame format 
+- **frameType**: (client and server ws only) can be ``TEXT`` or ``BINARY`` (case insensitive) to indicate transmitted frame format . Note that frameType only affect on ``send`` action, receive will detect type and parse by BElement.fromRaw and BElement.fromJson automatically. 
 
 ## binary format
 default gridgo-socket-netty4 connector using BFactory default serializer for serialize/deserialize binary stream. 
