@@ -8,11 +8,11 @@ Each connector provide both consumer and producer.
 scheme: ``netty4`` <br/>
 syntax: `` {type}:{transport}://{host}[:{port}][/{path}] `` <br/>
 where:
-- **type** is ``server`` or ``client	``
-- **transport** is ``tcp`` or ``ws``
-- **host** can be ip (both v4 and v6), hostname or interface
-- **port**
-- **path** (optional): use for ``ws`` transport only.
+- **type** is ``server`` or ``client	``.
+- **transport** is ``tcp`` or ``ws``.
+- **host** can be ip (both v4 and v6), hostname or interface name.
+- **port**: required for ``tcp`` but optional for ``ws`` (80 by default).
+- **path**: required for ``ws`` transport, optional (and will be ignored) for ``tcp``.
 
 ## params
 
