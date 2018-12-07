@@ -34,9 +34,7 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 
 	protected void ack(Deferred<Message, Exception> deferred) {
 		if (deferred != null) {
-			context.getCallbackInvokerStrategy().execute(() -> {
-				deferred.resolve(null);
-			});
+			context.getCallbackInvokerStrategy().execute(() -> tryResolve(deferred, null));
 		}
 	}
 
@@ -44,7 +42,7 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 		if (deferred != null) {
 			context.getCallbackInvokerStrategy().execute(() -> {
 				if (exception == null) {
-					deferred.resolve(null);
+					tryResolve(deferred, null);
 				} else {
 					deferred.reject(exception);
 				}
@@ -54,7 +52,16 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 
 	protected void ack(Deferred<Message, Exception> deferred, Message response) {
 		if (deferred != null) {
-			context.getCallbackInvokerStrategy().execute(() -> deferred.resolve(response));
+			context.getCallbackInvokerStrategy().execute(() -> tryResolve(deferred, response));
+		}
+	}
+
+	private Deferred<Message, Exception> tryResolve(Deferred<Message, Exception> deferred, Message response) {
+		try {
+			return deferred.resolve(response);
+		} catch (Exception ex) {
+			getLogger().error("Exception caught while trying to resolve deferred", ex);
+			return deferred.reject(ex);
 		}
 	}
 }
