@@ -1,10 +1,10 @@
-#gridgo-socket-netty4
+# gridgo-socket-netty4
 
-##overview
+## overview
 This connector arm to handle duplex communication, support 2 transport protocols: TCP and WS (both binary and text frame). <br/>
 Each connector provide both consumer and producer.
 
-##endpoint syntax
+## endpoint syntax
 scheme: ``netty4`` <br/>
 syntax: `` {type}:{transport}://{host}[:{port}][/{path}] `` <br/>
 where:
@@ -14,9 +14,9 @@ where:
 - **port**
 - **path** (optional): use for ``ws`` transport only.
 
-##params
+## params
 
-###underlying socket options
+### underlying socket options
 *** all default values are taken from system config
 - **solinger**: (integer) socket linger option
 - **sobacklog**: (integer) socket option backlog
@@ -28,14 +28,14 @@ where:
 - **sotimeout**: (integer) socket timeout option
 - **tcpnodelay**: (boolean) tcp nodelay option
 
-###netty options
+### netty options
 - **bossThreads**: (server only) number of thread use for boss group. Default: 1
 - **workerThreads**: (client and server) number of thread use for worker group. Default: 1
 
-##binary format
+## binary format
 default gridgo-socket-netty4 connector using BFactory default serializer for serialize/deserialize binary stream. <br/>
 message frame always prepended by length frame (4 bytes integer).
 
-##example endpoint
+## example endpoint
 - tcp server bind on localhost port 8888, 2 bossThreads and 4 workerThreads, solinger=0: ``netty4:server:tcp://localhost:8888?bossThreads=2&workerThreads=4&solinger=0``
 - websocket client connect to example.host port 8888, path /test: ``netty4:client:ws://example.host:8888/test``
