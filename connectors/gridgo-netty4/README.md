@@ -33,8 +33,9 @@ where:
 - **workerThreads**: (client and server) number of thread use for worker group. Default: 1
 
 ## binary format
-default gridgo-socket-netty4 connector using BFactory default serializer for serialize/deserialize binary stream. <br/>
-message frame always prepended by length frame (4 bytes integer).
+default gridgo-socket-netty4 connector using BFactory default serializer for serialize/deserialize binary stream. 
+<br/><br/>
+message frames are always prepended by 4 bytes length (a big endian integer).
 
 ## example endpoint
 - tcp server bind on localhost port 8888, 2 bossThreads and 4 workerThreads, solinger=0: ``netty4:server:tcp://localhost:8888?bossThreads=2&workerThreads=4&solinger=0``
