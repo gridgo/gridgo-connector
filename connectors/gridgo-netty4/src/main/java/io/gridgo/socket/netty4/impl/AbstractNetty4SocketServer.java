@@ -106,7 +106,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 
 		BObject configs = this.getConfigs();
 
-		NioEventLoopGroup bossGroup = new NioEventLoopGroup(configs.getInteger("bootThreads", 1));
+		NioEventLoopGroup bossGroup = new NioEventLoopGroup(configs.getInteger("bossThreads", 1));
 		NioEventLoopGroup workerGroup = new NioEventLoopGroup(configs.getInteger("workerThreads", 1));
 
 		bootstrap = createBootstrap();
