@@ -1,4 +1,4 @@
-# gridgo-socket-netty4
+# gridgo-netty4
 
 ## overview
 This connector arm to handle duplex communication, support 2 transport protocols: TCP and WS (both binary and text frame). <br/>
