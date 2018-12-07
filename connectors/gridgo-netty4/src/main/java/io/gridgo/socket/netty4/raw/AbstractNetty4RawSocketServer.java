@@ -16,12 +16,12 @@ public abstract class AbstractNetty4RawSocketServer extends AbstractNetty4Socket
 	}
 
 	@Override
-	protected BElement handleIncomingMessage(long channelId, Object msg) throws Exception {
+	protected BElement handleIncomingMessage(String channelId, Object msg) throws Exception {
 		return (BElement) msg;
 	}
 
 	@Override
-	public final ChannelFuture send(long routingId, BElement data) {
+	public final ChannelFuture send(String routingId, BElement data) {
 		Channel channel = this.getChannel(routingId);
 		if (channel != null) {
 			if (data == null) {

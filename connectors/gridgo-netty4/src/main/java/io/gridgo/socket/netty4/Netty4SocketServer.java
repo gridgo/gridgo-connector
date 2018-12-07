@@ -1,5 +1,6 @@
 package io.gridgo.socket.netty4;
 
+import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -11,11 +12,13 @@ public interface Netty4SocketServer extends Netty4Socket {
 
 	void bind(HostAndPort host);
 
-	ChannelFuture send(long routingId, BElement data);
+	ChannelFuture send(String channelId, BElement data);
 
-	void setReceiveCallback(BiConsumer<Long, BElement> onReceiveCallback);
+	void setReceiveCallback(BiConsumer<String, BElement> onReceiveCallback);
 
-	void setChannelOpenCallback(Consumer<Long> onChannelOpenCallback);
+	void setChannelOpenCallback(Consumer<String> onChannelOpenCallback);
 
-	void setChannelCloseCallback(Consumer<Long> onChannelCloseCallback);
+	void setChannelCloseCallback(Consumer<String> onChannelCloseCallback);
+
+	Map<String, Object> getChannelDetails(String channelId);
 }

@@ -126,10 +126,10 @@ public abstract class AbstractNetty4Server extends AbstractHasResponderConsumer 
 		}
 	}
 
-	protected abstract void onConnectionClose(long routingId);
+	protected abstract void onConnectionClose(String channelId);
 
-	protected abstract void onConnectionOpen(long routingId);
+	protected abstract void onConnectionOpen(String channelId);
 
-	protected abstract void onReceive(long routingId, BElement data);
+	protected abstract void onReceive(String channelId, BElement data);
 
 }

@@ -73,7 +73,7 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 	}
 
 	@Override
-	protected BElement handleIncomingMessage(long channelId, Object msg) throws Exception {
+	protected BElement handleIncomingMessage(String channelId, Object msg) throws Exception {
 		Channel channel = getChannel(channelId);
 		if (channel != null) {
 			if (msg instanceof FullHttpRequest) {
@@ -138,7 +138,7 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 
 		if ("/".equals(req.uri())) {
 			ByteBuf content = Unpooled
-					.copiedBuffer("Default gridgo-netty4 connector websocket welcome page".getBytes());
+					.copiedBuffer("Default gridgo-socket-netty4 connector websocket welcome page".getBytes());
 			FullHttpResponse res = new DefaultFullHttpResponse(HTTP_1_1, OK, content);
 
 			res.headers().set(CONTENT_TYPE, "text/html; charset=UTF-8");
@@ -153,6 +153,11 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 			sendHttpResponse(channel, req, res);
 			return;
 		}
+
+		var channelDetails = getChannelDetails(extractChannelId(channel));
+		req.headers().forEach(entry -> {
+			channelDetails.put(entry.getKey(), entry.getValue());
+		});
 
 		// Handshake
 		final WebSocketServerHandshaker handshaker = getWsFactory().newHandshaker(req);
@@ -178,8 +183,8 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 	}
 
 	@Override
-	public ChannelFuture send(long routingId, BElement data) {
-		Channel channel = this.getChannel(routingId);
+	public ChannelFuture send(String channelId, BElement data) {
+		Channel channel = this.getChannel(channelId);
 		if (data == null) {
 			closeChannel(channel);
 			return null;
