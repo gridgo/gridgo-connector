@@ -25,7 +25,9 @@ import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer {
 
 	private static final Map<String, ConnectionRef<ServerRouterTuple>> SERVER_MAP = new HashMap<>();
@@ -119,6 +121,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 	}
 
 	private void handleException(RoutingContext ctx) {
+	    log.error("Exception caught when handling request", ctx.failure());
 		var msg = buildFailureMessage(ctx.failure());
 		if (msg != null) {
 			msg.getPayload().getHeaders().putIfAbsent(VertxHttpConstants.HEADER_STATUS_CODE,
@@ -136,7 +139,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 			ctx.response().setStatusCode(DEFAULT_EXCEPTION_STATUS_CODE);
 
 		if (ctx.failure() != null)
-			ctx.response().end(ctx.failure().getMessage());
+			ctx.response().end(ctx.failure().getMessage() + "");
 		else
 			ctx.response().end();
 	}
