@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>io.gridgo</groupId>
 		<artifactId>gridgo-connector</artifactId>
-		<version>0.2.0</version>
+		<version>0.3.0-SNAPSHOT</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
@@ -23,6 +23,7 @@
 		<module>gridgo-http-common</module>
 		<module>gridgo-jetty-http</module>
 		<module>gridgo-http</module>
+		<module>gridgo-http-jdk</module>
 		<module>gridgo-file</module>
 	</modules>
 
