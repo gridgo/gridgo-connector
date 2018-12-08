@@ -7,7 +7,7 @@ import io.gridgo.connector.support.exceptions.UnsupportedFormatException;
 public interface FormattedMarshallable {
 
 	public default BElement deserialize(byte[] responseBody) {
-		if (responseBody == null)
+		if (responseBody == null || responseBody.length == 0)
 			return null;
 		var format = getFormat();
 		if (format == null || format.equals("json"))
