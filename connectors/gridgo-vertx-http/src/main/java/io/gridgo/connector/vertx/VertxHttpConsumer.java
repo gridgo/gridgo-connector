@@ -98,7 +98,8 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 
 	private Router initializeRouter(Vertx vertx) {
 		var router = Router.router(vertx);
-		router.route("/*").handler(BodyHandler.create());
+		if (!"GET".equals(method))
+		    router.route("/*").handler(BodyHandler.create());
 		return router;
 	}
 
@@ -190,6 +191,8 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 
 		populateCommonHeaders(ctx, headers);
 
+		if (ctx.request().method() == HttpMethod.GET)
+		    return createMessage(headers);
 		var body = deserialize(ctx.getBody().getBytes());
 		return createMessage(headers, body);
 	}
