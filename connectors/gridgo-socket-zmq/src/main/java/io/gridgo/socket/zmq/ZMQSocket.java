@@ -36,12 +36,16 @@ final class ZMQSocket extends AbstractSocket {
 
 	@Override
 	protected void doConnect(Endpoint endpoint) {
-		this.socket.connect(endpoint.getResolvedAddress());
+		String resolvedAddress = endpoint.getResolvedAddress();
+		this.socket.connect(resolvedAddress);
+		// System.out.println("success connect to address: " + resolvedAddress);
 	}
 
 	@Override
 	protected void doBind(Endpoint endpoint) {
-		this.socket.bind(endpoint.getResolvedAddress());
+		String resolvedAddress = endpoint.getResolvedAddress();
+		this.socket.bind(resolvedAddress);
+		// System.out.println("success bind to: " + resolvedAddress);
 	}
 
 	@Override
@@ -60,14 +64,22 @@ final class ZMQSocket extends AbstractSocket {
 
 	@Override
 	protected int doReveive(ByteBuffer buffer, boolean block) {
-		return this.socket.recvZeroCopy(buffer, buffer.capacity(), block ? 0 : ZMQ.NOBLOCK);
+		if (buffer.isDirect()) {
+			return this.socket.recvZeroCopy(buffer, buffer.capacity(), block ? 0 : ZMQ.NOBLOCK);
+		}
+		return this.socket.recvByteBuffer(buffer, ZMQ.NOBLOCK);
+	}
+
+	@Override
+	public int doSubscribe(@NonNull String topic) {
+		this.socket.subscribe(topic.getBytes());
+		return 0;
 	}
 
 	@Override
 	public void applyConfig(@NonNull String name, Object value) {
 		Setter setter = ZMQ_SOCKET_SETTERS.get(name.toLowerCase());
 		if (setter != null) {
-			System.out.println("[ZMQSocket] applied config " + name + " with value " + value);
 			setter.applyAsPrimitive(this.socket, value);
 		}
 	}

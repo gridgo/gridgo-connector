@@ -15,11 +15,14 @@ public class Endpoint {
 
 	private String host;
 
+	private String nic;
+
 	@Builder.Default
 	private int port = -1;
 
 	public String getResolvedAddress() {
-		return this.getProtocol() + "://" + host + (port <= 0 ? "" : (":" + port));
+		String nicStr = (this.nic == null || this.nic.isBlank()) ? "" : (this.nic + ";");
+		return this.getProtocol() + "://" + nicStr + host + (port <= 0 ? "" : (":" + port));
 	}
 
 	@Override

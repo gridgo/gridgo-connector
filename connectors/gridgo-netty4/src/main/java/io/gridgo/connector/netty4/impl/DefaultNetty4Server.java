@@ -28,20 +28,26 @@ public class DefaultNetty4Server extends AbstractNetty4Server {
 		this.publish(message, deferred);
 	}
 
-	protected void onConnectionClose(long routingId) {
-		Message message = this.createMessage().setRoutingIdFromAny(routingId);
+	@Override
+	protected void onConnectionClose(String channelId) {
+		Message message = this.createMessage().setRoutingIdFromAny(channelId);
+		// message.getMisc().putAll(this.getSocketServer().getChannelDetails(channelId));
 		message.addMisc("socketMessageType", "close");
 		publishMessage(message);
 	}
 
-	protected void onConnectionOpen(long routingId) {
-		Message message = this.createMessage().setRoutingIdFromAny(routingId);
+	@Override
+	protected void onConnectionOpen(String channelId) {
+		Message message = this.createMessage().setRoutingIdFromAny(channelId);
+		message.getMisc().putAll(this.getSocketServer().getChannelDetails(channelId));
 		message.addMisc("socketMessageType", "open");
 		publishMessage(message);
 	}
 
-	protected void onReceive(long routingId, BElement data) {
-		Message message = this.parseMessage(data).setRoutingIdFromAny(routingId);
+	@Override
+	protected void onReceive(String channelId, BElement data) {
+		Message message = this.parseMessage(data).setRoutingIdFromAny(channelId);
+		message.getMisc().putAll(this.getSocketServer().getChannelDetails(channelId));
 		message.addMisc("socketMessageType", "message");
 		publishMessage(message);
 	}

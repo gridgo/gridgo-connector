@@ -15,8 +15,17 @@ public class EndpointParser {
 			Matcher matcher = ENDPOINT_PATTERN.matcher(address.trim());
 			if (matcher.find()) {
 				String protocol = matcher.group(1);
-				String hostAndPort = matcher.group(2);
-				String[] arr = hostAndPort.split(":");
+				String hostAndPort = matcher.group(2).trim();
+				String[] arrMayContainsInterface = hostAndPort.split(";");
+				String nic = null;
+				String[] arr = null;
+				if (arrMayContainsInterface.length == 1) {
+					arr = hostAndPort.split(":");
+				} else {
+					nic = arrMayContainsInterface[0];
+					arr = arrMayContainsInterface[1].split(":");
+				}
+
 				if (arr.length > 1) {
 					String maybePort = arr[arr.length - 1];
 					if (PORT_PATTERN.matcher(maybePort).find()) {
@@ -27,10 +36,10 @@ public class EndpointParser {
 							}
 							host.append(arr[i]);
 						}
-						return new String[] { protocol, host.toString(), maybePort };
+						return new String[] { protocol, host.toString(), maybePort, nic };
 					}
 				}
-				return new String[] { protocol, hostAndPort, null };
+				return new String[] { protocol, hostAndPort, null, nic };
 			}
 		}
 		return null;
@@ -52,8 +61,9 @@ public class EndpointParser {
 			}
 
 			int port = segments[2] == null ? -1 : Integer.valueOf(segments[2]);
+			String nic = segments[3];
 
-			return Endpoint.builder().address(address).protocol(protocol).host(host).port(port).build();
+			return Endpoint.builder().nic(nic).address(address).protocol(protocol).host(host).port(port).build();
 		}
 		throw new IllegalArgumentException("Invalid address: " + address);
 	}

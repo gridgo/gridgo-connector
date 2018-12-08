@@ -54,7 +54,7 @@ public class Netty4SocketOptionsUtils {
 		 */
 
 		// default so_linger = 0
-		options.putAnyIfAbsent("soLinger", 0);
+		// options.putAnyIfAbsent("soLinger", 0);
 
 		for (String name : options.keySet()) {
 			applyOption(name, options, bootstrap);

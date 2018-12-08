@@ -50,7 +50,7 @@ public class Netty4Connector extends AbstractConnector {
 		int port = Integer.parseInt((String) config.getPlaceholders().getOrDefault("port", "0"));
 
 		this.host = HostAndPort.newInstance(hostStr, port);
-		this.options = BObject.newDefault(config.getParameters());
+		this.options = BObject.of(config.getParameters());
 		this.path = (String) config.getPlaceholders().getProperty("path", "websocket");
 
 		initProducerAndConsumer();
@@ -59,12 +59,12 @@ public class Netty4Connector extends AbstractConnector {
 	private void initProducerAndConsumer() {
 		switch (type) {
 		case "server":
-			consumerServer = Netty4Server.newDefault(this.getContext(), transport, host, path, options);
+			consumerServer = Netty4Server.of(this.getContext(), transport, host, path, options);
 			this.consumer = Optional.of(consumerServer);
 			this.producer = Optional.of(consumerServer.getResponder());
 			break;
 		case "client":
-			producerClient = Netty4Client.newDefault(this.getContext(), transport, host, path, options);
+			producerClient = Netty4Client.of(this.getContext(), transport, host, path, options);
 			this.producer = Optional.of(producerClient);
 			this.consumer = Optional.of(producerClient.getReceiver());
 			break;

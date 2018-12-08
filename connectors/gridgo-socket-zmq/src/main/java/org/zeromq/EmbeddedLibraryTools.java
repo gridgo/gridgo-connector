@@ -114,7 +114,7 @@ public class EmbeddedLibraryTools {
 		String[] libs;
 		final String libsFromProps = System.getProperty("jzmq.libs");
 		if (libsFromProps == null) {
-			libs = new String[] { "libsodium", "sodium", "libzmq", "zmq", "libjzmq", "jzmq" };
+			libs = new String[] { "libsodium", "libpgm", "libzmq", "libjzmq" };
 		} else {
 			libs = libsFromProps.split(",");
 		}
@@ -124,7 +124,7 @@ public class EmbeddedLibraryTools {
 		System.out.println("Trying to load embedded lib from: " + url);
 		for (String lib : libs) {
 			URL nativeLibraryUrl = null;
-			// loop through extensions, stopping after finding first one
+			// loop through extensions, stop after found the first one
 			for (String ext : allowedExtensions) {
 				nativeLibraryUrl = ZMQ.class.getResource(url.toString() + lib + "." + ext);
 				if (nativeLibraryUrl != null) {

@@ -163,49 +163,49 @@ public class MongoDBUnitTest {
 	}
 
 	private Message createUpdateRequest() {
-		var headers = BObject.newDefault().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_UPDATE_ONE)
-				.set(MongoDBConstants.FILTER, BReference.newDefault(Filters.eq("name", "Hello")));
-		var body = BReference.newDefault(new Document("$set", new Document("name", "World")));
-		return Message.newDefault(Payload.newDefault(headers, body));
+		var headers = BObject.ofEmpty().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_UPDATE_ONE)
+				.set(MongoDBConstants.FILTER, BReference.of(Filters.eq("name", "Hello")));
+		var body = BReference.of(new Document("$set", new Document("name", "World")));
+		return Message.of(Payload.of(headers, body));
 	}
 
 	private Message createUpdateManyRequest() {
-		var headers = BObject.newDefault().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_UPDATE_MANY)
-				.set(MongoDBConstants.FILTER, BReference.newDefault(Filters.eq("name", "World")));
-		var body = BReference.newDefault(new Document("$set", new Document("name", "Hello")));
-		return Message.newDefault(Payload.newDefault(headers, body));
+		var headers = BObject.ofEmpty().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_UPDATE_MANY)
+				.set(MongoDBConstants.FILTER, BReference.of(Filters.eq("name", "World")));
+		var body = BReference.of(new Document("$set", new Document("name", "Hello")));
+		return Message.of(Payload.of(headers, body));
 	}
 
 	private Message createDeleteRequest() {
-		var headers = BObject.newDefault().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_DELETE_ONE)
-				.set(MongoDBConstants.FILTER, BReference.newDefault(Filters.eq("key", 1)));
-		return Message.newDefault(Payload.newDefault(headers, null));
+		var headers = BObject.ofEmpty().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_DELETE_ONE)
+				.set(MongoDBConstants.FILTER, BReference.of(Filters.eq("key", 1)));
+		return Message.of(Payload.of(headers, null));
 	}
 
 	private Message createDeleteManyRequest() {
-		var headers = BObject.newDefault().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_DELETE_MANY)
-				.set(MongoDBConstants.FILTER, BReference.newDefault(Filters.gt("key", 1)));
-		return Message.newDefault(Payload.newDefault(headers, null));
+		var headers = BObject.ofEmpty().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_DELETE_MANY)
+				.set(MongoDBConstants.FILTER, BReference.of(Filters.gt("key", 1)));
+		return Message.of(Payload.of(headers, null));
 	}
 
 	private Message createFindAllRequest() {
-		var headers = BObject.newDefault().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_FIND_ALL)
-				.set(MongoDBConstants.FILTER, BReference.newDefault(Filters.eq("name", "Hello")));
-		return Message.newDefault(Payload.newDefault(headers, null));
+		var headers = BObject.ofEmpty().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_FIND_ALL)
+				.set(MongoDBConstants.FILTER, BReference.of(Filters.eq("name", "Hello")));
+		return Message.of(Payload.of(headers, null));
 	}
 
 	private Message createFindByIdRequest() {
-		var headers = BObject.newDefault().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_FIND_BY_ID)
+		var headers = BObject.ofEmpty().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_FIND_BY_ID)
 				.setAny(MongoDBConstants.ID_FIELD, "key");
-		return Message.newDefault(Payload.newDefault(headers, BValue.newDefault(1)));
+		return Message.of(Payload.of(headers, BValue.of(1)));
 	}
 
 	private Message createInsertMessage() {
 		var doc1 = new Document("key", 4).append("type", "database").append("name", "Hello").append("info",
 				new Document("x", 203).append("y", 102));
-		BReference ref = BReference.newDefault(doc1);
-		var headers = BObject.newDefault().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_INSERT);
-		return Message.newDefault(Payload.newDefault(headers, ref));
+		BReference ref = BReference.of(doc1);
+		var headers = BObject.ofEmpty().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_INSERT);
+		return Message.of(Payload.of(headers, ref));
 	}
 
 	private Message createInsertMessages() {
@@ -215,14 +215,14 @@ public class MongoDBUnitTest {
 				new Document("x", 203).append("y", 102));
 		var doc3 = new Document("key", 3).append("type", "database").append("name", "World").append("info",
 				new Document("x", 203).append("y", 102));
-		BReference[] list = new BReference[] { BReference.newDefault(doc1), BReference.newDefault(doc2),
-				BReference.newDefault(doc3) };
-		var headers = BObject.newDefault().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_INSERT);
-		return Message.newDefault(Payload.newDefault(headers, BArray.newDefault(list)));
+		BReference[] list = new BReference[] { BReference.of(doc1), BReference.of(doc2),
+				BReference.of(doc3) };
+		var headers = BObject.ofEmpty().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_INSERT);
+		return Message.of(Payload.of(headers, BArray.of(list)));
 	}
 
 	private Message createCountMessage() {
-		var headers = BObject.newDefault().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_COUNT);
-		return Message.newDefault(Payload.newDefault(headers, null));
+		var headers = BObject.ofEmpty().setAny(MongoDBConstants.OPERATION, MongoDBConstants.OPERATION_COUNT);
+		return Message.of(Payload.of(headers, null));
 	}
 }

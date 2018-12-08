@@ -68,10 +68,10 @@ public abstract class AbstractRabbitMQConsumer extends AbstractConsumer implemen
 	}
 
 	private void sendResponse(Exception ex, BasicProperties props) {
-		BObject headers = BObject.newDefault();
+		BObject headers = BObject.ofEmpty();
 		headers.setAny("status", 500);
 		BValue body = BValue
-				.newDefault("Internal server error: " + ex.getMessage() == null ? "unknown message" : ex.getMessage());
+				.of("Internal server error: " + ex.getMessage() == null ? "unknown message" : ex.getMessage());
 		this.sendResponse(createMessage(headers, body), props);
 	}
 

@@ -1,6 +1,8 @@
 package io.gridgo.connector.vertx;
 
-public class VertxHttpConstants {
+import io.gridgo.connector.httpcommon.HttpCommonConsumerConstants;
+
+public class VertxHttpConstants extends HttpCommonConsumerConstants {
 
 	public static final String PLACEHOLDER_PORT = "port";
 
@@ -22,17 +24,21 @@ public class VertxHttpConstants {
 
 	public static final String PARAM_WORKER_POOL_SIZE = "workerPoolSize";
 
-	public static final String PARAM_FORMAT = "format";
-
-	public static final String PARAM_METHOD = "method";
-
-	public static final String PARAM_COMPRESSION_SUPPORTED = "compressionSupported";
+	public static final Object PARAM_PARSE_COOKIE = "parseCookie";
 
 	public static final String PARAM_COMPRESSION_LEVEL = "compressionLevel";
 
 	public static final String PARAM_VERTX_BEAN = "vertxBean";
 
-	public static final String HEADER_STATUS = "Status";
+	public static final String HEADER_COOKIE = "Parsed-Cookie";
 
-	public static final String HEADER_STATUS_CODE = "Status-Code";
+	public static final String COOKIE_DOMAIN = "cookieDomain";
+
+	public static final String COOKIE_PATH = "cookiePath";
+
+	public static final String COOKIE_VALUE = "cookieValue";
+
+	public static final String COOKIE_NAME = "cookieName";
+
+    public static final String ACCEPT_BACKLOG = "acceptBacklog";
 }

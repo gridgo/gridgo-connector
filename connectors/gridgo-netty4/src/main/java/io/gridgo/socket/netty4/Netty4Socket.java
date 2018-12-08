@@ -11,7 +11,7 @@ import io.gridgo.utils.helper.Loggable;
 public interface Netty4Socket extends Closeable, ComponentLifecycle, Loggable {
 
 	boolean isStarted();
-	
+
 	boolean isRunning();
 
 	void setFailureHandler(Consumer<Throwable> failureHandler);

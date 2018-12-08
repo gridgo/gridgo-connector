@@ -21,7 +21,7 @@ public class TestConsumer extends AbstractConsumer {
 	}
 
 	public void testPublish() {
-		publish(createMessage(BObject.newDefault().setAny("test-header", 1), null), null);
+		publish(createMessage(BObject.ofEmpty().setAny("test-header", 1), null), null);
 	}
 
 	@Override

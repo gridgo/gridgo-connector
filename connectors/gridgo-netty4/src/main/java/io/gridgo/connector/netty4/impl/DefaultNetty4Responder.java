@@ -29,7 +29,7 @@ class DefaultNetty4Responder extends AbstractResponder {
 		if (!this.isStarted()) {
 			return;
 		}
-		long routingId = message.getRoutingId().orElse(BValue.newDefault(-1l)).getLong();
+		String routingId = message.getRoutingId().orElseGet(() -> BValue.of(null)).getString();
 		BElement data = message.getPayload() == null ? null : message.getPayload().toBArray();
 
 		ChannelFuture future = this.socketServer.send(routingId, data);

@@ -16,12 +16,14 @@ import org.joo.promise4j.impl.CompletableDeferredObject;
 import org.joo.promise4j.impl.SimpleDonePromise;
 import org.joo.promise4j.impl.SimpleFailurePromise;
 
+import com.mongodb.async.client.FindIterable;
 import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;
 import com.mongodb.client.model.CountOptions;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.InsertManyOptions;
+import com.mongodb.client.model.Projections;
 
 import io.gridgo.bean.BArray;
 import io.gridgo.bean.BObject;
@@ -162,12 +164,34 @@ public class MongoDBProducer extends AbstractProducer {
 		if (numToSkip != -1)
 			filterable.skip(numToSkip);
 		if (limit != -1)
-			filterable.skip(limit);
+			filterable.limit(limit);
 		if (sortBy != null)
 			filterable.sort(sortBy);
+		applyProjection(msg, filterable);
 		filterable.into(new ArrayList<>(), (result, throwable) -> {
 			ack(deferred, result, throwable);
 		});
+	}
+
+	private void applyProjection(Message msg, FindIterable<Document> filterable) {
+		var headers = msg.getPayload().getHeaders();
+		var project = getHeaderAs(msg, MongoDBConstants.PROJECT, Bson.class);
+		var projectInclude = headers.getArray(MongoDBConstants.PROJECT_INCLUDE, null);
+		var projectExclude = headers.getArray(MongoDBConstants.PROJECT_EXCLUDE, null);
+		if (project != null || projectInclude != null || projectExclude != null) {
+			if (projectInclude != null)
+				project = Projections.include(toStringArray(projectInclude));
+			else if (projectExclude != null)
+				project = Projections.exclude(toStringArray(projectExclude));
+			filterable.projection(project);
+		}
+	}
+
+	private String[] toStringArray(BArray array) {
+		return array.stream() //
+				.filter(element -> element.isValue()) //
+				.map(element -> element.asValue().getString()) //
+				.toArray(size -> new String[size]);
 	}
 
 	public void findById(Message msg, Deferred<Message, Exception> deferred) {
@@ -175,7 +199,9 @@ public class MongoDBProducer extends AbstractProducer {
 		String idField = headers.getString(MongoDBConstants.ID_FIELD);
 		Object id = msg.getPayload().getBody().asValue().getData();
 
-		collection.find(Filters.eq(idField, id)).first((result, throwable) -> ack(deferred, result, throwable));
+		var filterable = collection.find(Filters.eq(idField, id));
+		applyProjection(msg, filterable);
+		filterable.first((result, throwable) -> ack(deferred, result, throwable));
 	}
 
 	public void countCollection(Message msg, Deferred<Message, Exception> deferred) {
@@ -205,19 +231,19 @@ public class MongoDBProducer extends AbstractProducer {
 		if (result == null)
 			return null;
 		if (result instanceof Long)
-			return createMessage(BObject.newDefault(), BValue.newDefault(result));
+			return createMessage(BObject.ofEmpty(), BValue.of(result));
 		if (result instanceof Document)
-			return createMessage(BObject.newDefault(), toReference((Document) result));
+			return createMessage(BObject.ofEmpty(), toReference((Document) result));
 		if (result instanceof List<?>) {
 			var cloned = StreamSupport.stream(((List<Document>) result).spliterator(), false).map(this::toReference)
 					.collect(Collectors.toList());
-			return createMessage(BObject.newDefault(), BArray.newDefault(cloned));
+			return createMessage(BObject.ofEmpty(), BArray.of(cloned));
 		}
 		return null;
 	}
 
 	private BObject toReference(Document doc) {
-		return BObject.newDefault(doc);
+		return BObject.of(doc);
 	}
 
 	private List<Document> convertToDocuments(BArray body) {

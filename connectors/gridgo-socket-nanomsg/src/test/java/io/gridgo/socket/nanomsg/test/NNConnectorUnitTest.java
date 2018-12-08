@@ -31,6 +31,80 @@ public class NNConnectorUnitTest {
 	private final String address = host + ":" + port;
 
 	@Test
+	public void testPubSub() throws Exception {
+
+		String osName = System.getProperty("os.name");
+		if (osName != null && osName.contains("Windows"))
+			return;
+
+		System.out.println("Test pub/sub via TCP");
+
+//		String transport = "pgm";
+//		String address = "en0;224.2.3.4:5555";
+
+		String transport = "tcp";
+		String address = "localhost:5555";
+
+		Connector pubConnector = RESOLVER.resolve("nanomsg:pub:" + transport + "://" + address);
+		Connector sub1Connector = RESOLVER.resolve("nanomsg:sub:" + transport + "://" + address + "?topic=topic1");
+		Connector sub2Connector = RESOLVER.resolve("nanomsg:sub:" + transport + "://" + address + "?topic=topic2");
+
+		try {
+			pubConnector.start();
+			assertTrue(pubConnector.getProducer().isPresent());
+
+			sub1Connector.start();
+			assertTrue(sub1Connector.getConsumer().isPresent());
+
+			sub2Connector.start();
+			assertTrue(sub2Connector.getConsumer().isPresent());
+
+			Producer publisher = pubConnector.getProducer().get();
+			Consumer subscriber1 = sub1Connector.getConsumer().get();
+			Consumer subscriber2 = sub2Connector.getConsumer().get();
+
+			final String text1 = TEXT + 1;
+			final String text2 = TEXT + 2;
+
+			final AtomicReference<String> recv1 = new AtomicReference<String>();
+			final AtomicReference<String> recv2 = new AtomicReference<String>();
+
+			final CountDownLatch doneSignal = new CountDownLatch(2);
+
+			subscriber1.subscribe((msg) -> {
+				String body = msg.getPayload().getBody().asValue().getString();
+				System.out.println("Got msg: " + body);
+				recv1.set(body);
+				doneSignal.countDown();
+			});
+
+			subscriber2.subscribe((msg) -> {
+				String body = msg.getPayload().getBody().asValue().getString();
+				System.out.println("Got msg: " + body);
+				recv2.set(body);
+				doneSignal.countDown();
+			});
+
+			// publish data
+			publisher.send(Message.of(Payload.of(BValue.of(text1))).setRoutingIdFromAny("topic1"));
+			publisher.send(Message.of(Payload.of(BValue.of(text2))).setRoutingIdFromAny("topic2"));
+
+			doneSignal.await();
+
+			assertEquals(text1, recv1.get());
+			assertEquals(text2, recv2.get());
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		} finally {
+			pubConnector.stop();
+			sub1Connector.stop();
+			sub2Connector.stop();
+		}
+	}
+
+	@Test
 	public void testPairPingPong() throws InterruptedException, PromiseException {
 
 		String osName = System.getProperty("os.name");
@@ -63,7 +137,7 @@ public class NNConnectorUnitTest {
 			doneSignal.countDown();
 		});
 
-		connector2.getProducer().get().send(Message.newDefault(Payload.newDefault(BValue.newDefault(TEXT))));
+		connector2.getProducer().get().send(Message.of(Payload.of(BValue.of(TEXT))));
 
 		doneSignal.await();
 		assertEquals(TEXT, pongDataRef.get());
@@ -107,8 +181,8 @@ public class NNConnectorUnitTest {
 			doneSignal.countDown();
 		});
 
-		connector1.getProducer().get().send(Message.newDefault(Payload.newDefault(BValue.newDefault(TEXT + 1))));
-		connector2.getProducer().get().send(Message.newDefault(Payload.newDefault(BValue.newDefault(TEXT + 2))));
+		connector1.getProducer().get().send(Message.of(Payload.of(BValue.of(TEXT + 1))));
+		connector2.getProducer().get().send(Message.of(Payload.of(BValue.of(TEXT + 2))));
 
 		doneSignal.await();
 
@@ -159,7 +233,7 @@ public class NNConnectorUnitTest {
 			System.out.println("Got message from source: " + msg.getMisc().get("source"));
 			doneSignal.countDown();
 		});
-		producer.send(Message.newDefault(Payload.newDefault(BObject.newFromSequence("cmd", "start"))));
+		producer.send(Message.of(Payload.of(BObject.ofSequence("cmd", "start"))));
 		doneSignal.await();
 		System.out.println("Warmup done");
 		consumer.clearSubscribers();
@@ -174,7 +248,7 @@ public class NNConnectorUnitTest {
 		});
 		long start = System.nanoTime();
 		for (int i = 0; i < numMessages; i++) {
-			producer.send(Message.newDefault(Payload.newDefault(BObject.newFromSequence("index", i))));
+			producer.send(Message.of(Payload.of(BObject.ofSequence("index", i))));
 		}
 
 		doneSignal.await();
@@ -196,7 +270,7 @@ public class NNConnectorUnitTest {
 
 		long start = System.nanoTime();
 		for (int i = 0; i < numMessages; i++) {
-			producer.sendWithAck(Message.newDefault(Payload.newDefault(BObject.newFromSequence("index", i)))).get();
+			producer.sendWithAck(Message.of(Payload.of(BObject.ofSequence("index", i)))).get();
 		}
 
 		doneSignal.await();

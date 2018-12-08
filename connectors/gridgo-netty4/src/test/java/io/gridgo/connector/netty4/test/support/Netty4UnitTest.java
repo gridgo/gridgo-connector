@@ -105,7 +105,7 @@ public class Netty4UnitTest {
 		serverConnector.start();
 		clientConnector.start();
 
-		clientProducer.sendWithAck(Message.newDefault(Payload.newDefault(BValue.newDefault(TEXT)))).get();
+		clientProducer.sendWithAck(Message.of(Payload.of(BValue.of(TEXT)))).get();
 
 		doneSignal.await();
 
@@ -163,7 +163,7 @@ public class Netty4UnitTest {
 			doneSignal.countDown();
 		});
 
-		clientProducer.sendWithAck(Message.newDefault(Payload.newDefault(BValue.newDefault(TEXT)))).get();
+		clientProducer.sendWithAck(Message.of(Payload.of(BValue.of(TEXT)))).get();
 
 		doneSignal.await();
 
@@ -199,7 +199,7 @@ public class Netty4UnitTest {
 		System.out.println("Subscribe to server consumer");
 		serverConsumer.subscribe((msg) -> {
 			String socketMessageType = (String) msg.getMisc().get("socketMessageType");
-			BValue routingId = msg.getRoutingId().orElse(BValue.newDefault(-1));
+			BValue routingId = msg.getRoutingId().orElse(BValue.of(-1));
 			switch (socketMessageType) {
 			case "open":
 				System.out.println("[" + transport + " server] - socket open, routing id: " + routingId);
@@ -248,7 +248,7 @@ public class Netty4UnitTest {
 			doneSignal.countDown();
 		});
 
-		clientProducer.sendWithAck(Message.newDefault(Payload.newDefault(BValue.newDefault(TEXT)))).get();
+		clientProducer.sendWithAck(Message.of(Payload.of(BValue.of(TEXT)))).get();
 
 		System.out.println("[" + transport + " client] - close connection by stop client producer");
 		clientProducer.stop();
@@ -292,7 +292,7 @@ public class Netty4UnitTest {
 		System.out.println("Subscribe to server consumer");
 		serverConsumer.subscribe((msg) -> {
 			String socketMessageType = (String) msg.getMisc().get("socketMessageType");
-			BValue routingId = msg.getRoutingId().orElse(BValue.newDefault(-1));
+			BValue routingId = msg.getRoutingId().orElse(BValue.of(-1));
 			switch (socketMessageType) {
 			case "open":
 				System.out.println("[" + transport + " server] - socket open, routing id: " + routingId);
@@ -307,7 +307,7 @@ public class Netty4UnitTest {
 						+ " --> close client connection (by send a null-payload msg) right now...");
 
 				try {
-					serverProducer.sendWithAck(Message.newDefault(BValue.newDefault(routingId), null)).get();
+					serverProducer.sendWithAck(Message.of(BValue.of(routingId), null)).get();
 				} catch (PromiseException | InterruptedException e) {
 					throw new RuntimeException("Error while try to close connection", e);
 				}
@@ -346,7 +346,7 @@ public class Netty4UnitTest {
 			doneSignal.countDown();
 		});
 
-		clientProducer.sendWithAck(Message.newDefault(Payload.newDefault(BValue.newDefault(TEXT)))).get();
+		clientProducer.sendWithAck(Message.of(Payload.of(BValue.of(TEXT)))).get();
 
 		doneSignal.await();
 
@@ -382,7 +382,7 @@ public class Netty4UnitTest {
 		System.out.println("Subscribe to server consumer");
 		serverConsumer.subscribe((msg) -> {
 			String socketMessageType = (String) msg.getMisc().get("socketMessageType");
-			BValue routingId = msg.getRoutingId().orElse(BValue.newDefault(-1));
+			BValue routingId = msg.getRoutingId().orElse(BValue.of(-1));
 			switch (socketMessageType) {
 			case "open":
 				System.out.println("[" + transport + " server] - socket open, routing id: " + routingId);
@@ -416,7 +416,7 @@ public class Netty4UnitTest {
 			doneSignal1.countDown();
 		});
 
-		clientProducer.sendWithAck(Message.newDefault(Payload.newDefault(BValue.newDefault(TEXT)))).get();
+		clientProducer.sendWithAck(Message.of(Payload.of(BValue.of(TEXT)))).get();
 
 		doneSignal1.await();
 

@@ -3,7 +3,6 @@ package io.gridgo.socket.netty4.impl;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -34,23 +33,21 @@ import lombok.Setter;
 
 public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket implements Netty4SocketServer {
 
-	private static final AttributeKey<Object> CHANNEL_ID = AttributeKey.newInstance("channelId");
-
-	private static final AtomicLong ID_SEED = new AtomicLong(0);
+	private static final AttributeKey<Map<String, Object>> CHANNEL_DETAILS = AttributeKey.newInstance("channelDetails");
 
 	@Setter
 	@Getter(AccessLevel.PROTECTED)
-	private BiConsumer<Long, BElement> receiveCallback;
+	private BiConsumer<String, BElement> receiveCallback;
 
 	@Setter
 	@Getter(AccessLevel.PROTECTED)
-	private Consumer<Long> channelOpenCallback;
+	private Consumer<String> channelOpenCallback;
 
 	@Setter
 	@Getter(AccessLevel.PROTECTED)
-	private Consumer<Long> channelCloseCallback;
+	private Consumer<String> channelCloseCallback;
 
-	private final Map<Long, Channel> channels = new NonBlockingHashMap<>();
+	private final Map<String, Channel> channels = new NonBlockingHashMap<>();
 
 	private final ChannelInitializer<SocketChannel> channelInitializer = new ChannelInitializer<SocketChannel>() {
 
@@ -109,7 +106,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 
 		BObject configs = this.getConfigs();
 
-		NioEventLoopGroup bossGroup = new NioEventLoopGroup(configs.getInteger("bootThreads", 1));
+		NioEventLoopGroup bossGroup = new NioEventLoopGroup(configs.getInteger("bossThreads", 1));
 		NioEventLoopGroup workerGroup = new NioEventLoopGroup(configs.getInteger("workerThreads", 1));
 
 		bootstrap = createBootstrap();
@@ -125,7 +122,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 			if (!bindFuture.await().isSuccess()) {
 				deferred.reject(bindFuture.cause());
 			} else {
-				getLogger().info("Bind success to %s", host.toIpAndPort());
+				getLogger().info("Bind success to {}", host.toIpAndPort());
 				// this.setHost(host);
 				this.serverChannel = bindFuture.channel();
 
@@ -198,21 +195,21 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 
 	protected abstract void onInitChannel(SocketChannel socketChannel);
 
-	protected Long getChannelId(Channel channel) {
+	protected String extractChannelId(Channel channel) {
 		if (channel != null) {
-			return (Long) channel.attr(CHANNEL_ID).get();
+			return channel.id().asLongText();
 		}
 		return null;
 	}
 
-	protected Channel getChannel(long id) {
+	protected Channel getChannel(String id) {
 		return this.channels.get(id);
 	}
 
 	@Override
 	protected final void onChannelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 		final Channel channel = ctx.channel();
-		Long id = this.getChannelId(channel);
+		String id = this.extractChannelId(channel);
 		if (id != null) {
 			if (this.getReceiveCallback() != null) {
 				BElement incomingMessage = handleIncomingMessage(id, msg);
@@ -224,22 +221,38 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
 	}
 
 	@Override
-	protected final void onChannelActive(final ChannelHandlerContext ctx) throws Exception {
-		final Channel channel = ctx.channel();
-		final long id = ID_SEED.getAndIncrement();
+	public Map<String, Object> getChannelDetails(String channelId) {
+		Channel channel = this.getChannel(channelId);
+		if (channel != null) {
+			return channel.attr(CHANNEL_DETAILS).get();
+		}
+		return null;
+	}
 
-		channel.attr(CHANNEL_ID).set(id);
-		this.channels.put(id, channel);
+	@Override
+	protected final void onChannelActive(final ChannelHandlerContext ctx) throws Exception {
+		final var channel = ctx.channel();
+
+		var channelId = extractChannelId(channel);
+		this.channels.put(channelId, channel);
+
+		Map<String, Object> channelDetails = new NonBlockingHashMap<>();
+		channel.attr(CHANNEL_DETAILS).set(channelDetails);
+
+		channelDetails.put("remoteAddress", channel.remoteAddress());
+		channelDetails.put("localAddress", channel.localAddress());
+		channelDetails.put("config", channel.config());
+		channelDetails.put("metadata", channel.metadata());
 
 		if (this.getChannelOpenCallback() != null) {
-			this.getChannelOpenCallback().accept(id);
+			this.getChannelOpenCallback().accept(channelId);
 		}
 	}
 
 	@Override
 	protected final void onChannelInactive(ChannelHandlerContext ctx) throws Exception {
 		final Channel channel = ctx.channel();
-		Long id = getChannelId(channel);
+		String id = extractChannelId(channel);
 		if (id != null && this.channels.containsKey(id)) {
 			if (channel == this.channels.get(id)) {
 				this.channels.remove(id);

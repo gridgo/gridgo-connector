@@ -98,4 +98,9 @@ public class TestSocket extends AbstractSocket {
 			throw new RuntimeException(e);
 		}
 	}
+
+	@Override
+	public int doSubscribe(String topic) {
+		throw new UnsupportedOperationException("Cannot subscribe on raw socket");
+	}
 }

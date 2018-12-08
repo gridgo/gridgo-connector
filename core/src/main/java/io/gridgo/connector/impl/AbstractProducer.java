@@ -8,7 +8,6 @@ import io.gridgo.connector.Producer;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.AbstractComponentLifecycle;
 import io.gridgo.framework.support.Message;
-import io.gridgo.framework.support.Payload;
 import io.gridgo.framework.support.impl.DefaultPayload;
 import lombok.Getter;
 import lombok.NonNull;
@@ -23,9 +22,7 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 	}
 
 	protected Message createMessage(BObject headers, BElement body) {
-		if (context.getIdGenerator().isEmpty())
-			return Message.newDefault(Payload.newDefault(headers, body));
-		return Message.newDefault(new DefaultPayload(context.getIdGenerator().get().generateId(), headers, body));
+		return Message.of(new DefaultPayload(context.getIdGenerator().generateId(), headers, body));
 	}
 
 	protected void ack(Deferred<Message, Exception> deferred, Message response, Exception exception) {
@@ -37,9 +34,7 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 
 	protected void ack(Deferred<Message, Exception> deferred) {
 		if (deferred != null) {
-			context.getCallbackInvokerStrategy().execute(() -> {
-				deferred.resolve(null);
-			});
+			context.getCallbackInvokerStrategy().execute(() -> tryResolve(deferred, null));
 		}
 	}
 
@@ -47,7 +42,7 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 		if (deferred != null) {
 			context.getCallbackInvokerStrategy().execute(() -> {
 				if (exception == null) {
-					deferred.resolve(null);
+					tryResolve(deferred, null);
 				} else {
 					deferred.reject(exception);
 				}
@@ -57,7 +52,16 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
 
 	protected void ack(Deferred<Message, Exception> deferred, Message response) {
 		if (deferred != null) {
-			context.getCallbackInvokerStrategy().execute(() -> deferred.resolve(response));
+			context.getCallbackInvokerStrategy().execute(() -> tryResolve(deferred, response));
+		}
+	}
+
+	private Deferred<Message, Exception> tryResolve(Deferred<Message, Exception> deferred, Message response) {
+		try {
+			return deferred.resolve(response);
+		} catch (Exception ex) {
+			getLogger().error("Exception caught while trying to resolve deferred", ex);
+			return deferred.reject(ex);
 		}
 	}
 }

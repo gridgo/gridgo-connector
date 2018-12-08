@@ -11,7 +11,7 @@ import io.gridgo.utils.support.HostAndPort;
 
 public interface Netty4Server extends Consumer, HasResponder, FailureHandlerAware<Netty4Server> {
 
-	static Netty4Server newDefault(ConnectorContext context, Netty4Transport transport, HostAndPort host, String path,
+	static Netty4Server of(ConnectorContext context, Netty4Transport transport, HostAndPort host, String path,
 			BObject options) {
 		return new DefaultNetty4Server(context, transport, host, path, options);
 	}

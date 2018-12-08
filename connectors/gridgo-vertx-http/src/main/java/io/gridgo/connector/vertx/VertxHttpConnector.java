@@ -19,13 +19,14 @@ public class VertxHttpConnector extends AbstractConnector {
 		String method = getParam(VertxHttpConstants.PARAM_METHOD);
 		String format = getParam(VertxHttpConstants.PARAM_FORMAT);
 		String vertxBean = getParam(VertxHttpConstants.PARAM_VERTX_BEAN);
-		var vertxOptions = buildVertxOptions();
 		Vertx vertx = null;
 		if (vertxBean != null) {
 			vertx = getContext().getRegistry().lookupMandatory(vertxBean, Vertx.class);
 		}
+		var vertxOptions = buildVertxOptions();
 		var httpOptions = buildHttpServerOptions();
-		var vertxConsumer = new VertxHttpConsumer(getContext(), vertx, vertxOptions, httpOptions, path, method, format);
+		var vertxConsumer = new VertxHttpConsumer(getContext(), vertx, vertxOptions, httpOptions, path, method, format,
+				getConnectorConfig().getParameters());
 		this.consumer = Optional.of(vertxConsumer);
 	}
 
@@ -41,13 +42,14 @@ public class VertxHttpConnector extends AbstractConnector {
 	}
 
 	private HttpServerOptions buildHttpServerOptions() {
-		String compressionLevel = getParam(VertxHttpConstants.PARAM_COMPRESSION_LEVEL);
-		String compressionSupported = getParam(VertxHttpConstants.PARAM_COMPRESSION_SUPPORTED);
-		boolean useAlpn = Boolean.valueOf(getParam(VertxHttpConstants.PARAM_USE_ALPN, "false"));
-		boolean ssl = Boolean.valueOf(getParam(VertxHttpConstants.PARAM_SSL, "false"));
+	    var acceptBacklog = getParam(VertxHttpConstants.ACCEPT_BACKLOG);
+		var compressionLevel = getParam(VertxHttpConstants.PARAM_COMPRESSION_LEVEL);
+		var compressionSupported = getParam(VertxHttpConstants.PARAM_COMPRESSION_SUPPORTED);
+		var useAlpn = Boolean.valueOf(getParam(VertxHttpConstants.PARAM_USE_ALPN, "false"));
+		var ssl = Boolean.valueOf(getParam(VertxHttpConstants.PARAM_SSL, "false"));
 		var clientAuth = ClientAuth.valueOf(getParam(VertxHttpConstants.PARAM_CLIENT_AUTH, ClientAuth.NONE.toString()));
-		String keyStorePath = getParam(VertxHttpConstants.PARAM_KEY_STORE_PATH);
-		String keyStorePassword = getParam(VertxHttpConstants.PARAM_KEY_STORE_PASSWORD);
+		var keyStorePath = getParam(VertxHttpConstants.PARAM_KEY_STORE_PATH);
+		var keyStorePassword = getParam(VertxHttpConstants.PARAM_KEY_STORE_PASSWORD);
 		var keyStoreOptions = keyStorePath != null
 				? new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword)
 				: null;
@@ -55,6 +57,8 @@ public class VertxHttpConnector extends AbstractConnector {
 				.setHost(getPlaceholder(VertxHttpConstants.PLACEHOLDER_HOST))
 				.setPort(Integer.parseInt(getPlaceholder(VertxHttpConstants.PLACEHOLDER_PORT)))
 				.setKeyStoreOptions(keyStoreOptions);
+		if (acceptBacklog != null)
+		    options.setAcceptBacklog(Integer.parseInt(acceptBacklog));
 		if (compressionLevel != null)
 			options.setCompressionLevel(Integer.parseInt(compressionLevel));
 		if (compressionSupported != null)

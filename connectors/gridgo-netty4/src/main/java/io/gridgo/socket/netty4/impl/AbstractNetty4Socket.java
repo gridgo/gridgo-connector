@@ -22,7 +22,7 @@ import lombok.Setter;
 public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 
 	@Getter(AccessLevel.PROTECTED)
-	private final BObject configs = BObject.newDefault();
+	private final BObject configs = BObject.ofEmpty();
 
 	@Getter
 	@Setter(AccessLevel.PROTECTED)
@@ -133,7 +133,7 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 		// do nothing
 	}
 
-	protected abstract BElement handleIncomingMessage(long channelId, Object msg) throws Exception;
+	protected abstract BElement handleIncomingMessage(String channelId, Object msg) throws Exception;
 
 	protected abstract void onChannelActive(ChannelHandlerContext ctx) throws Exception;
 

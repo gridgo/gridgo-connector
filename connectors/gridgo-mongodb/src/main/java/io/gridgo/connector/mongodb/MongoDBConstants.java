@@ -35,4 +35,10 @@ public class MongoDBConstants {
 	public static final String LIMIT = "Mongo_Limit";
 
 	public static final String ID_FIELD = "Mongo_IdField";
+
+	public static final String PROJECT = "Mongo_Projection";
+
+	public static final String PROJECT_INCLUDE = "Mongo_ProjectionInclude";
+
+	public static final String PROJECT_EXCLUDE = "Mongo_ProjectionExclude";
 }

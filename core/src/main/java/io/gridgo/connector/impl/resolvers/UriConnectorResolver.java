@@ -17,29 +17,39 @@ import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.config.impl.DefaultConnectorConfig;
 import io.gridgo.connector.support.exceptions.ConnectorResolutionException;
 import io.gridgo.connector.support.exceptions.MalformedEndpointException;
+import io.gridgo.framework.support.Registry;
 
 public class UriConnectorResolver implements ConnectorResolver {
 
 	private static final int MAX_PLACEHOLDER_NAME = 1024;
+
+	private CharBuffer buffer = CharBuffer.allocate(MAX_PLACEHOLDER_NAME);
+
 	private final Class<? extends Connector> clazz;
+
 	private final String syntax;
-	private String scheme;
+
+	private final String scheme;
+
+	private final boolean raw;
 
 	public UriConnectorResolver(String scheme, Class<? extends Connector> clazz) {
 		this.scheme = scheme;
 		this.clazz = clazz;
-		this.syntax = extractSyntax(clazz);
-	}
-
-	private String extractSyntax(Class<? extends Connector> clazz) {
 		var annotations = clazz.getAnnotationsByType(ConnectorEndpoint.class);
-		return annotations.length > 0 ? annotations[0].syntax() : null;
+		if (annotations.length > 0) {
+			this.syntax = annotations[0].syntax();
+			this.raw = annotations[0].raw();
+		} else {
+			this.syntax = null;
+			this.raw = false;
+		}
 	}
 
 	@Override
 	public Connector resolve(String endpoint, ConnectorContext context) {
 		try {
-			var config = resolveConfig(endpoint);
+			var config = resolveConfig(endpoint, context.getRegistry());
 			return clazz.getConstructor().newInstance().initialize(config, context);
 		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
 				| NoSuchMethodException | SecurityException e) {
@@ -47,9 +57,13 @@ public class UriConnectorResolver implements ConnectorResolver {
 		}
 	}
 
-	private ConnectorConfig resolveConfig(String endpoint) {
+	private ConnectorConfig resolveConfig(String endpoint, Registry registry) {
 		String schemePart = endpoint;
 		String queryPart = null;
+
+		if (registry != null) {
+			endpoint = registry.substituteRegistries(endpoint);
+		}
 
 		int queryPartIdx = endpoint.indexOf('?');
 		if (queryPartIdx != -1) {
@@ -59,10 +73,12 @@ public class UriConnectorResolver implements ConnectorResolver {
 
 		var params = extractParameters(queryPart);
 		var placeholders = extractPlaceholders(schemePart);
-		return new DefaultConnectorConfig(scheme + ":" + schemePart, schemePart, params, placeholders);
+		return new DefaultConnectorConfig(scheme, scheme + ":" + schemePart, schemePart, params, placeholders);
 	}
 
 	private Properties extractPlaceholders(String schemePart) {
+		if (raw)
+			return new Properties();
 		return extractPlaceholders(schemePart, syntax);
 	}
 
@@ -70,29 +86,38 @@ public class UriConnectorResolver implements ConnectorResolver {
 		var props = new Properties();
 		if (syntax == null)
 			return props;
-		var buffer = CharBuffer.allocate(MAX_PLACEHOLDER_NAME);
 
 		int i = 0, j = 0;
 		boolean optional = false;
 		int optionalIndex = -1;
-		while (i < schemePart.length() && j < syntax.length()) {
+		var optionalPlaceholder = new HashMap<String, String>();
+		while (j < syntax.length()) {
 			char syntaxChar = syntax.charAt(j);
 			if (syntaxChar == '[') {
 				optional = true;
 				optionalIndex = i;
 				j++;
+				optionalPlaceholder.clear();
 			} else if (syntaxChar == ']') {
 				optional = false;
 				optionalIndex = -1;
 				j++;
+				props.putAll(optionalPlaceholder);
+				optionalPlaceholder.clear();
 			} else if (syntaxChar == '{') {
 				String placeholderName = extractPlaceholderKey(syntax, j + 1, buffer);
 				String placeholderValue = extractPlaceholderValue(schemePart, i, buffer);
-				if (!placeholderValue.isEmpty())
-					props.put(placeholderName, placeholderValue);
 				j += placeholderName.length() + 2;
 				i += placeholderValue.length();
-			} else {
+				if (!placeholderValue.isEmpty() && placeholderValue.charAt(0) == '[')
+					placeholderValue = placeholderValue.substring(1, placeholderValue.length() - 1);
+				if (!placeholderValue.isEmpty()) {
+					if (optional)
+						optionalPlaceholder.put(placeholderName, placeholderValue);
+					else
+						props.put(placeholderName, placeholderValue);
+				}
+			} else if (i < schemePart.length()) {
 				char schemeChar = schemePart.charAt(i);
 				if (syntaxChar != schemeChar) {
 					if (optional) {
@@ -108,11 +133,23 @@ public class UriConnectorResolver implements ConnectorResolver {
 				}
 				i++;
 				j++;
+			} else {
+				if (!optional)
+					break;
+				i = optionalIndex;
+				j = skipOptionalPart(syntax, j);
+				optionalIndex = -1;
+				optional = false;
 			}
 		}
 
 		if (optional) {
-			j = skipOptionalPart(syntax, j);
+			if (syntax.charAt(j) == ']') {
+				props.putAll(optionalPlaceholder);
+				j++;
+			} else {
+				j = skipOptionalPart(syntax, j);
+			}
 		}
 
 		while (j < syntax.length() && syntax.charAt(j) == '[') {
@@ -142,6 +179,9 @@ public class UriConnectorResolver implements ConnectorResolver {
 		buffer.clear();
 		char c;
 
+		if (i >= schemePart.length())
+			return "";
+
 		boolean insideBracket = schemePart.charAt(i) == '[';
 		if (insideBracket) {
 			buffer.put('[');
@@ -165,8 +205,12 @@ public class UriConnectorResolver implements ConnectorResolver {
 	}
 
 	private boolean isPlaceholder(char c, boolean insideBracket) {
+		if (insideBracket) {
+			if (c == ':' || c == '/')
+				return true;
+		}
 		return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_' || c == '-' || c == '.'
-				|| c == ',' || c == ':' && insideBracket;
+				|| c == '*' || c == ',';
 	}
 
 	private String extractPlaceholderKey(String syntax, int j, CharBuffer buffer) {

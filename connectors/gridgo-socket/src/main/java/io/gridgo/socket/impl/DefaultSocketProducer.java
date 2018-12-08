@@ -3,7 +3,7 @@ package io.gridgo.socket.impl;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 
-import io.gridgo.bean.BArray;
+import io.gridgo.bean.BValue;
 import io.gridgo.connector.Receiver;
 import io.gridgo.connector.impl.SingleThreadSendingProducer;
 import io.gridgo.connector.support.config.ConnectorContext;
@@ -16,6 +16,8 @@ import io.gridgo.socket.SocketConsumer;
 import io.gridgo.socket.SocketFactory;
 import io.gridgo.socket.SocketOptions;
 import io.gridgo.socket.SocketProducer;
+import io.gridgo.socket.helper.Endpoint;
+import io.gridgo.socket.helper.EndpointParser;
 import io.gridgo.utils.helper.Loggable;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -23,6 +25,8 @@ import lombok.NonNull;
 import lombok.Setter;
 
 public class DefaultSocketProducer extends SingleThreadSendingProducer implements SocketProducer, Loggable {
+
+	private static final byte ZERO_BYTE = (byte) 0;
 
 	private final ByteBuffer buffer;
 
@@ -65,12 +69,18 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 	@Override
 	protected void onStart() {
 		this.socket = this.factory.createSocket(options);
-		switch (options.getType().trim().toLowerCase()) {
+		String type = options.getType().trim().toLowerCase();
+		switch (type) {
 		case "push":
 			socket.connect(address);
 			break;
 		case "pub":
-			socket.bind(address);
+			Endpoint endpoint = EndpointParser.parse(address);
+			if (SocketConnector.MULTICAST_TRANSPORTS.contains(endpoint.getProtocol())) {
+				socket.connect(address);
+			} else {
+				socket.bind(address);
+			}
 			break;
 		case "pair":
 			socket.connect(address);
@@ -102,16 +112,26 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
 	@Override
 	protected void executeSendOnSingleThread(Message message) throws Exception {
 		buffer.clear();
-		Payload payload = message.getPayload();
-		BArray.newFromSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody())
-				.writeBytes(buffer);
-		buffer.flip();
-		int sentBytes = this.socket.send(buffer);
-		if (sentBytes == -1) {
-			throw new SendMessageException();
+		if (options.getType().equalsIgnoreCase("pub")) {
+			if (message.getRoutingId().isPresent()) {
+				BValue routingId = message.getRoutingId().get();
+				buffer.put(routingId.getRaw());
+			}
+			buffer.put(ZERO_BYTE);
 		}
-		totalSentBytes += sentBytes;
-		totalSentMessages++;
+
+		Payload payload = message.getPayload();
+		if (payload != null) {
+			payload.toBArray().writeBytes(buffer);
+
+			buffer.flip();
+			int sentBytes = this.socket.send(buffer);
+			if (sentBytes == -1) {
+				throw new SendMessageException();
+			}
+			totalSentBytes += sentBytes;
+			totalSentMessages++;
+		}
 	}
 
 	@Override

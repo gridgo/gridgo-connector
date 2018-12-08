@@ -23,21 +23,22 @@ public class SocketUtils {
 			return messages.iterator().next();
 		}
 
-		BArray body = BArray.newDefault();
+		BArray body = BArray.ofEmpty();
 		for (Message mess : messages) {
 			Payload payload = mess.getPayload();
 			body.add(BArray.newFromSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody()));
 		}
-		Payload payload = Payload.newDefault(body)//
+		Payload payload = Payload.of(body)//
 				.addHeader(SocketConstants.IS_BATCH, true) //
 				.addHeader(SocketConstants.BATCH_SIZE, messages.size());
 
-		return Message.newDefault(payload);
+		return Message.of(payload);
 	}
 
 	public static void startPolling( //
 			Socket socket, //
 			ByteBuffer buffer, //
+			boolean skipTopicHeader, //
 			Consumer<Message> receiver, //
 			Consumer<Integer> recvByteCounter, //
 			Consumer<Integer> recvMsgCounter, //
@@ -63,7 +64,15 @@ public class SocketUtils {
 
 				Message message = null;
 				try {
-					message = Message.parse(buffer.flip());
+					buffer.flip();
+					if (skipTopicHeader) {
+						byte b = buffer.get();
+						while (b != 0) {
+							b = buffer.get();
+						}
+					}
+
+					message = Message.parse(buffer);
 					BObject headers = message.getPayload().getHeaders();
 					if (headers != null && headers.getBoolean(SocketConstants.IS_BATCH, false)) {
 						BArray subMessages = message.getPayload().getBody().asArray();

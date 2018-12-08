@@ -35,7 +35,7 @@ public abstract class AbstractResponder extends AbstractProducer implements Resp
 		return deferred.promise();
 	}
 
-	protected AsyncDeferredObject<Message, Exception> createDeferred() {
+	protected Deferred<Message, Exception> createDeferred() {
 		return new AsyncDeferredObject<>();
 	}
 

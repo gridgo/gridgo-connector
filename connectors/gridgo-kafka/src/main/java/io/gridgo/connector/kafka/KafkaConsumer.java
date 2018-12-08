@@ -39,9 +39,7 @@ public class KafkaConsumer extends AbstractConsumer {
 
 	static {
 		DEFAULT_EXECUTION_STRATEGY.start();
-		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			DEFAULT_EXECUTION_STRATEGY.stop();
-		}));
+		Runtime.getRuntime().addShutdownHook(new Thread(DEFAULT_EXECUTION_STRATEGY::stop));
 	}
 
 	private final KafkaConfiguration configuration;
@@ -307,7 +305,7 @@ public class KafkaConsumer extends AbstractConsumer {
 		}
 
 		private Message buildMessage(ConsumerRecord<Object, Object> record) {
-			var headers = BObject.newDefault();
+			var headers = BObject.ofEmpty();
 
 			populateCommonHeaders(headers, record);
 

@@ -24,7 +24,7 @@ public class Netty4WebsocketUtils {
 			try {
 				return BElement.fromJson(text);
 			} catch (Exception ex) {
-				return BValue.newDefault(text);
+				return BValue.of(text);
 			}
 		}
 		return null;
