@@ -42,6 +42,7 @@ public class VertxHttpConnector extends AbstractConnector {
 	}
 
 	private HttpServerOptions buildHttpServerOptions() {
+	    var acceptBacklog = getParam(VertxHttpConstants.ACCEPT_BACKLOG);
 		var compressionLevel = getParam(VertxHttpConstants.PARAM_COMPRESSION_LEVEL);
 		var compressionSupported = getParam(VertxHttpConstants.PARAM_COMPRESSION_SUPPORTED);
 		var useAlpn = Boolean.valueOf(getParam(VertxHttpConstants.PARAM_USE_ALPN, "false"));
@@ -56,6 +57,8 @@ public class VertxHttpConnector extends AbstractConnector {
 				.setHost(getPlaceholder(VertxHttpConstants.PLACEHOLDER_HOST))
 				.setPort(Integer.parseInt(getPlaceholder(VertxHttpConstants.PLACEHOLDER_PORT)))
 				.setKeyStoreOptions(keyStoreOptions);
+		if (acceptBacklog != null)
+		    options.setAcceptBacklog(Integer.parseInt(acceptBacklog));
 		if (compressionLevel != null)
 			options.setCompressionLevel(Integer.parseInt(compressionLevel));
 		if (compressionSupported != null)

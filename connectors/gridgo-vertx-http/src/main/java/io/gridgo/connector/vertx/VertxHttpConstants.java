@@ -39,4 +39,6 @@ public class VertxHttpConstants extends HttpCommonConsumerConstants {
 	public static final String COOKIE_VALUE = "cookieValue";
 
 	public static final String COOKIE_NAME = "cookieName";
+
+    public static final String ACCEPT_BACKLOG = "acceptBacklog";
 }
