@@ -1,7 +1,7 @@
 # gridgo-netty4
 
 ## overview
-This connector arm to handle duplex communication, support 2 transport protocols: TCP and WS (both binary and text frame). <br/>
+This connector aims to handle duplex communication, support 2 transport protocols: TCP and WS (both binary and text frame). <br/>
 Each connector provide both consumer and producer.
 
 ## endpoint syntax
