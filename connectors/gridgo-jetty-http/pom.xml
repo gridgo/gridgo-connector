@@ -12,14 +12,13 @@
 
 	<properties>
 		<jetty.version>9.4.14.v20181114</jetty.version>
-		<gridgo.http.common.version>${project.version}</gridgo.http.common.version>
 	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>io.gridgo</groupId>
 			<artifactId>gridgo-http-common</artifactId>
-			<version>${gridgo.http.common.version}</version>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty.http2</groupId>
