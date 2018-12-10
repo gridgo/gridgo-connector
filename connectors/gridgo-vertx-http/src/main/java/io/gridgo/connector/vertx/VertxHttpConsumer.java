@@ -192,7 +192,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 		populateCommonHeaders(ctx, headers);
 
 		if (ctx.request().method() == HttpMethod.GET)
-		    return createMessage(headers);
+		    return createMessage(headers, null);
 		var body = deserialize(ctx.getBody().getBytes());
 		return createMessage(headers, body);
 	}
