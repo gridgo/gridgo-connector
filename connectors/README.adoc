@@ -14,7 +14,7 @@ Connectors
 `http://httpPath` | 0.2.0 | Allow sending HTTP requests.
 
 | link:gridgo-http-jdk/README.adoc[HTTP/2] (gridgo-http-jdk) +
-`http2://httpPath` | 0.2.0 | Allow sending HTTP/2 requests using Java 9+ built-in HttpClient.
+`http2://httpPath` | 0.3.0 | Allow sending HTTP/2 requests using Java 9+ built-in HttpClient.
 
 | link:gridgo-kafka/README.adoc[Kafka] (gridgo-kafka) +
 `kafka:topic` | 0.1.0 | Allows messages to be sent to (or consumed from) Apache Kafka brokers.
