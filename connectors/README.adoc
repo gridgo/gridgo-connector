@@ -28,8 +28,8 @@ Connectors
 | link:gridgo-socket-zmq/README.adoc[ZMQ] (gridgo-socket-zmq) +
 `zmq:type:transport://host:port` | 0.1.0 | // TODO: Fill description.
 
-| link:gridgo-vertx-http/README.adoc[VertX HTTP] (gridgo-vertx-http) +
-`vertx:http://host:port/path` | 0.1.0 | HTTP server using VertX.
+| link:gridgo-vertx-http/README.adoc[Vert.x HTTP] (gridgo-vertx-http) +
+`vertx:http://host:port/path` | 0.1.0 | HTTP server using Vert.x.
 
 |===
 // components: END
