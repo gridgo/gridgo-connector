@@ -50,3 +50,22 @@ for a complete list of the options. Below are some important options
 
 |===
 // connector options: END
+
+=== headers
+
+// headers: START
+
+[width="100%",cols="2,2,5,^1",options="header"]
+|===
+
+| Name | Constants | Description  | Type
+| *isBatch* (consumer) | KafkaConstants.IS_BATCH | Whether or not the message is batched | Boolean
+| *batchSize* (consumer) | KafkaConstants.BATCH_SIZE | The size of the batch (for batched messages only) | Integer
+| *offset* (consumer) | KafkaConstants.OFFSET | The offset of the message (for batched messages, it will be offset of the last record) | Long
+| *kafka.TOPIC* (consumer) | KafkaConstants.TOPIC | The topic of the message | String
+| *kafka.PARTITION* (common) | KafkaConstants.PARTITION | The partition of the message | Integer
+| *kafka.TIMESTAMP* (common) | KafkaConstants.TIMESTAMP | The timestamp of the message | Long
+| *kafka.KEY* (common) | KafkaConstants.KEY | The key of the message (for non-batched messages only) | 
+
+|===
+// headers: END
