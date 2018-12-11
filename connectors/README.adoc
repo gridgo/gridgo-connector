@@ -7,6 +7,12 @@ Connectors
 |===
 | Component | Available From | Description
 
+| link:gridgo-file/README.adoc[File] (gridgo-file) +
+`file://fileUri` | 0.2.0 | Allow journalling messages to files with rolling support.
+
+| link:gridgo-http/README.adoc[HTTP] (gridgo-http) +
+`http://httpUri` | 0.2.0 | Allow sending HTTP requests.
+
 | link:gridgo-kafka/README.adoc[Kafka] (gridgo-kafka) +
 `kafka:topic` | 0.1.0 | Allows messages to be sent to (or consumed from) Apache Kafka brokers.
 
