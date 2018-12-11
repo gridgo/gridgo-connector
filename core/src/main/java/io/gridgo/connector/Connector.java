@@ -8,11 +8,11 @@ import io.gridgo.framework.ComponentLifecycle;
 
 public interface Connector extends ComponentLifecycle {
 
-	public Connector initialize(ConnectorConfig config, ConnectorContext context);
+    public Connector initialize(ConnectorConfig config, ConnectorContext context);
 
-	public Optional<Producer> getProducer();
+    public Optional<Producer> getProducer();
 
-	public Optional<Consumer> getConsumer();
+    public Optional<Consumer> getConsumer();
 
-	public ConnectorConfig getConnectorConfig();
+    public ConnectorConfig getConnectorConfig();
 }

@@ -14,49 +14,49 @@ import io.netty.util.concurrent.GenericFutureListener;
 
 class DefaultNetty4Responder extends AbstractResponder {
 
-	private Netty4SocketServer socketServer;
+    private Netty4SocketServer socketServer;
 
-	private final String uniqueIdentifier;
+    private final String uniqueIdentifier;
 
-	DefaultNetty4Responder(ConnectorContext context, Netty4SocketServer socketServer, String uniqueIdentifier) {
-		super(context);
-		this.socketServer = socketServer;
-		this.uniqueIdentifier = uniqueIdentifier;
-	}
+    DefaultNetty4Responder(ConnectorContext context, Netty4SocketServer socketServer, String uniqueIdentifier) {
+        super(context);
+        this.socketServer = socketServer;
+        this.uniqueIdentifier = uniqueIdentifier;
+    }
 
-	@Override
-	protected void send(Message message, Deferred<Message, Exception> deferred) {
-		if (!this.isStarted()) {
-			return;
-		}
-		String routingId = message.getRoutingId().orElseGet(() -> BValue.of(null)).getString();
-		BElement data = message.getPayload() == null ? null : message.getPayload().toBArray();
+    @Override
+    protected void send(Message message, Deferred<Message, Exception> deferred) {
+        if (!this.isStarted()) {
+            return;
+        }
+        String routingId = message.getRoutingId().orElseGet(() -> BValue.of(null)).getString();
+        BElement data = message.getPayload() == null ? null : message.getPayload().toBArray();
 
-		ChannelFuture future = this.socketServer.send(routingId, data);
-		if (deferred != null) {
-			if (future != null) {
-				future.addListener(new GenericFutureListener<Future<? super Void>>() {
+        ChannelFuture future = this.socketServer.send(routingId, data);
+        if (deferred != null) {
+            if (future != null) {
+                future.addListener(new GenericFutureListener<Future<? super Void>>() {
 
-					@Override
-					public void operationComplete(Future<? super Void> future) throws Exception {
-						deferred.resolve(null);
-					}
-				});
-			} else {
-				deferred.resolve(null);
-			}
-		}
-	}
+                    @Override
+                    public void operationComplete(Future<? super Void> future) throws Exception {
+                        deferred.resolve(null);
+                    }
+                });
+            } else {
+                deferred.resolve(null);
+            }
+        }
+    }
 
-	@Override
-	protected void onStop() {
-		this.socketServer = null;
-		super.onStop();
-	}
+    @Override
+    protected void onStop() {
+        this.socketServer = null;
+        super.onStop();
+    }
 
-	@Override
-	protected String generateName() {
-		return "producer." + this.uniqueIdentifier;
-	}
+    @Override
+    protected String generateName() {
+        return "producer." + this.uniqueIdentifier;
+    }
 
 }

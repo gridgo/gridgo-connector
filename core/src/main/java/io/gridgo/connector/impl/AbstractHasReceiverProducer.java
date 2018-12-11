@@ -9,11 +9,11 @@ import lombok.Setter;
 
 public abstract class AbstractHasReceiverProducer extends AbstractProducer implements HasReceiver {
 
-	protected AbstractHasReceiverProducer(ConnectorContext context) {
-		super(context);
-	}
+    protected AbstractHasReceiverProducer(ConnectorContext context) {
+        super(context);
+    }
 
-	@Getter
-	@Setter(AccessLevel.PROTECTED)
-	private Receiver receiver;
+    @Getter
+    @Setter(AccessLevel.PROTECTED)
+    private Receiver receiver;
 }

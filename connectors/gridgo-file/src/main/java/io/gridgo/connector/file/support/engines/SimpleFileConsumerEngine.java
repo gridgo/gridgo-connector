@@ -4,19 +4,19 @@ import io.gridgo.connector.file.FileConsumer;
 
 public class SimpleFileConsumerEngine implements FileConsumerEngine {
 
-	private FileConsumer fileConsumer;
+    private FileConsumer fileConsumer;
 
-	public SimpleFileConsumerEngine(FileConsumer fileConsumer) {
-		this.fileConsumer = fileConsumer;
-	}
+    public SimpleFileConsumerEngine(FileConsumer fileConsumer) {
+        this.fileConsumer = fileConsumer;
+    }
 
-	@Override
-	public void readAndPublish() {
-		throw new UnsupportedOperationException("Non-length-prepended mode is not supported for FileConsumer");
-	}
+    @Override
+    public void readAndPublish() {
+        throw new UnsupportedOperationException("Non-length-prepended mode is not supported for FileConsumer");
+    }
 
-	@Override
-	public String getFormat() {
-		return this.fileConsumer.getFormat();
-	}
+    @Override
+    public String getFormat() {
+        return this.fileConsumer.getFormat();
+    }
 }

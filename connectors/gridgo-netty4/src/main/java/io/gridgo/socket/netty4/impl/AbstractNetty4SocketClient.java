@@ -28,197 +28,197 @@ import lombok.Setter;
 
 public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket implements Netty4SocketClient {
 
-	@Setter
-	@Getter(AccessLevel.PROTECTED)
-	private Consumer<BElement> receiveCallback;
+    @Setter
+    @Getter(AccessLevel.PROTECTED)
+    private Consumer<BElement> receiveCallback;
 
-	@Setter
-	@Getter(AccessLevel.PROTECTED)
-	private Runnable channelOpenCallback;
+    @Setter
+    @Getter(AccessLevel.PROTECTED)
+    private Runnable channelOpenCallback;
 
-	@Setter
-	@Getter(AccessLevel.PROTECTED)
-	private Runnable channelCloseCallback;
+    @Setter
+    @Getter(AccessLevel.PROTECTED)
+    private Runnable channelCloseCallback;
 
-	@Getter(AccessLevel.PROTECTED)
-	private Channel channel;
+    @Getter(AccessLevel.PROTECTED)
+    private Channel channel;
 
-	private ChannelInitializer<SocketChannel> channelInitializer = new ChannelInitializer<SocketChannel>() {
+    private ChannelInitializer<SocketChannel> channelInitializer = new ChannelInitializer<SocketChannel>() {
 
-		@Override
-		public void initChannel(SocketChannel ch) throws Exception {
-			AbstractNetty4SocketClient.this.initChannel(ch);
-		}
-	};
+        @Override
+        public void initChannel(SocketChannel ch) throws Exception {
+            AbstractNetty4SocketClient.this.initChannel(ch);
+        }
+    };
 
-	private Bootstrap bootstrap;
+    private Bootstrap bootstrap;
 
-	private ChannelFuture connectFuture;
+    private ChannelFuture connectFuture;
 
-	@Override
-	public void connect(@NonNull final HostAndPort host) {
-		tryStart(() -> {
-			final AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
-			final CountDownLatch doneSignal = new CountDownLatch(1);
-			final Deferred<Void, Throwable> deferred = new AsyncDeferredObject<>();
+    @Override
+    public void connect(@NonNull final HostAndPort host) {
+        tryStart(() -> {
+            final AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
+            final CountDownLatch doneSignal = new CountDownLatch(1);
+            final Deferred<Void, Throwable> deferred = new AsyncDeferredObject<>();
 
-			deferred.promise().always((stt, result, failedCause) -> {
-				if (stt == DeferredStatus.REJECTED) {
-					if (failedCause == null) {
-						failedCause = new RuntimeException("Unknown error, cannot connect to server");
-					}
-					exceptionRef.set(failedCause);
-				}
-				doneSignal.countDown();
-			});
+            deferred.promise().always((stt, result, failedCause) -> {
+                if (stt == DeferredStatus.REJECTED) {
+                    if (failedCause == null) {
+                        failedCause = new RuntimeException("Unknown error, cannot connect to server");
+                    }
+                    exceptionRef.set(failedCause);
+                }
+                doneSignal.countDown();
+            });
 
-			new Thread(() -> {
-				this.executeConnect(host, deferred);
-			}).start();
+            new Thread(() -> {
+                this.executeConnect(host, deferred);
+            }).start();
 
-			try {
-				doneSignal.await();
-			} catch (InterruptedException e) {
-				throw new RuntimeException(e);
-			}
+            try {
+                doneSignal.await();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
 
-			if (exceptionRef.get() != null) {
-				throw new RuntimeException(exceptionRef.get());
-			}
-		});
-	}
+            if (exceptionRef.get() != null) {
+                throw new RuntimeException(exceptionRef.get());
+            }
+        });
+    }
 
-	private void initChannel(SocketChannel channel) {
-		this.onInitChannel(channel);
-		channel.pipeline().addLast("handler", this.newChannelHandlerDelegater());
-	}
+    private void initChannel(SocketChannel channel) {
+        this.onInitChannel(channel);
+        channel.pipeline().addLast("handler", this.newChannelHandlerDelegater());
+    }
 
-	protected abstract void onInitChannel(SocketChannel ch);
+    protected abstract void onInitChannel(SocketChannel ch);
 
-	protected Bootstrap createBootstrap() {
-		return new Bootstrap().channel(NioSocketChannel.class);
-	}
+    protected Bootstrap createBootstrap() {
+        return new Bootstrap().channel(NioSocketChannel.class);
+    }
 
-	private void executeConnect(HostAndPort host, Deferred<Void, Throwable> deferred) {
-		try {
-			this.onBeforeConnect(host);
-		} catch (Exception e) {
-			deferred.reject(e);
-			return;
-		}
+    private void executeConnect(HostAndPort host, Deferred<Void, Throwable> deferred) {
+        try {
+            this.onBeforeConnect(host);
+        } catch (Exception e) {
+            deferred.reject(e);
+            return;
+        }
 
-		final NioEventLoopGroup loopGroup = createLoopGroup();
+        final NioEventLoopGroup loopGroup = createLoopGroup();
 
-		bootstrap = createBootstrap();
-		bootstrap.group(loopGroup);
-		bootstrap.handler(this.channelInitializer);
+        bootstrap = createBootstrap();
+        bootstrap.group(loopGroup);
+        bootstrap.handler(this.channelInitializer);
 
-		Netty4SocketOptionsUtils.applyOptions(getConfigs(), bootstrap);
+        Netty4SocketOptionsUtils.applyOptions(getConfigs(), bootstrap);
 
-		this.connectFuture = bootstrap.connect(host.getHostOrDefault("localhost"), host.getPort());
+        this.connectFuture = bootstrap.connect(host.getHostOrDefault("localhost"), host.getPort());
 
-		boolean success = false;
-		try {
-			success = connectFuture.await().isSuccess();
-		} catch (InterruptedException e) {
-			deferred.reject(new RuntimeException("Error while connect to " + host, e));
-			return;
-		}
+        boolean success = false;
+        try {
+            success = connectFuture.await().isSuccess();
+        } catch (InterruptedException e) {
+            deferred.reject(new RuntimeException("Error while connect to " + host, e));
+            return;
+        }
 
-		try {
-			if (!success) {
-				deferred.reject(connectFuture.cause());
-			} else {
-				this.channel = connectFuture.channel();
-				try {
-					this.onAfterConnect();
-				} catch (Exception e) {
-					this.channel.close();
-					this.channel = null;
-					deferred.reject(e);
-					return;
-				}
-				deferred.resolve(null);
+        try {
+            if (!success) {
+                deferred.reject(connectFuture.cause());
+            } else {
+                this.channel = connectFuture.channel();
+                try {
+                    this.onAfterConnect();
+                } catch (Exception e) {
+                    this.channel.close();
+                    this.channel = null;
+                    deferred.reject(e);
+                    return;
+                }
+                deferred.resolve(null);
 
-				getLogger().info("Connect success to {}", host.toIpAndPort());
-				this.connectFuture.channel().closeFuture().await();
-			}
-		} catch (InterruptedException e) {
-			getLogger().error("Error while waiting for connectFuture tobe closed", e);
-		} finally {
-			loopGroup.shutdownGracefully();
-		}
-	}
+                getLogger().info("Connect success to {}", host.toIpAndPort());
+                this.connectFuture.channel().closeFuture().await();
+            }
+        } catch (InterruptedException e) {
+            getLogger().error("Error while waiting for connectFuture tobe closed", e);
+        } finally {
+            loopGroup.shutdownGracefully();
+        }
+    }
 
-	protected void onBeforeConnect(HostAndPort host) {
-		// do nothing
-	}
+    protected void onBeforeConnect(HostAndPort host) {
+        // do nothing
+    }
 
-	protected void onAfterConnect() {
-		// do nothing
-	}
+    protected void onAfterConnect() {
+        // do nothing
+    }
 
-	@Override
-	protected void onApplyConfig(String name) {
-		if (this.isStarted()) {
-			Netty4SocketOptionsUtils.applyOption(name, getConfigs(), bootstrap);
-		}
-	}
+    @Override
+    protected void onApplyConfig(String name) {
+        if (this.isStarted()) {
+            Netty4SocketOptionsUtils.applyOption(name, getConfigs(), bootstrap);
+        }
+    }
 
-	protected NioEventLoopGroup createLoopGroup() {
-		return new NioEventLoopGroup(this.getConfigs().getInteger("workerThreads", 1));
-	}
+    protected NioEventLoopGroup createLoopGroup() {
+        return new NioEventLoopGroup(this.getConfigs().getInteger("workerThreads", 1));
+    }
 
-	@Override
-	protected void onChannelActive(ChannelHandlerContext ctx) throws Exception {
-		if (this.getChannelOpenCallback() != null) {
-			this.getChannelOpenCallback().run();
-		}
-	}
+    @Override
+    protected void onChannelActive(ChannelHandlerContext ctx) throws Exception {
+        if (this.getChannelOpenCallback() != null) {
+            this.getChannelOpenCallback().run();
+        }
+    }
 
-	@Override
-	protected final void onChannelInactive(ChannelHandlerContext ctx) throws Exception {
+    @Override
+    protected final void onChannelInactive(ChannelHandlerContext ctx) throws Exception {
 //		System.out.println(this.getClass().getSimpleName() + " --> channel inactive");
-		if (isOkToClose()) {
-			// make sure the client state is sync with channel state, call close, the
-			// closedChannelException were ignored
+        if (isOkToClose()) {
+            // make sure the client state is sync with channel state, call close, the
+            // closedChannelException were ignored
 
 //			System.out.println(this.getClass().getSimpleName()
 //					+ " --> channel inactive by connection itself, calling close to sync the state");
-			this.close();
-		}
+            this.close();
+        }
 
-		if (this.getChannelCloseCallback() != null) {
+        if (this.getChannelCloseCallback() != null) {
 //			System.out.println(this.getClass().getSimpleName() + " --> calling channel close callback...");
-			this.getChannelCloseCallback().run();
-		}
-	}
+            this.getChannelCloseCallback().run();
+        }
+    }
 
-	@Override
-	protected void onClose() throws IOException {
-		if (this.getChannel().isOpen()) {
+    @Override
+    protected void onClose() throws IOException {
+        if (this.getChannel().isOpen()) {
 //			System.out.println("[socket client] - closing channel actively");
-			this.getChannel().close().syncUninterruptibly();
+            this.getChannel().close().syncUninterruptibly();
 //			System.out.println("[socket client] - channel closed");
-		}
-	}
+        }
+    }
 
-	@Override
-	protected void onChannelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-		if (this.getReceiveCallback() != null) {
-			this.getReceiveCallback().accept(this.handleIncomingMessage("", msg));
-		}
-	}
+    @Override
+    protected void onChannelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        if (this.getReceiveCallback() != null) {
+            this.getReceiveCallback().accept(this.handleIncomingMessage("", msg));
+        }
+    }
 
-	@Override
-	public ChannelFuture send(BElement data) {
-		return this.channel.writeAndFlush(data);
-	}
+    @Override
+    public ChannelFuture send(BElement data) {
+        return this.channel.writeAndFlush(data);
+    }
 
-	@Override
-	protected final BElement handleIncomingMessage(String channelId, Object msg) throws Exception {
-		return this.handleIncomingMessage(msg);
-	}
+    @Override
+    protected final BElement handleIncomingMessage(String channelId, Object msg) throws Exception {
+        return this.handleIncomingMessage(msg);
+    }
 
-	protected abstract BElement handleIncomingMessage(Object msg) throws Exception;
+    protected abstract BElement handleIncomingMessage(Object msg) throws Exception;
 }

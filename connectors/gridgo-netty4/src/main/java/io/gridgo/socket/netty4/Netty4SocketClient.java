@@ -8,13 +8,13 @@ import io.netty.channel.ChannelFuture;
 
 public interface Netty4SocketClient extends Netty4Socket {
 
-	void connect(HostAndPort host);
+    void connect(HostAndPort host);
 
-	ChannelFuture send(BElement data);
+    ChannelFuture send(BElement data);
 
-	void setReceiveCallback(Consumer<BElement> onReceiveCallback);
+    void setReceiveCallback(Consumer<BElement> onReceiveCallback);
 
-	void setChannelOpenCallback(Runnable onChannelOpenCallback);
+    void setChannelOpenCallback(Runnable onChannelOpenCallback);
 
-	void setChannelCloseCallback(Runnable onChannelCloseCallback);
+    void setChannelCloseCallback(Runnable onChannelCloseCallback);
 }

@@ -10,60 +10,60 @@ import net.jodah.failsafe.internal.util.Assert;
 
 public class ZMQSocketFactory extends BaseSocketFactory {
 
-	@Getter(AccessLevel.PROTECTED)
-	private final ZMQ.Context ctx;
+    @Getter(AccessLevel.PROTECTED)
+    private final ZMQ.Context ctx;
 
-	@Getter
-	private final String type = "zmq";
+    @Getter
+    private final String type = "zmq";
 
-	public ZMQSocketFactory() {
-		this(1);
-	}
+    public ZMQSocketFactory() {
+        this(1);
+    }
 
-	public ZMQSocketFactory(int ioThreads) {
-		this.ctx = ZMQ.context(ioThreads);
-	}
+    public ZMQSocketFactory(int ioThreads) {
+        this.ctx = ZMQ.context(ioThreads);
+    }
 
-	private Socket createZmqSocket(int type) {
-		return new ZMQSocket(ctx.socket(type));
-	}
+    private Socket createZmqSocket(int type) {
+        return new ZMQSocket(ctx.socket(type));
+    }
 
-	protected Socket createCustomSocket(String type) {
-		Assert.notNull(type, "Socket type");
-		switch (type.toLowerCase()) {
-		case "router":
-			return createZmqSocket(ZMQ.ROUTER);
-		case "dealer":
-			return createZmqSocket(ZMQ.DEALER);
-		}
-		return null;
-	}
+    protected Socket createCustomSocket(String type) {
+        Assert.notNull(type, "Socket type");
+        switch (type.toLowerCase()) {
+        case "router":
+            return createZmqSocket(ZMQ.ROUTER);
+        case "dealer":
+            return createZmqSocket(ZMQ.DEALER);
+        }
+        return null;
+    }
 
-	protected Socket createPullSocket() {
-		return createZmqSocket(ZMQ.PULL);
-	}
+    protected Socket createPullSocket() {
+        return createZmqSocket(ZMQ.PULL);
+    }
 
-	protected Socket createPushSocket() {
-		return createZmqSocket(ZMQ.PUSH);
-	}
+    protected Socket createPushSocket() {
+        return createZmqSocket(ZMQ.PUSH);
+    }
 
-	protected Socket createPubSocket() {
-		return createZmqSocket(ZMQ.PUB);
-	}
+    protected Socket createPubSocket() {
+        return createZmqSocket(ZMQ.PUB);
+    }
 
-	protected Socket createSubSocket() {
-		return createZmqSocket(ZMQ.SUB);
-	}
+    protected Socket createSubSocket() {
+        return createZmqSocket(ZMQ.SUB);
+    }
 
-	protected Socket createReqSocket() {
-		return createZmqSocket(ZMQ.REQ);
-	}
+    protected Socket createReqSocket() {
+        return createZmqSocket(ZMQ.REQ);
+    }
 
-	protected Socket createRepSocket() {
-		return createZmqSocket(ZMQ.REP);
-	}
+    protected Socket createRepSocket() {
+        return createZmqSocket(ZMQ.REP);
+    }
 
-	protected Socket createPairSocket() {
-		return createZmqSocket(ZMQ.PAIR);
-	}
+    protected Socket createPairSocket() {
+        return createZmqSocket(ZMQ.PAIR);
+    }
 }

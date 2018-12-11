@@ -10,33 +10,33 @@ import io.gridgo.connector.Consumer;
 
 public interface RabbitMQConsumer extends Consumer, RabbitMQChannelLifeCycle {
 
-	default void subscibe(DeliverCallback onMessageCallback, CancelCallback onCancelCallback) {
-		try {
-			String queueName = getQueueConfig().getQueueName();
+    default void subscibe(DeliverCallback onMessageCallback, CancelCallback onCancelCallback) {
+        try {
+            String queueName = getQueueConfig().getQueueName();
 
-			if (queueName == null || queueName.isBlank()) {
-				queueName = getChannel().queueDeclare().getQueue();
-				this.getQueueConfig().setQueueName(queueName);
-			}
+            if (queueName == null || queueName.isBlank()) {
+                queueName = getChannel().queueDeclare().getQueue();
+                this.getQueueConfig().setQueueName(queueName);
+            }
 
-			String exchangeName = getQueueConfig().getExchangeName();
+            String exchangeName = getQueueConfig().getExchangeName();
 
-			if (exchangeName != null && !exchangeName.isBlank()) {
-				List<String> routingKeys = getQueueConfig().getRoutingKeys();
-				if (routingKeys.size() > 0) {
-					for (String routingKey : routingKeys) {
-						getChannel().queueBind(queueName, exchangeName, routingKey);
-					}
-				} else {
-					getChannel().queueBind(queueName, exchangeName, "");
-				}
-			}
+            if (exchangeName != null && !exchangeName.isBlank()) {
+                List<String> routingKeys = getQueueConfig().getRoutingKeys();
+                if (routingKeys.size() > 0) {
+                    for (String routingKey : routingKeys) {
+                        getChannel().queueBind(queueName, exchangeName, routingKey);
+                    }
+                } else {
+                    getChannel().queueBind(queueName, exchangeName, "");
+                }
+            }
 
-			boolean autoAck = getQueueConfig().isAutoAck();
-			this.getChannel().basicConsume(queueName, autoAck, onMessageCallback, onCancelCallback);
+            boolean autoAck = getQueueConfig().isAutoAck();
+            this.getChannel().basicConsume(queueName, autoAck, onMessageCallback, onCancelCallback);
 
-		} catch (IOException e) {
-			throw new RuntimeException("Cannot init basic consume", e);
-		}
-	}
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot init basic consume", e);
+        }
+    }
 }

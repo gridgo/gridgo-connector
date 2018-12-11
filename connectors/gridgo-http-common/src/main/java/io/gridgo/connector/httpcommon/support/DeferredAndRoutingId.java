@@ -11,7 +11,7 @@ import lombok.Data;
 @Builder
 public class DeferredAndRoutingId {
 
-	private Deferred<Message, Exception> deferred;
+    private Deferred<Message, Exception> deferred;
 
-	private BValue routingId;
+    private BValue routingId;
 }

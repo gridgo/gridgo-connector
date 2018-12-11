@@ -13,73 +13,73 @@ import lombok.Getter;
 
 public abstract class AbstractConnector extends AbstractComponentLifecycle implements Connector {
 
-	protected static final String LOCALHOST = "localhost";
+    protected static final String LOCALHOST = "localhost";
 
-	private final AtomicBoolean initialized = new AtomicBoolean(false);
+    private final AtomicBoolean initialized = new AtomicBoolean(false);
 
-	@Getter
-	private ConnectorConfig connectorConfig;
+    @Getter
+    private ConnectorConfig connectorConfig;
 
-	@Getter
-	private ConnectorContext context;
+    @Getter
+    private ConnectorContext context;
 
-	protected Optional<Consumer> consumer = Optional.empty();
+    protected Optional<Consumer> consumer = Optional.empty();
 
-	protected Optional<Producer> producer = Optional.empty();
+    protected Optional<Producer> producer = Optional.empty();
 
-	@Override
-	public final Connector initialize(ConnectorConfig config, ConnectorContext context) {
-		if (initialized.compareAndSet(false, true)) {
-			this.context = context;
-			this.connectorConfig = config;
-			this.onInit();
-			return this;
-		}
-		throw new IllegalStateException("Cannot re-init connector of type " + this.getClass().getName());
-	}
+    @Override
+    public final Connector initialize(ConnectorConfig config, ConnectorContext context) {
+        if (initialized.compareAndSet(false, true)) {
+            this.context = context;
+            this.connectorConfig = config;
+            this.onInit();
+            return this;
+        }
+        throw new IllegalStateException("Cannot re-init connector of type " + this.getClass().getName());
+    }
 
-	@Override
-	public final Optional<Producer> getProducer() {
-		return producer;
-	}
+    @Override
+    public final Optional<Producer> getProducer() {
+        return producer;
+    }
 
-	@Override
-	public final Optional<Consumer> getConsumer() {
-		return consumer;
-	}
+    @Override
+    public final Optional<Consumer> getConsumer() {
+        return consumer;
+    }
 
-	protected String getParam(String name) {
-		Object value = connectorConfig.getParameters().get(name);
-		return value != null ? value.toString() : null;
-	}
+    protected String getParam(String name) {
+        Object value = connectorConfig.getParameters().get(name);
+        return value != null ? value.toString() : null;
+    }
 
-	protected String getParam(String name, String defaultValue) {
-		Object value = connectorConfig.getParameters().getOrDefault(name, defaultValue);
-		return value != null ? value.toString() : null;
-	}
+    protected String getParam(String name, String defaultValue) {
+        Object value = connectorConfig.getParameters().getOrDefault(name, defaultValue);
+        return value != null ? value.toString() : null;
+    }
 
-	protected String getPlaceholder(String name) {
-		return connectorConfig.getPlaceholders().getProperty(name);
-	}
+    protected String getPlaceholder(String name) {
+        return connectorConfig.getPlaceholders().getProperty(name);
+    }
 
-	protected void onInit() {
-		// do nothing
-	}
+    protected void onInit() {
+        // do nothing
+    }
 
-	@Override
-	protected void onStart() {
-		this.consumer.ifPresent(c -> c.start());
-		this.producer.ifPresent(c -> c.start());
-	}
+    @Override
+    protected void onStart() {
+        this.consumer.ifPresent(c -> c.start());
+        this.producer.ifPresent(c -> c.start());
+    }
 
-	@Override
-	protected void onStop() {
-		this.consumer.ifPresent(c -> c.stop());
-		this.producer.ifPresent(c -> c.stop());
-	}
+    @Override
+    protected void onStop() {
+        this.consumer.ifPresent(c -> c.stop());
+        this.producer.ifPresent(c -> c.stop());
+    }
 
-	@Override
-	protected String generateName() {
-		return "connector." + connectorConfig.getNonQueryEndpoint();
-	}
+    @Override
+    protected String generateName() {
+        return "connector." + connectorConfig.getNonQueryEndpoint();
+    }
 }

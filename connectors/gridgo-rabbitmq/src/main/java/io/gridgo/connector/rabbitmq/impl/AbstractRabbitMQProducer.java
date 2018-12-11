@@ -29,142 +29,142 @@ import lombok.NonNull;
 
 public abstract class AbstractRabbitMQProducer extends AbstractProducer implements RabbitMQProducer {
 
-	private static final TimeBasedIdGenerator TIME_BASED_ID_GENERATOR = new TimeBasedIdGenerator();
+    private static final TimeBasedIdGenerator TIME_BASED_ID_GENERATOR = new TimeBasedIdGenerator();
 
-	private final Connection connection;
+    private final Connection connection;
 
-	@Getter
-	private final RabbitMQQueueConfig queueConfig;
+    @Getter
+    private final RabbitMQQueueConfig queueConfig;
 
-	@Getter
-	private Channel channel;
+    @Getter
+    private Channel channel;
 
-	@Getter
-	private String responseQueue;
+    @Getter
+    private String responseQueue;
 
-	@Getter(AccessLevel.PROTECTED)
-	private final String uniqueIdentifier;
+    @Getter(AccessLevel.PROTECTED)
+    private final String uniqueIdentifier;
 
-	private final Map<String, Deferred<Message, Exception>> correlationIdToDeferredMap = new NonBlockingHashMap<>();
+    private final Map<String, Deferred<Message, Exception>> correlationIdToDeferredMap = new NonBlockingHashMap<>();
 
-	protected AbstractRabbitMQProducer(@NonNull ConnectorContext context, @NonNull Connection connection,
-			@NonNull RabbitMQQueueConfig queueConfig, @NonNull String uniqueIdentifier) {
-		super(context);
-		this.connection = connection;
-		this.queueConfig = queueConfig;
-		this.uniqueIdentifier = uniqueIdentifier;
-	}
+    protected AbstractRabbitMQProducer(@NonNull ConnectorContext context, @NonNull Connection connection,
+            @NonNull RabbitMQQueueConfig queueConfig, @NonNull String uniqueIdentifier) {
+        super(context);
+        this.connection = connection;
+        this.queueConfig = queueConfig;
+        this.uniqueIdentifier = uniqueIdentifier;
+    }
 
-	@Override
-	protected String generateName() {
-		return null;
-	}
+    @Override
+    protected String generateName() {
+        return null;
+    }
 
-	@Override
-	protected void onStart() {
-		this.channel = this.initChannel(connection);
-		if (this.getQueueConfig().isRpc()) {
-			this.responseQueue = this.initResponseQueue(this::onResponse);
-		}
-	}
+    @Override
+    protected void onStart() {
+        this.channel = this.initChannel(connection);
+        if (this.getQueueConfig().isRpc()) {
+            this.responseQueue = this.initResponseQueue(this::onResponse);
+        }
+    }
 
-	@Override
-	protected void onStop() {
-		this.closeChannel();
-	}
+    @Override
+    protected void onStop() {
+        this.closeChannel();
+    }
 
-	private void _send(final Message request, final Deferred<Message, Exception> deferred) {
-		final Optional<BValue> routingId = request.getRoutingId();
-		final String routingKey = routingId == null ? null : routingId.orElse(BValue.ofEmpty()).getString();
+    private void _send(final Message request, final Deferred<Message, Exception> deferred) {
+        final Optional<BValue> routingId = request.getRoutingId();
+        final String routingKey = routingId == null ? null : routingId.orElse(BValue.ofEmpty()).getString();
 
-		getContext().getProducerExecutionStrategy().execute(() -> {
-			this.publish(buildRequestBody(request.getPayload()), null, routingKey);
-			if (deferred != null) {
-				deferred.resolve(null);
-			}
-		});
-	}
+        getContext().getProducerExecutionStrategy().execute(() -> {
+            this.publish(buildRequestBody(request.getPayload()), null, routingKey);
+            if (deferred != null) {
+                deferred.resolve(null);
+            }
+        });
+    }
 
-	@Override
-	public final void send(@NonNull Message request) {
-		this._send(request, null);
-	}
+    @Override
+    public final void send(@NonNull Message request) {
+        this._send(request, null);
+    }
 
-	@Override
-	public final Promise<Message, Exception> sendWithAck(@NonNull Message message) {
-		Deferred<Message, Exception> deferred = new AsyncDeferredObject<>();
-		this._send(message, deferred);
-		return deferred.promise();
-	}
+    @Override
+    public final Promise<Message, Exception> sendWithAck(@NonNull Message message) {
+        Deferred<Message, Exception> deferred = new AsyncDeferredObject<>();
+        this._send(message, deferred);
+        return deferred.promise();
+    }
 
-	private void onResponse(String consumerTag, Delivery delivery) {
-		String id = delivery.getProperties().getCorrelationId();
-		Deferred<Message, Exception> deferred = this.correlationIdToDeferredMap.get(id);
-		if (deferred != null) {
-			getContext().getCallbackInvokerStrategy().execute(() -> {
-				Message result = null;
-				try {
-					result = Message.parse(delivery.getBody());
-				} catch (Exception e) {
-					deferred.reject(e);
-				}
-				if (result != null) {
-					deferred.resolve(result);
-				}
-			});
-		}
-	}
+    private void onResponse(String consumerTag, Delivery delivery) {
+        String id = delivery.getProperties().getCorrelationId();
+        Deferred<Message, Exception> deferred = this.correlationIdToDeferredMap.get(id);
+        if (deferred != null) {
+            getContext().getCallbackInvokerStrategy().execute(() -> {
+                Message result = null;
+                try {
+                    result = Message.parse(delivery.getBody());
+                } catch (Exception e) {
+                    deferred.reject(e);
+                }
+                if (result != null) {
+                    deferred.resolve(result);
+                }
+            });
+        }
+    }
 
-	@Override
-	public final Promise<Message, Exception> call(Message request) {
-		if (this.queueConfig.isRpc()) {
+    @Override
+    public final Promise<Message, Exception> call(Message request) {
+        if (this.queueConfig.isRpc()) {
 
-			Optional<BValue> routingId = request.getRoutingId();
-			String routingKey = routingId.isPresent() ? routingId.get().getString() : null;
+            Optional<BValue> routingId = request.getRoutingId();
+            String routingKey = routingId.isPresent() ? routingId.get().getString() : null;
 
-			final String corrId = TIME_BASED_ID_GENERATOR.generateId().get().getString();
-			final BasicProperties props = createBasicProperties(corrId);
-			byte[] bytes = buildRequestBody(request.getPayload());
+            final String corrId = TIME_BASED_ID_GENERATOR.generateId().get().getString();
+            final BasicProperties props = createBasicProperties(corrId);
+            byte[] bytes = buildRequestBody(request.getPayload());
 
-			final Deferred<Message, Exception> deferred = createDeferred();
+            final Deferred<Message, Exception> deferred = createDeferred();
 
-			this.correlationIdToDeferredMap.put(corrId, deferred);
-			deferred.promise().always((status, message, ex) -> {
-				correlationIdToDeferredMap.remove(corrId);
-			});
+            this.correlationIdToDeferredMap.put(corrId, deferred);
+            deferred.promise().always((status, message, ex) -> {
+                correlationIdToDeferredMap.remove(corrId);
+            });
 
-			getContext().getProducerExecutionStrategy().execute(() -> {
-				try {
-					this.publish(bytes, props, routingKey);
-				} catch (Exception e) {
-					deferred.reject(e);
-				}
-			});
+            getContext().getProducerExecutionStrategy().execute(() -> {
+                try {
+                    this.publish(bytes, props, routingKey);
+                } catch (Exception e) {
+                    deferred.reject(e);
+                }
+            });
 
-			return deferred.promise();
-		}
+            return deferred.promise();
+        }
 
-		throw new UnsupportedOperationException(
-				"Cannot make a call on non-rpc rabbitmq producer, use rpc=true in connector endpoint");
-	}
+        throw new UnsupportedOperationException(
+                "Cannot make a call on non-rpc rabbitmq producer, use rpc=true in connector endpoint");
+    }
 
-	protected byte[] buildRequestBody(Payload payload) {
-		return BArray.newFromSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody()).toBytes();
-	}
+    protected byte[] buildRequestBody(Payload payload) {
+        return BArray.newFromSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody()).toBytes();
+    }
 
-	protected BasicProperties createBasicProperties(String correlationId) {
-		return new BasicProperties.Builder() //
-				.correlationId(correlationId) //
-				.replyTo(this.responseQueue) //
-				.build();
-	}
+    protected BasicProperties createBasicProperties(String correlationId) {
+        return new BasicProperties.Builder() //
+                                            .correlationId(correlationId) //
+                                            .replyTo(this.responseQueue) //
+                                            .build();
+    }
 
-	protected Deferred<Message, Exception> createDeferred() {
-		return new CompletableDeferredObject<>();
-	}
+    protected Deferred<Message, Exception> createDeferred() {
+        return new CompletableDeferredObject<>();
+    }
 
-	@Override
-	public boolean isCallSupported() {
-		return true;
-	}
+    @Override
+    public boolean isCallSupported() {
+        return true;
+    }
 }

@@ -9,9 +9,9 @@ import lombok.NonNull;
 
 public interface Producer extends ComponentLifecycle, ProducerCapability {
 
-	public void send(final @NonNull Message message);
+    public void send(final @NonNull Message message);
 
-	public Promise<Message, Exception> sendWithAck(final @NonNull Message message);
+    public Promise<Message, Exception> sendWithAck(final @NonNull Message message);
 
-	public Promise<Message, Exception> call(final @NonNull Message request);
+    public Promise<Message, Exception> call(final @NonNull Message request);
 }

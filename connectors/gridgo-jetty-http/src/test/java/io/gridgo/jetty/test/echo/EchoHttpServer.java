@@ -18,66 +18,68 @@ import io.gridgo.utils.ThreadUtils;
 
 public class EchoHttpServer {
 
-	private static final ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.connector");
+    private static final ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.connector");
 
-	private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
-	private Connector connector;
-	private Consumer consumer;
-	private Producer responder;
+    private Connector connector;
+    private Consumer consumer;
+    private Producer responder;
 
-	public static void main(String[] args) {
-		if (args == null || args.length == 0) {
-			System.out.println("Usage: provide argument 1 as <endpoint>, example: http://localhost:8080/path");
-			return;
-		}
-		final EchoHttpServer app = new EchoHttpServer(args[0]);
-		ThreadUtils.registerShutdownTask(() -> {
-			app.stop();
-		});
-		app.start();
-	}
+    public static void main(String[] args) {
+        if (args == null || args.length == 0) {
+            System.out.println("Usage: provide argument 1 as <endpoint>, example: http://localhost:8080/path");
+            return;
+        }
+        final EchoHttpServer app = new EchoHttpServer(args[0]);
+        ThreadUtils.registerShutdownTask(() -> {
+            app.stop();
+        });
+        app.start();
+    }
 
-	private EchoHttpServer(String endpoint) {
-		System.out.println("Http server listen on: " + endpoint);
+    private EchoHttpServer(String endpoint) {
+        System.out.println("Http server listen on: " + endpoint);
 
-		ConnectorContext connectorContext = new DefaultConnectorContextBuilder() //
-				.setCallbackInvokerStrategy(new ExecutorExecutionStrategy(executor)) //
-				.setExceptionHandler((ex) -> {
-					ex.printStackTrace();
-				}) //
-				.build();
+        ConnectorContext connectorContext = new DefaultConnectorContextBuilder() //
+                                                                                .setCallbackInvokerStrategy(
+                                                                                        new ExecutorExecutionStrategy(
+                                                                                                executor)) //
+                                                                                .setExceptionHandler((ex) -> {
+                                                                                    ex.printStackTrace();
+                                                                                }) //
+                                                                                .build();
 
-		connector = resolver.resolve("jetty:" + endpoint, connectorContext);
-	}
+        connector = resolver.resolve("jetty:" + endpoint, connectorContext);
+    }
 
-	private void start() {
-		connector.start();
+    private void start() {
+        connector.start();
 
-		consumer = connector.getConsumer().get();
-		responder = connector.getProducer().get();
+        consumer = connector.getConsumer().get();
+        responder = connector.getProducer().get();
 
-		consumer.subscribe(this::onRequest);
-	}
+        consumer.subscribe(this::onRequest);
+    }
 
-	private void onRequest(Message message) {
-		System.out.println("Got message payload: " + message.getPayload().toBArray());
+    private void onRequest(Message message) {
+        System.out.println("Got message payload: " + message.getPayload().toBArray());
 
-		BElement body = message.getPayload().toBArray();
-		Payload payload = Payload.of(body);
-		Message response = Message.of(payload).setRoutingIdFromAny(message.getRoutingId().get());
+        BElement body = message.getPayload().toBArray();
+        Payload payload = Payload.of(body);
+        Message response = Message.of(payload).setRoutingIdFromAny(message.getRoutingId().get());
 
-		this.responder.send(response);
-	}
+        this.responder.send(response);
+    }
 
-	private void stop() {
-		try {
-			this.consumer.clearSubscribers();
-			this.connector.stop();
-		} finally {
-			this.connector = null;
-			this.consumer = null;
-			this.responder = null;
-		}
-	}
+    private void stop() {
+        try {
+            this.consumer.clearSubscribers();
+            this.connector.stop();
+        } finally {
+            this.connector = null;
+            this.consumer = null;
+            this.responder = null;
+        }
+    }
 }

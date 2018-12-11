@@ -9,8 +9,8 @@ import lombok.Data;
 
 @Data
 public class KafkaConfiguration {
-	
-	// common
+
+    // common
     private String topic;
 
     private String brokers;
@@ -44,7 +44,7 @@ public class KafkaConfiguration {
     private Long maxPollIntervalMs;
 
     private String autoOffsetReset = "latest";
-    
+
     private String partitionAssignor = KafkaConstants.PARTITIONER_RANGE_ASSIGNOR;
 
     private int consumerRequestTimeoutMs = 40000;
@@ -56,16 +56,16 @@ public class KafkaConfiguration {
     private int fetchWaitMaxMs = 500;
 
     private String seekTo;
-    
+
     private boolean batchEnabled = false;
-    
+
     private boolean breakOnFirstError = true;
 
     // consumer
     private boolean autoCommitEnable = true;
 
     private String autoCommitOnStop = "sync";
-    
+
     private boolean topicIsPattern = false;
 
     // producer
@@ -125,7 +125,7 @@ public class KafkaConfiguration {
 
     public Properties createProducerProperties() {
         var props = new Properties();
-        
+
         addPropertyIfNotNull(props, ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getBrokers());
         addPropertyIfNotNull(props, ConsumerConfig.GROUP_ID_CONFIG, getGroupId());
         addPropertyIfNotNull(props, ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, getKeySerializerClass());
@@ -161,7 +161,7 @@ public class KafkaConfiguration {
 
     public Properties createConsumerProperties() {
         var props = new Properties();
-        
+
         addPropertyIfNotNull(props, ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getBrokers());
         addPropertyIfNotNull(props, ConsumerConfig.GROUP_ID_CONFIG, getGroupId());
         addPropertyIfNotNull(props, ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, getKeyDeserializer());

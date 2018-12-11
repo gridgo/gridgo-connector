@@ -13,60 +13,60 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class LengthPrependedFileConsumerEngine implements FileConsumerEngine {
 
-	private FileConsumer fileConsumer;
+    private FileConsumer fileConsumer;
 
-	public LengthPrependedFileConsumerEngine(FileConsumer fileConsumer) {
-		this.fileConsumer = fileConsumer;
-	}
+    public LengthPrependedFileConsumerEngine(FileConsumer fileConsumer) {
+        this.fileConsumer = fileConsumer;
+    }
 
-	@Override
-	public void readAndPublish() {
-		var buffer = this.fileConsumer.getBuffer();
-		try {
-			this.fileConsumer.getLimitStrategy().readWith(raf -> {
-				readAndPublish(buffer, raf);
-			});
-		} catch (IOException ex) {
-			log.error("Exception caught when processing file", ex);
-			throw new RuntimeException(ex);
-		}
-	}
+    @Override
+    public void readAndPublish() {
+        var buffer = this.fileConsumer.getBuffer();
+        try {
+            this.fileConsumer.getLimitStrategy().readWith(raf -> {
+                readAndPublish(buffer, raf);
+            });
+        } catch (IOException ex) {
+            log.error("Exception caught when processing file", ex);
+            throw new RuntimeException(ex);
+        }
+    }
 
-	private void readAndPublish(byte[] buffer, RandomAccessFile randomAccessFile) throws IOException {
-		while (true) {
-			var length = tryGetLength(randomAccessFile);
-			if (length == -1)
-				break;
-			if (length > buffer.length) {
-				log.warn("Buffer overflow detected. Limit: %d. Required: %d", buffer.length, length);
-				buffer = new byte[length];
-			}
-			int read = randomAccessFile.read(buffer, 0, length);
-			if (read != length)
-				throw new LengthMismatchException(length, read);
-			var payload = deserialize(buffer, length);
-			var msg = Message.parse(payload);
-			if (msg instanceof MultipartMessage) {
-				var messages = ((MultipartMessage) msg).buildOriginalMessages();
-				for (var message : messages) {
-					this.fileConsumer.publishMessage(message);
-				}
-			} else {
-				this.fileConsumer.publishMessage(msg);
-			}
-		}
-	}
+    private void readAndPublish(byte[] buffer, RandomAccessFile randomAccessFile) throws IOException {
+        while (true) {
+            var length = tryGetLength(randomAccessFile);
+            if (length == -1)
+                break;
+            if (length > buffer.length) {
+                log.warn("Buffer overflow detected. Limit: %d. Required: %d", buffer.length, length);
+                buffer = new byte[length];
+            }
+            int read = randomAccessFile.read(buffer, 0, length);
+            if (read != length)
+                throw new LengthMismatchException(length, read);
+            var payload = deserialize(buffer, length);
+            var msg = Message.parse(payload);
+            if (msg instanceof MultipartMessage) {
+                var messages = ((MultipartMessage) msg).buildOriginalMessages();
+                for (var message : messages) {
+                    this.fileConsumer.publishMessage(message);
+                }
+            } else {
+                this.fileConsumer.publishMessage(msg);
+            }
+        }
+    }
 
-	private int tryGetLength(RandomAccessFile randomAccessFile) throws IOException {
-		try {
-			return randomAccessFile.readInt();
-		} catch (EOFException ex) {
-			return -1;
-		}
-	}
+    private int tryGetLength(RandomAccessFile randomAccessFile) throws IOException {
+        try {
+            return randomAccessFile.readInt();
+        } catch (EOFException ex) {
+            return -1;
+        }
+    }
 
-	@Override
-	public String getFormat() {
-		return this.fileConsumer.getFormat();
-	}
+    @Override
+    public String getFormat() {
+        return this.fileConsumer.getFormat();
+    }
 }

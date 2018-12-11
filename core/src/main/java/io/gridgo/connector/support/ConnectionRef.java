@@ -7,33 +7,33 @@ import lombok.Getter;
 @Getter
 public class ConnectionRef<T> {
 
-	private T connection;
+    private T connection;
 
-	private AtomicInteger refCount = new AtomicInteger(0);
+    private AtomicInteger refCount = new AtomicInteger(0);
 
-	public ConnectionRef(T connection) {
-		this.connection = connection;
-	}
+    public ConnectionRef(T connection) {
+        this.connection = connection;
+    }
 
-	public int getRefCount() {
-		return refCount.get();
-	}
+    public int getRefCount() {
+        return refCount.get();
+    }
 
-	public int ref() {
-		return refCount.incrementAndGet();
-	}
+    public int ref() {
+        return refCount.incrementAndGet();
+    }
 
-	public int deref() {
-		int value = -1;
-		int ref = 0;
-		do {
-			value = refCount.get();
-			ref = value > 0 ? value - 1 : 0;
-		} while (!refCount.compareAndSet(value, ref));
-		return ref;
-	}
+    public int deref() {
+        int value = -1;
+        int ref = 0;
+        do {
+            value = refCount.get();
+            ref = value > 0 ? value - 1 : 0;
+        } while (!refCount.compareAndSet(value, ref));
+        return ref;
+    }
 
-	public void dispose() {
-		this.connection = null;
-	}
+    public void dispose() {
+        this.connection = null;
+    }
 }

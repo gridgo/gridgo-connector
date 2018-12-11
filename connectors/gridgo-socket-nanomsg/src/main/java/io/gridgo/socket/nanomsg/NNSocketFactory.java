@@ -9,53 +9,53 @@ import lombok.Getter;
 
 public class NNSocketFactory extends BaseSocketFactory {
 
-	private final NanoLibrary nanomsg = new NanoLibrary();
+    private final NanoLibrary nanomsg = new NanoLibrary();
 
-	@Getter
-	private final String type = "nanomsg";
-	
-	private Socket createNanoSocket(int type) {
-		return new NNSocket(nanomsg.nn_socket(nanomsg.AF_SP, type), nanomsg);
-	}
+    @Getter
+    private final String type = "nanomsg";
 
-	protected Socket createCustomSocket(String type) {
-		Assert.notNull(type, "Socket type");
-		switch (type.toLowerCase()) {
-		case "bus":
-			return createNanoSocket(nanomsg.NN_BUS);
-		case "surveyor":
-			return createNanoSocket(nanomsg.NN_SURVEYOR);
-		case "respondent":
-			return createNanoSocket(nanomsg.NN_RESPONDENT);
-		}
-		return null;
-	}
+    private Socket createNanoSocket(int type) {
+        return new NNSocket(nanomsg.nn_socket(nanomsg.AF_SP, type), nanomsg);
+    }
 
-	protected Socket createPullSocket() {
-		return createNanoSocket(nanomsg.NN_PULL);
-	}
+    protected Socket createCustomSocket(String type) {
+        Assert.notNull(type, "Socket type");
+        switch (type.toLowerCase()) {
+        case "bus":
+            return createNanoSocket(nanomsg.NN_BUS);
+        case "surveyor":
+            return createNanoSocket(nanomsg.NN_SURVEYOR);
+        case "respondent":
+            return createNanoSocket(nanomsg.NN_RESPONDENT);
+        }
+        return null;
+    }
 
-	protected Socket createPushSocket() {
-		return createNanoSocket(nanomsg.NN_PUSH);
-	}
+    protected Socket createPullSocket() {
+        return createNanoSocket(nanomsg.NN_PULL);
+    }
 
-	protected Socket createPubSocket() {
-		return createNanoSocket(nanomsg.NN_PUB);
-	}
+    protected Socket createPushSocket() {
+        return createNanoSocket(nanomsg.NN_PUSH);
+    }
 
-	protected Socket createSubSocket() {
-		return createNanoSocket(nanomsg.NN_SUB);
-	}
+    protected Socket createPubSocket() {
+        return createNanoSocket(nanomsg.NN_PUB);
+    }
 
-	protected Socket createReqSocket() {
-		return createNanoSocket(nanomsg.NN_REQ);
-	}
+    protected Socket createSubSocket() {
+        return createNanoSocket(nanomsg.NN_SUB);
+    }
 
-	protected Socket createRepSocket() {
-		return createNanoSocket(nanomsg.NN_REP);
-	}
+    protected Socket createReqSocket() {
+        return createNanoSocket(nanomsg.NN_REQ);
+    }
 
-	protected Socket createPairSocket() {
-		return createNanoSocket(nanomsg.NN_PAIR);
-	}
+    protected Socket createRepSocket() {
+        return createNanoSocket(nanomsg.NN_REP);
+    }
+
+    protected Socket createPairSocket() {
+        return createNanoSocket(nanomsg.NN_PAIR);
+    }
 }

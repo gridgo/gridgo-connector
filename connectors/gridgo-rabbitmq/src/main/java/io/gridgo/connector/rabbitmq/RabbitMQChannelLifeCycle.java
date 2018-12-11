@@ -10,36 +10,36 @@ import io.gridgo.utils.helper.Loggable;
 
 public interface RabbitMQChannelLifeCycle extends Loggable {
 
-	RabbitMQQueueConfig getQueueConfig();
+    RabbitMQQueueConfig getQueueConfig();
 
-	Channel getChannel();
+    Channel getChannel();
 
-	default Channel initChannel(Connection connection) {
-		try {
-			Channel channel = connection.createChannel();
+    default Channel initChannel(Connection connection) {
+        try {
+            Channel channel = connection.createChannel();
 
-			String exchangeName = getQueueConfig().getExchangeName();
-			if (exchangeName != null && !exchangeName.isBlank()) {
-				channel.exchangeDeclare(getQueueConfig().getExchangeName(), getQueueConfig().getExchangeType());
-			}
+            String exchangeName = getQueueConfig().getExchangeName();
+            if (exchangeName != null && !exchangeName.isBlank()) {
+                channel.exchangeDeclare(getQueueConfig().getExchangeName(), getQueueConfig().getExchangeType());
+            }
 
-			String queueName = getQueueConfig().getQueueName();
-			if (queueName != null && !queueName.isBlank()) {
-				channel.queueDeclare(queueName, getQueueConfig().isDurable(), getQueueConfig().isExclusive(),
-						getQueueConfig().isAutoDelete(), null);
-			}
+            String queueName = getQueueConfig().getQueueName();
+            if (queueName != null && !queueName.isBlank()) {
+                channel.queueDeclare(queueName, getQueueConfig().isDurable(), getQueueConfig().isExclusive(),
+                        getQueueConfig().isAutoDelete(), null);
+            }
 
-			return channel;
-		} catch (Exception e) {
-			throw new RuntimeException("Init channel error", e);
-		}
-	}
+            return channel;
+        } catch (Exception e) {
+            throw new RuntimeException("Init channel error", e);
+        }
+    }
 
-	default void closeChannel() {
-		try {
-			getChannel().close();
-		} catch (IOException | TimeoutException e) {
-			throw new RuntimeException("Close channel error", e);
-		}
-	}
+    default void closeChannel() {
+        try {
+            getChannel().close();
+        } catch (IOException | TimeoutException e) {
+            throw new RuntimeException("Close channel error", e);
+        }
+    }
 }

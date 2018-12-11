@@ -5,5 +5,5 @@ import java.io.RandomAccessFile;
 
 public interface RandomAccessFileHandler {
 
-	public void process(RandomAccessFile raf) throws IOException;
+    public void process(RandomAccessFile raf) throws IOException;
 }

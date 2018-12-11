@@ -8,23 +8,23 @@ import lombok.Getter;
 
 @Getter
 public class DefaultConnectorConfig implements ConnectorConfig {
-	
-	private String scheme;
 
-	private String nonQueryEndpoint;
+    private String scheme;
 
-	private String remaining;
+    private String nonQueryEndpoint;
 
-	private Map<String, Object> parameters;
+    private String remaining;
 
-	private Properties placeholders;
+    private Map<String, Object> parameters;
 
-	public DefaultConnectorConfig(String scheme, String nonQueryEndpoint, String remaining, Map<String, Object> parameters,
-			Properties placeholders) {
-		this.scheme = scheme;
-		this.nonQueryEndpoint = nonQueryEndpoint;
-		this.remaining = remaining;
-		this.parameters = parameters;
-		this.placeholders = placeholders;
-	}
+    private Properties placeholders;
+
+    public DefaultConnectorConfig(String scheme, String nonQueryEndpoint, String remaining,
+            Map<String, Object> parameters, Properties placeholders) {
+        this.scheme = scheme;
+        this.nonQueryEndpoint = nonQueryEndpoint;
+        this.remaining = remaining;
+        this.parameters = parameters;
+        this.placeholders = placeholders;
+    }
 }

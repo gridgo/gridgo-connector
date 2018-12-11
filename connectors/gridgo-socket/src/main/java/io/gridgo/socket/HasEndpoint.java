@@ -4,5 +4,5 @@ import io.gridgo.socket.helper.Endpoint;
 
 public interface HasEndpoint {
 
-	Endpoint getEndpoint();
+    Endpoint getEndpoint();
 }

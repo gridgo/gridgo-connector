@@ -10,15 +10,15 @@ import io.gridgo.framework.support.generators.IdGenerator;
 
 public interface ConnectorContext extends RegistryAware {
 
-	public Registry getRegistry();
+    public Registry getRegistry();
 
-	public IdGenerator getIdGenerator();
+    public IdGenerator getIdGenerator();
 
-	public Consumer<Throwable> getExceptionHandler();
+    public Consumer<Throwable> getExceptionHandler();
 
-	public ExecutionStrategy getCallbackInvokerStrategy();
+    public ExecutionStrategy getCallbackInvokerStrategy();
 
-	public Optional<ExecutionStrategy> getConsumerExecutionStrategy();
+    public Optional<ExecutionStrategy> getConsumerExecutionStrategy();
 
-	public ExecutionStrategy getProducerExecutionStrategy();
+    public ExecutionStrategy getProducerExecutionStrategy();
 }

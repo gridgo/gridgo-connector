@@ -21,129 +21,131 @@ import io.gridgo.framework.support.impl.MultipartMessage;
 
 public class KafkaProducer extends AbstractProducer {
 
-	private KafkaConfiguration configuration;
+    private KafkaConfiguration configuration;
 
-	private org.apache.kafka.clients.producer.KafkaProducer<Object, Object> producer;
+    private org.apache.kafka.clients.producer.KafkaProducer<Object, Object> producer;
 
-	private String[] topics;
+    private String[] topics;
 
-	public KafkaProducer(ConnectorContext context, KafkaConfiguration configuration) {
-		super(context);
-		this.configuration = configuration;
-		this.topics = configuration.getTopic().split(",");
-	}
+    public KafkaProducer(ConnectorContext context, KafkaConfiguration configuration) {
+        super(context);
+        this.configuration = configuration;
+        this.topics = configuration.getTopic().split(",");
+    }
 
-	@Override
-	public void send(Message message) {
-		for (var topic : topics) {
-			var record = buildProducerRecord(topic, message);
-			this.producer.send(record);
-		}
-	}
+    @Override
+    public void send(Message message) {
+        for (var topic : topics) {
+            var record = buildProducerRecord(topic, message);
+            this.producer.send(record);
+        }
+    }
 
-	@Override
-	public Promise<Message, Exception> sendWithAck(Message message) {
-		var promises = new ArrayList<Promise<Message, Exception>>();
-		for (var topic : topics) {
-			var deferred = new CompletableDeferredObject<Message, Exception>();
-			var record = buildProducerRecord(topic, message);
-			this.producer.send(record, (metadata, ex) -> ack(deferred, metadata, ex));
-			promises.add(deferred);
-		}
+    @Override
+    public Promise<Message, Exception> sendWithAck(Message message) {
+        var promises = new ArrayList<Promise<Message, Exception>>();
+        for (var topic : topics) {
+            var deferred = new CompletableDeferredObject<Message, Exception>();
+            var record = buildProducerRecord(topic, message);
+            this.producer.send(record, (metadata, ex) -> ack(deferred, metadata, ex));
+            promises.add(deferred);
+        }
 
-		return promises.size() == 1 ? promises.get(0)
-				: JoinedPromise.from(promises).filterDone(this::convertJoinedResult);
-	}
+        return promises.size() == 1 ? promises.get(0)
+                : JoinedPromise.from(promises).filterDone(this::convertJoinedResult);
+    }
 
-	public Message convertJoinedResult(JoinedResults<Message> results) {
-		return new MultipartMessage(results);
-	}
+    public Message convertJoinedResult(JoinedResults<Message> results) {
+        return new MultipartMessage(results);
+    }
 
-	private void ack(Deferred<Message, Exception> deferred, RecordMetadata metadata, Exception exception) {
-		var msg = buildAckMessage(metadata);
-		ack(deferred, msg, exception);
-	}
+    private void ack(Deferred<Message, Exception> deferred, RecordMetadata metadata, Exception exception) {
+        var msg = buildAckMessage(metadata);
+        ack(deferred, msg, exception);
+    }
 
-	private ProducerRecord<Object, Object> buildProducerRecord(String topic, Message message) {
-		var headers = message.getPayload().getHeaders();
+    private ProducerRecord<Object, Object> buildProducerRecord(String topic, Message message) {
+        var headers = message.getPayload().getHeaders();
 
-		var partitionValue = headers.getValue(KafkaConstants.PARTITION);
-		Integer partition = partitionValue != null ? partitionValue.getInteger() : null;
-		var timestampValue = headers.getValue(KafkaConstants.TIMESTAMP);
-		Long timestamp = timestampValue != null ? timestampValue.getLong() : null;
-		var keyValue = headers.getValue(KafkaConstants.KEY);
-		Object key = keyValue != null ? keyValue.getData() : null;
-		var body = message.getPayload().getBody();
-		var record = new ProducerRecord<Object, Object>(topic, partition, timestamp, key, convert(body));
-		if (body != null && !body.isValue()) {
-			record.headers().add(KafkaConstants.RAW, new byte[] { 1 });
-		}
+        var partitionValue = headers.getValue(KafkaConstants.PARTITION);
+        Integer partition = partitionValue != null ? partitionValue.getInteger() : null;
+        var timestampValue = headers.getValue(KafkaConstants.TIMESTAMP);
+        Long timestamp = timestampValue != null ? timestampValue.getLong() : null;
+        var keyValue = headers.getValue(KafkaConstants.KEY);
+        Object key = keyValue != null ? keyValue.getData() : null;
+        var body = message.getPayload().getBody();
+        var record = new ProducerRecord<Object, Object>(topic, partition, timestamp, key, convert(body));
+        if (body != null && !body.isValue()) {
+            record.headers().add(KafkaConstants.RAW, new byte[] { 1 });
+        }
 
-		for (var header : headers.entrySet()) {
-			if (header.getValue().isValue()) {
-				record.headers().add(header.getKey(), header.getValue().asValue().toBytes());
-			}
-		}
+        for (var header : headers.entrySet()) {
+            if (header.getValue().isValue()) {
+                record.headers().add(header.getKey(), header.getValue().asValue().toBytes());
+            }
+        }
 
-		return record;
-	}
+        return record;
+    }
 
-	private Object convert(BElement body) {
-		if (body == null)
-			return null;
-		if (body.isValue())
-			return body.asValue().getData();
-		return body.toBytes();
-	}
+    private Object convert(BElement body) {
+        if (body == null)
+            return null;
+        if (body.isValue())
+            return body.asValue().getData();
+        return body.toBytes();
+    }
 
-	private Message buildAckMessage(RecordMetadata metadata) {
-		if (metadata == null)
-			return null;
-		var headers = BObject.ofEmpty().setAny(KafkaConstants.IS_ACK_MSG, "true")
-				.setAny(KafkaConstants.TIMESTAMP, metadata.timestamp()).setAny(KafkaConstants.OFFSET, metadata.offset())
-				.setAny(KafkaConstants.PARTITION, metadata.partition()).setAny(KafkaConstants.TOPIC, metadata.topic());
-		return createMessage(headers, BValue.ofEmpty());
-	}
+    private Message buildAckMessage(RecordMetadata metadata) {
+        if (metadata == null)
+            return null;
+        var headers = BObject.ofEmpty().setAny(KafkaConstants.IS_ACK_MSG, "true")
+                             .setAny(KafkaConstants.TIMESTAMP, metadata.timestamp())
+                             .setAny(KafkaConstants.OFFSET, metadata.offset())
+                             .setAny(KafkaConstants.PARTITION, metadata.partition())
+                             .setAny(KafkaConstants.TOPIC, metadata.topic());
+        return createMessage(headers, BValue.ofEmpty());
+    }
 
-	@Override
-	public Promise<Message, Exception> call(Message request) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public Promise<Message, Exception> call(Message request) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	protected void onStart() {
-		if (configuration.isTopicIsPattern())
-			getLogger().warn("topicIsPattern won't work with KafkaProducer, will ignore");
-		var props = getProps();
-		var threadClassLoader = Thread.currentThread().getContextClassLoader();
-		try {
-			// Kafka uses reflection for loading authentication settings, use its
-			// classloader
-			Thread.currentThread()
-					.setContextClassLoader(org.apache.kafka.clients.producer.KafkaProducer.class.getClassLoader());
-			this.producer = new org.apache.kafka.clients.producer.KafkaProducer<>(props);
-		} finally {
-			Thread.currentThread().setContextClassLoader(threadClassLoader);
-		}
-	}
+    @Override
+    protected void onStart() {
+        if (configuration.isTopicIsPattern())
+            getLogger().warn("topicIsPattern won't work with KafkaProducer, will ignore");
+        var props = getProps();
+        var threadClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            // Kafka uses reflection for loading authentication settings, use its
+            // classloader
+            Thread.currentThread()
+                  .setContextClassLoader(org.apache.kafka.clients.producer.KafkaProducer.class.getClassLoader());
+            this.producer = new org.apache.kafka.clients.producer.KafkaProducer<>(props);
+        } finally {
+            Thread.currentThread().setContextClassLoader(threadClassLoader);
+        }
+    }
 
-	@Override
-	protected void onStop() {
-		if (this.producer != null)
-			this.producer.close();
-	}
+    @Override
+    protected void onStop() {
+        if (this.producer != null)
+            this.producer.close();
+    }
 
-	private Properties getProps() {
-		return configuration.createProducerProperties();
-	}
+    private Properties getProps() {
+        return configuration.createProducerProperties();
+    }
 
-	@Override
-	protected String generateName() {
-		return "producer.kafka." + configuration.getTopic();
-	}
+    @Override
+    protected String generateName() {
+        return "producer.kafka." + configuration.getTopic();
+    }
 
-	@Override
-	public boolean isCallSupported() {
-		return false;
-	}
+    @Override
+    public boolean isCallSupported() {
+        return false;
+    }
 }

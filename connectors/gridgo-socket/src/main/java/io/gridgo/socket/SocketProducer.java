@@ -10,22 +10,22 @@ import io.gridgo.socket.impl.DefaultSocketProducer;
 
 public interface SocketProducer extends Producer, HasReceiver {
 
-	long getTotalSentBytes();
+    long getTotalSentBytes();
 
-	long getTotalSentMessages();
+    long getTotalSentMessages();
 
-	@Override
-	default Promise<Message, Exception> call(Message request) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    default Promise<Message, Exception> call(Message request) {
+        throw new UnsupportedOperationException();
+    }
 
-	default boolean isCallSupported() {
-		return false;
-	}
+    default boolean isCallSupported() {
+        return false;
+    }
 
-	static SocketProducer of(ConnectorContext context, SocketFactory factory, SocketOptions options,
-			String address, int bufferSize, int ringBufferSize, boolean batchingEnabled, int maxBatchSize) {
-		return new DefaultSocketProducer(context, factory, options, address, bufferSize, ringBufferSize,
-				batchingEnabled, maxBatchSize);
-	}
+    static SocketProducer of(ConnectorContext context, SocketFactory factory, SocketOptions options, String address,
+            int bufferSize, int ringBufferSize, boolean batchingEnabled, int maxBatchSize) {
+        return new DefaultSocketProducer(context, factory, options, address, bufferSize, ringBufferSize,
+                batchingEnabled, maxBatchSize);
+    }
 }

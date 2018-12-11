@@ -38,104 +38,104 @@ import io.gridgo.framework.support.Payload;
 
 public class TestJettyConnector {
 
-	private static final String TEST_TEXT = "this is test text";
+    private static final String TEST_TEXT = "this is test text";
 
-	private final String HTTP_LOCALHOST_8888 = "http://localhost:8888";
-	private final String baseServerEndpoint = "jetty:" + HTTP_LOCALHOST_8888;
+    private final String HTTP_LOCALHOST_8888 = "http://localhost:8888";
+    private final String baseServerEndpoint = "jetty:" + HTTP_LOCALHOST_8888;
 
-	private final ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.connector");
-	private final HttpClient httpClient = HttpClient.newHttpClient();
-	private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.connector");
+    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
-	{
-		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			executor.shutdown();
-		}));
-	}
+    {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            executor.shutdown();
+        }));
+    }
 
-	private Connector createConnector(String endpoint) {
-		ConnectorContext connectorContext = new DefaultConnectorContextBuilder()
-				.setCallbackInvokerStrategy(new ExecutorExecutionStrategy(executor)).build();
+    private Connector createConnector(String endpoint) {
+        ConnectorContext connectorContext = new DefaultConnectorContextBuilder().setCallbackInvokerStrategy(
+                new ExecutorExecutionStrategy(executor)).build();
 
-		Connector connector = resolver.resolve(endpoint, connectorContext);
+        Connector connector = resolver.resolve(endpoint, connectorContext);
 
-		assertNotNull(connector);
-		assertTrue(connector instanceof JettyConnector);
+        assertNotNull(connector);
+        assertTrue(connector instanceof JettyConnector);
 
-		assertTrue(connector.getConsumer().isPresent());
-		assertTrue(connector.getProducer().isPresent());
+        assertTrue(connector.getConsumer().isPresent());
+        assertTrue(connector.getProducer().isPresent());
 
-		assertTrue(connector.getConsumer().get() instanceof JettyConsumer);
-		assertTrue(connector.getProducer().get() instanceof JettyResponder);
+        assertTrue(connector.getConsumer().get() instanceof JettyConsumer);
+        assertTrue(connector.getProducer().get() instanceof JettyResponder);
 
-		return connector;
-	}
+        return connector;
+    }
 
-	@Test
-	public void testPingPongGET() throws URISyntaxException, IOException, InterruptedException {
-		String path = "test-path";
-		String endpoint = baseServerEndpoint + "/" + path + "?session=true&gzip=true&security=true";
-		Connector connector = createConnector(endpoint);
-		connector.start();
+    @Test
+    public void testPingPongGET() throws URISyntaxException, IOException, InterruptedException {
+        String path = "test-path";
+        String endpoint = baseServerEndpoint + "/" + path + "?session=true&gzip=true&security=true";
+        Connector connector = createConnector(endpoint);
+        connector.start();
 
-		try {
-			Consumer consumer = connector.getConsumer().get();
-			Producer producer = connector.getProducer().get();
+        try {
+            Consumer consumer = connector.getConsumer().get();
+            Producer producer = connector.getProducer().get();
 
-			consumer.subscribe((msg) -> {
-				var queryParams = msg.getPayload().getHeaders().get(HttpHeader.QUERY_PARAMS.asString());
-				producer.send(Message.of(msg.getRoutingId().get(), Payload.of(queryParams)));
-			});
+            consumer.subscribe((msg) -> {
+                var queryParams = msg.getPayload().getHeaders().get(HttpHeader.QUERY_PARAMS.asString());
+                producer.send(Message.of(msg.getRoutingId().get(), Payload.of(queryParams)));
+            });
 
-			final String encodedText = URLEncoder.encode(TEST_TEXT, Charset.defaultCharset().name());
-			URI uri = new URI(HTTP_LOCALHOST_8888 + "/" + path + "?key=" + encodedText);
-			HttpRequest request = HttpRequest.newBuilder().GET().uri(uri).build();
-			HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
+            final String encodedText = URLEncoder.encode(TEST_TEXT, Charset.defaultCharset().name());
+            URI uri = new URI(HTTP_LOCALHOST_8888 + "/" + path + "?key=" + encodedText);
+            HttpRequest request = HttpRequest.newBuilder().GET().uri(uri).build();
+            HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
 
-			BElement respObj = BElement.fromJson(response.body());
-			assertNotNull(respObj);
-			assertTrue(respObj.isObject());
-			assertEquals(TEST_TEXT, respObj.asObject().getString("key"));
-		} finally {
-			connector.stop();
-		}
-	}
+            BElement respObj = BElement.fromJson(response.body());
+            assertNotNull(respObj);
+            assertTrue(respObj.isObject());
+            assertEquals(TEST_TEXT, respObj.asObject().getString("key"));
+        } finally {
+            connector.stop();
+        }
+    }
 
-	@Test
-	public void testPingPongPOST() throws URISyntaxException, IOException, InterruptedException {
-		String path = "test-path";
-		String endpoint = baseServerEndpoint + "/" + path + "?session=true&gzip=true&security=true";
-		Connector connector = createConnector(endpoint);
-		connector.start();
+    @Test
+    public void testPingPongPOST() throws URISyntaxException, IOException, InterruptedException {
+        String path = "test-path";
+        String endpoint = baseServerEndpoint + "/" + path + "?session=true&gzip=true&security=true";
+        Connector connector = createConnector(endpoint);
+        connector.start();
 
-		try {
-			Consumer consumer = connector.getConsumer().get();
-			Producer producer = connector.getProducer().get();
+        try {
+            Consumer consumer = connector.getConsumer().get();
+            Producer producer = connector.getProducer().get();
 
-			consumer.subscribe((msg) -> {
-				var queryParams = msg.getPayload().getHeaders().get(HttpHeader.QUERY_PARAMS.asString());
-				var body = msg.getPayload().getBody();
-				System.out.println("Got body: " + body);
-				var response = BObject.ofEmpty().set("query", queryParams).set("body", body);
-				producer.send(Message.of(msg.getRoutingId().get(), Payload.of(response)));
-			});
+            consumer.subscribe((msg) -> {
+                var queryParams = msg.getPayload().getHeaders().get(HttpHeader.QUERY_PARAMS.asString());
+                var body = msg.getPayload().getBody();
+                System.out.println("Got body: " + body);
+                var response = BObject.ofEmpty().set("query", queryParams).set("body", body);
+                producer.send(Message.of(msg.getRoutingId().get(), Payload.of(response)));
+            });
 
-			URI uri = new URI(HTTP_LOCALHOST_8888 + "/" + path + "?paramName=abc");
-			HttpRequest request = HttpRequest.newBuilder().POST(BodyPublishers.ofString(TEST_TEXT)).uri(uri).build();
-			HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
+            URI uri = new URI(HTTP_LOCALHOST_8888 + "/" + path + "?paramName=abc");
+            HttpRequest request = HttpRequest.newBuilder().POST(BodyPublishers.ofString(TEST_TEXT)).uri(uri).build();
+            HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
 
-			BElement respObj = BElement.fromJson(response.body());
-			System.out.println(respObj);
-			assertNotNull(respObj);
-			assertTrue(respObj.isObject());
+            BElement respObj = BElement.fromJson(response.body());
+            System.out.println(respObj);
+            assertNotNull(respObj);
+            assertTrue(respObj.isObject());
 
-			assertTrue(respObj.asObject().containsKey("query"));
-			assertEquals("abc", respObj.asObject().getObject("query").getString("paramName"));
+            assertTrue(respObj.asObject().containsKey("query"));
+            assertEquals("abc", respObj.asObject().getObject("query").getString("paramName"));
 
-			assertTrue(respObj.asObject().containsKey("body"));
-			assertEquals(TEST_TEXT, respObj.asObject().getString("body"));
-		} finally {
-			connector.stop();
-		}
-	}
+            assertTrue(respObj.asObject().containsKey("body"));
+            assertEquals(TEST_TEXT, respObj.asObject().getString("body"));
+        } finally {
+            connector.stop();
+        }
+    }
 }

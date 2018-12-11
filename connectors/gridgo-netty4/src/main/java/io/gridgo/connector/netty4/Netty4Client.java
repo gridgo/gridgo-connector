@@ -11,8 +11,8 @@ import io.gridgo.utils.support.HostAndPort;
 
 public interface Netty4Client extends Producer, HasReceiver, FailureHandlerAware<Netty4Client> {
 
-	static Netty4Client of(ConnectorContext context, Netty4Transport transport, HostAndPort host, String path,
-			BObject options) {
-		return new DefaultNetty4Client(context, transport, host, path, options);
-	}
+    static Netty4Client of(ConnectorContext context, Netty4Transport transport, HostAndPort host, String path,
+            BObject options) {
+        return new DefaultNetty4Client(context, transport, host, path, options);
+    }
 }

@@ -6,6 +6,8 @@ public class NNPollFD {
     public int revents;
 
     public NNPollFD(int fd, int events) {
-        this.fd = fd; this.events = events; this.revents = 0;
+        this.fd = fd;
+        this.events = events;
+        this.revents = 0;
     }
 };

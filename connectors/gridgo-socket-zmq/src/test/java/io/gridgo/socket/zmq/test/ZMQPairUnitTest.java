@@ -20,101 +20,101 @@ import io.gridgo.framework.support.Payload;
 
 public class ZMQPairUnitTest {
 
-	private final ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
+    private final ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
 
-	private static final String TEXT = "This is test text";
+    private static final String TEXT = "This is test text";
 
-	private static final int port = 8080;
-	private static final String host = "localhost";
-	private static final String address = host + ":" + port;
+    private static final int port = 8080;
+    private static final String host = "localhost";
+    private static final String address = host + ":" + port;
 
-	@Test
-	public void testPairOneWay() throws InterruptedException, PromiseException {
+    @Test
+    public void testPairOneWay() throws InterruptedException, PromiseException {
 
-		String osName = System.getProperty("os.name");
-		if (osName != null && osName.contains("Windows"))
-			return;
+        String osName = System.getProperty("os.name");
+        if (osName != null && osName.contains("Windows"))
+            return;
 
-		Connector connector1 = RESOLVER.resolve("zmq:pair:tcp:bind://" + address);
-		Connector connector2 = RESOLVER.resolve("zmq:pair:tcp:connect://" + address);
+        Connector connector1 = RESOLVER.resolve("zmq:pair:tcp:bind://" + address);
+        Connector connector2 = RESOLVER.resolve("zmq:pair:tcp:connect://" + address);
 
-		connector1.start();
-		assertTrue(connector1.getConsumer().isPresent());
-		assertTrue(connector1.getProducer().isPresent());
+        connector1.start();
+        assertTrue(connector1.getConsumer().isPresent());
+        assertTrue(connector1.getProducer().isPresent());
 
-		connector2.start();
-		assertTrue(connector2.getConsumer().isPresent());
-		assertTrue(connector2.getProducer().isPresent());
+        connector2.start();
+        assertTrue(connector2.getConsumer().isPresent());
+        assertTrue(connector2.getProducer().isPresent());
 
-		final CountDownLatch doneSignal = new CountDownLatch(2);
+        final CountDownLatch doneSignal = new CountDownLatch(2);
 
-		AtomicReference<String> recvDataRef1 = new AtomicReference<String>(null);
-		AtomicReference<String> recvDataRef2 = new AtomicReference<String>(null);
+        AtomicReference<String> recvDataRef1 = new AtomicReference<String>(null);
+        AtomicReference<String> recvDataRef2 = new AtomicReference<String>(null);
 
-		connector1.getConsumer().get().subscribe((message) -> {
-			recvDataRef2.set(message.getPayload().getBody().asValue().getString());
-			doneSignal.countDown();
-		});
+        connector1.getConsumer().get().subscribe((message) -> {
+            recvDataRef2.set(message.getPayload().getBody().asValue().getString());
+            doneSignal.countDown();
+        });
 
-		connector2.getConsumer().get().subscribe((message) -> {
-			recvDataRef1.set(message.getPayload().getBody().asValue().getString());
-			doneSignal.countDown();
-		});
+        connector2.getConsumer().get().subscribe((message) -> {
+            recvDataRef1.set(message.getPayload().getBody().asValue().getString());
+            doneSignal.countDown();
+        });
 
-		connector1.getProducer().get().send(Message.of(Payload.of(BValue.of(TEXT + 1))));
-		connector2.getProducer().get().send(Message.of(Payload.of(BValue.of(TEXT + 2))));
+        connector1.getProducer().get().send(Message.of(Payload.of(BValue.of(TEXT + 1))));
+        connector2.getProducer().get().send(Message.of(Payload.of(BValue.of(TEXT + 2))));
 
-		doneSignal.await();
+        doneSignal.await();
 
-		assertEquals(TEXT + 1, recvDataRef1.get());
-		assertEquals(TEXT + 2, recvDataRef2.get());
+        assertEquals(TEXT + 1, recvDataRef1.get());
+        assertEquals(TEXT + 2, recvDataRef2.get());
 
-		connector1.stop();
-		connector2.stop();
-	}
+        connector1.stop();
+        connector2.stop();
+    }
 
-	@Test
-	public void testPairPingPong() throws InterruptedException, PromiseException {
+    @Test
+    public void testPairPingPong() throws InterruptedException, PromiseException {
 
-		String osName = System.getProperty("os.name");
-		if (osName != null && osName.contains("Windows"))
-			return;
-		System.out.println("Test pair ping pong...");
+        String osName = System.getProperty("os.name");
+        if (osName != null && osName.contains("Windows"))
+            return;
+        System.out.println("Test pair ping pong...");
 
-		Connector connector1 = RESOLVER.resolve("zmq:pair:tcp:bind://" + address);
-		Connector connector2 = RESOLVER.resolve("zmq:pair:tcp:connect://" + address);
+        Connector connector1 = RESOLVER.resolve("zmq:pair:tcp:bind://" + address);
+        Connector connector2 = RESOLVER.resolve("zmq:pair:tcp:connect://" + address);
 
-		try {
-			connector1.start();
-			assertTrue(connector1.getConsumer().isPresent());
-			assertTrue(connector1.getProducer().isPresent());
+        try {
+            connector1.start();
+            assertTrue(connector1.getConsumer().isPresent());
+            assertTrue(connector1.getProducer().isPresent());
 
-			connector2.start();
-			assertTrue(connector2.getConsumer().isPresent());
-			assertTrue(connector2.getProducer().isPresent());
+            connector2.start();
+            assertTrue(connector2.getConsumer().isPresent());
+            assertTrue(connector2.getProducer().isPresent());
 
-			Producer responder = connector1.getProducer().get();
-			connector1.getConsumer().get().subscribe((message) -> {
-				responder.send(message);
-			});
+            Producer responder = connector1.getProducer().get();
+            connector1.getConsumer().get().subscribe((message) -> {
+                responder.send(message);
+            });
 
-			AtomicReference<String> pongDataRef = new AtomicReference<String>(null);
+            AtomicReference<String> pongDataRef = new AtomicReference<String>(null);
 
-			final CountDownLatch doneSignal = new CountDownLatch(1);
-			connector2.getConsumer().get().subscribe((message) -> {
-				pongDataRef.set(message.getPayload().getBody().asValue().getString());
-				doneSignal.countDown();
-			});
+            final CountDownLatch doneSignal = new CountDownLatch(1);
+            connector2.getConsumer().get().subscribe((message) -> {
+                pongDataRef.set(message.getPayload().getBody().asValue().getString());
+                doneSignal.countDown();
+            });
 
-			connector2.getProducer().get().send(Message.of(Payload.of(BValue.of(TEXT))));
+            connector2.getProducer().get().send(Message.of(Payload.of(BValue.of(TEXT))));
 
-			doneSignal.await(5, TimeUnit.SECONDS);
-			assertEquals(TEXT, pongDataRef.get());
+            doneSignal.await(5, TimeUnit.SECONDS);
+            assertEquals(TEXT, pongDataRef.get());
 
-		} finally {
-			connector1.stop();
-			connector2.stop();
-		}
+        } finally {
+            connector1.stop();
+            connector2.stop();
+        }
 
-	}
+    }
 }

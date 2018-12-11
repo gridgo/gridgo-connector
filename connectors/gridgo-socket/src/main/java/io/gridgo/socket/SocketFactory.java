@@ -2,7 +2,7 @@ package io.gridgo.socket;
 
 public interface SocketFactory {
 
-	String getType();
+    String getType();
 
-	<T extends Socket> T createSocket(SocketOptions options);
+    <T extends Socket> T createSocket(SocketOptions options);
 }

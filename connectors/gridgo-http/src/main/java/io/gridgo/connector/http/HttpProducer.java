@@ -31,154 +31,155 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class HttpProducer extends AbstractHttpProducer {
 
-	private static final String DEFAULT_METHOD = "GET";
+    private static final String DEFAULT_METHOD = "GET";
 
-	private String endpointUri;
+    private String endpointUri;
 
-	private AsyncHttpClient asyncHttpClient;
+    private AsyncHttpClient asyncHttpClient;
 
-	private Builder config;
+    private Builder config;
 
-	private NameResolver<InetAddress> nameResolver;
+    private NameResolver<InetAddress> nameResolver;
 
-	private String defaultMethod;
+    private String defaultMethod;
 
-	public HttpProducer(ConnectorContext context, String endpointUri, Builder config, String format,
-			NameResolver<InetAddress> nameResolver, String defaultMethod) {
-		super(context, format);
-		this.endpointUri = endpointUri;
-		this.config = config;
-		this.nameResolver = nameResolver;
-		this.defaultMethod = defaultMethod != null ? defaultMethod : DEFAULT_METHOD;
-	}
+    public HttpProducer(ConnectorContext context, String endpointUri, Builder config, String format,
+            NameResolver<InetAddress> nameResolver, String defaultMethod) {
+        super(context, format);
+        this.endpointUri = endpointUri;
+        this.config = config;
+        this.nameResolver = nameResolver;
+        this.defaultMethod = defaultMethod != null ? defaultMethod : DEFAULT_METHOD;
+    }
 
-	@Override
-	protected String generateName() {
-		return "consumer." + endpointUri;
-	}
+    @Override
+    protected String generateName() {
+        return "consumer." + endpointUri;
+    }
 
-	@Override
-	protected void onStart() {
-		this.asyncHttpClient = Dsl.asyncHttpClient(config);
-	}
+    @Override
+    protected void onStart() {
+        this.asyncHttpClient = Dsl.asyncHttpClient(config);
+    }
 
-	@Override
-	protected void onStop() {
-		try {
-			asyncHttpClient.close();
-		} catch (IOException e) {
-			log.error("Error when closing AsyncHttpClient", e);
-		}
-	}
+    @Override
+    protected void onStop() {
+        try {
+            asyncHttpClient.close();
+        } catch (IOException e) {
+            log.error("Error when closing AsyncHttpClient", e);
+        }
+    }
 
-	@Override
-	public void send(Message message) {
-		var request = buildRequest(message);
-		asyncHttpClient.executeRequest(request);
-	}
+    @Override
+    public void send(Message message) {
+        var request = buildRequest(message);
+        asyncHttpClient.executeRequest(request);
+    }
 
-	@Override
-	public Promise<Message, Exception> sendWithAck(Message message) {
-		var deferred = new CompletableDeferredObject<Message, Exception>();
-		var request = buildRequest(message);
-		asyncHttpClient.executeRequest(request, new AsyncHandler<Object>() {
+    @Override
+    public Promise<Message, Exception> sendWithAck(Message message) {
+        var deferred = new CompletableDeferredObject<Message, Exception>();
+        var request = buildRequest(message);
+        asyncHttpClient.executeRequest(request, new AsyncHandler<Object>() {
 
-			@Override
-			public State onBodyPartReceived(HttpResponseBodyPart bodyPart) throws Exception {
-				ack(deferred);
-				return State.CONTINUE;
-			}
+            @Override
+            public State onBodyPartReceived(HttpResponseBodyPart bodyPart) throws Exception {
+                ack(deferred);
+                return State.CONTINUE;
+            }
 
-			@Override
-			public Object onCompleted() throws Exception {
-				ack(deferred);
-				return State.CONTINUE;
-			}
+            @Override
+            public Object onCompleted() throws Exception {
+                ack(deferred);
+                return State.CONTINUE;
+            }
 
-			@Override
-			public State onHeadersReceived(HttpHeaders headers) throws Exception {
-				ack(deferred);
-				return State.CONTINUE;
-			}
+            @Override
+            public State onHeadersReceived(HttpHeaders headers) throws Exception {
+                ack(deferred);
+                return State.CONTINUE;
+            }
 
-			@Override
-			public State onStatusReceived(HttpResponseStatus responseStatus) throws Exception {
-				ack(deferred);
-				return State.CONTINUE;
-			}
+            @Override
+            public State onStatusReceived(HttpResponseStatus responseStatus) throws Exception {
+                ack(deferred);
+                return State.CONTINUE;
+            }
 
-			@Override
-			public void onThrowable(Throwable t) {
-				ack(deferred, new ConnectionException(t));
-			}
-		});
-		return deferred.promise();
-	}
+            @Override
+            public void onThrowable(Throwable t) {
+                ack(deferred, new ConnectionException(t));
+            }
+        });
+        return deferred.promise();
+    }
 
-	@Override
-	public Promise<Message, Exception> call(Message message) {
-		var deferred = new CompletableDeferredObject<Message, Exception>();
-		var request = buildRequest(message);
-		asyncHttpClient.executeRequest(request, new AsyncCompletionHandler<Object>() {
+    @Override
+    public Promise<Message, Exception> call(Message message) {
+        var deferred = new CompletableDeferredObject<Message, Exception>();
+        var request = buildRequest(message);
+        asyncHttpClient.executeRequest(request, new AsyncCompletionHandler<Object>() {
 
-			@Override
-			public void onThrowable(Throwable t) {
-				ack(deferred, new ConnectionException(t));
-			}
+            @Override
+            public void onThrowable(Throwable t) {
+                ack(deferred, new ConnectionException(t));
+            }
 
-			@Override
-			public Object onCompleted(Response response) throws Exception {
-				var message = buildMessage(response);
-				ack(deferred, message);
-				return response;
-			}
-		});
-		return deferred.promise();
-	}
+            @Override
+            public Object onCompleted(Response response) throws Exception {
+                var message = buildMessage(response);
+                ack(deferred, message);
+                return response;
+            }
+        });
+        return deferred.promise();
+    }
 
-	private Request buildRequest(Message message) {
-		var builder = createBuilder(message);
-		if (nameResolver != null)
-			builder.setNameResolver(nameResolver);
-		return builder.build();
-	}
+    private Request buildRequest(Message message) {
+        var builder = createBuilder(message);
+        if (nameResolver != null)
+            builder.setNameResolver(nameResolver);
+        return builder.build();
+    }
 
-	private RequestBuilder createBuilder(Message message) {
-		if (message == null)
-			return new RequestBuilder().setUrl(endpointUri);
-		var method = getMethod(message, defaultMethod);
-		var params = buildParams(getQueryParams(message));
-		var body = serialize(message.getPayload().getBody());
-		return new RequestBuilder(method) //
-				.setUrl(endpointUri) //
-				.setBody(body) //
-				.setQueryParams(params);
+    private RequestBuilder createBuilder(Message message) {
+        if (message == null)
+            return new RequestBuilder().setUrl(endpointUri);
+        var method = getMethod(message, defaultMethod);
+        var params = buildParams(getQueryParams(message));
+        var body = serialize(message.getPayload().getBody());
+        return new RequestBuilder(method) //
+                                         .setUrl(endpointUri) //
+                                         .setBody(body) //
+                                         .setQueryParams(params);
 
-	}
+    }
 
-	private List<Param> buildParams(BObject object) {
-		return object.entrySet().stream() //
-				.filter(e -> e.getValue().isValue()) //
-				.map(e -> new Param(e.getKey(), e.getValue().asValue().getString())) //
-				.collect(Collectors.toList());
-	}
+    private List<Param> buildParams(BObject object) {
+        return object.entrySet().stream() //
+                     .filter(e -> e.getValue().isValue()) //
+                     .map(e -> new Param(e.getKey(), e.getValue().asValue().getString())) //
+                     .collect(Collectors.toList());
+    }
 
-	private Message buildMessage(Response response) {
-		var headers = buildHeaders(response.getHeaders()) //
-				.setAny(HttpConstants.HEADER_STATUS, response.getStatusText())
-				.setAny(HttpConstants.HEADER_STATUS_CODE, response.getStatusCode());
-		var body = deserialize(response.getResponseBodyAsBytes());
-		return createMessage(headers, body);
-	}
+    private Message buildMessage(Response response) {
+        var headers = buildHeaders(response.getHeaders()) //
+                                                         .setAny(HttpConstants.HEADER_STATUS, response.getStatusText())
+                                                         .setAny(HttpConstants.HEADER_STATUS_CODE,
+                                                                 response.getStatusCode());
+        var body = deserialize(response.getResponseBodyAsBytes());
+        return createMessage(headers, body);
+    }
 
-	private BObject buildHeaders(HttpHeaders headers) {
-		var obj = BObject.ofEmpty();
-		if (headers == null)
-			return obj;
-		var entries = headers.entries();
-		if (entries == null)
-			return obj;
-		entries.forEach(e -> obj.putAny(e.getKey(), e.getValue()));
-		return obj;
-	}
+    private BObject buildHeaders(HttpHeaders headers) {
+        var obj = BObject.ofEmpty();
+        if (headers == null)
+            return obj;
+        var entries = headers.entries();
+        if (entries == null)
+            return obj;
+        entries.forEach(e -> obj.putAny(e.getKey(), e.getValue()));
+        return obj;
+    }
 }

@@ -8,13 +8,13 @@ import lombok.Data;
 @Data
 final class ProducerEvent {
 
-	private Message message;
+    private Message message;
 
-	private Deferred<Message, Exception> deferred;
+    private Deferred<Message, Exception> deferred;
 
-	void clear() {
-		this.message = null;
-		this.deferred = null;
-	}
+    void clear() {
+        this.message = null;
+        this.deferred = null;
+    }
 
 }

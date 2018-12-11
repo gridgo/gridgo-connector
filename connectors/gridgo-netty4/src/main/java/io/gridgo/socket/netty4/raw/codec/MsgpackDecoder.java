@@ -13,17 +13,17 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 
 public class MsgpackDecoder extends ByteToMessageDecoder implements Loggable {
 
-	@Override
-	protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
-		in.markReaderIndex();
-		ByteBufInputStream stream = new ByteBufInputStream(in);
-		try {
-			out.add(BElement.fromRaw(stream));
-		} catch (Exception e) {
-			if (e.getCause() instanceof MessageInsufficientBufferException) {
-				in.resetReaderIndex();
-			}
-			throw e;
-		}
-	}
+    @Override
+    protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
+        in.markReaderIndex();
+        ByteBufInputStream stream = new ByteBufInputStream(in);
+        try {
+            out.add(BElement.fromRaw(stream));
+        } catch (Exception e) {
+            if (e.getCause() instanceof MessageInsufficientBufferException) {
+                in.resetReaderIndex();
+            }
+            throw e;
+        }
+    }
 }

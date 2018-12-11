@@ -6,7 +6,7 @@ import io.gridgo.socket.SocketConnector;
 @ConnectorEndpoint(scheme = "testsocket", syntax = "{type}:{transport}://{host}[:{port}]")
 public class TestSocketConnector extends SocketConnector {
 
-	public TestSocketConnector() {
-		super(new TestSocketFactory());
-	}
+    public TestSocketConnector() {
+        super(new TestSocketFactory());
+    }
 }

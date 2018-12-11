@@ -103,8 +103,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
             router.route("/*").handler(BodyHandler.create());
         router.route() //
               .last() //
-              .handler(rc -> rc.fail(404))
-              .failureHandler(this::handleException);
+              .handler(rc -> rc.fail(404)).failureHandler(this::handleException);
         return router;
     }
 
