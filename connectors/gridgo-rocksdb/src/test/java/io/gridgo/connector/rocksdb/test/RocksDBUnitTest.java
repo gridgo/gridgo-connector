@@ -14,9 +14,9 @@ import io.gridgo.framework.support.Message;
 
 public class RocksDBUnitTest {
 
-    private static final int NUM_WARMUP_MESSAGES = 1000;
+    private static final int NUM_WARMUP_MESSAGES = 1;
 
-    private static final int NUM_MESSAGES = 100000;
+    private static final int NUM_MESSAGES = 1;
 
     @Test
     public void testReads() throws InterruptedException {
