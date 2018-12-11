@@ -28,7 +28,8 @@ You need to install individual connector as needed. For example to install `grid
 <dependency>
     <groupId>io.gridgo</groupId>
     <artifactId>gridgo-kafka</artifactId>
-    <version>SAME_AS_GRIDGO_CONNECTOR_CORE_VERSION</version>
+    <version>xxx</version>
+    <!--same as gridgo-connector-core version-->
 </dependency>
 ```
 
