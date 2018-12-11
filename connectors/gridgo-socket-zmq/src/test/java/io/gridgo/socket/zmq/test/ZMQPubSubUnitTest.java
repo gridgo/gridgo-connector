@@ -9,6 +9,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.gridgo.bean.BValue;
@@ -27,20 +28,21 @@ public class ZMQPubSubUnitTest {
 
     private static final String TEXT = "This is test text";
 
-//    @Test
-//    public void testPubSubPGM() throws Exception {
-//        System.out.println("Test PGM protocol support");
-//
-//        String transport = "epgm";
-//        String host = "239.192.1.1";
-//        int port = 5555;
-//        String address = host + ":" + port;
-//
-//        Connector connector = RESOLVER.resolve("zmq:pub:" + transport + "://" + address);
-//        connector.start();
-//        assertTrue(connector.getProducer().isPresent());
-//        connector.stop();
-//    }
+    @Test
+    @Ignore
+    public void testPubSubPGM() throws Exception {
+        System.out.println("Test PGM protocol support");
+
+        String transport = "epgm";
+        String host = "239.192.1.1";
+        int port = 5555;
+        String address = host + ":" + port;
+
+        Connector connector = RESOLVER.resolve("zmq:pub:" + transport + "://" + address);
+        connector.start();
+        assertTrue(connector.getProducer().isPresent());
+        connector.stop();
+    }
 
     @Test
     public void testPubSubTCP() throws Exception {
