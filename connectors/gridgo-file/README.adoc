@@ -57,10 +57,6 @@ Engine can be either `disruptor` or `basic`. Batch mode is only supported with D
 
 // headers: START
 
-[width="100%",cols="2,2,5,^1",options="header"]
-|===
-
 There is no supported headers for File connector.
 
-|===
 // headers: END
