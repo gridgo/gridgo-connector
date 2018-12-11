@@ -11,13 +11,14 @@
 	</parent>
 
 	<properties>
+		<rocksdbjni.version>5.5.1</rocksdbjni.version>
 	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>org.rocksdb</groupId>
 			<artifactId>rocksdbjni</artifactId>
-			<version>5.5.1</version>
+			<version>${rocksdbjni.version}</version>
 		</dependency>
 	</dependencies>
 </project>
