@@ -29,7 +29,7 @@ Connectors
 `zmq:type:transport://host:port` | 0.1.0 | // TODO: Fill description.
 
 | link:gridgo-vertx-http/README.adoc[VertX HTTP] (gridgo-vertx-http) +
-`vertx:http://host:port/path` | 0.1.0 | HTTP server using the VertX.
+`vertx:http://host:port/path` | 0.1.0 | HTTP server using VertX.
 
 |===
 // components: END
