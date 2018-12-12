@@ -143,9 +143,6 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         else
             ctx.response().setStatusCode(DEFAULT_EXCEPTION_STATUS_CODE);
 
-        if (ctx.response().closed())
-            return;
-
         if (ctx.failure() != null)
             ctx.response().end(ctx.failure().getMessage() + "");
         else
@@ -172,7 +169,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
             return;
         }
 
-        String status = response.getPayload().getHeaders().getString(VertxHttpConstants.HEADER_STATUS, null);
+        var status = response.getPayload().getHeaders().getString(VertxHttpConstants.HEADER_STATUS, null);
         if (status != null)
             serverResponse.setStatusMessage(status);
         int statusCode = response.getPayload().getHeaders().getInteger(VertxHttpConstants.HEADER_STATUS_CODE, -1);
@@ -193,29 +190,27 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
             serverResponse.end();
             return;
         }
-        Buffer buffer;
+        byte[] bytes;
         try {
-            buffer = Buffer.buffer(serialize(response.getPayload().getBody()));
+            bytes = serialize(response.getPayload().getBody());
         } catch (Exception ex) {
             log.error("Exception caught while sending response", ex);
-            if (!fromException) {
+            if (!fromException)
                 ctx.fail(ex);
-            }
             return;
         }
-        serverResponse.end(buffer);
+        serverResponse.end(Buffer.buffer(bytes));
     }
 
     private String getContentType(RoutingContext ctx) {
         var format = getFormat();
-        var charset = "; charset=utf-8";
         if ("raw".equals(format))
-            return "application/octet-stream" + charset;
+            return "application/octet-stream; charset=utf-8";
         if (format == null || "json".equals(format))
-            return "application/json" + charset;
+            return "application/json; charset=utf-8";
         if ("xml".equals(format))
-            return "application/xml" + charset;
-        return "text/plain" + charset;
+            return "application/xml; charset=utf-8";
+        return "text/plain; charset=utf-8";
     }
 
     private Message buildMessage(RoutingContext ctx) {
