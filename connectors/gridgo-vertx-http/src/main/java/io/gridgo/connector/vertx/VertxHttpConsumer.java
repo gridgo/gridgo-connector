@@ -21,7 +21,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -132,7 +131,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         if (msg != null) {
             msg.getPayload().getHeaders().putIfAbsent(VertxHttpConstants.HEADER_STATUS_CODE,
                     BValue.of(DEFAULT_EXCEPTION_STATUS_CODE));
-            sendResponse(ctx.response(), msg);
+            sendResponse(ctx, msg, true);
         } else {
             defaultHandleException(ctx);
         }
@@ -143,6 +142,9 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
             ctx.response().setStatusCode(ctx.statusCode());
         else
             ctx.response().setStatusCode(DEFAULT_EXCEPTION_STATUS_CODE);
+
+        if (ctx.response().closed())
+            return;
 
         if (ctx.failure() != null)
             ctx.response().end(ctx.failure().getMessage() + "");
@@ -155,7 +157,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         var deferred = new AsyncDeferredObject<Message, Exception>();
         publish(request, deferred);
         deferred.promise() //
-                .done(response -> sendResponse(ctx.response(), response)) //
+                .done(response -> sendResponse(ctx, response, false)) //
                 .fail(ex -> sendException(ctx, ex));
     }
 
@@ -163,7 +165,8 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         ctx.fail(ex);
     }
 
-    private void sendResponse(HttpServerResponse serverResponse, Message response) {
+    private void sendResponse(RoutingContext ctx, Message response, boolean fromException) {
+        var serverResponse = ctx.response();
         if (response == null || response.getPayload() == null) {
             serverResponse.end();
             return;
@@ -184,7 +187,16 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
             serverResponse.end();
             return;
         }
-        var buffer = Buffer.buffer(serialize(response.getPayload().getBody()));
+        Buffer buffer;
+        try {
+            buffer = Buffer.buffer(serialize(response.getPayload().getBody()));
+        } catch (Exception ex) {
+            log.error("Exception caught while sending response", ex);
+            if (!fromException) {
+                ctx.fail(ex);
+            }
+            return;
+        }
         serverResponse.end(buffer);
     }
 
