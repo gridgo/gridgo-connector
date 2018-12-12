@@ -207,12 +207,13 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
     }
 
     private String getContentType(RoutingContext ctx) {
+        var format = getFormat();
         var charset = "; charset=utf-8";
-        if ("raw".equals(getFormat()))
+        if ("raw".equals(format))
             return "application/octet-stream" + charset;
-        if ("json".equals(getFormat()))
+        if (format == null || "json".equals(format))
             return "application/json" + charset;
-        if ("xml".equals(getFormat()))
+        if ("xml".equals(format))
             return "application/xml" + charset;
         return "text/plain" + charset;
     }
