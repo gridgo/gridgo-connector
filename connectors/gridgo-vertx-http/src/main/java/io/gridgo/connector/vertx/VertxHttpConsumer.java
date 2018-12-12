@@ -179,7 +179,13 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         if (statusCode != -1)
             serverResponse.setStatusCode(statusCode);
 
-        for (var entry : response.getPayload().getHeaders().entrySet()) {
+        var headers = response.getPayload().getHeaders();
+
+        if (!headers.containsKey(VertxHttpConstants.HEADER_CONTENT_TYPE)) {
+            headers.setAny(VertxHttpConstants.HEADER_CONTENT_TYPE, getContentType(ctx));
+        }
+
+        for (var entry : headers.entrySet()) {
             if (entry.getValue().isValue())
                 serverResponse.headers().add(entry.getKey(), entry.getValue().toString());
         }
@@ -198,6 +204,17 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
             return;
         }
         serverResponse.end(buffer);
+    }
+
+    private String getContentType(RoutingContext ctx) {
+        var charset = "; charset=utf-8";
+        if ("raw".equals(getFormat()))
+            return "application/octet-stream" + charset;
+        if ("json".equals(getFormat()))
+            return "application/json" + charset;
+        if ("xml".equals(getFormat()))
+            return "application/xml" + charset;
+        return "text/plain" + charset;
     }
 
     private Message buildMessage(RoutingContext ctx) {

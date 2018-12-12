@@ -45,4 +45,6 @@ public class VertxHttpConstants extends HttpCommonConsumerConstants {
     public static final String PEM_CERT_PATH = "certPath";
 
     public static final String PEM_KEY_PATH = "keyPath";
+
+    public static final String HEADER_CONTENT_TYPE = "Content-Type";
 }
