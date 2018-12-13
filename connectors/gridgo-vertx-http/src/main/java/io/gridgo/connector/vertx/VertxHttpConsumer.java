@@ -129,8 +129,9 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         var ex = ctx.failure() != null ? ctx.failure() : new HttpException(ctx.statusCode());
         var msg = buildFailureMessage(ex);
         if (msg != null) {
-            msg.getPayload().getHeaders().putIfAbsent(VertxHttpConstants.HEADER_STATUS_CODE,
-                    BValue.of(DEFAULT_EXCEPTION_STATUS_CODE));
+            var statusCode = ctx.statusCode() != -1 ? ctx.statusCode() : DEFAULT_EXCEPTION_STATUS_CODE;
+            msg.getPayload().getHeaders() //
+               .putIfAbsent(VertxHttpConstants.HEADER_STATUS_CODE, BValue.of(statusCode));
             sendResponse(ctx, msg, true);
         } else {
             defaultHandleException(ctx);
