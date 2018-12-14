@@ -55,7 +55,7 @@ vertx:http://host:port/[path][?options]
 
 === headers
 
-* Request headers *
+*Request headers*
 
 // headers: START
 
@@ -73,7 +73,7 @@ vertx:http://host:port/[path][?options]
 // headers: END
 
 
-* Response headers *
+*Response headers*
 
 // headers: START
 
