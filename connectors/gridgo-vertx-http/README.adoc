@@ -66,7 +66,6 @@ vertx:http://host:port/[path][?options]
 | *Query-Params* | HttpCommonConstants.HEADER_QUERY_PARAMS | The query parameters as key-value | Object
 | *Http-Method* | HttpCommonConstants.HEADER_HTTP_METHOD | The method used in the request | String
 | *Http-Path* | HttpCommonConstants.HEADER_PATH | The path used in the request | String
-| *Http-Method* | HttpCommonConstants.HEADER_HTTP_METHOD | The method used in the request | String
 | *Parsed-Cookie* | HttpCommonConstants.HEADER_COOKIE | The cookie, only available if parseCookie is true | Object
 
 |===
