@@ -1,0 +1,77 @@
+[[http-jdk-connector]]
+== gridgo-http-jdk
+
+*Available as of version 0.2.0*
+
+Allow sending HTTP/2 requests using Java built-in HttpClient
+
+=== install
+
+[source,xml]
+------------------------------------------------------------
+<dependency>
+    <groupId>io.gridgo</groupId>
+    <artifactId>gridgo-http-jdk</artifactId>
+    <version>x.x.x</version>
+    <!-- use the same version as gridgo-connector-core version -->
+</dependency>
+------------------------------------------------------------
+
+=== uri format
+
+[source,java]
+---------------------------
+(http2/http2s)://httpUri[?options]
+
+---------------------------
+
+=== options
+
+// connector options: START
+
+[width="100%",cols="2,5,^1,2",options="header"]
+|===
+
+| Name | Description  | Default | Type
+| *format* | Format of the messages to be used | raw | Enum (raw, json, xml, string)
+| *method* | The HTTP method to be used | GET | Enum (OPTIONS, GET, HEAD, POST, PUT, DELETE, TRACE, CONNECT, PATCH, OTHER)
+| *connectTimeout* | Connection timeout | | Integer
+| *priority* | The priority of HTTP/2 requests | | Integer (1-256)
+| *redirect* | Redirect policy | | Enum (NEVER, ALWAYS, NORMAL)
+| *maxRedirects* | Maximum number of redirects | | Integer
+| *useProxy* | Should use proxy | false | Boolean
+| *proxyHost* | The proxy hostname |  | String
+| *proxyPort* | The proxy port | 80 | Integer
+
+|===
+// connector options: END
+
+=== headers
+
+*Request headers*
+
+// headers: START
+
+[width="100%",cols="2,2,5,^1",options="header"]
+|===
+
+| Name | Constants | Description  | Type
+| *Query-Params* | HttpCommonConstants.HEADER_QUERY_PARAMS | The query parameters as key-value | Object
+| *Http-Method* | HttpCommonConstants.HEADER_HTTP_METHOD | The method used in the request | String
+
+|===
+// headers: END
+
+
+*Response headers*
+
+// headers: START
+
+[width="100%",cols="2,2,5,^1",options="header"]
+|===
+
+| Name | Constants | Description  | Type
+| *Http-Status-Code* | HttpCommonConstants.HEADER_STATUS_CODE | The response status code (e.g: `200`) | Integer
+
+|===
+// headers: END
