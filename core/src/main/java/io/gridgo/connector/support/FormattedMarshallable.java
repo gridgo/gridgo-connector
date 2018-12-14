@@ -31,8 +31,12 @@ public interface FormattedMarshallable {
             return body.toXml().getBytes();
         if (format.equals("raw"))
             return body.toBytes();
+        if (format.equals("string")) {
+            if (body.isValue())
+                return body.asValue().getRaw();
+        }
         throw new UnsupportedFormatException(format);
     }
-
+    
     public String getFormat();
 }

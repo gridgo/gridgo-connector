@@ -1,0 +1,88 @@
+[[vertx-http-connector]]
+== gridgo-vertx-http
+
+*Available as of version 0.1.0*
+
+Allows creation of HTTP server using Vert.x.
+
+=== install
+
+[source,xml]
+------------------------------------------------------------
+<dependency>
+    <groupId>io.gridgo</groupId>
+    <artifactId>gridgo-vertx-http</artifactId>
+    <version>x.x.x</version>
+    <!-- use the same version as gridgo-connector-core version -->
+</dependency>
+------------------------------------------------------------
+
+=== uri format
+
+[source,java]
+---------------------------
+vertx:http://host:port/[path][?options]
+
+---------------------------
+
+=== options
+
+// connector options: START
+
+[width="100%",cols="2,5,^1,2",options="header"]
+|===
+
+| Name | Description  | Default | Type
+| *format* | Format of the messages to be used | raw | Enum (raw, json, xml, string)
+| *method* | Accepted HTTP method |  | Enum (OPTIONS, GET, HEAD, POST, PUT, DELETE, TRACE, CONNECT, PATCH, OTHER)
+| *vertxBean* | Vert.x bean to be used (optional) |  | String (must be registered with Registry)
+| *workerPoolSize* | Worker pool size | Defaulted by Vert.x | Integer
+| *eventLoopPoolSize* | Event loop pool size | Defaulted by Vert.x | Integer
+| *acceptBacklog* | Accept backlog size | Defaulted by Vert.x | Integer
+| *gzip* | Whether to use GZIP or not | false | Boolean
+| *compressionLevel* | Compression level |  | Integer
+| *useAlpn* | Whether to use ALPN or not | false | Boolean
+| *ssl* | Whether to use SSL or not | false | Boolean
+| *certPath* | Path to certificate file, required for SSL |  | String
+| *keyPath* | Path to key file, required for SSL |  | String
+| *keyStorePath* | Path to the key store |  | String
+| *keyStorePassword* | The key store password |  | String
+| *clientAuth* | Client authentication method | NONE | Enum (NONE, REQUEST, REQUIRED)
+| *parseCookie* | Whether or not to parse cookies | fasle | Boolean
+
+|===
+// connector options: END
+
+=== headers
+
+*Request headers*
+
+// headers: START
+
+[width="100%",cols="2,2,5,^1",options="header"]
+|===
+
+| Name | Constants | Description  | Type
+| *Query-Params* | HttpCommonConstants.HEADER_QUERY_PARAMS | The query parameters as key-value | Object
+| *Http-Method* | HttpCommonConstants.HEADER_HTTP_METHOD | The method used in the request | String
+| *Http-Path* | HttpCommonConstants.HEADER_PATH | The path used in the request | String
+| *Parsed-Cookie* | HttpCommonConstants.HEADER_COOKIE | The cookie, only available if parseCookie is true | Object
+
+|===
+// headers: END
+
+
+*Response headers*
+
+// headers: START
+
+[width="100%",cols="2,2,5,^1",options="header"]
+|===
+
+| Name | Constants | Description  | Type
+| *Http-Status* | HttpCommonConstants.HEADER_STATUS | The response status message (e.g: `200 OK`) | String
+| *Http-Status-Code* | HttpCommonConstants.HEADER_STATUS_CODE | The response status code (e.g: `200`) | Integer
+| *Content-Type* | HttpCommonConstants.HEADER_CONTENT_TYPE | The response content-type (e.g: `text/plain; charset=utf-8`) | String
+
+|===
+// headers: END

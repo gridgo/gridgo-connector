@@ -1,0 +1,87 @@
+[[http-connector]]
+== gridgo-http
+
+*Available as of version 0.2.0*
+
+Allow sending HTTP requests
+
+=== install
+
+[source,xml]
+------------------------------------------------------------
+<dependency>
+    <groupId>io.gridgo</groupId>
+    <artifactId>gridgo-http</artifactId>
+    <version>x.x.x</version>
+    <!-- use the same version as gridgo-connector-core version -->
+</dependency>
+------------------------------------------------------------
+
+=== uri format
+
+[source,java]
+---------------------------
+(http/https)://httpUri[?options]
+
+---------------------------
+
+=== options
+
+// connector options: START
+
+[width="100%",cols="2,5,^1,2",options="header"]
+|===
+
+| Name | Description  | Default | Type
+| *format* | Format of the messages to be used | raw | Enum (raw, json, xml, string)
+| *method* | The HTTP method to be used | GET | Enum (OPTIONS, GET, HEAD, POST, PUT, DELETE, TRACE, CONNECT, PATCH, OTHER)
+| *nameResolverClass* | The class of the domain name resolver |  | String
+| *nameResolverBean* | The name of the domain name resolver bean. Doesn't work with nameResolverClass |  | io.netty.resolver.NameResolver (must be registered with Registry)
+| *connectTimeout* | Connection timeout | | Integer
+| *requestTimeout* | Request timeout | | Integer
+| *maxRetries* | Maximum number of retries | | Integer
+| *maxConnections* | Maximum number of concurrent connections | | Integer
+| *maxRedirects* | Maximum number of redirects | | Integer
+| *keepAlive* | Should use keep-alive connection | false | Boolean
+| *gzip* | Should enforce GZIP compression | false | Boolean
+| *ioThreadsCount* | Number of IO threads | | Integer
+| *useProxy* | Should use proxy | false | Boolean
+| *proxyHost* | The proxy hostname |  | String
+| *proxyPort* | The proxy port | 80 | Integer
+| *proxySecuredPort* | The proxy port for HTTPS | 80 | Integer
+| *proxyRealmBean* | The name of the proxy realm bean |  | org.asynchttpclient.Realm (must be registered with Registry)
+| *sslContextBean* | The name of the SSLContext bean | | io.netty.handler.ssl.SslContext (must be registered with Registry)
+
+|===
+// connector options: END
+
+=== headers
+
+*Request headers*
+
+// headers: START
+
+[width="100%",cols="2,2,5,^1",options="header"]
+|===
+
+| Name | Constants | Description  | Type
+| *Query-Params* | HttpCommonConstants.HEADER_QUERY_PARAMS | The query parameters as key-value | Object
+| *Http-Method* | HttpCommonConstants.HEADER_HTTP_METHOD | The method used in the request | String
+
+|===
+// headers: END
+
+
+*Response headers*
+
+// headers: START
+
+[width="100%",cols="2,2,5,^1",options="header"]
+|===
+
+| Name | Constants | Description  | Type
+| *Http-Status* | HttpCommonConstants.HEADER_STATUS | The response status message (e.g: `200 OK`) | String
+| *Http-Status-Code* | HttpCommonConstants.HEADER_STATUS_CODE | The response status code (e.g: `200`) | Integer
+
+|===
+// headers: END
