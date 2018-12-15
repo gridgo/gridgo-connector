@@ -56,7 +56,8 @@ There is no options available for this connector
 | *Mongo_IdField* (for `find by id` operations) | MongoDBConstants.ID_FIELD | The name of the id field | String
 | *Mongo_CountOptions* (for `count` operations) | MongoDBConstants.COUNT_OPTIONS | The options used in count operations | com.mongodb.client.model.CountOptions
 
-_Note: The Mongo_Projection/Mongo_ProjectionInclude/Mongo_ProjectionExclude_ headers are mutually exclusive.
-
 |===
 // headers: END
+
+_Note: The Mongo_Projection/Mongo_ProjectionInclude/Mongo_ProjectionExclude_ headers are mutually exclusive.
+
