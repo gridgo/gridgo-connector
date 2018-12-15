@@ -58,3 +58,21 @@ _Note: Only a subset of configurations are supported currently._
 
 |===
 // headers: END
+
+*Message body structure*
+
+For get request (`RocksDB_OperationGet`), the body should be a BValue string specifying the name of the key to be retrieved.
+
+For put request (`RocksDB_OperationSet`), the body should be a BObject where each key is the key to be updated, and each value is the corresponding updated value.
+
+For example, to update 2 fields `name` and `age`:
+
+[source,java]
+---------------------------
+
+var request = Message.ofAny(
+    BObject.of("name", "dungba88")
+           .setAny("age", 20)
+);
+
+---------------------------
