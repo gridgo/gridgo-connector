@@ -29,8 +29,6 @@ The `mongoClientBean` must be registered using Registry.
 
 === options
 
-// connector options: START
-
 There is no options available for this connector
 
 === headers
