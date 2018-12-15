@@ -25,7 +25,7 @@ rocksdb://path_to_db[?options]
 
 ---------------------------
 
-_Note: Only a subset of configurations are supported currently.
+_Note: Only a subset of configurations are supported currently._
 
 === options
 
