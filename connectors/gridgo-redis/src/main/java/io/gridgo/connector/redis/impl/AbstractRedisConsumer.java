@@ -1,13 +1,23 @@
 package io.gridgo.connector.redis.impl;
 
+import java.util.Collection;
+
 import io.gridgo.connector.impl.AbstractConsumer;
 import io.gridgo.connector.redis.RedisConsumer;
+import io.gridgo.connector.redis.adapter.RedisClient;
 import io.gridgo.connector.support.config.ConnectorContext;
+import lombok.NonNull;
 
 public class AbstractRedisConsumer extends AbstractConsumer implements RedisConsumer {
 
-    protected AbstractRedisConsumer(ConnectorContext context) {
+    private final RedisClient redisClient;
+
+    private final Collection<String> topics;
+
+    protected AbstractRedisConsumer(@NonNull ConnectorContext context, @NonNull RedisClient redisClient, @NonNull Collection<String> topics) {
         super(context);
+        this.redisClient = redisClient;
+        this.topics = topics;
     }
 
     @Override
@@ -17,14 +27,11 @@ public class AbstractRedisConsumer extends AbstractConsumer implements RedisCons
 
     @Override
     protected void onStart() {
-        // TODO Auto-generated method stub
 
     }
 
     @Override
     protected void onStop() {
-        // TODO Auto-generated method stub
 
     }
-
 }

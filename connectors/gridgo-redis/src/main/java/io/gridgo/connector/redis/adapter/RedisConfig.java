@@ -17,7 +17,7 @@ public class RedisConfig {
 
     private int database;
 
-    private HostAndPortSet sentinelAddress;
+    private String sentinelMasterId;
 
     private Function<Object, BElement> parser;
 }

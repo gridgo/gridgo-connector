@@ -1,16 +1,11 @@
 package io.gridgo.connector.redis.adapter.lettuce;
 
-import static io.lettuce.core.RedisURI.DEFAULT_REDIS_PORT;
-
-import java.util.Collection;
-
 import io.gridgo.connector.redis.adapter.RedisConfig;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.api.StatefulRedisConnection;
-import io.lettuce.core.masterslave.MasterSlave;
 
-public class LettuceSentinnelClient extends LettuceMasterSlaveClient {
+public class LettuceSentinnelClient extends LettuceSingleClient {
 
     protected LettuceSentinnelClient(RedisConfig config) {
         super(config);
@@ -18,23 +13,20 @@ public class LettuceSentinnelClient extends LettuceMasterSlaveClient {
 
     @Override
     protected StatefulRedisConnection<byte[], byte[]> createConnection() {
-        RedisConfig config = this.getConfig();
-
-        Collection<RedisURI> uris = config.getAddress().convert(hostAndPort -> {
-            RedisURI uri = RedisURI.create(hostAndPort.getHost(), hostAndPort.getPortOrDefault(DEFAULT_REDIS_PORT));
-
-            if (config.getPassword() != null) {
-                uri.setPassword(config.getPassword());
-            }
-
-            if (config.getDatabase() >= 0) {
-                uri.setDatabase(config.getDatabase());
-            }
-
-            return uri;
+        RedisURI.Builder builder = RedisURI.builder().withSentinelMasterId(getConfig().getSentinelMasterId());
+        getConfig().getAddress().forEach(addr -> {
+            builder.withSentinel(addr.getHost(), addr.getPortOrDefault(26379));
         });
 
-        RedisClient client = RedisClient.create();
-        return MasterSlave.connect(client, getCodec(), uris);
+        builder.withPassword(getConfig().getPassword());
+        
+        if (getConfig().getDatabase() >= 0) {
+            builder.withDatabase(getConfig().getDatabase());
+        }
+
+        RedisURI redisUri = builder.build();
+        RedisClient client = RedisClient.create(redisUri);
+
+        return client.connect(getCodec());
     }
 }
