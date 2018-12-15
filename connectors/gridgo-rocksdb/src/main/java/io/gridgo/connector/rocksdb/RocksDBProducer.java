@@ -3,6 +3,11 @@ package io.gridgo.connector.rocksdb;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION_GET;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION_SET;
+import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_ALLOW_2_PHASE_COMMIT;
+import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_ALLOW_MMAP_READS;
+import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_ALLOW_MMAP_WRITES;
+import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_CREATE_IF_MISSING;
+import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_WRITE_BUFFER_SIZE;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,9 +33,9 @@ public class RocksDBProducer extends AbstractProducer {
 
     private Map<String, ProducerHandler> operations = new HashMap<>();
 
-    private String path;
-
     private ConnectorConfig config;
+
+    private String path;
 
     private Options options;
 
@@ -51,28 +56,30 @@ public class RocksDBProducer extends AbstractProducer {
 
     @Override
     public void send(Message message) {
-        _call(message, null, false);
+        _call(message, false, false);
     }
 
     @Override
     public Promise<Message, Exception> sendWithAck(Message message) {
-        var deferred = new CompletableDeferredObject<Message, Exception>();
-        return _call(message, deferred, false);
+        return _call(message, true, false);
     }
 
     @Override
     public Promise<Message, Exception> call(Message request) {
-        var deferred = new CompletableDeferredObject<Message, Exception>();
-        return _call(request, deferred, true);
+        return _call(request, true, true);
     }
 
-    private Promise<Message, Exception> _call(Message message, Deferred<Message, Exception> deferred, boolean isRPC) {
+    private Promise<Message, Exception> _call(Message message, boolean deferredRequired, boolean isRPC) {
+        // get the operation and associated handler
         var operation = message.getPayload().getHeaders().getString(OPERATION);
         var handler = operations.get(operation);
         if (handler == null) {
             return new SimpleFailurePromise<>(
                     new IllegalArgumentException("Operation " + operation + " is not supported"));
         }
+
+        // call the handler with deferred if required
+        var deferred = deferredRequired ? new CompletableDeferredObject<Message, Exception>() : null;
         try {
             handler.handle(message, deferred, isRPC);
         } catch (RocksDBException e) {
@@ -125,11 +132,11 @@ public class RocksDBProducer extends AbstractProducer {
 
     private Options createOptions() {
         var options = new Options();
-        options.setCreateIfMissing(getParamAsBoolean("createIfMissing", true)) //
-               .setWriteBufferSize(getParamAsLong("writeBufferSize", 4 * SizeUnit.MB)) //
-               .setAllow2pc(getParamAsBoolean("2pc", false)) //
-               .setAllowMmapReads(getParamAsBoolean("mmapReads", false)) //
-               .setAllowMmapWrites(getParamAsBoolean("mmapWrites", false));
+        options.setCreateIfMissing(getParamAsBoolean(PARAM_CREATE_IF_MISSING, true)) //
+               .setWriteBufferSize(getParamAsLong(PARAM_WRITE_BUFFER_SIZE, 4 * SizeUnit.MB)) //
+               .setAllow2pc(getParamAsBoolean(PARAM_ALLOW_2_PHASE_COMMIT, false)) //
+               .setAllowMmapReads(getParamAsBoolean(PARAM_ALLOW_MMAP_READS, false)) //
+               .setAllowMmapWrites(getParamAsBoolean(PARAM_ALLOW_MMAP_WRITES, false));
         return options;
     }
 
