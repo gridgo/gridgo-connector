@@ -217,9 +217,10 @@ public class MongoDBProducer extends AbstractProducer {
         var filter = getHeaderAs(msg, MongoDBConstants.FILTER, Bson.class);
         var options = getHeaderAs(msg, MongoDBConstants.COUNT_OPTIONS, CountOptions.class);
         if (options != null)
-            collection.count(filter, options, (result, throwable) -> ack(deferred, isRPC ? result : null, throwable));
+            collection.countDocuments(filter, options,
+                    (result, throwable) -> ack(deferred, isRPC ? result : null, throwable));
         else
-            collection.count(filter, (result, throwable) -> ack(deferred, isRPC ? result : null, throwable));
+            collection.countDocuments(filter, (result, throwable) -> ack(deferred, isRPC ? result : null, throwable));
     }
 
     private void ack(Deferred<Message, Exception> deferred, Object result, Throwable throwable) {
