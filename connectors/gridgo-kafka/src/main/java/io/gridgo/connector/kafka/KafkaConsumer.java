@@ -322,7 +322,7 @@ public class KafkaConsumer extends AbstractConsumer {
                     isRaw = true;
             }
 
-            var body = isRaw ? BFactory.DEFAULT.fromRaw((byte[]) record.value())
+            var body = isRaw ? BFactory.DEFAULT.fromBytes((byte[]) record.value())
                     : BFactory.DEFAULT.fromAny(record.value());
             return createMessage(headers, body);
         }

@@ -81,7 +81,7 @@ public class TestRabbitMQ {
                 triggerDone.run();
             });
 
-            producer.send(Message.of(Payload.of(BElement.fromAny(TEXT))));
+            producer.send(Message.of(Payload.of(BElement.ofAny(TEXT))));
 
             waitForDone.run();
             assertEquals(TEXT, receivedTextRef.get());
@@ -107,7 +107,7 @@ public class TestRabbitMQ {
             });
 
             final AtomicReference<String> receivedTextRef = new AtomicReference<String>(null);
-            Message msg = Message.of(Payload.of(BElement.fromAny(TEXT)));
+            Message msg = Message.of(Payload.of(BElement.ofAny(TEXT)));
             Promise<Message, Exception> promise = producer.call(msg);
             promise.done((message) -> {
                 receivedTextRef.set(message.getPayload().getBody().asValue().getString());
@@ -150,7 +150,7 @@ public class TestRabbitMQ {
             doneSignal.countDown();
         });
 
-        producer.send(Message.of(Payload.of(BElement.fromAny(TEXT))));
+        producer.send(Message.of(Payload.of(BElement.ofAny(TEXT))));
 
         doneSignal.await();
         assertEquals(TEXT, receivedTextRef1.get());
@@ -197,8 +197,8 @@ public class TestRabbitMQ {
             doneSignal.countDown();
         });
 
-        producer1.send(Message.of(BValue.of("key1"), Payload.of(BElement.fromAny(text1))));
-        producer1.send(Message.of(BValue.of("key2"), Payload.of(BElement.fromAny(text2))));
+        producer1.send(Message.of(BValue.of("key1"), Payload.of(BElement.ofAny(text1))));
+        producer1.send(Message.of(BValue.of("key2"), Payload.of(BElement.ofAny(text2))));
 
         doneSignal.await();
         assertEquals(text1, receivedTextRef1.get());
@@ -240,8 +240,8 @@ public class TestRabbitMQ {
         consumer1.subscribe(echoMessageHandler);
         consumer2.subscribe(echoMessageHandler);
 
-        Message req1 = Message.of(BValue.of("key1"), Payload.of(BElement.fromAny(text1)));
-        Message req2 = Message.of(BValue.of("key2"), Payload.of(BElement.fromAny(text2)));
+        Message req1 = Message.of(BValue.of("key1"), Payload.of(BElement.ofAny(text1)));
+        Message req2 = Message.of(BValue.of("key2"), Payload.of(BElement.ofAny(text2)));
 
         Message resp1 = producer.call(req1).get();
         Message resp2 = producer.call(req2).get();

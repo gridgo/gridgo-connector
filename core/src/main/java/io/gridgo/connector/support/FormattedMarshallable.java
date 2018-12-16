@@ -11,13 +11,13 @@ public interface FormattedMarshallable {
             return null;
         var format = getFormat();
         if (format == null || format.equals("json"))
-            return BElement.fromJson(new String(responseBody));
+            return BElement.ofJson(new String(responseBody));
         if (format.equals("xml"))
-            return BElement.fromXml(new String(responseBody));
+            return BElement.ofXml(new String(responseBody));
         if (format.equals("string"))
             return BValue.of(responseBody);
         if (format.equals("raw"))
-            return BElement.fromRaw(responseBody);
+            return BElement.ofBytes(responseBody);
         throw new UnsupportedFormatException(format);
     }
 
@@ -37,6 +37,6 @@ public interface FormattedMarshallable {
         }
         throw new UnsupportedFormatException(format);
     }
-    
+
     public String getFormat();
 }

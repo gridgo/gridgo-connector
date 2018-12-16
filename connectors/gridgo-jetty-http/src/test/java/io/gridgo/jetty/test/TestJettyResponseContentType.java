@@ -109,7 +109,7 @@ public class TestJettyResponseContentType {
             assertTrue(contentType.length > 0);
             assertThat(contentType[0].getValue(), Matchers.startsWith(HttpContentType.APPLICATION_JSON.getMime()));
 
-            BElement responseData = BElement.fromJson(EntityUtils.toString(response.getEntity()));
+            BElement responseData = BElement.ofJson(EntityUtils.toString(response.getEntity()));
             assertNotNull(responseData);
             assertTrue(responseData.isObject());
             assertEquals(TEST_TEXT, responseData.asObject().getString("testText"));
@@ -143,7 +143,7 @@ public class TestJettyResponseContentType {
             assertTrue(contentType.length > 0);
             assertThat(contentType[0].getValue(), Matchers.startsWith(HttpContentType.TEXT_PLAIN.getMime()));
 
-            BElement responseData = BElement.fromJson(EntityUtils.toString(response.getEntity()));
+            BElement responseData = BElement.ofJson(EntityUtils.toString(response.getEntity()));
             assertNotNull(responseData);
             assertTrue(responseData.isValue());
             assertEquals(TEST_TEXT, responseData.asValue().getString());

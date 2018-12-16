@@ -63,9 +63,7 @@ public class TestMultiPart {
 
     private Connector createConnector(String endpoint) {
         ConnectorContext connectorContext = new DefaultConnectorContextBuilder() //
-                                                                                .setCallbackInvokerStrategy(
-                                                                                        new ExecutorExecutionStrategy(
-                                                                                                executor)) //
+                                                                                .setCallbackInvokerStrategy(new ExecutorExecutionStrategy(executor)) //
                                                                                 .setExceptionHandler((ex) -> {
                                                                                     ex.printStackTrace();
                                                                                 }) //
@@ -120,8 +118,7 @@ public class TestMultiPart {
                     BObject part = element.asObject();
                     BElement partBody = part.get(HttpCommonConstants.BODY);
                     if (partBody instanceof BReference) {
-                        String partBodyAsString = readInputStreamAsString(
-                                (InputStream) partBody.asReference().getReference());
+                        String partBodyAsString = readInputStreamAsString((InputStream) partBody.asReference().getReference());
                         body.putAny(part.getString(HttpCommonConstants.NAME), partBodyAsString);
                     } else {
                         body.putAny(part.getString(HttpCommonConstants.NAME), partBody.toJson());
@@ -147,7 +144,7 @@ public class TestMultiPart {
 
             HttpResponse response = httpClient.execute(request);
 
-            BElement respObj = BElement.fromJson(EntityUtils.toString(response.getEntity()));
+            BElement respObj = BElement.ofJson(EntityUtils.toString(response.getEntity()));
 
             assertNotNull(respObj);
             assertTrue(respObj.isObject());
@@ -164,8 +161,7 @@ public class TestMultiPart {
                 String name = entry.getKey();
                 switch (name) {
                 case "file:test.txt":
-                    String fileContent = readInputStreamAsString(
-                            getClass().getClassLoader().getResourceAsStream("test.txt"));
+                    String fileContent = readInputStreamAsString(getClass().getClassLoader().getResourceAsStream("test.txt"));
                     assertEquals(fileContent, entry.getValue().asValue().getString());
                     break;
                 case "rawData":

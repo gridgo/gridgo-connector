@@ -18,7 +18,7 @@ public class MsgpackDecoder extends ByteToMessageDecoder implements Loggable {
         in.markReaderIndex();
         ByteBufInputStream stream = new ByteBufInputStream(in);
         try {
-            out.add(BElement.fromRaw(stream));
+            out.add(BElement.ofBytes(stream));
         } catch (Exception e) {
             if (e.getCause() instanceof MessageInsufficientBufferException) {
                 in.resetReaderIndex();
