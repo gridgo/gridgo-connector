@@ -39,17 +39,7 @@ public abstract class AbstractLettuceClient extends AbstractComponentLifecycle
     }
 
     private <T> BElement parse(T data) {
-        BElement result;
-        if (data instanceof byte[]) {
-            try {
-                result = BElement.fromRaw((byte[]) data);
-            } catch (Exception e) {
-                result = BElement.fromAny(data);
-            }
-        } else {
-            result = BElement.fromAny(data);
-        }
-        return result;
+        return BElement.fromAny(data);
     }
 
     protected Promise<BElement, Exception> toPromise(RedisFuture<?> future) {
