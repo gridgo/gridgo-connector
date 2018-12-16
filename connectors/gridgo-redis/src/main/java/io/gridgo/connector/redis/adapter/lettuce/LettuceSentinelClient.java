@@ -1,14 +1,15 @@
 package io.gridgo.connector.redis.adapter.lettuce;
 
 import io.gridgo.connector.redis.adapter.RedisConfig;
+import io.gridgo.connector.redis.adapter.RedisType;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.api.StatefulRedisConnection;
 
-public class LettuceSentinnelClient extends LettuceSingleClient {
+public class LettuceSentinelClient extends LettuceSingleClient {
 
-    protected LettuceSentinnelClient(RedisConfig config) {
-        super(config);
+    protected LettuceSentinelClient(RedisConfig config) {
+        super(RedisType.SENTINEL, config);
     }
 
     @Override

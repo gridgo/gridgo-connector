@@ -1,6 +1,7 @@
 package io.gridgo.connector.redis.impl;
 
 import org.joo.promise4j.Promise;
+import org.joo.promise4j.impl.SimpleFailurePromise;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
@@ -23,8 +24,32 @@ public class AbstractRedisProducer extends AbstractProducer implements RedisProd
     }
 
     @Override
+    public void send(Message message) {
+        call(message);
+    }
+
+    @Override
+    public Promise<Message, Exception> sendWithAck(Message message) {
+        return call(message);
+    }
+
+    @Override
+    public Promise<Message, Exception> call(Message request) {
+        BObject headers = request.getPayload().getHeaders();
+        String command = headers.getString("commands", headers.getString("cmd", null));
+        RedisCommandHandler handler = RedisCommands.getHandler(command);
+        if (handler == null)
+            return new SimpleFailurePromise<>(
+                    new CommandHandlerNotRegisteredException("Handler doesn't registered for command: " + command));
+        Promise<BElement, Exception> promise = handler.execute(redisClient, request.getPayload().getBody());
+        return promise.filterDone(result -> {
+            return Message.ofAny(result);
+        });
+    }
+
+    @Override
     protected String generateName() {
-        return null;
+        return "producer.redis." + redisClient.getName();
     }
 
     @Override
@@ -40,29 +65,5 @@ public class AbstractRedisProducer extends AbstractProducer implements RedisProd
     @Override
     public boolean isCallSupported() {
         return true;
-    }
-
-    @Override
-    public void send(Message message) {
-        call(message);
-    }
-
-    @Override
-    public Promise<Message, Exception> sendWithAck(Message message) {
-        return call(message);
-    }
-
-    @Override
-    public Promise<Message, Exception> call(Message request) {
-        BObject headers = request.getPayload().getHeaders();
-        String command = headers.getString("commands", headers.getString("cmd", null));
-        RedisCommandHandler handler = RedisCommands.getHandler(command);
-        if (handler != null) {
-            Promise<BElement, Exception> promise = handler.execute(redisClient, request.getPayload().getBody());
-            return promise.filterDone(result -> {
-                return Message.ofAny(result);
-            });
-        }
-        throw new CommandHandlerNotRegisteredException("Handler doesn't registered for command: " + command);
     }
 }

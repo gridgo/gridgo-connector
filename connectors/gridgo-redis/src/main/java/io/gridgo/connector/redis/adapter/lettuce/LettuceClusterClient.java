@@ -11,6 +11,7 @@ import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.connector.redis.adapter.RedisConfig;
+import io.gridgo.connector.redis.adapter.RedisType;
 import io.lettuce.core.BitFieldArgs;
 import io.lettuce.core.Consumer;
 import io.lettuce.core.GeoArgs;
@@ -49,7 +50,7 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     private RedisAdvancedClusterAsyncCommands<byte[], byte[]> commands;
 
     protected LettuceClusterClient(RedisConfig config) {
-        super(config);
+        super(RedisType.CLUSTER, config);
     }
 
     @Override

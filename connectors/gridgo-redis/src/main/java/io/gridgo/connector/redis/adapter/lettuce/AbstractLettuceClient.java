@@ -8,6 +8,7 @@ import org.joo.promise4j.impl.CompletableDeferredObject;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.connector.redis.adapter.RedisConfig;
+import io.gridgo.connector.redis.adapter.RedisType;
 import io.gridgo.framework.AbstractComponentLifecycle;
 import io.lettuce.core.RedisFuture;
 import io.lettuce.core.codec.ByteArrayCodec;
@@ -27,7 +28,10 @@ public abstract class AbstractLettuceClient extends AbstractComponentLifecycle
 
     private Function<Object, BElement> parser = this::parse;
 
-    protected AbstractLettuceClient(@NonNull RedisConfig config) {
+    private RedisType type;
+
+    protected AbstractLettuceClient(RedisType single, @NonNull RedisConfig config) {
+        this.type = single;
         this.config = config;
         if (config.getParser() != null) {
             this.parser = config.getParser();
@@ -56,7 +60,7 @@ public abstract class AbstractLettuceClient extends AbstractComponentLifecycle
 
     @Override
     protected String generateName() {
-        return null;
+        return type + "." + config.getAddress();
     }
 
 }

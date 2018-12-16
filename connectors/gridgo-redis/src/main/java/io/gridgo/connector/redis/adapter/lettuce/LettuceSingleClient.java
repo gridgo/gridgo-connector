@@ -8,6 +8,7 @@ import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.connector.redis.adapter.RedisConfig;
+import io.gridgo.connector.redis.adapter.RedisType;
 import io.gridgo.utils.support.HostAndPort;
 import io.lettuce.core.BitFieldArgs;
 import io.lettuce.core.Consumer;
@@ -50,7 +51,11 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     private RedisAsyncCommands<byte[], byte[]> commands;
 
     protected LettuceSingleClient(RedisConfig config) {
-        super(config);
+        super(RedisType.SINGLE, config);
+    }
+    
+    protected LettuceSingleClient(RedisType redisType, RedisConfig config) {
+        super(redisType, config);
     }
 
     protected StatefulRedisConnection<byte[], byte[]> createConnection() {
