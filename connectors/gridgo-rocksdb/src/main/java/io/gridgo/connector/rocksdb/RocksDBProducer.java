@@ -2,7 +2,13 @@ package io.gridgo.connector.rocksdb;
 
 import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION_GET;
+import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION_GET_ALL;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION_SET;
+import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_ALLOW_2_PHASE_COMMIT;
+import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_ALLOW_MMAP_READS;
+import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_ALLOW_MMAP_WRITES;
+import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_CREATE_IF_MISSING;
+import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_WRITE_BUFFER_SIZE;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,20 +23,25 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.util.SizeUnit;
 
 import io.gridgo.bean.BElement;
+import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.AbstractProducer;
 import io.gridgo.connector.support.config.ConnectorConfig;
 import io.gridgo.connector.support.config.ConnectorContext;
+import io.gridgo.framework.execution.ExecutionStrategy;
+import io.gridgo.framework.execution.impl.DefaultExecutionStrategy;
 import io.gridgo.framework.support.Message;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RocksDBProducer extends AbstractProducer {
 
+    private static final ExecutionStrategy DEFAULT_EXECUTION_STRATEGY = new DefaultExecutionStrategy();
+
     private Map<String, ProducerHandler> operations = new HashMap<>();
 
-    private String path;
-
     private ConnectorConfig config;
+
+    private String path;
 
     private Options options;
 
@@ -47,37 +58,45 @@ public class RocksDBProducer extends AbstractProducer {
     private void bindHandlers() {
         operations.put(OPERATION_SET, this::putValue);
         operations.put(OPERATION_GET, this::getValue);
+        operations.put(OPERATION_GET_ALL, this::getAllValues);
     }
 
     @Override
     public void send(Message message) {
-        _call(message, null, false);
+        _call(message, false, false);
     }
 
     @Override
     public Promise<Message, Exception> sendWithAck(Message message) {
-        var deferred = new CompletableDeferredObject<Message, Exception>();
-        return _call(message, deferred, false);
+        return _call(message, true, false);
     }
 
     @Override
     public Promise<Message, Exception> call(Message request) {
-        var deferred = new CompletableDeferredObject<Message, Exception>();
-        return _call(request, deferred, true);
+        return _call(request, true, true);
     }
 
-    private Promise<Message, Exception> _call(Message message, Deferred<Message, Exception> deferred, boolean isRPC) {
+    private Promise<Message, Exception> _call(Message message, boolean deferredRequired, boolean isRPC) {
+        // get the operation and associated handler
         var operation = message.getPayload().getHeaders().getString(OPERATION);
         var handler = operations.get(operation);
         if (handler == null) {
             return new SimpleFailurePromise<>(
                     new IllegalArgumentException("Operation " + operation + " is not supported"));
         }
-        try {
-            handler.handle(message, deferred, isRPC);
-        } catch (RocksDBException e) {
-            return new SimpleFailurePromise<>(e);
-        }
+
+        // call the handler with deferred if required
+        var deferred = deferredRequired ? new CompletableDeferredObject<Message, Exception>() : null;
+        var strategy = getContext().getProducerExecutionStrategy().orElse(DEFAULT_EXECUTION_STRATEGY);
+
+        strategy.execute(() -> {
+            try {
+                handler.handle(message, deferred, isRPC);
+            } catch (RocksDBException ex) {
+                log.error("Exception caught while executing handler", ex);
+                deferred.reject(ex);
+            }
+        });
         return deferred != null ? deferred.promise() : null;
     }
 
@@ -86,22 +105,40 @@ public class RocksDBProducer extends AbstractProducer {
         // TODO check if we should only flush after batch writes
         var body = message.getPayload().getBody().asObject();
         for (var entry : body.entrySet()) {
-            if (entry.getValue().asValue().isNull())
+            var value = entry.getValue();
+            if (value.isValue() && value.asValue().isNull())
                 db.delete(entry.getKey().getBytes());
             else
-                db.put(entry.getKey().getBytes(), entry.getValue().asValue().toBytes());
+                db.put(entry.getKey().getBytes(), value.toBytes());
         }
         ack(deferred, (Message) null);
     }
 
     private void getValue(Message message, Deferred<Message, Exception> deferred, boolean isRPC)
             throws RocksDBException {
+        if (!isRPC) {
+            ack(deferred, (Message) null);
+            return;
+        }
         var key = message.getPayload().getBody().asValue().getString().getBytes();
         var bytes = db.get(key);
-        if (isRPC)
-            ack(deferred, Message.ofAny(BElement.fromRaw(bytes)));
-        else
+        ack(deferred, Message.ofAny(BElement.fromRaw(bytes)));
+    }
+
+    private void getAllValues(Message message, Deferred<Message, Exception> deferred, boolean isRPC)
+            throws RocksDBException {
+        if (!isRPC) {
             ack(deferred, (Message) null);
+            return;
+        }
+        var body = BObject.ofEmpty();
+        var iterator = db.newIterator();
+        iterator.seekToFirst();
+        while (iterator.isValid()) {
+            body.setAny(new String(iterator.key()), BElement.fromRaw(iterator.value()));
+            iterator.next();
+        }
+        ack(deferred, Message.ofAny(body));
     }
 
     @Override
@@ -125,11 +162,11 @@ public class RocksDBProducer extends AbstractProducer {
 
     private Options createOptions() {
         var options = new Options();
-        options.setCreateIfMissing(getParamAsBoolean("createIfMissing", true)) //
-               .setWriteBufferSize(getParamAsLong("writeBufferSize", 4 * SizeUnit.MB)) //
-               .setAllow2pc(getParamAsBoolean("2pc", false)) //
-               .setAllowMmapReads(getParamAsBoolean("mmapReads", false)) //
-               .setAllowMmapWrites(getParamAsBoolean("mmapWrites", false));
+        options.setCreateIfMissing(getParamAsBoolean(PARAM_CREATE_IF_MISSING, true)) //
+               .setWriteBufferSize(getParamAsLong(PARAM_WRITE_BUFFER_SIZE, 4 * SizeUnit.MB)) //
+               .setAllow2pc(getParamAsBoolean(PARAM_ALLOW_2_PHASE_COMMIT, false)) //
+               .setAllowMmapReads(getParamAsBoolean(PARAM_ALLOW_MMAP_READS, false)) //
+               .setAllowMmapWrites(getParamAsBoolean(PARAM_ALLOW_MMAP_WRITES, false));
         return options;
     }
 

@@ -19,7 +19,7 @@ import org.junit.Test;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
-import io.gridgo.connector.support.exceptions.FailureHandlerAware;
+import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 
@@ -84,8 +84,12 @@ public class VertxHttpUnitTest {
 
     @Test
     public void testCustomFailureHandler() throws ClientProtocolException, IOException {
+        var connectorContext = new DefaultConnectorContextBuilder().setFailureHandler(ex -> {
+            BObject headers = BObject.ofEmpty().setAny("error", true).setAny("cause", ex.getMessage());
+            return Message.of(Payload.of(headers, BValue.of("Error")));
+        }).build();
         var connector = new DefaultConnectorFactory().createConnector(
-                "vertx:http://127.0.0.1:8082/?method=POST&format=xml");
+                "vertx:http://127.0.0.1:8082/?method=POST&format=xml", connectorContext);
 
         connector.start();
 
@@ -93,12 +97,6 @@ public class VertxHttpUnitTest {
         Assert.assertTrue(!connector.getProducer().isPresent());
 
         var consumer = connector.getConsumer().orElseThrow();
-        if (consumer instanceof FailureHandlerAware) {
-            ((FailureHandlerAware<?>) consumer).setFailureHandler(ex -> {
-                BObject headers = BObject.ofEmpty().setAny("error", true).setAny("cause", ex.getMessage());
-                return Message.of(Payload.of(headers, BValue.of("Error")));
-            });
-        }
         consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
 
         String url = "http://127.0.0.1:8082";

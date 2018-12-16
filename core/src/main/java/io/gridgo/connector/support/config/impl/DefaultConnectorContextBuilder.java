@@ -1,10 +1,12 @@
 package io.gridgo.connector.support.config.impl;
 
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.config.ConnectorContextBuilder;
 import io.gridgo.framework.execution.ExecutionStrategy;
+import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Registry;
 import io.gridgo.framework.support.generators.IdGenerator;
 import lombok.NonNull;
@@ -17,6 +19,8 @@ public class DefaultConnectorContextBuilder implements ConnectorContextBuilder {
 
     private Consumer<Throwable> exceptionHandler;
 
+    private Function<Throwable, Message> failureHandler;
+
     private ExecutionStrategy callbackInvokerStrategy;
 
     private ExecutionStrategy consumerExecutionStrategy;
@@ -25,8 +29,8 @@ public class DefaultConnectorContextBuilder implements ConnectorContextBuilder {
 
     @Override
     public ConnectorContext build() {
-        return new DefaultConnectorContext(idGenerator, registry, exceptionHandler, callbackInvokerStrategy,
-                consumerExecutionStrategy, producerExecutionStrategy);
+        return new DefaultConnectorContext(idGenerator, registry, exceptionHandler, failureHandler,
+                callbackInvokerStrategy, consumerExecutionStrategy, producerExecutionStrategy);
     }
 
     @Override
@@ -44,6 +48,12 @@ public class DefaultConnectorContextBuilder implements ConnectorContextBuilder {
     @Override
     public ConnectorContextBuilder setExceptionHandler(final @NonNull Consumer<Throwable> exceptionHandler) {
         this.exceptionHandler = exceptionHandler;
+        return this;
+    }
+
+    @Override
+    public ConnectorContextBuilder setFailureHandler(final @NonNull Function<Throwable, Message> failureHandler) {
+        this.failureHandler = failureHandler;
         return this;
     }
 

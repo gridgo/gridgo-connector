@@ -1,0 +1,78 @@
+[[rocksdb-connector]]
+== gridgo-rocksdb
+
+*Available as of version 0.3.0*
+
+Allow retrieving and updating data from RocksDB
+
+=== install
+
+[source,xml]
+------------------------------------------------------------
+<dependency>
+    <groupId>io.gridgo</groupId>
+    <artifactId>gridgo-rocksdb</artifactId>
+    <version>x.x.x</version>
+    <!-- use the same version as gridgo-connector-core version -->
+</dependency>
+------------------------------------------------------------
+
+=== uri format
+
+[source,java]
+---------------------------
+rocksdb://path_to_db[?options]
+
+---------------------------
+
+_Note: Only a subset of configurations are supported currently._
+
+=== options
+
+// connector options: START
+
+[width="100%",cols="2,5,^1,2",options="header"]
+|===
+
+| Name | Description  | Default | Type
+| *createIfMissing* | Whether or not to create the database if missing | true | Boolean
+| *writeBufferSize* | The write buffer size | 4MB | Integer
+| *2pc* | Whether or not to allow two-phase commit | false | Boolean
+| *mmapReads* | Whether or not to allow OS mmap when reading db | true | Boolean
+| *mmapWrites* | Whether or not to allow OS mmap when writing db | true | Boolean
+
+|===
+// connector options: END
+
+=== headers
+
+*Request headers*
+
+// headers: START
+
+[width="100%",cols="2,2,5,^1",options="header"]
+|===
+
+| Name | Constants | Description  | Type
+| *RocksDB_Operation* | RocksDBConstants.OPERATION | The operation to be used | Enum (RocksDB_OperationSet, RocksDB_OperationGet)
+
+|===
+// headers: END
+
+*Message body structure*
+
+For get request (`RocksDB_OperationGet`), the body should be a BValue string specifying the name of the key to be retrieved.
+
+For put request (`RocksDB_OperationSet`), the body should be a BObject where each key is the key to be updated, and each value is the corresponding updated value.
+
+For example, to update 2 fields `name` and `age`:
+
+[source,java]
+---------------------------
+
+var request = Message.ofAny(
+    BObject.of("name", "dungba88")
+           .setAny("age", 20)
+);
+
+---------------------------

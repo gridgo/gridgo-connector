@@ -20,6 +20,8 @@ import io.gridgo.connector.impl.AbstractProducer;
 import io.gridgo.connector.rabbitmq.RabbitMQProducer;
 import io.gridgo.connector.rabbitmq.RabbitMQQueueConfig;
 import io.gridgo.connector.support.config.ConnectorContext;
+import io.gridgo.framework.execution.ExecutionStrategy;
+import io.gridgo.framework.execution.impl.DefaultExecutionStrategy;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 import io.gridgo.framework.support.generators.impl.TimeBasedIdGenerator;
@@ -30,6 +32,8 @@ import lombok.NonNull;
 public abstract class AbstractRabbitMQProducer extends AbstractProducer implements RabbitMQProducer {
 
     private static final TimeBasedIdGenerator TIME_BASED_ID_GENERATOR = new TimeBasedIdGenerator();
+
+    private static final ExecutionStrategy DEFAULT_EXECUTION_STRATEGY = new DefaultExecutionStrategy();
 
     private final Connection connection;
 
@@ -76,8 +80,9 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
     private void _send(final Message request, final Deferred<Message, Exception> deferred) {
         final Optional<BValue> routingId = request.getRoutingId();
         final String routingKey = routingId == null ? null : routingId.orElse(BValue.ofEmpty()).getString();
+        var strategy = getContext().getProducerExecutionStrategy().orElse(DEFAULT_EXECUTION_STRATEGY);
 
-        getContext().getProducerExecutionStrategy().execute(() -> {
+        strategy.execute(() -> {
             this.publish(buildRequestBody(request.getPayload()), null, routingKey);
             if (deferred != null) {
                 deferred.resolve(null);
@@ -133,7 +138,8 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
                 correlationIdToDeferredMap.remove(corrId);
             });
 
-            getContext().getProducerExecutionStrategy().execute(() -> {
+            var strategy = getContext().getProducerExecutionStrategy().orElse(DEFAULT_EXECUTION_STRATEGY);
+            strategy.execute(() -> {
                 try {
                     this.publish(bytes, props, routingKey);
                 } catch (Exception e) {

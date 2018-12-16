@@ -1,0 +1,61 @@
+[[mongodb-connector]]
+== gridgo-mongodb
+
+*Available as of version 0.1.0*
+
+Allow retrieving and updating MongoDB documents
+
+=== install
+
+[source,xml]
+------------------------------------------------------------
+<dependency>
+    <groupId>io.gridgo</groupId>
+    <artifactId>gridgo-mongodb</artifactId>
+    <version>x.x.x</version>
+    <!-- use the same version as gridgo-connector-core version -->
+</dependency>
+------------------------------------------------------------
+
+=== uri format
+
+[source,java]
+---------------------------
+mongodb:mongoClientBean/database/collection[?options]
+
+---------------------------
+
+The `mongoClientBean` must be registered using Registry.
+
+=== options
+
+There is no options available for this connector
+
+=== headers
+
+*Request headers*
+
+// headers: START
+
+[width="100%",cols="2,2,5,^1",options="header"]
+|===
+
+| Name | Constants | Description  | Type
+| *Mongo_Operation* | MongoDBConstants.OPERATION | The operation to be used | Enum (Mongo_OperationInsert, Mongo_OperationCount, Mongo_OperationFindAll, Mongo_OperationFindById, Mongo_OperationUpdateOne, Mongo_OperationUpdateMany, Mongo_OperationDeleteOne, Mongo_OperationDeleteMany)
+| *Mongo_InsertManyOptions* (for `insert many` operations) | MongoDBConstants.INSERT_MANY_OPTIONS | The options used in insert many operation | com.mongodb.client.model.InsertManyOptions
+| *Mongo_Filter* (for `count`, `update`/`update many`, `delete`/`delete many` and `find all` operations) | MongoDBConstants.FILTER | The filter used in update, delete and find all operation | org.bson.conversions.Bson
+| *Mongo_BatchSize* (for `find all` operations) | MongoDBConstants.BATCH_SIZE | The number of documents to return per batch | Integer
+| *Mongo_NumToSkip* (for `find all` operations) | MongoDBConstants.NUM_TO_SKIP | The number of documents to skip | Integer
+| *Mongo_Limit* (for `find all` operations) | MongoDBConstants.LIMIT | The limit number of documents to fetch | Integer
+| *Mongo_SortyBy* (for `find all` operations) | MongoDBConstants.SORT_BY | The fields of the documents to sort | org.bson.conversions.Bson
+| *Mongo_Projection* (for `find all`/`find by id` operations) | MongoDBConstants.PROJECT | The fields of the documents to project | org.bson.conversions.Bson
+| *Mongo_ProjectionInclude* (for `find all`/`find by id` operations) | MongoDBConstants.PROJECT_INCLUDE | The fields of the documents to include in results | org.bson.conversions.Bson
+| *Mongo_ProjectionExclude* (for `find all`/`find by id` operations) | MongoDBConstants.PROJECT_EXCLUDE | The fields of the documents to exclude in results | org.bson.conversions.Bson
+| *Mongo_IdField* (for `find by id` operations) | MongoDBConstants.ID_FIELD | The name of the id field | String
+| *Mongo_CountOptions* (for `count` operations) | MongoDBConstants.COUNT_OPTIONS | The options used in count operations | com.mongodb.client.model.CountOptions
+
+|===
+// headers: END
+
+_Note: The Mongo_Projection/Mongo_ProjectionInclude/Mongo_ProjectionExclude_ headers are mutually exclusive.
+
