@@ -25,8 +25,9 @@ public class RedisConnector extends AbstractConnector {
     protected void onInit() {
         RedisType type = RedisType.forName(this.getPlaceholder("type"));
         if (type == null) {
-            throw new InvalidPlaceholderException("Redis type should be one of: SINGLE, MASTER_SLAVE (or masterSlave also) and CLUSTER (case insensitive), got "
-                    + this.getPlaceholder("type"));
+            throw new InvalidPlaceholderException(
+                    "Redis type should be one of: SINGLE, MASTER_SLAVE (or masterSlave also) and CLUSTER (case insensitive), got "
+                            + this.getPlaceholder("type"));
         }
 
         String addrString = this.getPlaceholder("address");

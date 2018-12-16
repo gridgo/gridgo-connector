@@ -16,7 +16,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 
-public abstract class AbstractLettuceClient extends AbstractComponentLifecycle implements io.gridgo.connector.redis.adapter.RedisClient {
+public abstract class AbstractLettuceClient extends AbstractComponentLifecycle
+        implements io.gridgo.connector.redis.adapter.RedisClient {
 
     @Getter(AccessLevel.PROTECTED)
     private final RedisConfig config;

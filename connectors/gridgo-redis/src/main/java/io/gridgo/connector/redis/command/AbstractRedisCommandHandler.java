@@ -23,9 +23,11 @@ public abstract class AbstractRedisCommandHandler implements RedisCommandHandler
         BElement[] objs = EMPTY_PARAMS;
         if (params != null) {
             if (params instanceof BContainer && ((BContainer) params).size() < this.keyOrder.length) {
-                throw new IllegalRedisCommandsParamsException("Expected " + this.keyOrder.length + " params, got " + ((BContainer) params).size());
+                throw new IllegalRedisCommandsParamsException(
+                        "Expected " + this.keyOrder.length + " params, got " + ((BContainer) params).size());
             } else if (this.keyOrder.length > 1 && params.isValue()) {
-                throw new IllegalRedisCommandsParamsException("Expected " + this.keyOrder.length + " params, got 1 (as a BValue)");
+                throw new IllegalRedisCommandsParamsException(
+                        "Expected " + this.keyOrder.length + " params, got 1 (as a BValue)");
             }
             if (params.isValue()) {
                 objs = new BElement[] { params.asValue() };
@@ -36,7 +38,8 @@ public abstract class AbstractRedisCommandHandler implements RedisCommandHandler
                 int count = 0;
                 for (String key : keyOrder) {
                     if (!params.asObject().containsKey(key)) {
-                        throw new IllegalRedisCommandsParamsException("Params as BObject require for key " + key + " but missing");
+                        throw new IllegalRedisCommandsParamsException(
+                                "Params as BObject require for key " + key + " but missing");
                     }
                     objs[count++] = params.asObject().get(key);
                 }

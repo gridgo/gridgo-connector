@@ -19,7 +19,7 @@ public class LettuceSentinnelClient extends LettuceSingleClient {
         });
 
         builder.withPassword(getConfig().getPassword());
-        
+
         if (getConfig().getDatabase() >= 0) {
             builder.withDatabase(getConfig().getDatabase());
         }
