@@ -2,10 +2,12 @@ package io.gridgo.connector.support.config.impl;
 
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.execution.ExecutionStrategy;
 import io.gridgo.framework.execution.impl.DefaultExecutionStrategy;
+import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Registry;
 import io.gridgo.framework.support.generators.IdGenerator;
 import io.gridgo.framework.support.generators.impl.NoOpIdGenerator;
@@ -28,19 +30,21 @@ public class DefaultConnectorContext implements ConnectorContext {
 
     private Consumer<Throwable> exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
 
+    private Optional<Function<Throwable, Message>> failureHandler = Optional.empty();
+
     private ExecutionStrategy callbackInvokerStrategy = DEFAULT_CALLBACK_EXECUTOR;
 
     private Optional<ExecutionStrategy> consumerExecutionStrategy = Optional.empty();
 
-    private ExecutionStrategy producerExecutionStrategy = DEFAULT_CALLBACK_EXECUTOR;
+    private Optional<ExecutionStrategy> producerExecutionStrategy = Optional.empty();
 
     public DefaultConnectorContext() {
 
     }
 
-    public DefaultConnectorContext(IdGenerator idGenerator, Registry registry, Consumer<Throwable> exceptionHandler,
-            ExecutionStrategy callbackInvokerStrategy, ExecutionStrategy consumerExecutionStrategy,
-            ExecutionStrategy producerExecutionStrategy) {
+    protected DefaultConnectorContext(IdGenerator idGenerator, Registry registry, Consumer<Throwable> exceptionHandler,
+            Function<Throwable, Message> failureHandler, ExecutionStrategy callbackInvokerStrategy,
+            ExecutionStrategy consumerExecutionStrategy, ExecutionStrategy producerExecutionStrategy) {
         if (idGenerator != null)
             this.idGenerator = idGenerator;
         if (registry != null)
@@ -50,7 +54,7 @@ public class DefaultConnectorContext implements ConnectorContext {
         if (callbackInvokerStrategy != null)
             this.callbackInvokerStrategy = callbackInvokerStrategy;
         this.consumerExecutionStrategy = Optional.ofNullable(consumerExecutionStrategy);
-        if (producerExecutionStrategy != null)
-            this.producerExecutionStrategy = producerExecutionStrategy;
+        this.failureHandler = Optional.ofNullable(failureHandler);
+        this.producerExecutionStrategy = Optional.ofNullable(producerExecutionStrategy);
     }
 }

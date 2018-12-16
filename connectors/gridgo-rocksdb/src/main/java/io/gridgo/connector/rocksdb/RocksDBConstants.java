@@ -8,6 +8,8 @@ public class RocksDBConstants {
 
     public static final String OPERATION_GET = "RocksDB_OperationGet";
     
+    public static final String OPERATION_GET_ALL = "RocksDB_OperationGetAll";
+    
     public static final String PARAM_CREATE_IF_MISSING = "createIfMissing";
     
     public static final String PARAM_WRITE_BUFFER_SIZE = "writeBufferSize";

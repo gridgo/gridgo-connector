@@ -2,6 +2,7 @@ package io.gridgo.connector.rocksdb;
 
 import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION_GET;
+import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION_GET_ALL;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION_SET;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_ALLOW_2_PHASE_COMMIT;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_ALLOW_MMAP_READS;
@@ -22,14 +23,19 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.util.SizeUnit;
 
 import io.gridgo.bean.BElement;
+import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.AbstractProducer;
 import io.gridgo.connector.support.config.ConnectorConfig;
 import io.gridgo.connector.support.config.ConnectorContext;
+import io.gridgo.framework.execution.ExecutionStrategy;
+import io.gridgo.framework.execution.impl.DefaultExecutionStrategy;
 import io.gridgo.framework.support.Message;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RocksDBProducer extends AbstractProducer {
+
+    private static final ExecutionStrategy DEFAULT_EXECUTION_STRATEGY = new DefaultExecutionStrategy();
 
     private Map<String, ProducerHandler> operations = new HashMap<>();
 
@@ -52,6 +58,7 @@ public class RocksDBProducer extends AbstractProducer {
     private void bindHandlers() {
         operations.put(OPERATION_SET, this::putValue);
         operations.put(OPERATION_GET, this::getValue);
+        operations.put(OPERATION_GET_ALL, this::getAllValues);
     }
 
     @Override
@@ -80,11 +87,16 @@ public class RocksDBProducer extends AbstractProducer {
 
         // call the handler with deferred if required
         var deferred = deferredRequired ? new CompletableDeferredObject<Message, Exception>() : null;
-        try {
-            handler.handle(message, deferred, isRPC);
-        } catch (RocksDBException e) {
-            return new SimpleFailurePromise<>(e);
-        }
+        var strategy = getContext().getProducerExecutionStrategy().orElse(DEFAULT_EXECUTION_STRATEGY);
+
+        strategy.execute(() -> {
+            try {
+                handler.handle(message, deferred, isRPC);
+            } catch (RocksDBException ex) {
+                log.error("Exception caught while executing handler", ex);
+                deferred.reject(ex);
+            }
+        });
         return deferred != null ? deferred.promise() : null;
     }
 
@@ -93,22 +105,40 @@ public class RocksDBProducer extends AbstractProducer {
         // TODO check if we should only flush after batch writes
         var body = message.getPayload().getBody().asObject();
         for (var entry : body.entrySet()) {
-            if (entry.getValue().asValue().isNull())
+            var value = entry.getValue();
+            if (value.isValue() && value.asValue().isNull())
                 db.delete(entry.getKey().getBytes());
             else
-                db.put(entry.getKey().getBytes(), entry.getValue().asValue().toBytes());
+                db.put(entry.getKey().getBytes(), value.toBytes());
         }
         ack(deferred, (Message) null);
     }
 
     private void getValue(Message message, Deferred<Message, Exception> deferred, boolean isRPC)
             throws RocksDBException {
+        if (!isRPC) {
+            ack(deferred, (Message) null);
+            return;
+        }
         var key = message.getPayload().getBody().asValue().getString().getBytes();
         var bytes = db.get(key);
-        if (isRPC)
-            ack(deferred, Message.ofAny(BElement.fromRaw(bytes)));
-        else
+        ack(deferred, Message.ofAny(BElement.fromRaw(bytes)));
+    }
+
+    private void getAllValues(Message message, Deferred<Message, Exception> deferred, boolean isRPC)
+            throws RocksDBException {
+        if (!isRPC) {
             ack(deferred, (Message) null);
+            return;
+        }
+        var body = BObject.ofEmpty();
+        var iterator = db.newIterator();
+        iterator.seekToFirst();
+        while (iterator.isValid()) {
+            body.setAny(new String(iterator.key()), BElement.fromRaw(iterator.value()));
+            iterator.next();
+        }
+        ack(deferred, Message.ofAny(body));
     }
 
     @Override
