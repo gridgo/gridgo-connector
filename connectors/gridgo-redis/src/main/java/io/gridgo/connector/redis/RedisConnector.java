@@ -8,7 +8,6 @@ import io.gridgo.connector.impl.AbstractConnector;
 import io.gridgo.connector.redis.adapter.RedisClient;
 import io.gridgo.connector.redis.adapter.RedisClientFactory;
 import io.gridgo.connector.redis.adapter.RedisConfig;
-import io.gridgo.connector.redis.adapter.RedisConfig.RedisConfigBuilder;
 import io.gridgo.connector.redis.adapter.RedisType;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.exceptions.InvalidParamException;
@@ -23,24 +22,24 @@ public class RedisConnector extends AbstractConnector {
 
     @Override
     protected void onInit() {
-        RedisType type = RedisType.forName(this.getPlaceholder("type"));
+        var type = RedisType.forName(this.getPlaceholder("type"));
         if (type == null) {
             throw new InvalidPlaceholderException(
                     "Redis type should be one of: SINGLE, MASTER_SLAVE (or masterSlave also) and CLUSTER (case insensitive), got "
                             + this.getPlaceholder("type"));
         }
 
-        String addrString = this.getPlaceholder("address");
+        var addrString = this.getPlaceholder("address");
         if (addrString == null || addrString.isBlank()) {
             throw new InvalidPlaceholderException("Address should be specified and cannot be blank");
         }
 
-        HostAndPortSet address = new HostAndPortSet(addrString);
+        var address = new HostAndPortSet(addrString);
 
-        RedisConfigBuilder configBuilder = RedisConfig.builder().address(address);
+        var configBuilder = RedisConfig.builder().address(address);
 
         if (type == RedisType.SENTINEL) {
-            String sentinelMasterId = this.getParam("sentinelMasterId");
+            var sentinelMasterId = this.getParam("sentinelMasterId");
             if (sentinelMasterId != null && !sentinelMasterId.isBlank()) {
                 configBuilder.sentinelMasterId(sentinelMasterId);
             } else {
@@ -48,8 +47,8 @@ public class RedisConnector extends AbstractConnector {
             }
         }
 
-        String topicsParam = this.getParam("topics", null);
-        String[] topics = topicsParam == null ? null : topicsParam.split(",");
+        var topicsParam = this.getParam("topics", null);
+        var topics = topicsParam == null ? null : topicsParam.split(",");
         if (topics != null) {
             this.topics = new ArrayList<>();
             for (String topic : topics) {
