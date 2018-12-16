@@ -8,6 +8,7 @@ import io.gridgo.connector.redis.adapter.RedisClient;
 import io.gridgo.connector.support.config.ConnectorContext;
 import lombok.NonNull;
 
+@SuppressWarnings("unused")
 public class AbstractRedisConsumer extends AbstractConsumer implements RedisConsumer {
 
     private final RedisClient redisClient;

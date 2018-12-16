@@ -7,16 +7,17 @@ import io.gridgo.connector.redis.adapter.RedisClient;
 import io.gridgo.connector.redis.command.AbstractRedisCommandHandler;
 import io.gridgo.connector.redis.command.RedisCommand;
 import io.gridgo.connector.redis.command.RedisCommands;
+import io.lettuce.core.BitFieldArgs;
 
-@RedisCommand(RedisCommands.SET)
-public class RedisSetHandler extends AbstractRedisCommandHandler {
+@RedisCommand(RedisCommands.BITPOS)
+public class RedisBitposHandler extends AbstractRedisCommandHandler {
 
-    public RedisSetHandler() {
-        super("key");
+    public RedisBitposHandler() {
+        super("key", "args");
     }
 
     @Override
     protected Promise<BElement, Exception> process(RedisClient redis, BElement[] params) {
-        return redis.bitcount(params[0].asValue().getRaw());
+        return redis.bitfield(params[0].asValue().getRaw(), (BitFieldArgs) params[1].asReference().getReference());
     }
 }

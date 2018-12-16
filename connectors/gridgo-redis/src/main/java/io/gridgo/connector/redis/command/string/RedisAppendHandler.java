@@ -4,31 +4,19 @@ import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.connector.redis.adapter.RedisClient;
+import io.gridgo.connector.redis.command.AbstractRedisCommandHandler;
 import io.gridgo.connector.redis.command.RedisCommand;
-import io.gridgo.connector.redis.command.RedisCommandHandler;
 import io.gridgo.connector.redis.command.RedisCommands;
-import io.gridgo.connector.redis.exception.IllegalRedisCommandsParamsException;
-import lombok.NonNull;
 
 @RedisCommand(RedisCommands.APPEND)
-public class RedisAppendHandler implements RedisCommandHandler {
+public class RedisAppendHandler extends AbstractRedisCommandHandler {
+
+    public RedisAppendHandler() {
+        super("key", "value");
+    }
 
     @Override
-    public Promise<BElement, Exception> execute(@NonNull RedisClient redisClient, @NonNull BElement params) {
-        String key = null;
-        String value = null;
-        if (params.isArray()) {
-            key = params.asArray().getString(0);
-            value = params.asArray().getString(1);
-        } else if (params.isObject()) {
-            key = params.asObject().getString("key");
-            value = params.asObject().getString("value");
-        }
-        if (key == null) {
-            throw new IllegalRedisCommandsParamsException(
-                    "Illegal params for command append, expected for BArray (with atleast 1 elements for key - 1st - and value - 2nd) or BObject (key and value). Got: "
-                            + params);
-        }
-        return redisClient.append(key.getBytes(), value == null ? null : value.getBytes());
+    protected Promise<BElement, Exception> process(RedisClient redis, BElement[] params) {
+        return redis.append(params[0].asValue().getRaw(), params[1].asValue().getRaw());
     }
 }

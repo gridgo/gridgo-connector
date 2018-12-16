@@ -8,15 +8,15 @@ import io.gridgo.connector.redis.command.AbstractRedisCommandHandler;
 import io.gridgo.connector.redis.command.RedisCommand;
 import io.gridgo.connector.redis.command.RedisCommands;
 
-@RedisCommand(RedisCommands.SET)
-public class RedisSetHandler extends AbstractRedisCommandHandler {
+@RedisCommand(RedisCommands.BITCOUNT)
+public class RedisBitcountHandler extends AbstractRedisCommandHandler {
 
-    public RedisSetHandler() {
-        super("key");
+    public RedisBitcountHandler() {
+        super("key", "value");
     }
 
     @Override
     protected Promise<BElement, Exception> process(RedisClient redis, BElement[] params) {
-        return redis.bitcount(params[0].asValue().getRaw());
+        return redis.set(params[0].asValue().getRaw(), params[1].asValue().getRaw());
     }
 }
