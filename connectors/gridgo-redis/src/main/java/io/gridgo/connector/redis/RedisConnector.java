@@ -58,7 +58,8 @@ public class RedisConnector extends AbstractConnector {
 
         this.redisClient = RedisClientFactory.newDefault().newClient(type, configBuilder.build());
 
-        this.consumer = Optional.of(RedisConsumer.of(getContext(), redisClient, this.topics));
+        if (this.topics != null)
+            this.consumer = Optional.of(RedisConsumer.of(getContext(), redisClient, this.topics));
         this.producer = Optional.of(RedisProducer.of(getContext(), redisClient));
     }
 
