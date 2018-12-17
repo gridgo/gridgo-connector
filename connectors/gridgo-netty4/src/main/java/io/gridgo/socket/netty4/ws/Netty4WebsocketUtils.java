@@ -18,11 +18,11 @@ public class Netty4WebsocketUtils {
 
     public static BElement parseWebsocketFrame(WebSocketFrame frame) {
         if (frame instanceof BinaryWebSocketFrame) {
-            return BElement.fromRaw(new ByteBufInputStream(((BinaryWebSocketFrame) frame).content()));
+            return BElement.ofBytes(new ByteBufInputStream(((BinaryWebSocketFrame) frame).content()));
         } else if (frame instanceof TextWebSocketFrame) {
             String text = ((TextWebSocketFrame) frame).text();
             try {
-                return BElement.fromJson(text);
+                return BElement.ofJson(text);
             } catch (Exception ex) {
                 return BValue.of(text);
             }

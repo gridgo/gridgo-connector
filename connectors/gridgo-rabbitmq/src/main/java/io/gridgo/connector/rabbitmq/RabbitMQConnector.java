@@ -72,7 +72,7 @@ public class RabbitMQConnector extends AbstractConnector {
 
         String exchangeName = (String) this.getConnectorConfig().getPlaceholders().getOrDefault("exchangeName", "");
 
-        BObject configObject = BElement.fromAny(getConnectorConfig().getParameters());
+        BObject configObject = BElement.ofAny(getConnectorConfig().getParameters());
         configObject.setAny("exchangeName", exchangeName);
 
         queueConfig = new RabbitMQQueueConfig(configObject);

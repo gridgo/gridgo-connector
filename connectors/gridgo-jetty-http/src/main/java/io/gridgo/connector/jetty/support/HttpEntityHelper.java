@@ -43,7 +43,7 @@ public class HttpEntityHelper {
                 results.add(BObject.ofEmpty() //
                                    .setAny(HttpCommonConstants.NAME, part.getName()) //
                                    .setAny(HttpCommonConstants.CONTENT_TYPE, contentType)//
-                                   .setAny(HttpCommonConstants.BODY, BElement.fromJson(part.getInputStream())) //
+                                   .setAny(HttpCommonConstants.BODY, BElement.ofJson(part.getInputStream())) //
                 );
             }
         }

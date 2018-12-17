@@ -14,13 +14,13 @@ public interface FileConsumerEngine extends FormattedMarshallable {
             return null;
         var format = getFormat();
         if (format == null || format.equals("json"))
-            return BElement.fromJson(new String(responseBody, 0, length));
+            return BElement.ofJson(new String(responseBody, 0, length));
         if (format.equals("xml"))
-            return BElement.fromXml(new String(responseBody, 0, length));
+            return BElement.ofXml(new String(responseBody, 0, length));
         if (format.equals("string"))
             return BValue.of(responseBody);
         if (format.equals("raw"))
-            return BElement.fromRaw(responseBody);
+            return BElement.ofBytes(responseBody);
         throw new UnsupportedFormatException(format);
     }
 }

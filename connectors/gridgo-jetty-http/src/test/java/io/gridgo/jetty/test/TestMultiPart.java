@@ -147,7 +147,7 @@ public class TestMultiPart {
 
             HttpResponse response = httpClient.execute(request);
 
-            BElement respObj = BElement.fromJson(EntityUtils.toString(response.getEntity()));
+            BElement respObj = BElement.ofJson(EntityUtils.toString(response.getEntity()));
 
             assertNotNull(respObj);
             assertTrue(respObj.isObject());

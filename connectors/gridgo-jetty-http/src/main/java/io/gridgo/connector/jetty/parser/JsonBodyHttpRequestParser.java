@@ -18,7 +18,7 @@ public class JsonBodyHttpRequestParser extends AbstractHttpRequestParser {
         }
 
         try {
-            return BElement.fromJson(inputStream);
+            return BElement.ofJson(inputStream);
         } catch (Exception ex) {
             if (inputStream.markSupported()) {
                 try {

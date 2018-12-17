@@ -92,7 +92,7 @@ public class TestJettyConnector {
             HttpRequest request = HttpRequest.newBuilder().GET().uri(uri).build();
             HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
 
-            BElement respObj = BElement.fromJson(response.body());
+            BElement respObj = BElement.ofJson(response.body());
             assertNotNull(respObj);
             assertTrue(respObj.isObject());
             assertEquals(TEST_TEXT, respObj.asObject().getString("key"));
@@ -124,7 +124,7 @@ public class TestJettyConnector {
             HttpRequest request = HttpRequest.newBuilder().POST(BodyPublishers.ofString(TEST_TEXT)).uri(uri).build();
             HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
 
-            BElement respObj = BElement.fromJson(response.body());
+            BElement respObj = BElement.ofJson(response.body());
             System.out.println(respObj);
             assertNotNull(respObj);
             assertTrue(respObj.isObject());
