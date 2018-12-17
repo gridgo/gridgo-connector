@@ -19,7 +19,7 @@ import org.joo.promise4j.impl.AsyncDeferredObject;
 import org.joo.promise4j.impl.SimpleDonePromise;
 import org.joo.promise4j.impl.SimpleFailurePromise;
 
-import io.gridgo.bean.BFactory;
+import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.AbstractConsumer;
 import io.gridgo.connector.support.config.ConnectorContext;
@@ -322,8 +322,7 @@ public class KafkaConsumer extends AbstractConsumer {
                     isRaw = true;
             }
 
-            var body = isRaw ? BFactory.DEFAULT.fromRaw((byte[]) record.value())
-                    : BFactory.DEFAULT.fromAny(record.value());
+            var body = isRaw ? BElement.ofBytes((byte[]) record.value()) : BElement.ofAny(record.value());
             return createMessage(headers, body);
         }
 
