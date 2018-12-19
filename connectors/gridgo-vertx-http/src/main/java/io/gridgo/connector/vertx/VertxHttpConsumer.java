@@ -13,6 +13,7 @@ import io.gridgo.connector.Consumer;
 import io.gridgo.connector.httpcommon.AbstractHttpConsumer;
 import io.gridgo.connector.support.ConnectionRef;
 import io.gridgo.connector.support.config.ConnectorContext;
+import io.gridgo.connector.support.exceptions.NoSubscriberException;
 import io.gridgo.connector.vertx.support.exceptions.HttpException;
 import io.gridgo.framework.support.Message;
 import io.vertx.core.Vertx;
@@ -167,6 +168,10 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
     }
 
     private void handleRequest(RoutingContext ctx) {
+        if (getSubscribers().isEmpty()) {
+            sendException(ctx, new NoSubscriberException());
+            return;
+        }
         var request = buildMessage(ctx);
         var deferred = new AsyncDeferredObject<Message, Exception>();
         publish(request, deferred);

@@ -15,11 +15,13 @@ import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.AbstractComponentLifecycle;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 
 public abstract class AbstractConsumer extends AbstractComponentLifecycle implements Consumer {
 
+    @Getter(AccessLevel.PROTECTED)
     private final Collection<BiConsumer<Message, Deferred<Message, Exception>>> subscribers = new CopyOnWriteArrayList<>();
 
     @Getter
