@@ -143,7 +143,10 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 
     private void handleException(RoutingContext ctx) {
         var ex = ctx.failure() != null ? ctx.failure() : new HttpException(ctx.statusCode());
-        log.error("Exception caught when handling request", ex);
+        if (ex instanceof HttpException)
+            log.warn("HTTP error {} when handling request {}", ctx.statusCode(), ctx.request().path());
+        else
+            log.error("Exception caught when handling request", ex);
         var msg = buildFailureMessage(ex);
         if (msg != null) {
             var statusCode = ctx.statusCode() != -1 ? ctx.statusCode() : DEFAULT_EXCEPTION_STATUS_CODE;
