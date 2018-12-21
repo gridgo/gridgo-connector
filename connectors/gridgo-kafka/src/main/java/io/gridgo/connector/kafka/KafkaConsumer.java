@@ -205,7 +205,7 @@ public class KafkaConsumer extends AbstractConsumer {
                     }
                 }
             } catch (WakeupException e) {
-                log.warn("WakeupException caught on consumer thread", e);
+                log.debug("WakeupException caught on consumer thread", e);
             } catch (KafkaException e) {
                 log.error("KafkaException caught on consumer thread", e);
                 reConnect = true;
