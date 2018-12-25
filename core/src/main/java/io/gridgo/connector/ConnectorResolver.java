@@ -22,7 +22,7 @@ public interface ConnectorResolver {
 
     /**
      * Resolve a connector using an endpoint and an optional
-     * <code>ConnectorContext<code>.
+     * <code>ConnectorContext</code>.
      * 
      * @param endpoint         the endpoint
      * @param connectorContext the context
