@@ -13,15 +13,9 @@ public abstract class AbstractRedisCommandHandler implements RedisCommandHandler
 
     private static final BElement[] EMPTY_PARAMS = new BElement[0];
     private final String[] keyOrder;
-    private final int numOptional;
-
-    protected AbstractRedisCommandHandler(int numOptional, String... keyOrder) {
-        this.numOptional = numOptional;
-        this.keyOrder = keyOrder == null ? new String[0] : keyOrder;
-    }
 
     protected AbstractRedisCommandHandler(String... keyOrder) {
-        this(0, keyOrder);
+        this.keyOrder = keyOrder == null ? new String[0] : keyOrder;
     }
 
     @Override

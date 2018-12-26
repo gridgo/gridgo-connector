@@ -251,27 +251,24 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
             }
         }
 
-        final var input = inputStream;
-        takeOutputStream(response, (output) -> {
-            if (input != null) {
-                try {
-                    if (contentLengthConsumer != null) {
-                        contentLengthConsumer.accept((long) input.available());
-                    }
-                    input.transferTo(output);
-                } catch (Exception e) {
-                    handleException(e);
-                } finally {
+        try (var input = inputStream) {
+            takeOutputStream(response, (output) -> {
+                if (input != null) {
                     try {
-                        input.close();
-                    } catch (IOException e) {
+                        if (contentLengthConsumer != null) {
+                            contentLengthConsumer.accept((long) input.available());
+                        }
+                        input.transferTo(output);
+                    } catch (Exception e) {
                         handleException(e);
                     }
+                } else {
+                    body.writeBytes(output);
                 }
-            } else {
-                body.writeBytes(output);
-            }
-        });
+            });
+        } catch (IOException e) {
+            handleException(e);
+        }
     }
 
     protected void writePart(String name, BElement value, MultipartEntityBuilder builder) {
@@ -309,8 +306,7 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         }
     }
 
-    protected void writeBodyMultipart(@NonNull BElement body, @NonNull HttpServletResponse response,
-            @NonNull Consumer<String> contentTypeConsumer) {
+    protected void writeBodyMultipart(@NonNull BElement body, @NonNull HttpServletResponse response, @NonNull Consumer<String> contentTypeConsumer) {
         final MultipartEntityBuilder builder = MultipartEntityBuilder.create();
         if (body instanceof BObject) {
             for (Entry<String, BElement> entry : body.asObject().entrySet()) {
@@ -331,7 +327,7 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
                 contentTypeConsumer.accept(entity.getContentType().getValue());
                 entity.writeTo(outstream);
             } catch (IOException e) {
-                handleException(new RuntimeException("Cannot write multipart", e));
+                handleException(e);
             }
         });
 
