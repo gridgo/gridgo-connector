@@ -12,11 +12,11 @@ import io.gridgo.connector.redis.command.RedisCommands;
 public class RedisBitcountHandler extends AbstractRedisCommandHandler {
 
     public RedisBitcountHandler() {
-        super("key", "value");
+        super("key");
     }
 
     @Override
     protected Promise<BElement, Exception> process(RedisClient redis, BElement[] params) {
-        return redis.set(params[0].asValue().getRaw(), params[1].asValue().getRaw());
+        return redis.bitcount(params[0].asValue().getRaw());
     }
 }

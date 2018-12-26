@@ -13,6 +13,7 @@ import io.gridgo.connector.Consumer;
 import io.gridgo.connector.httpcommon.AbstractHttpConsumer;
 import io.gridgo.connector.support.ConnectionRef;
 import io.gridgo.connector.support.config.ConnectorContext;
+import io.gridgo.connector.support.exceptions.NoSubscriberException;
 import io.gridgo.connector.vertx.support.exceptions.HttpException;
 import io.gridgo.framework.support.Message;
 import io.vertx.core.Vertx;
@@ -31,6 +32,13 @@ import lombok.extern.slf4j.Slf4j;
 public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer {
 
     private static final Map<String, ConnectionRef<ServerRouterTuple>> SERVER_MAP = new HashMap<>();
+
+    private static final ThreadLocal<Map<String, ConnectionRef<ServerRouterTuple>>> LOCAL_SERVER_MAP = new ThreadLocal<>() {
+        @Override
+        protected Map<String, ConnectionRef<ServerRouterTuple>> initialValue() {
+            return new HashMap<>();
+        }
+    };
 
     private static final int DEFAULT_EXCEPTION_STATUS_CODE = 500;
 
@@ -62,47 +70,56 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 
     @Override
     protected void onStart() {
+        var ownedVertx = this.vertx == null;
         ConnectionRef<ServerRouterTuple> connRef;
         String connectionKey = buildConnectionKey();
-        synchronized (SERVER_MAP) {
-            if (SERVER_MAP.containsKey(connectionKey)) {
-                connRef = SERVER_MAP.get(connectionKey);
-            } else {
-                var latch = new CountDownLatch(1);
-                Vertx vertx;
-                boolean ownedVertx;
-                if (this.vertx != null) {
-                    vertx = this.vertx;
-                    ownedVertx = false;
-                } else {
-                    vertx = Vertx.vertx(vertxOptions);
-                    ownedVertx = true;
-                }
-                var server = vertx.createHttpServer(httpOptions);
-                var router = initializeRouter(vertx);
-                server.requestHandler(router::accept);
-                connRef = new ConnectionRef<>(new ServerRouterTuple(ownedVertx ? vertx : null, server, router));
-                SERVER_MAP.put(connectionKey, connRef);
-                server.listen(result -> latch.countDown());
+        if (ownedVertx) {
+            synchronized (SERVER_MAP) {
+                connRef = createOrGetConnection(true, connectionKey, SERVER_MAP);
+            }
+        } else {
+            connRef = createOrGetConnection(false, connectionKey, LOCAL_SERVER_MAP.get());
+        }
+
+        configureRouter(connRef.getConnection().router);
+    }
+
+    private ConnectionRef<ServerRouterTuple> createOrGetConnection(boolean ownedVertx, String connectionKey,
+            Map<String, ConnectionRef<ServerRouterTuple>> theMap) {
+        ConnectionRef<ServerRouterTuple> connRef;
+        if (theMap.containsKey(connectionKey)) {
+            connRef = theMap.get(connectionKey);
+        } else {
+            var latch = new CountDownLatch(1);
+            Vertx vertx = this.vertx;
+            if (vertx == null) {
+                vertx = Vertx.vertx(vertxOptions);
+            }
+            var server = vertx.createHttpServer(httpOptions);
+            var router = initializeRouter(vertx);
+            server.requestHandler(router::accept);
+            connRef = new ConnectionRef<>(new ServerRouterTuple(ownedVertx ? vertx : null, server, router));
+            theMap.put(connectionKey, connRef);
+            server.listen(result -> latch.countDown());
+            if (ownedVertx) {
                 try {
                     latch.await();
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }
-            connRef.ref();
         }
-
-        configureRouter(connRef.getConnection().router);
+        connRef.ref();
+        return connRef;
     }
 
     private Router initializeRouter(Vertx vertx) {
         var router = Router.router(vertx);
-        if (!"GET".equals(method))
-            router.route("/*").handler(BodyHandler.create());
+        router.route("/*").handler(BodyHandler.create());
         router.route() //
               .last() //
-              .handler(rc -> rc.fail(404)).failureHandler(this::handleException);
+              .handler(rc -> rc.fail(404)) //
+              .failureHandler(this::handleException);
         return router;
     }
 
@@ -125,8 +142,11 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
     }
 
     private void handleException(RoutingContext ctx) {
-        log.error("Exception caught when handling request", ctx.failure());
         var ex = ctx.failure() != null ? ctx.failure() : new HttpException(ctx.statusCode());
+        if (ex instanceof HttpException)
+            log.warn("HTTP error {} when handling request {}", ctx.statusCode(), ctx.request().path());
+        else
+            log.error("Exception caught when handling request", ex);
         var msg = buildFailureMessage(ex);
         if (msg != null) {
             var statusCode = ctx.statusCode() != -1 ? ctx.statusCode() : DEFAULT_EXCEPTION_STATUS_CODE;
@@ -151,6 +171,10 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
     }
 
     private void handleRequest(RoutingContext ctx) {
+        if (getSubscribers().isEmpty()) {
+            sendException(ctx, new NoSubscriberException());
+            return;
+        }
         var request = buildMessage(ctx);
         var deferred = new AsyncDeferredObject<Message, Exception>();
         publish(request, deferred);
@@ -224,7 +248,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 
         if (ctx.request().method() == HttpMethod.GET)
             return createMessage(headers, null);
-        var body = deserialize(ctx.getBody().getBytes());
+        var body = ctx.getBody() != null ? deserialize(ctx.getBody().getBytes()) : null;
         return createMessage(headers, body);
     }
 
@@ -253,9 +277,13 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 
     @Override
     protected void onStop() {
+        this.route.remove();
+
+        if (this.vertx != null)
+            return;
+
         String connectionKey = buildConnectionKey();
         synchronized (SERVER_MAP) {
-            this.route.remove();
             if (SERVER_MAP.containsKey(connectionKey)) {
                 var connRef = SERVER_MAP.get(connectionKey);
                 if (connRef.deref() == 0) {

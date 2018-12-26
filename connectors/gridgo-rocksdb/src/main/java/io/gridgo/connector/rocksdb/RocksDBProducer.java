@@ -122,7 +122,7 @@ public class RocksDBProducer extends AbstractProducer {
         }
         var key = message.getPayload().getBody().asValue().getString().getBytes();
         var bytes = db.get(key);
-        ack(deferred, Message.ofAny(BElement.fromRaw(bytes)));
+        ack(deferred, Message.ofAny(BElement.ofBytes(bytes)));
     }
 
     private void getAllValues(Message message, Deferred<Message, Exception> deferred, boolean isRPC)
@@ -135,7 +135,7 @@ public class RocksDBProducer extends AbstractProducer {
         var iterator = db.newIterator();
         iterator.seekToFirst();
         while (iterator.isValid()) {
-            body.setAny(new String(iterator.key()), BElement.fromRaw(iterator.value()));
+            body.setAny(new String(iterator.key()), BElement.ofBytes(iterator.value()));
             iterator.next();
         }
         ack(deferred, Message.ofAny(body));

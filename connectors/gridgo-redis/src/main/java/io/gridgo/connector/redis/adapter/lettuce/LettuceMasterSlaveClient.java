@@ -5,6 +5,7 @@ import static io.lettuce.core.RedisURI.DEFAULT_REDIS_PORT;
 import java.util.Collection;
 
 import io.gridgo.connector.redis.adapter.RedisConfig;
+import io.gridgo.connector.redis.adapter.RedisType;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.api.StatefulRedisConnection;
@@ -13,7 +14,7 @@ import io.lettuce.core.masterslave.MasterSlave;
 public class LettuceMasterSlaveClient extends LettuceSingleClient {
 
     protected LettuceMasterSlaveClient(RedisConfig config) {
-        super(config);
+        super(RedisType.MASTER_SLAVE, config);
     }
 
     @Override

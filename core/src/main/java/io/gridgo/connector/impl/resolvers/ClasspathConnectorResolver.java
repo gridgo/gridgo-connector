@@ -11,7 +11,9 @@ import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.exceptions.UnsupportedSchemeException;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ClasspathConnectorResolver implements ConnectorResolver {
 
     private final static String DEFAULT_PACKAGE = "io.gridgo.connector";
@@ -49,7 +51,6 @@ public class ClasspathConnectorResolver implements ConnectorResolver {
     private void registerConnectorClass(Class<? extends Connector> clzz) {
         var endpointAnnotations = clzz.getAnnotationsByType(ConnectorEndpoint.class);
         if (endpointAnnotations.length != 1) {
-            // TODO log warning
             return;
         }
         var endpoint = endpointAnnotations[0];
@@ -57,7 +58,9 @@ public class ClasspathConnectorResolver implements ConnectorResolver {
         for (String scheme : schemes) {
             scheme = scheme.trim();
             if (classMappings.containsKey(scheme)) {
-                // TODO log warning
+                if (log.isWarnEnabled())
+                    log.warn("Duplicate scheme {} when processing connector {}. Existing connector: {}", scheme,
+                            clzz.getClass().getName(), classMappings.get(scheme).getName());
             } else {
                 classMappings.put(scheme, clzz);
             }

@@ -39,6 +39,8 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
     }
 
     protected void ack(Deferred<Message, Exception> deferred, Exception exception) {
+        if (exception != null)
+            getLogger().error("Exception caught while acknowledging response", exception);
         if (deferred != null) {
             context.getCallbackInvokerStrategy().execute(() -> {
                 if (exception == null) {

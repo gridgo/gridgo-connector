@@ -8,6 +8,7 @@ import org.joo.promise4j.impl.CompletableDeferredObject;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.connector.redis.adapter.RedisConfig;
+import io.gridgo.connector.redis.adapter.RedisType;
 import io.gridgo.framework.AbstractComponentLifecycle;
 import io.lettuce.core.RedisFuture;
 import io.lettuce.core.codec.ByteArrayCodec;
@@ -16,7 +17,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 
-public abstract class AbstractLettuceClient extends AbstractComponentLifecycle implements io.gridgo.connector.redis.adapter.RedisClient {
+public abstract class AbstractLettuceClient extends AbstractComponentLifecycle
+        implements io.gridgo.connector.redis.adapter.RedisClient {
 
     @Getter(AccessLevel.PROTECTED)
     private final RedisConfig config;
@@ -26,7 +28,10 @@ public abstract class AbstractLettuceClient extends AbstractComponentLifecycle i
 
     private Function<Object, BElement> parser = this::parse;
 
-    protected AbstractLettuceClient(@NonNull RedisConfig config) {
+    private RedisType type;
+
+    protected AbstractLettuceClient(RedisType single, @NonNull RedisConfig config) {
+        this.type = single;
         this.config = config;
         if (config.getParser() != null) {
             this.parser = config.getParser();
@@ -34,17 +39,7 @@ public abstract class AbstractLettuceClient extends AbstractComponentLifecycle i
     }
 
     private <T> BElement parse(T data) {
-        BElement result;
-        if (data instanceof byte[]) {
-            try {
-                result = BElement.fromRaw((byte[]) data);
-            } catch (Exception e) {
-                result = BElement.fromAny(data);
-            }
-        } else {
-            result = BElement.fromAny(data);
-        }
-        return result;
+        return BElement.ofAny(data);
     }
 
     protected Promise<BElement, Exception> toPromise(RedisFuture<?> future) {
@@ -55,7 +50,7 @@ public abstract class AbstractLettuceClient extends AbstractComponentLifecycle i
 
     @Override
     protected String generateName() {
-        return null;
+        return type + "." + config.getAddress();
     }
 
 }
