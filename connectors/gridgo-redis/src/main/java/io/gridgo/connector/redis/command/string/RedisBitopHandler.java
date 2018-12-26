@@ -11,7 +11,7 @@ import io.gridgo.connector.redis.command.RedisCommands;
 import io.gridgo.connector.redis.exception.IllegalRedisCommandsParamsException;
 import lombok.NonNull;
 
-@RedisCommand(RedisCommands.BITFIELD)
+@RedisCommand(RedisCommands.BITOP)
 public class RedisBitopHandler extends AbstractRedisCommandHandler {
 
     public RedisBitopHandler() {

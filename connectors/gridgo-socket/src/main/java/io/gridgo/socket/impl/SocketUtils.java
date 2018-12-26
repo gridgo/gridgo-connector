@@ -26,7 +26,7 @@ public class SocketUtils {
         BArray body = BArray.ofEmpty();
         for (Message mess : messages) {
             Payload payload = mess.getPayload();
-            body.add(BArray.newFromSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody()));
+            body.add(BArray.ofSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody()));
         }
         Payload payload = Payload.of(body)//
                                  .addHeader(SocketConstants.IS_BATCH, true) //

@@ -83,7 +83,7 @@ public abstract class AbstractRabbitMQConsumer extends AbstractConsumer implemen
         final BElement body = payload.getBody();
 
         final String responseQueue = props.getReplyTo();
-        final byte[] bytes = BArray.newFromSequence(id, headers, body).toBytes();
+        final byte[] bytes = BArray.ofSequence(id, headers, body).toBytes();
 
         try {
             this.getChannel().basicPublish("", responseQueue, props, bytes);

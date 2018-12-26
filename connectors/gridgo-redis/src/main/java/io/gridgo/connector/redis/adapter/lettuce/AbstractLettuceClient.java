@@ -17,8 +17,10 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 
-public abstract class AbstractLettuceClient extends AbstractComponentLifecycle
-        implements io.gridgo.connector.redis.adapter.RedisClient {
+public abstract class AbstractLettuceClient extends AbstractComponentLifecycle implements io.gridgo.connector.redis.adapter.RedisClient {
+
+    @Getter(AccessLevel.PROTECTED)
+    private final RedisType type;
 
     @Getter(AccessLevel.PROTECTED)
     private final RedisConfig config;
@@ -28,10 +30,8 @@ public abstract class AbstractLettuceClient extends AbstractComponentLifecycle
 
     private Function<Object, BElement> parser = this::parse;
 
-    private RedisType type;
-
-    protected AbstractLettuceClient(RedisType single, @NonNull RedisConfig config) {
-        this.type = single;
+    protected AbstractLettuceClient(@NonNull RedisType type, @NonNull RedisConfig config) {
+        this.type = type;
         this.config = config;
         if (config.getParser() != null) {
             this.parser = config.getParser();

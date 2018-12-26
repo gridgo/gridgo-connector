@@ -171,7 +171,7 @@ public class TestJettyResponseContentType {
                                .setAny("testFile", getClass().getClassLoader().getResourceAsStream("test.txt")) //
                                .setAny("testJsonObject",
                                        BObject.ofSequence("keyString", "valueString", "keyNumber", 100)) //
-                               .setAny("testJsonArray", BArray.newFromSequence("string", 100, true)) //
+                               .setAny("testJsonArray", BArray.ofSequence("string", 100, true)) //
                 );
 
                 payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.MULTIPART_FORM_DATA.getMime());

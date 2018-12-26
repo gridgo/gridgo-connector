@@ -155,7 +155,7 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
     }
 
     protected byte[] buildRequestBody(Payload payload) {
-        return BArray.newFromSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody()).toBytes();
+        return BArray.ofSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody()).toBytes();
     }
 
     protected BasicProperties createBasicProperties(String correlationId) {

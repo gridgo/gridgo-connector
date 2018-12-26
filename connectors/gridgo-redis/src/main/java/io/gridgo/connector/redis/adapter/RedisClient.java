@@ -8,6 +8,7 @@ import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.framework.ComponentLifecycle;
+
 import io.lettuce.core.BitFieldArgs;
 import io.lettuce.core.Consumer;
 import io.lettuce.core.GeoArgs;
@@ -144,8 +145,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> evalsha(String digest, ScriptOutputType type, byte[][] keys, byte[]... values);
 
-    public Promise<BElement, Exception> georadius(byte[] key, double longitude, double latitude, double distance,
-            Unit unit);
+    public Promise<BElement, Exception> georadius(byte[] key, double longitude, double latitude, double distance, Unit unit);
 
     public Promise<BElement, Exception> sdiffstore(byte[] destination, byte[]... keys);
 
@@ -173,8 +173,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> zadd(byte[] key, Object... scoresAndValues);
 
-    public Promise<BElement, Exception> xclaim(byte[] key, Consumer<byte[]> consumer, long minIdleTime,
-            String... messageIds);
+    public Promise<BElement, Exception> xclaim(byte[] key, Consumer<byte[]> consumer, long minIdleTime, String... messageIds);
 
     public Promise<BElement, Exception> echo(byte[] msg);
 
@@ -184,8 +183,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> hincrbyfloat(byte[] key, byte[] field, double amount);
 
-    public Promise<BElement, Exception> georadius(byte[] key, double longitude, double latitude, double distance,
-            Unit unit, GeoArgs geoArgs);
+    public Promise<BElement, Exception> georadius(byte[] key, double longitude, double latitude, double distance, Unit unit, GeoArgs geoArgs);
 
     public Promise<BElement, Exception> sinter(ValueStreamingChannel<byte[]> channel, byte[]... keys);
 
@@ -203,8 +201,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> zadd(byte[] key, ScoredValue<byte[]>... scoredValues);
 
-    public Promise<BElement, Exception> xclaim(byte[] key, Consumer<byte[]> consumer, XClaimArgs args,
-            String... messageIds);
+    public Promise<BElement, Exception> xclaim(byte[] key, Consumer<byte[]> consumer, XClaimArgs args, String... messageIds);
 
     public Promise<BElement, Exception> clusterForget(String nodeId);
 
@@ -232,8 +229,8 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> hgetall(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key);
 
-    public Promise<BElement, Exception> georadius(byte[] key, double longitude, double latitude, double distance,
-            Unit unit, GeoRadiusStoreArgs<byte[]> geoRadiusStoreArgs);
+    public Promise<BElement, Exception> georadius(byte[] key, double longitude, double latitude, double distance, Unit unit,
+            GeoRadiusStoreArgs<byte[]> geoRadiusStoreArgs);
 
     public Promise<BElement, Exception> command();
 
@@ -287,8 +284,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> lpushx(byte[] key, byte[]... values);
 
-    public Promise<BElement, Exception> migrate(String host, int port, int db, long timeout,
-            MigrateArgs<byte[]> migrateArgs);
+    public Promise<BElement, Exception> migrate(String host, int port, int db, long timeout, MigrateArgs<byte[]> migrateArgs);
 
     public Promise<BElement, Exception> configGet(String parameter);
 
@@ -308,13 +304,11 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> lrange(byte[] key, long start, long stop);
 
-    public Promise<BElement, Exception> georadiusbymember(byte[] key, byte[] member, double distance, Unit unit,
-            GeoArgs geoArgs);
+    public Promise<BElement, Exception> georadiusbymember(byte[] key, byte[] member, double distance, Unit unit, GeoArgs geoArgs);
 
     public Promise<BElement, Exception> spop(byte[] key);
 
-    public Promise<BElement, Exception> hmget(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key,
-            byte[]... fields);
+    public Promise<BElement, Exception> hmget(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key, byte[]... fields);
 
     public Promise<BElement, Exception> configRewrite();
 
@@ -324,8 +318,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> clusterSetSlotImporting(int slot, String nodeId);
 
-    public Promise<BElement, Exception> lrange(ValueStreamingChannel<byte[]> channel, byte[] key, long start,
-            long stop);
+    public Promise<BElement, Exception> lrange(ValueStreamingChannel<byte[]> channel, byte[] key, long start, long stop);
 
     public Promise<BElement, Exception> spop(byte[] key, long count);
 
@@ -353,8 +346,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> lrem(byte[] key, long count, byte[] value);
 
-    public Promise<BElement, Exception> georadiusbymember(byte[] key, byte[] member, double distance, Unit unit,
-            GeoRadiusStoreArgs<byte[]> geoRadiusStoreArgs);
+    public Promise<BElement, Exception> georadiusbymember(byte[] key, byte[] member, double distance, Unit unit, GeoRadiusStoreArgs<byte[]> geoRadiusStoreArgs);
 
     public Promise<BElement, Exception> xpending(byte[] key, byte[] group);
 
@@ -402,8 +394,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> srandmember(ValueStreamingChannel<byte[]> channel, byte[] key, long count);
 
-    public Promise<BElement, Exception> xpending(byte[] key, Consumer<byte[]> consumer, Range<String> range,
-            Limit limit);
+    public Promise<BElement, Exception> xpending(byte[] key, Consumer<byte[]> consumer, Range<String> range, Limit limit);
 
     public Promise<BElement, Exception> rpop(byte[] key);
 
@@ -443,8 +434,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> bitopOr(byte[] destination, byte[]... keys);
 
-    public Promise<BElement, Exception> hscan(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key,
-            ScanArgs scanArgs);
+    public Promise<BElement, Exception> hscan(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key, ScanArgs scanArgs);
 
     public Promise<BElement, Exception> debugSdslen(byte[] key);
 
@@ -464,8 +454,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> zcount(byte[] key, Range<? extends Number> range);
 
-    public Promise<BElement, Exception> hscan(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key,
-            ScanCursor scanCursor, ScanArgs scanArgs);
+    public Promise<BElement, Exception> hscan(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key, ScanCursor scanCursor, ScanArgs scanArgs);
 
     public Promise<BElement, Exception> sunionstore(byte[] destination, byte[]... keys);
 
@@ -491,8 +480,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> info();
 
-    public Promise<BElement, Exception> hscan(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key,
-            ScanCursor scanCursor);
+    public Promise<BElement, Exception> hscan(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key, ScanCursor scanCursor);
 
     public Promise<BElement, Exception> sscan(byte[] key, ScanArgs scanArgs);
 
@@ -530,8 +518,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> sscan(byte[] key, ScanCursor scanCursor);
 
-    public Promise<BElement, Exception> xreadgroup(Consumer<byte[]> consumer, XReadArgs args,
-            StreamOffset<byte[]>... streams);
+    public Promise<BElement, Exception> xreadgroup(Consumer<byte[]> consumer, XReadArgs args, StreamOffset<byte[]>... streams);
 
     public void shutdown(boolean save);
 
@@ -573,8 +560,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> clusterReplicate(String nodeId);
 
-    public Promise<BElement, Exception> sscan(ValueStreamingChannel<byte[]> channel, byte[] key, ScanCursor scanCursor,
-            ScanArgs scanArgs);
+    public Promise<BElement, Exception> sscan(ValueStreamingChannel<byte[]> channel, byte[] key, ScanCursor scanCursor, ScanArgs scanArgs);
 
     public Promise<BElement, Exception> incrby(byte[] key, long amount);
 
@@ -628,8 +614,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> set(byte[] key, byte[] value);
 
-    public Promise<BElement, Exception> zrange(ValueStreamingChannel<byte[]> channel, byte[] key, long start,
-            long stop);
+    public Promise<BElement, Exception> zrange(ValueStreamingChannel<byte[]> channel, byte[] key, long start, long stop);
 
     public Promise<BElement, Exception> ttl(byte[] key);
 
@@ -649,8 +634,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> scan(ScanArgs scanArgs);
 
-    public Promise<BElement, Exception> zrangeWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key,
-            long start, long stop);
+    public Promise<BElement, Exception> zrangeWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, long start, long stop);
 
     public Promise<BElement, Exception> mset(Map<byte[], byte[]> map);
 
@@ -674,8 +658,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> setrange(byte[] key, long offset, byte[] value);
 
-    public Promise<BElement, Exception> scan(KeyStreamingChannel<byte[]> channel, ScanCursor scanCursor,
-            ScanArgs scanArgs);
+    public Promise<BElement, Exception> scan(KeyStreamingChannel<byte[]> channel, ScanCursor scanCursor, ScanArgs scanArgs);
 
     public Promise<BElement, Exception> strlen(byte[] key);
 
@@ -687,21 +670,18 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> zrangebyscore(byte[] key, Range<? extends Number> range, Limit limit);
 
-    public Promise<BElement, Exception> zrangebyscore(ValueStreamingChannel<byte[]> channel, byte[] key,
-            Range<? extends Number> range);
+    public Promise<BElement, Exception> zrangebyscore(ValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range);
 
-    public Promise<BElement, Exception> zrangebyscore(ValueStreamingChannel<byte[]> channel, byte[] key,
-            Range<? extends Number> range, Limit limit);
+    public Promise<BElement, Exception> zrangebyscore(ValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range, Limit limit);
 
     public Promise<BElement, Exception> zrangebyscoreWithScores(byte[] key, Range<? extends Number> range);
 
     public Promise<BElement, Exception> zrangebyscoreWithScores(byte[] key, Range<? extends Number> range, Limit limit);
 
-    public Promise<BElement, Exception> zrangebyscoreWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key,
-            Range<? extends Number> range);
+    public Promise<BElement, Exception> zrangebyscoreWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range);
 
-    public Promise<BElement, Exception> zrangebyscoreWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key,
-            Range<? extends Number> range, Limit limit);
+    public Promise<BElement, Exception> zrangebyscoreWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range,
+            Limit limit);
 
     public Promise<BElement, Exception> zrank(byte[] key, byte[] member);
 
@@ -715,13 +695,11 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> zrevrange(byte[] key, long start, long stop);
 
-    public Promise<BElement, Exception> zrevrange(ValueStreamingChannel<byte[]> channel, byte[] key, long start,
-            long stop);
+    public Promise<BElement, Exception> zrevrange(ValueStreamingChannel<byte[]> channel, byte[] key, long start, long stop);
 
     public Promise<BElement, Exception> zrevrangeWithScores(byte[] key, long start, long stop);
 
-    public Promise<BElement, Exception> zrevrangeWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key,
-            long start, long stop);
+    public Promise<BElement, Exception> zrevrangeWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, long start, long stop);
 
     public Promise<BElement, Exception> zrevrangebylex(byte[] key, Range<? extends byte[]> range);
 
@@ -731,22 +709,18 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> zrevrangebyscore(byte[] key, Range<? extends Number> range, Limit limit);
 
-    public Promise<BElement, Exception> zrevrangebyscore(ValueStreamingChannel<byte[]> channel, byte[] key,
-            Range<? extends Number> range);
+    public Promise<BElement, Exception> zrevrangebyscore(ValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range);
 
-    public Promise<BElement, Exception> zrevrangebyscore(ValueStreamingChannel<byte[]> channel, byte[] key,
-            Range<? extends Number> range, Limit limit);
+    public Promise<BElement, Exception> zrevrangebyscore(ValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range, Limit limit);
 
     public Promise<BElement, Exception> zrevrangebyscoreWithScores(byte[] key, Range<? extends Number> range);
 
-    public Promise<BElement, Exception> zrevrangebyscoreWithScores(byte[] key, Range<? extends Number> range,
+    public Promise<BElement, Exception> zrevrangebyscoreWithScores(byte[] key, Range<? extends Number> range, Limit limit);
+
+    public Promise<BElement, Exception> zrevrangebyscoreWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range);
+
+    public Promise<BElement, Exception> zrevrangebyscoreWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range,
             Limit limit);
-
-    public Promise<BElement, Exception> zrevrangebyscoreWithScores(ScoredValueStreamingChannel<byte[]> channel,
-            byte[] key, Range<? extends Number> range);
-
-    public Promise<BElement, Exception> zrevrangebyscoreWithScores(ScoredValueStreamingChannel<byte[]> channel,
-            byte[] key, Range<? extends Number> range, Limit limit);
 
     public Promise<BElement, Exception> zrevrank(byte[] key, byte[] member);
 
@@ -760,14 +734,11 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> zscan(ScoredValueStreamingChannel<byte[]> channel, byte[] key);
 
-    public Promise<BElement, Exception> zscan(ScoredValueStreamingChannel<byte[]> channel, byte[] key,
-            ScanArgs scanArgs);
+    public Promise<BElement, Exception> zscan(ScoredValueStreamingChannel<byte[]> channel, byte[] key, ScanArgs scanArgs);
 
-    public Promise<BElement, Exception> zscan(ScoredValueStreamingChannel<byte[]> channel, byte[] key,
-            ScanCursor scanCursor, ScanArgs scanArgs);
+    public Promise<BElement, Exception> zscan(ScoredValueStreamingChannel<byte[]> channel, byte[] key, ScanCursor scanCursor, ScanArgs scanArgs);
 
-    public Promise<BElement, Exception> zscan(ScoredValueStreamingChannel<byte[]> channel, byte[] key,
-            ScanCursor scanCursor);
+    public Promise<BElement, Exception> zscan(ScoredValueStreamingChannel<byte[]> channel, byte[] key, ScanCursor scanCursor);
 
     public Promise<BElement, Exception> zscore(byte[] key, byte[] member);
 
