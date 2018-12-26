@@ -227,12 +227,13 @@ public class RedisCommands {
                             throw new RuntimeException("Error while trying to create redis command handler", e);
                         }
                     } else {
-                        log.warn("Command '" + cmd + "' (in package '" + packageName + "') has already registered with another handler: "
+                        log.warn("Command '" + cmd + "' (in package '" + packageName
+                                + "') has already registered with another handler: "
                                 + handlers.get(cmd).getClass().getName());
                     }
                 } else {
-                    log.warn("class " + clazz + " is annotated with " + RedisCommand.class.getName() + " but doesn't implement "
-                            + RedisCommandHandler.class.getName() + " -> ignored");
+                    log.warn("class " + clazz + " is annotated with " + RedisCommand.class.getName()
+                            + " but doesn't implement " + RedisCommandHandler.class.getName() + " -> ignored");
                 }
             }
         }

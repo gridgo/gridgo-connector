@@ -18,7 +18,7 @@ public class LettuceClientFactory implements RedisClientFactory {
         case CLUSTER:
             return new LettuceClusterClient(config);
         case SENTINEL:
-            return new LettuceSentinnelClient(config);
+            return new LettuceSentinelClient(config);
         default:
             break;
         }
