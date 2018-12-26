@@ -6,6 +6,7 @@ import java.util.Optional;
 import io.gridgo.connector.file.support.engines.BasicFileProducerEngine;
 import io.gridgo.connector.file.support.engines.DisruptorFileProducerEngine;
 import io.gridgo.connector.file.support.engines.FileProducerEngine;
+import io.gridgo.connector.file.support.exceptions.FileInitException;
 import io.gridgo.connector.file.support.limit.AutoIncrementedFileLimitStrategy;
 import io.gridgo.connector.file.support.limit.FileLimitStrategy;
 import io.gridgo.connector.file.support.limit.NoLimitStrategy;
@@ -79,7 +80,7 @@ public class FileConnector extends AbstractConnector {
         try {
             this.limitStrategy.start();
         } catch (IOException e) {
-            throw new RuntimeException("Cannot start limit strategy", e);
+            throw new FileInitException("Cannot start limit strategy", e);
         }
         this.engine.setLimitStrategy(limitStrategy);
         this.engine.start();
@@ -93,7 +94,7 @@ public class FileConnector extends AbstractConnector {
         try {
             this.limitStrategy.stop();
         } catch (IOException e) {
-            throw new RuntimeException("Cannot stop limit strategy", e);
+            throw new FileInitException("Cannot stop limit strategy", e);
         }
     }
 
@@ -109,7 +110,7 @@ public class FileConnector extends AbstractConnector {
                 return new AutoIncrementedFileLimitStrategy(path, mode, limit, deleteOnStartup, deleteOnShutdown,
                         override);
         } catch (IOException ex) {
-            throw new RuntimeException("Cannot create limit strategy", ex);
+            throw new FileInitException("Cannot create limit strategy", ex);
         }
         throw new UnsupportedOperationException("Limit Strategy is unsupported: " + limitStrategy);
     }

@@ -132,6 +132,7 @@ public class HttpJdkProducer extends AbstractHttpProducer {
 
     @Override
     protected void onStop() {
+        // Nothing to do here
     }
 
     @Override

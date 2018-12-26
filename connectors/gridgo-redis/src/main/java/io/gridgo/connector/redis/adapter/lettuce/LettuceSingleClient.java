@@ -48,12 +48,13 @@ import io.lettuce.core.protocol.CommandType;
 public class LettuceSingleClient extends AbstractLettuceClient {
 
     private StatefulRedisConnection<byte[], byte[]> connection;
+
     private RedisAsyncCommands<byte[], byte[]> commands;
 
     protected LettuceSingleClient(RedisConfig config) {
         super(RedisType.SINGLE, config);
     }
-    
+
     protected LettuceSingleClient(RedisType redisType, RedisConfig config) {
         super(redisType, config);
     }

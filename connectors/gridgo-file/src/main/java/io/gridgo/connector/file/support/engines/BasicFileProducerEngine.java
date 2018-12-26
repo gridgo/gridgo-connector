@@ -66,6 +66,7 @@ public class BasicFileProducerEngine extends AbstractProducer implements FilePro
 
     @Override
     protected void onStop() {
+        // Nothing to do here
     }
 
     @Override

@@ -23,10 +23,12 @@ public class FileProducer extends AbstractProducer {
 
     @Override
     protected void onStart() {
+        // Nothing to do here
     }
 
     @Override
     protected void onStop() {
+        // Nothing to do here
     }
 
     @Override

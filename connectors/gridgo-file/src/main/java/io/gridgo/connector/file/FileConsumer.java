@@ -53,7 +53,7 @@ public class FileConsumer extends AbstractConsumer {
 
     @Override
     protected void onStop() {
-
+        // Nothing to do here
     }
 
     @Override

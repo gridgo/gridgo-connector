@@ -43,11 +43,6 @@ public class DisruptorFileProducerEngine extends SingleThreadSendingProducer imp
     }
 
     @Override
-    protected void onStop() {
-        super.onStop();
-    }
-
-    @Override
     protected void executeSendOnSingleThread(Message message) throws Exception {
         var channel = this.limitStrategy.getFileChannel();
         var currentSent = writeToFile(message.getPayload().toBArray(), lengthPrepend, buffer, channel);

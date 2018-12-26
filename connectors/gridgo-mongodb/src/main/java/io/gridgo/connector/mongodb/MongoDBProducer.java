@@ -101,12 +101,12 @@ public class MongoDBProducer extends AbstractProducer {
 
     @Override
     protected void onStart() {
-
+        // Nothing to do here
     }
 
     @Override
     protected void onStop() {
-
+        // Nothing to do here
     }
 
     public void bind(String name, ProducerHandler handler) {
