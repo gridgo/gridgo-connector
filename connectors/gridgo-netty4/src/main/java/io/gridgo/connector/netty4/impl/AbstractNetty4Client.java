@@ -80,7 +80,7 @@ public abstract class AbstractNetty4Client extends AbstractHasReceiverProducer i
             return;
         }
         Payload payload = message.getPayload();
-        BArray data = BArray.newFromSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody());
+        BArray data = BArray.ofSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody());
         this.socketClient.send(data);
     }
 
@@ -92,7 +92,7 @@ public abstract class AbstractNetty4Client extends AbstractHasReceiverProducer i
 
         Deferred<Message, Exception> deferred = new AsyncDeferredObject<>();
         Payload payload = message.getPayload();
-        BArray data = BArray.newFromSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody());
+        BArray data = BArray.ofSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody());
 
         try {
             ChannelFuture future = this.socketClient.send(data);
