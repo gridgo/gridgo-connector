@@ -145,7 +145,7 @@ public class RocksDBProducer extends AbstractProducer {
     @Override
     protected void onStart() {
         try {
-            this.options = createOptions();
+            createOptions();
             this.db = RocksDB.open(options, path);
         } catch (RocksDBException e) {
             log.error("Exception caught while starting RocksDB", e);
@@ -161,14 +161,13 @@ public class RocksDBProducer extends AbstractProducer {
             this.options.close();
     }
 
-    private Options createOptions() {
-        var options = new Options();
-        options.setCreateIfMissing(getParamAsBoolean(PARAM_CREATE_IF_MISSING, true)) //
-               .setWriteBufferSize(getParamAsLong(PARAM_WRITE_BUFFER_SIZE, 4 * SizeUnit.MB)) //
-               .setAllow2pc(getParamAsBoolean(PARAM_ALLOW_2_PHASE_COMMIT, false)) //
-               .setAllowMmapReads(getParamAsBoolean(PARAM_ALLOW_MMAP_READS, false)) //
-               .setAllowMmapWrites(getParamAsBoolean(PARAM_ALLOW_MMAP_WRITES, false));
-        return options;
+    private void createOptions() {
+        this.options = new Options();
+        this.options.setCreateIfMissing(getParamAsBoolean(PARAM_CREATE_IF_MISSING, true)) //
+                    .setWriteBufferSize(getParamAsLong(PARAM_WRITE_BUFFER_SIZE, 4 * SizeUnit.MB)) //
+                    .setAllow2pc(getParamAsBoolean(PARAM_ALLOW_2_PHASE_COMMIT, false)) //
+                    .setAllowMmapReads(getParamAsBoolean(PARAM_ALLOW_MMAP_READS, false)) //
+                    .setAllowMmapWrites(getParamAsBoolean(PARAM_ALLOW_MMAP_WRITES, false));
     }
 
     private long getParamAsLong(String name, long defaultValue) {
