@@ -132,13 +132,14 @@ public class RocksDBProducer extends AbstractProducer {
             return;
         }
         var body = BObject.ofEmpty();
-        var iterator = db.newIterator();
-        iterator.seekToFirst();
-        while (iterator.isValid()) {
-            body.setAny(new String(iterator.key()), BElement.ofBytes(iterator.value()));
-            iterator.next();
+        try (var iterator = db.newIterator()) {
+            iterator.seekToFirst();
+            while (iterator.isValid()) {
+                body.setAny(new String(iterator.key()), BElement.ofBytes(iterator.value()));
+                iterator.next();
+            }
+            ack(deferred, Message.ofAny(body));
         }
-        ack(deferred, Message.ofAny(body));
     }
 
     @Override
