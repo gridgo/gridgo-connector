@@ -9,10 +9,15 @@ services:
 
 notifications:
   slack: gridgo:EkUUzu8RhdhIVeNKg9JlcuIv
+  
+addons:
+  sonarcloud:
+    organization: "gridgo"
+    token: $SONAR_TOKEN
 
 before_install:
   - sudo apt-get install -y libpgm-dev 
   - sudo apt-get install -y libstdc++6
 
 after_success:
-- mvn clean test jacoco:report coveralls:report -DrepoToken=$CoverallsRepoToken
+- mvn clean test jacoco:report coveralls:report -DrepoToken=$CoverallsRepoToken sonar:sonar
