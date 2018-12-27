@@ -7,5 +7,7 @@ import io.gridgo.connector.redis.adapter.RedisClient;
 
 public interface RedisCommandHandler {
 
+    public String[] getKeyOrder();
+
     public Promise<BElement, Exception> execute(RedisClient redisClient, BElement params);
 }

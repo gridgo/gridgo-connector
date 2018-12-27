@@ -202,7 +202,7 @@ public class RedisCommands {
     public static final String UNWATCH = "unwatch";
     public static final String WATCH = "watch";
 
-    private static Map<String, RedisCommandHandler> handlers = new HashMap<>();
+    private static final Map<String, RedisCommandHandler> handlers = new HashMap<>();
 
     static {
         scanPackage(RedisCommands.class.getPackageName());
@@ -227,13 +227,12 @@ public class RedisCommands {
                             throw new RuntimeException("Error while trying to create redis command handler", e);
                         }
                     } else {
-                        log.warn("Command '" + cmd + "' (in package '" + packageName
-                                + "') has already registered with another handler: "
+                        log.warn("Command '" + cmd + "' (in package '" + packageName + "') has already registered with another handler: "
                                 + handlers.get(cmd).getClass().getName());
                     }
                 } else {
-                    log.warn("class " + clazz + " is annotated with " + RedisCommand.class.getName()
-                            + " but doesn't implement " + RedisCommandHandler.class.getName() + " -> ignored");
+                    log.warn("class " + clazz + " is annotated with " + RedisCommand.class.getName() + " but doesn't implement "
+                            + RedisCommandHandler.class.getName() + " -> ignored");
                 }
             }
         }

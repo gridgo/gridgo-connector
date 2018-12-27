@@ -39,8 +39,7 @@ public class AbstractRedisProducer extends AbstractProducer implements RedisProd
         String command = headers.getString("commands", headers.getString("cmd", null));
         RedisCommandHandler handler = RedisCommands.getHandler(command);
         if (handler == null)
-            return new SimpleFailurePromise<>(
-                    new CommandHandlerNotRegisteredException("Handler doesn't registered for command: " + command));
+            return new SimpleFailurePromise<>(new CommandHandlerNotRegisteredException("Handler doesn't registered for command: " + command));
         Promise<BElement, Exception> promise = handler.execute(redisClient, request.getPayload().getBody());
         return promise.filterDone(result -> {
             return Message.ofAny(result);
