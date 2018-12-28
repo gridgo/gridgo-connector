@@ -1,5 +1,9 @@
 package io.gridgo.connector.redis.command;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BArray;
@@ -47,6 +51,29 @@ public abstract class AbstractRedisCommandHandler implements RedisCommandHandler
             }
         }
         return process(redisClient, options == null ? BObject.ofEmpty() : options, objs);
+    }
+
+    protected Map<byte[], byte[]> extractMapFromFirst(BElement[] params) {
+        return extractMap(params, 0);
+    }
+
+    protected Map<byte[], byte[]> extractMapFromSecond(BElement[] params) {
+        return extractMap(params, 1);
+    }
+
+    protected Map<byte[], byte[]> extractMap(BElement[] params, int start) {
+        Map<byte[], byte[]> map = new HashMap<>();
+        if (params.length == 1 + start && params[start].isObject()) {
+            var obj = params[start].asObject();
+            for (Entry<String, BElement> entry : obj.entrySet()) {
+                map.put(entry.getKey().getBytes(), entry.getValue().asValue().getRaw());
+            }
+        } else {
+            for (int i = start; i < params.length - 1; i += 2) {
+                map.put(params[i].asValue().getRaw(), params[i + 1].asValue().getRaw());
+            }
+        }
+        return map;
     }
 
     protected byte[][] extractListBytes(BElement[] params, int start) {

@@ -13,12 +13,11 @@ import io.gridgo.connector.redis.command.RedisCommands;
 public class RedisBitposHandler extends AbstractRedisCommandHandler {
 
     public RedisBitposHandler() {
-        super("key", "args");
+        super("key", "state", "start", "end");
     }
 
     @Override
     protected Promise<BElement, Exception> process(RedisClient redis, BObject options, BElement[] params) {
-        // TODO implement
-        return null;
+        return redis.bitpos(params[0].asValue().getRaw(), params[1].asValue().getBoolean(), params[2].asValue().getLong(), params[3].asValue().getLong());
     }
 }

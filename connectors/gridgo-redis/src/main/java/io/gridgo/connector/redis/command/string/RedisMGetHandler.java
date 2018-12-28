@@ -18,10 +18,6 @@ public class RedisMGetHandler extends AbstractRedisCommandHandler {
 
     @Override
     protected Promise<BElement, Exception> process(RedisClient redis, BObject options, BElement[] params) {
-        byte[][] keys = new byte[params.length][];
-        for (int i = 0; i < params.length; i++) {
-            keys[i] = params[i].asValue().getRaw();
-        }
-        return redis.mget(keys);
+        return redis.mget(extractListBytesFromFirst(params));
     }
 }
