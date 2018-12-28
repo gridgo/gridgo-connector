@@ -4,8 +4,6 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,6 +12,9 @@ import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class EmbeddedLibraryTools {
 
     public static final boolean LOADED_EMBEDDED_LIBRARY;
@@ -53,9 +54,7 @@ public class EmbeddedLibraryTools {
     }
 
     private static void catalogArchive(final File jarfile, final Collection<String> files) {
-        JarFile j = null;
-        try {
-            j = new JarFile(jarfile);
+        try (var j = new JarFile(jarfile)) {
             final Enumeration<JarEntry> e = j.entries();
             while (e.hasMoreElements()) {
                 final JarEntry entry = e.nextElement();
@@ -63,16 +62,9 @@ public class EmbeddedLibraryTools {
                     files.add(entry.getName());
                 }
             }
-
-        } catch (IOException x) {
-            System.err.println(x.toString());
-        } finally {
-            try {
-                j.close();
-            } catch (Exception e) {
-            }
+        } catch (IOException ex) {
+            log.error("Exception caught while opening JAR file", ex);
         }
-
     }
 
     private static Collection<String> catalogClasspath() {
@@ -126,42 +118,47 @@ public class EmbeddedLibraryTools {
         StringBuilder url = new StringBuilder();
         url.append("/NATIVE/");
         url.append(getCurrentPlatformIdentifier()).append("/");
-        System.out.println("Trying to load embedded lib from: " + url);
+
+        log.info("Trying to load embedded lib from: " + url);
+
         for (String lib : libs) {
-            URL nativeLibraryUrl = null;
-            // loop through extensions, stopping after finding first one
-            for (String ext : allowedExtensions) {
-                nativeLibraryUrl = EmbeddedLibraryTools.class.getResource(url.toString() + lib + "." + ext);
-                if (nativeLibraryUrl != null)
-                    break;
-            }
+            URL nativeLibraryUrl = findNativeLibrary(allowedExtensions, url, lib);
 
-            if (nativeLibraryUrl != null) {
-                // native library found within JAR, extract and load
-                try {
+            if (nativeLibraryUrl == null)
+                continue;
+            // native library found within JAR, extract and load
+            try {
 
-                    final File libfile = File.createTempFile(lib, ".lib");
-                    libfile.deleteOnExit(); // just in case
+                final File libfile = File.createTempFile(lib, ".lib");
+                libfile.deleteOnExit(); // just in case
 
-                    final InputStream in = nativeLibraryUrl.openStream();
-                    final OutputStream out = new BufferedOutputStream(new FileOutputStream(libfile));
+                try (var in = nativeLibraryUrl.openStream();
+                        var out = new BufferedOutputStream(new FileOutputStream(libfile))) {
 
                     int len = 0;
                     byte[] buffer = new byte[8192];
                     while ((len = in.read(buffer)) > -1)
                         out.write(buffer, 0, len);
-                    out.close();
-                    in.close();
-                    System.load(libfile.getAbsolutePath());
-
-                    usingEmbedded = true;
-
-                    System.out.println("Embedded lib " + lib + " loaded from: " + nativeLibraryUrl);
-                } catch (IOException x) {
-                    // mission failed, do nothing
                 }
-            } // nativeLibraryUrl exists
+                System.load(libfile.getAbsolutePath());
+
+                usingEmbedded = true;
+
+                log.info("Embedded lib {} loaded from: {}", lib, nativeLibraryUrl);
+            } catch (IOException ex) {
+                log.warn("Exception caught while loading native library", ex);
+            }
         }
         return usingEmbedded;
+    }
+
+    private static URL findNativeLibrary(String[] allowedExtensions, StringBuilder url, String lib) {
+        // loop through extensions, stopping after finding first one
+        for (String ext : allowedExtensions) {
+            var nativeLibraryUrl = EmbeddedLibraryTools.class.getResource(url.toString() + lib + "." + ext);
+            if (nativeLibraryUrl != null)
+                return nativeLibraryUrl;
+        }
+        return null;
     }
 }
