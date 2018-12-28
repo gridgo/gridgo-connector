@@ -4,6 +4,7 @@ import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
+import io.gridgo.bean.BObject;
 import io.gridgo.connector.redis.adapter.RedisClient;
 import io.gridgo.connector.redis.command.AbstractRedisCommandHandler;
 import io.gridgo.connector.redis.command.RedisCommand;
@@ -19,7 +20,7 @@ public class RedisBitopHandler extends AbstractRedisCommandHandler {
     }
 
     @Override
-    protected Promise<BElement, Exception> process(RedisClient redis, BElement[] params) {
+    protected Promise<BElement, Exception> process(RedisClient redis, BObject options, BElement[] params) {
         final byte[][] keys = this.parseKeys(params[2]);
         switch (params[0].asValue().getString().toLowerCase()) {
         case "and":

@@ -7,6 +7,7 @@ import java.util.Map.Entry;
 import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BElement;
+import io.gridgo.bean.BObject;
 import io.gridgo.connector.redis.adapter.RedisClient;
 import io.gridgo.connector.redis.command.AbstractRedisCommandHandler;
 import io.gridgo.connector.redis.command.RedisCommand;
@@ -20,7 +21,7 @@ public class RedisMSetHandler extends AbstractRedisCommandHandler {
     }
 
     @Override
-    protected Promise<BElement, Exception> process(RedisClient redis, BElement[] params) {
+    protected Promise<BElement, Exception> process(RedisClient redis, BObject options, BElement[] params) {
         Map<byte[], byte[]> map = new HashMap<>();
         if (params.length == 2 && params[1].isObject()) {
             var obj = params[1].asObject();

@@ -2,13 +2,14 @@ package io.gridgo.connector.redis.adapter;
 
 import java.time.Duration;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.framework.ComponentLifecycle;
-
 import io.lettuce.core.BitFieldArgs;
 import io.lettuce.core.Consumer;
 import io.lettuce.core.GeoArgs;
@@ -21,7 +22,6 @@ import io.lettuce.core.Range;
 import io.lettuce.core.RestoreArgs;
 import io.lettuce.core.ScanArgs;
 import io.lettuce.core.ScanCursor;
-import io.lettuce.core.ScoredValue;
 import io.lettuce.core.ScriptOutputType;
 import io.lettuce.core.SetArgs;
 import io.lettuce.core.SortArgs;
@@ -30,8 +30,6 @@ import io.lettuce.core.XAddArgs;
 import io.lettuce.core.XClaimArgs;
 import io.lettuce.core.XReadArgs;
 import io.lettuce.core.XReadArgs.StreamOffset;
-import io.lettuce.core.ZAddArgs;
-import io.lettuce.core.ZStoreArgs;
 import io.lettuce.core.output.KeyStreamingChannel;
 import io.lettuce.core.output.KeyValueStreamingChannel;
 import io.lettuce.core.output.ScoredValueStreamingChannel;
@@ -199,8 +197,6 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> ping();
 
-    public Promise<BElement, Exception> zadd(byte[] key, ScoredValue<byte[]>... scoredValues);
-
     public Promise<BElement, Exception> xclaim(byte[] key, Consumer<byte[]> consumer, XClaimArgs args, String... messageIds);
 
     public Promise<BElement, Exception> clusterForget(String nodeId);
@@ -234,8 +230,6 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> command();
 
-    public Promise<BElement, Exception> zadd(byte[] key, ZAddArgs zAddArgs, double score, byte[] member);
-
     public Promise<BElement, Exception> quit();
 
     public Promise<BElement, Exception> xdel(byte[] key, String... messageIds);
@@ -266,7 +260,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> xgroupCreate(StreamOffset<byte[]> streamOffset, byte[] group);
 
-    public Promise<BElement, Exception> zadd(byte[] key, ZAddArgs zAddArgs, Object... scoresAndValues);
+    public Promise<BElement, Exception> zadd(byte[] key, boolean xx, boolean nx, boolean ch, Object... scoresAndValues);
 
     public Promise<BElement, Exception> lpush(byte[] key, byte[]... values);
 
@@ -299,8 +293,6 @@ public interface RedisClient extends ComponentLifecycle {
     public Promise<BElement, Exception> xgroupDestroy(byte[] key, byte[] group);
 
     public Promise<BElement, Exception> configResetstat();
-
-    public Promise<BElement, Exception> zadd(byte[] key, ZAddArgs zAddArgs, ScoredValue<byte[]>... scoredValues);
 
     public Promise<BElement, Exception> lrange(byte[] key, long start, long stop);
 
@@ -357,8 +349,6 @@ public interface RedisClient extends ComponentLifecycle {
     public void setAutoFlushCommands(boolean autoFlush);
 
     public Promise<BElement, Exception> hscan(byte[] key, ScanArgs scanArgs);
-
-    public Promise<BElement, Exception> zaddincr(byte[] key, ZAddArgs zAddArgs, double score, byte[] member);
 
     public Promise<BElement, Exception> debugCrashAndRecover(Long delay);
 
@@ -452,7 +442,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> bitopXor(byte[] destination, byte[]... keys);
 
-    public Promise<BElement, Exception> zcount(byte[] key, Range<? extends Number> range);
+    public Promise<BElement, Exception> zcount(byte[] key, boolean includeLower, long lower, long upper, boolean includeUpper);
 
     public Promise<BElement, Exception> hscan(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key, ScanCursor scanCursor, ScanArgs scanArgs);
 
@@ -490,7 +480,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> info(String section);
 
-    public Promise<BElement, Exception> zinterstore(byte[] destination, byte[]... keys);
+    public Promise<BElement, Exception> zinterstore(byte[] destination, String aggregate, List<Double> weights, byte[]... keys);
 
     public Promise<BElement, Exception> sscan(byte[] key, ScanCursor scanCursor, ScanArgs scanArgs);
 
@@ -507,8 +497,6 @@ public interface RedisClient extends ComponentLifecycle {
     public Promise<BElement, Exception> hset(byte[] key, byte[] field, byte[] value);
 
     public Promise<BElement, Exception> getbit(byte[] key, long offset);
-
-    public Promise<BElement, Exception> zinterstore(byte[] destination, ZStoreArgs storeArgs, byte[]... keys);
 
     public Promise<BElement, Exception> renamenx(byte[] key, byte[] newKey);
 
@@ -546,7 +534,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> restore(byte[] key, byte[] value, RestoreArgs args);
 
-    public Promise<BElement, Exception> zlexcount(byte[] key, Range<? extends byte[]> range);
+    public Promise<BElement, Exception> zlexcount(byte[] key, boolean includeLower, byte[] lower, byte[] upper, boolean includeUpper);
 
     public Promise<BElement, Exception> slowlogGet();
 
@@ -614,7 +602,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> set(byte[] key, byte[] value);
 
-    public Promise<BElement, Exception> zrange(ValueStreamingChannel<byte[]> channel, byte[] key, long start, long stop);
+    public Promise<BElement, Exception> zrange(java.util.function.Consumer<byte[]> valueConsumer, byte[] key, long start, long stop);
 
     public Promise<BElement, Exception> ttl(byte[] key);
 
@@ -652,7 +640,8 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> scan(KeyStreamingChannel<byte[]> channel);
 
-    public Promise<BElement, Exception> zrangebylex(byte[] key, Range<? extends byte[]> range);
+    public Promise<BElement, Exception> zrangebylex(byte[] key, boolean includeLower, byte[] lower, byte[] upper, boolean includeUpper, Long offset,
+            Long count);
 
     public Promise<BElement, Exception> scan(KeyStreamingChannel<byte[]> channel, ScanArgs scanArgs);
 
@@ -662,17 +651,10 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> strlen(byte[] key);
 
-    public Promise<BElement, Exception> zrangebylex(byte[] key, Range<? extends byte[]> range, Limit limit);
-
     public Promise<BElement, Exception> scan(KeyStreamingChannel<byte[]> channel, ScanCursor scanCursor);
 
-    public Promise<BElement, Exception> zrangebyscore(byte[] key, Range<? extends Number> range);
-
-    public Promise<BElement, Exception> zrangebyscore(byte[] key, Range<? extends Number> range, Limit limit);
-
-    public Promise<BElement, Exception> zrangebyscore(ValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range);
-
-    public Promise<BElement, Exception> zrangebyscore(ValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range, Limit limit);
+    public Promise<BElement, Exception> zrangebyscore(java.util.function.Consumer<byte[]> channel, byte[] key, boolean includeLower, long lower, long upper,
+            boolean includeUpper, Long offset, Long count);
 
     public Promise<BElement, Exception> zrangebyscoreWithScores(byte[] key, Range<? extends Number> range);
 
@@ -687,62 +669,27 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> zrem(byte[] key, byte[]... members);
 
-    public Promise<BElement, Exception> zremrangebylex(byte[] key, Range<? extends byte[]> range);
+    public Promise<BElement, Exception> zremrangebylex(byte[] key, boolean includeLower, byte[] lower, byte[] upper, boolean includeUpper);
 
     public Promise<BElement, Exception> zremrangebyrank(byte[] key, long start, long stop);
 
-    public Promise<BElement, Exception> zremrangebyscore(byte[] key, Range<? extends Number> range);
+    public Promise<BElement, Exception> zremrangebyscore(byte[] key, boolean includeLower, long lower, long upper, boolean includeUpper);
 
-    public Promise<BElement, Exception> zrevrange(byte[] key, long start, long stop);
-
-    public Promise<BElement, Exception> zrevrange(ValueStreamingChannel<byte[]> channel, byte[] key, long start, long stop);
+    public Promise<BElement, Exception> zrevrange(java.util.function.Consumer<byte[]> channel, byte[] key, long start, long stop);
 
     public Promise<BElement, Exception> zrevrangeWithScores(byte[] key, long start, long stop);
 
-    public Promise<BElement, Exception> zrevrangeWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, long start, long stop);
+    public Promise<BElement, Exception> zrevrangebylex(byte[] key, boolean includeLower, byte[] lower, byte[] upper, boolean includeUpper, Long offset,
+            Long count);
 
-    public Promise<BElement, Exception> zrevrangebylex(byte[] key, Range<? extends byte[]> range);
-
-    public Promise<BElement, Exception> zrevrangebylex(byte[] key, Range<? extends byte[]> range, Limit limit);
-
-    public Promise<BElement, Exception> zrevrangebyscore(byte[] key, Range<? extends Number> range);
-
-    public Promise<BElement, Exception> zrevrangebyscore(byte[] key, Range<? extends Number> range, Limit limit);
-
-    public Promise<BElement, Exception> zrevrangebyscore(ValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range);
-
-    public Promise<BElement, Exception> zrevrangebyscore(ValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range, Limit limit);
-
-    public Promise<BElement, Exception> zrevrangebyscoreWithScores(byte[] key, Range<? extends Number> range);
-
-    public Promise<BElement, Exception> zrevrangebyscoreWithScores(byte[] key, Range<? extends Number> range, Limit limit);
-
-    public Promise<BElement, Exception> zrevrangebyscoreWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range);
-
-    public Promise<BElement, Exception> zrevrangebyscoreWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range,
-            Limit limit);
+    public Promise<BElement, Exception> zrevrangebyscore(java.util.function.Consumer<byte[]> channel, byte[] key, boolean includeLower, long lower, long upper,
+            boolean includeUpper, Long offset, Long count);
 
     public Promise<BElement, Exception> zrevrank(byte[] key, byte[] member);
 
-    public Promise<BElement, Exception> zscan(byte[] key);
-
-    public Promise<BElement, Exception> zscan(byte[] key, ScanArgs scanArgs);
-
-    public Promise<BElement, Exception> zscan(byte[] key, ScanCursor scanCursor, ScanArgs scanArgs);
-
-    public Promise<BElement, Exception> zscan(byte[] key, ScanCursor scanCursor);
-
-    public Promise<BElement, Exception> zscan(ScoredValueStreamingChannel<byte[]> channel, byte[] key);
-
-    public Promise<BElement, Exception> zscan(ScoredValueStreamingChannel<byte[]> channel, byte[] key, ScanArgs scanArgs);
-
-    public Promise<BElement, Exception> zscan(ScoredValueStreamingChannel<byte[]> channel, byte[] key, ScanCursor scanCursor, ScanArgs scanArgs);
-
-    public Promise<BElement, Exception> zscan(ScoredValueStreamingChannel<byte[]> channel, byte[] key, ScanCursor scanCursor);
+    public Promise<BElement, Exception> zscan(BiConsumer<Double, byte[]> channel, byte[] key, String cursor, String match, Long limit);
 
     public Promise<BElement, Exception> zscore(byte[] key, byte[] member);
 
-    public Promise<BElement, Exception> zunionstore(byte[] destination, byte[]... keys);
-
-    public Promise<BElement, Exception> zunionstore(byte[] destination, ZStoreArgs storeArgs, byte[]... keys);
+    public Promise<BElement, Exception> zunionstore(byte[] destination, String aggregate, List<Double> weights, byte[]... keys);
 }

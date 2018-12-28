@@ -4,6 +4,7 @@ import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
+import io.gridgo.bean.BObject;
 import io.gridgo.connector.redis.adapter.RedisClient;
 import io.gridgo.connector.redis.command.AbstractRedisCommandHandler;
 import io.gridgo.connector.redis.command.RedisCommand;
@@ -17,7 +18,7 @@ public class RedisSinterstoreHandler extends AbstractRedisCommandHandler {
     }
 
     @Override
-    protected Promise<BElement, Exception> process(RedisClient redis, BElement[] params) {
+    protected Promise<BElement, Exception> process(RedisClient redis, BObject options, BElement[] params) {
         byte[][] keys = new byte[params.length - 1][];
         if (params.length == 2 && params[1].isArray()) {
             BArray array = params[1].asArray();

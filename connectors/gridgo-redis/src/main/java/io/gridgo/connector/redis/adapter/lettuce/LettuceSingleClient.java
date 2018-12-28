@@ -2,11 +2,14 @@ package io.gridgo.connector.redis.adapter.lettuce;
 
 import java.time.Duration;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BElement;
+import io.gridgo.bean.BObject;
 import io.gridgo.connector.redis.adapter.RedisConfig;
 import io.gridgo.connector.redis.adapter.RedisType;
 import io.gridgo.utils.support.HostAndPort;
@@ -20,15 +23,16 @@ import io.lettuce.core.Limit;
 import io.lettuce.core.MigrateArgs;
 import io.lettuce.core.Range;
 import io.lettuce.core.RedisClient;
+import io.lettuce.core.RedisFuture;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.RedisURI.Builder;
 import io.lettuce.core.RestoreArgs;
 import io.lettuce.core.ScanArgs;
 import io.lettuce.core.ScanCursor;
-import io.lettuce.core.ScoredValue;
 import io.lettuce.core.ScriptOutputType;
 import io.lettuce.core.SetArgs;
 import io.lettuce.core.SortArgs;
+import io.lettuce.core.StreamScanCursor;
 import io.lettuce.core.UnblockType;
 import io.lettuce.core.XAddArgs;
 import io.lettuce.core.XClaimArgs;
@@ -43,6 +47,7 @@ import io.lettuce.core.output.KeyValueStreamingChannel;
 import io.lettuce.core.output.ScoredValueStreamingChannel;
 import io.lettuce.core.output.ValueStreamingChannel;
 import io.lettuce.core.protocol.CommandType;
+import lombok.NonNull;
 
 @SuppressWarnings("unchecked")
 public class LettuceSingleClient extends AbstractLettuceClient {
@@ -483,11 +488,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> zadd(byte[] key, ScoredValue<byte[]>... scoredValues) {
-        return toPromise(commands.zadd(key, scoredValues));
-    }
-
-    @Override
     public Promise<BElement, Exception> xclaim(byte[] key, Consumer<byte[]> consumer, XClaimArgs args, String... messageIds) {
         return toPromise(commands.xclaim(key, consumer, args, messageIds));
     }
@@ -569,11 +569,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> zadd(byte[] key, ZAddArgs zAddArgs, double score, byte[] member) {
-        return toPromise(commands.zadd(key, zAddArgs, score, member));
-    }
-
-    @Override
     public Promise<BElement, Exception> quit() {
         return toPromise(commands.quit());
     }
@@ -646,11 +641,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> xgroupCreate(StreamOffset<byte[]> streamOffset, byte[] group) {
         return toPromise(commands.xgroupCreate(streamOffset, group));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zadd(byte[] key, ZAddArgs zAddArgs, Object... scoresAndValues) {
-        return toPromise(commands.zadd(key, zAddArgs, scoresAndValues));
     }
 
     @Override
@@ -731,11 +721,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> configResetstat() {
         return toPromise(commands.configResetstat());
-    }
-
-    @Override
-    public Promise<BElement, Exception> zadd(byte[] key, ZAddArgs zAddArgs, ScoredValue<byte[]>... scoredValues) {
-        return toPromise(commands.zadd(key, zAddArgs, scoredValues));
     }
 
     @Override
@@ -874,11 +859,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> hscan(byte[] key, ScanArgs scanArgs) {
         return toPromise(commands.hscan(key, scanArgs));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zaddincr(byte[] key, ZAddArgs zAddArgs, double score, byte[] member) {
-        return toPromise(commands.zaddincr(key, zAddArgs, score, member));
     }
 
     @Override
@@ -1109,8 +1089,8 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> zcount(byte[] key, Range<? extends Number> range) {
-        return toPromise(commands.zcount(key, range));
+    public Promise<BElement, Exception> zcount(byte[] key, boolean includeLower, long lower, long upper, boolean includeUpper) {
+        return toPromise(commands.zcount(key, buildRangeLong(includeLower, lower, upper, includeUpper)));
     }
 
     @Override
@@ -1204,7 +1184,11 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> zinterstore(byte[] destination, byte[]... keys) {
+    public Promise<BElement, Exception> zinterstore(byte[] destination, String aggregate, List<Double> weights, byte[]... keys) {
+        if (aggregate != null) {
+            ZStoreArgs args = buildZStoreArgs(aggregate, weights);
+            return toPromise(commands.zinterstore(destination, args, keys));
+        }
         return toPromise(commands.zinterstore(destination, keys));
     }
 
@@ -1246,11 +1230,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> getbit(byte[] key, long offset) {
         return toPromise(commands.getbit(key, offset));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zinterstore(byte[] destination, ZStoreArgs storeArgs, byte[]... keys) {
-        return toPromise(commands.zinterstore(destination, storeArgs, keys));
     }
 
     @Override
@@ -1343,8 +1322,8 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> zlexcount(byte[] key, Range<? extends byte[]> range) {
-        return toPromise(commands.zlexcount(key, range));
+    public Promise<BElement, Exception> zlexcount(byte[] key, boolean includeLower, byte[] lower, byte[] upper, boolean includeUpper) {
+        return toPromise(commands.zlexcount(key, buildRangeBytes(includeLower, lower, upper, includeUpper)));
     }
 
     @Override
@@ -1513,8 +1492,8 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> zrange(ValueStreamingChannel<byte[]> channel, byte[] key, long start, long stop) {
-        return toPromise(commands.zrange(channel, key, start, stop));
+    public Promise<BElement, Exception> zrange(java.util.function.Consumer<byte[]> channel, byte[] key, long start, long stop) {
+        return toPromise(commands.zrange(bytes -> channel.accept(bytes), key, start, stop));
     }
 
     @Override
@@ -1608,7 +1587,13 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> zrangebylex(byte[] key, Range<? extends byte[]> range) {
+    public Promise<BElement, Exception> zrangebylex(byte[] key, boolean includeLower, byte[] lower, byte[] upper, boolean includeUpper, Long offset,
+            Long count) {
+        Range<byte[]> range = buildRangeBytes(includeLower, lower, upper, includeUpper);
+        if (offset != null && count != null) {
+            Limit limit = Limit.create(offset, count);
+            return toPromise(commands.zrangebylex(key, range, limit));
+        }
         return toPromise(commands.zrangebylex(key, range));
     }
 
@@ -1633,33 +1618,26 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> zrangebylex(byte[] key, Range<? extends byte[]> range, Limit limit) {
-        return toPromise(commands.zrangebylex(key, range, limit));
-    }
-
-    @Override
     public Promise<BElement, Exception> scan(KeyStreamingChannel<byte[]> channel, ScanCursor scanCursor) {
         return toPromise(commands.scan(channel, scanCursor));
     }
 
     @Override
-    public Promise<BElement, Exception> zrangebyscore(byte[] key, Range<? extends Number> range) {
-        return toPromise(commands.zrangebyscore(key, range));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zrangebyscore(byte[] key, Range<? extends Number> range, Limit limit) {
-        return toPromise(commands.zrangebyscore(key, range, limit));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zrangebyscore(ValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range) {
-        return toPromise(commands.zrangebyscore(channel, key, range));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zrangebyscore(ValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range, Limit limit) {
-        return toPromise(commands.zrangebyscore(channel, key, range, limit));
+    public Promise<BElement, Exception> zrangebyscore(java.util.function.Consumer<byte[]> channel, byte[] key, boolean includeLower, long lower, long upper,
+            boolean includeUpper, Long offset, Long count) {
+        Range<Long> range = buildRangeLong(includeLower, lower, upper, includeUpper);
+        if (offset != null && count != null) {
+            Limit limit = Limit.create(offset, count);
+            if (channel == null) {
+                return toPromise(commands.zrangebyscore(key, range, limit));
+            } else {
+                return toPromise(commands.zrangebyscore(bytes -> channel.accept(bytes), key, range, limit));
+            }
+        }
+        if (channel == null) {
+            return toPromise(commands.zrangebyscore(key, range));
+        }
+        return toPromise(commands.zrangebyscore(bytes -> channel.accept(bytes), key, range));
     }
 
     @Override
@@ -1694,8 +1672,8 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> zremrangebylex(byte[] key, Range<? extends byte[]> range) {
-        return toPromise(commands.zremrangebylex(key, range));
+    public Promise<BElement, Exception> zremrangebylex(byte[] key, boolean includeLower, byte[] lower, byte[] upper, boolean includeUpper) {
+        return toPromise(commands.zremrangebylex(key, buildRangeBytes(includeLower, lower, upper, includeUpper)));
     }
 
     @Override
@@ -1704,18 +1682,16 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> zremrangebyscore(byte[] key, Range<? extends Number> range) {
-        return toPromise(commands.zremrangebyscore(key, range));
+    public Promise<BElement, Exception> zremrangebyscore(byte[] key, boolean includeLower, long lower, long upper, boolean includeUpper) {
+        return toPromise(commands.zremrangebyscore(key, buildRangeLong(includeLower, lower, upper, includeUpper)));
     }
 
     @Override
-    public Promise<BElement, Exception> zrevrange(byte[] key, long start, long stop) {
-        return toPromise(commands.zrevrange(key, start, stop));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zrevrange(ValueStreamingChannel<byte[]> channel, byte[] key, long start, long stop) {
-        return toPromise(commands.zrevrange(channel, key, start, stop));
+    public Promise<BElement, Exception> zrevrange(java.util.function.Consumer<byte[]> channel, byte[] key, long start, long stop) {
+        if (channel == null) {
+            return toPromise(commands.zrevrange(key, start, stop));
+        }
+        return toPromise(commands.zrevrange(bytes -> channel.accept(bytes), key, start, stop));
     }
 
     @Override
@@ -1724,59 +1700,32 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> zrevrangeWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, long start, long stop) {
-        return toPromise(commands.zrevrangeWithScores(channel, key, start, stop));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zrevrangebylex(byte[] key, Range<? extends byte[]> range) {
+    public Promise<BElement, Exception> zrevrangebylex(byte[] key, boolean includeLower, byte[] lower, byte[] upper, boolean includeUpper, Long offset,
+            Long count) {
+        Range<byte[]> range = buildRangeBytes(includeLower, lower, upper, includeUpper);
+        if (offset != null && count != null) {
+            Limit limit = Limit.create(offset, count);
+            return toPromise(commands.zrangebylex(key, range, limit));
+        }
         return toPromise(commands.zrevrangebylex(key, range));
     }
 
     @Override
-    public Promise<BElement, Exception> zrevrangebylex(byte[] key, Range<? extends byte[]> range, Limit limit) {
-        return toPromise(commands.zrevrangebylex(key, range, limit));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zrevrangebyscore(byte[] key, Range<? extends Number> range) {
+    public Promise<BElement, Exception> zrevrangebyscore(java.util.function.Consumer<byte[]> channel, byte[] key, boolean includeLower, long lower, long upper,
+            boolean includeUpper, Long offset, Long count) {
+        Range<Long> range = buildRangeLong(includeLower, lower, upper, includeUpper);
+        if (offset != null && count != null) {
+            Limit limit = Limit.create(offset, count);
+            if (channel == null) {
+                return toPromise(commands.zrevrangebyscore(key, range, limit));
+            } else {
+                return toPromise(commands.zrevrangebyscore(bytes -> channel.accept(bytes), key, range, limit));
+            }
+        }
+        if (channel != null) {
+            return toPromise(commands.zrevrangebyscore(bytes -> channel.accept(bytes), key, range));
+        }
         return toPromise(commands.zrevrangebyscore(key, range));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zrevrangebyscore(byte[] key, Range<? extends Number> range, Limit limit) {
-        return toPromise(commands.zrevrangebyscore(key, range, limit));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zrevrangebyscore(ValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range) {
-        return toPromise(commands.zrevrangebyscore(channel, key, range));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zrevrangebyscore(ValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range, Limit limit) {
-        return toPromise(commands.zrevrangebyscore(channel, key, range, limit));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zrevrangebyscoreWithScores(byte[] key, Range<? extends Number> range) {
-        return toPromise(commands.zrevrangebyscoreWithScores(key, range));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zrevrangebyscoreWithScores(byte[] key, Range<? extends Number> range, Limit limit) {
-        return toPromise(commands.zrevrangebyscoreWithScores(key, range, limit));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zrevrangebyscoreWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range) {
-        return toPromise(commands.zrevrangebyscoreWithScores(channel, key, range));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zrevrangebyscoreWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range,
-            Limit limit) {
-        return toPromise(commands.zrevrangebyscoreWithScores(channel, key, range, limit));
     }
 
     @Override
@@ -1785,43 +1734,33 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> zscan(byte[] key) {
-        return toPromise(commands.zscan(key));
-    }
+    public Promise<BElement, Exception> zscan(@NonNull BiConsumer<Double, byte[]> consumer, byte[] key, String cursor, String match, Long limit) {
 
-    @Override
-    public Promise<BElement, Exception> zscan(byte[] key, ScanArgs scanArgs) {
-        return toPromise(commands.zscan(key, scanArgs));
-    }
+        ScanCursor scanCursor = cursor == null ? null : new ScanCursor();
+        ScanArgs scanArgs = (match != null || limit != null) ? ScanArgs.Builder.limit(limit).match(match) : null;
 
-    @Override
-    public Promise<BElement, Exception> zscan(byte[] key, ScanCursor scanCursor, ScanArgs scanArgs) {
-        return toPromise(commands.zscan(key, scanCursor, scanArgs));
-    }
+        final RedisFuture<StreamScanCursor> future;
 
-    @Override
-    public Promise<BElement, Exception> zscan(byte[] key, ScanCursor scanCursor) {
-        return toPromise(commands.zscan(key, scanCursor));
-    }
+        ScoredValueStreamingChannel<byte[]> channel = scoredValue -> consumer.accept(scoredValue.getScore(), scoredValue.getValue());
+        if (cursor != null) {
+            scanCursor.setCursor(cursor);
+            if (scanArgs == null) {
+                future = commands.zscan(channel, key, scanCursor);
+            } else {
+                future = commands.zscan(channel, key, scanCursor, scanArgs);
+            }
+        } else {
+            if (scanArgs == null) {
+                future = commands.zscan(channel, key);
+            } else {
+                future = commands.zscan(channel, key, scanArgs);
+            }
+        }
 
-    @Override
-    public Promise<BElement, Exception> zscan(ScoredValueStreamingChannel<byte[]> channel, byte[] key) {
-        return toPromise(commands.zscan(channel, key));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zscan(ScoredValueStreamingChannel<byte[]> channel, byte[] key, ScanArgs scanArgs) {
-        return toPromise(commands.zscan(channel, key, scanArgs));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zscan(ScoredValueStreamingChannel<byte[]> channel, byte[] key, ScanCursor scanCursor, ScanArgs scanArgs) {
-        return toPromise(commands.zscan(channel, key, scanCursor, scanArgs));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zscan(ScoredValueStreamingChannel<byte[]> channel, byte[] key, ScanCursor scanCursor) {
-        return toPromise(commands.zscan(channel, key, scanCursor));
+        return toPromise(future).filterDone(ref -> {
+            StreamScanCursor streamScanCursor = ref.asReference().getReference();
+            return BObject.ofSequence("count", streamScanCursor.getCount(), "cursor", streamScanCursor.getCursor(), "finished", streamScanCursor.isFinished());
+        });
     }
 
     @Override
@@ -1830,12 +1769,26 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> zunionstore(byte[] destination, byte[]... keys) {
+    public Promise<BElement, Exception> zunionstore(byte[] destination, String aggregate, List<Double> weights, byte[]... keys) {
+        ZStoreArgs storeArgs = null;
+        if (aggregate != null) {
+            storeArgs = buildZStoreArgs(aggregate, weights);
+        }
+        if (storeArgs != null) {
+            return toPromise(commands.zunionstore(destination, storeArgs, keys));
+        }
         return toPromise(commands.zunionstore(destination, keys));
     }
 
     @Override
-    public Promise<BElement, Exception> zunionstore(byte[] destination, ZStoreArgs storeArgs, byte[]... keys) {
-        return toPromise(commands.zunionstore(destination, storeArgs, keys));
+    public Promise<BElement, Exception> zadd(byte[] key, boolean xx, boolean nx, boolean ch, Object... scoresAndValues) {
+        ZAddArgs args = new ZAddArgs();
+        if (xx)
+            args.xx();
+        if (nx)
+            args.nx();
+        if (ch)
+            args.ch();
+        return toPromise(commands.zadd(key, args, scoresAndValues));
     }
 }

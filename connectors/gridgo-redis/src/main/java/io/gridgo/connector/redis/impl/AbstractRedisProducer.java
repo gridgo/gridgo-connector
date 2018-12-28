@@ -35,12 +35,17 @@ public class AbstractRedisProducer extends AbstractProducer implements RedisProd
 
     @Override
     public Promise<Message, Exception> call(Message request) {
+
         BObject headers = request.getPayload().getHeaders();
-        String command = headers.getString("commands", headers.getString("cmd", null));
+
+        String command = headers.getString("command", headers.getString("cmd", null));
         RedisCommandHandler handler = RedisCommands.getHandler(command);
+
         if (handler == null)
             return new SimpleFailurePromise<>(new CommandHandlerNotRegisteredException("Handler doesn't registered for command: " + command));
-        Promise<BElement, Exception> promise = handler.execute(redisClient, request.getPayload().getBody());
+
+        Promise<BElement, Exception> promise = handler.execute(redisClient, headers, request.getPayload().getBody());
+
         return promise.filterDone(result -> {
             return Message.ofAny(result);
         });

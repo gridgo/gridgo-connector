@@ -2,10 +2,12 @@ package io.gridgo.connector.redis.command;
 
 import org.joo.promise4j.Promise;
 
+import io.gridgo.bean.BArray;
 import io.gridgo.bean.BContainer;
 import io.gridgo.bean.BElement;
+import io.gridgo.bean.BObject;
+import io.gridgo.bean.BValue;
 import io.gridgo.connector.redis.adapter.RedisClient;
-import io.gridgo.connector.redis.exception.IllegalRedisCommandsParamsException;
 import io.gridgo.utils.helper.Loggable;
 import lombok.Getter;
 import lombok.NonNull;
@@ -22,34 +24,54 @@ public abstract class AbstractRedisCommandHandler implements RedisCommandHandler
     }
 
     @Override
-    public final Promise<BElement, Exception> execute(@NonNull RedisClient redisClient, BElement params) {
+    public final Promise<BElement, Exception> execute(@NonNull RedisClient redisClient, BObject options, BElement params) {
         BElement[] objs = EMPTY_PARAMS;
         if (params != null) {
             if (params instanceof BContainer) {
-                if (((BContainer) params).size() < this.keyOrder.length) {
-                    throw new IllegalRedisCommandsParamsException("Expected " + this.keyOrder.length + " params, got " + ((BContainer) params).size());
-                }
                 if (params.isArray()) {
                     objs = params.asArray().toArray(EMPTY_PARAMS);
                 } else if (params.isObject()) {
                     objs = new BElement[this.keyOrder.length];
                     int count = 0;
+                    BObject paramsObjs = params.asObject();
                     for (String key : keyOrder) {
-                        if (!params.asObject().containsKey(key)) {
-                            throw new IllegalRedisCommandsParamsException("Params as BObject require for key " + key + " but missing");
+                        if (paramsObjs.containsKey(key)) {
+                            objs[count++] = paramsObjs.get(key);
+                        } else {
+                            objs[count++] = BValue.ofEmpty();
                         }
-                        objs[count++] = params.asObject().get(key);
                     }
                 }
             } else {
-                if (this.keyOrder.length > 1) {
-                    throw new IllegalRedisCommandsParamsException("Expected " + this.keyOrder.length + " params, got 1 (as a BValue)");
-                }
                 objs = new BElement[] { params };
             }
         }
-        return process(redisClient, objs);
+        return process(redisClient, options == null ? BObject.ofEmpty() : options, objs);
     }
 
-    protected abstract Promise<BElement, Exception> process(RedisClient redis, BElement[] params);
+    protected byte[][] extractListBytes(BElement[] params, int start) {
+        byte[][] members = new byte[params.length - start][];
+        if (params.length == 1 + start && params[start].isArray()) {
+            BArray array = params[start].asArray();
+            int count = 0;
+            for (BElement entry : array) {
+                members[count++] = entry.asValue().getRaw();
+            }
+        } else {
+            for (int i = start; i < params.length; i++) {
+                members[i - start] = params[i].asValue().getRaw();
+            }
+        }
+        return members;
+    }
+
+    protected byte[][] extractListBytesFromFirst(BElement[] params) {
+        return extractListBytes(params, 0);
+    }
+
+    protected byte[][] extractListBytesFromSecond(BElement[] params) {
+        return extractListBytes(params, 1);
+    }
+
+    protected abstract Promise<BElement, Exception> process(RedisClient redis, BObject options, BElement[] params);
 }

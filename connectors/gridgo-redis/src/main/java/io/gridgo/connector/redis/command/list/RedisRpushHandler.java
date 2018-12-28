@@ -5,6 +5,7 @@ import java.util.Iterator;
 import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BElement;
+import io.gridgo.bean.BObject;
 import io.gridgo.connector.redis.adapter.RedisClient;
 import io.gridgo.connector.redis.command.AbstractRedisCommandHandler;
 import io.gridgo.connector.redis.command.RedisCommand;
@@ -18,7 +19,7 @@ public class RedisRpushHandler extends AbstractRedisCommandHandler {
     }
 
     @Override
-    protected Promise<BElement, Exception> process(RedisClient redis, BElement[] params) {
+    protected Promise<BElement, Exception> process(RedisClient redis, BObject options, BElement[] params) {
         byte[][] values = new byte[params.length - 1][];
         if (params.length == 2 && params[1].isArray()) {
             Iterator<BElement> array = params[1].asArray().iterator();
