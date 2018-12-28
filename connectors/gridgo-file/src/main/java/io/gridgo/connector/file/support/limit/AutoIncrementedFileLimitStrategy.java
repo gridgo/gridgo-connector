@@ -16,14 +16,14 @@ public class AutoIncrementedFileLimitStrategy implements FileLimitStrategy {
 
     private long limit;
 
-    private RandomAccessFile file;
+    private RandomAccessFile raf;
 
     @Getter
     private FileChannel fileChannel;
 
     private long written = -1;
 
-    private LinkedList<File> files;
+    private LinkedList<File> fileList;
 
     private boolean deleteOnStartup;
 
@@ -32,7 +32,7 @@ public class AutoIncrementedFileLimitStrategy implements FileLimitStrategy {
     private boolean override;
 
     public AutoIncrementedFileLimitStrategy(String basePath, String mode, long limit, boolean deleteOnStartup,
-            boolean deleteOnShutdown, boolean override) throws IOException {
+            boolean deleteOnShutdown, boolean override) {
         this.basePath = basePath;
         this.mode = mode;
         this.limit = limit;
@@ -43,10 +43,10 @@ public class AutoIncrementedFileLimitStrategy implements FileLimitStrategy {
 
     @Override
     public void start() throws IOException {
-        this.files = initFiles();
+        this.fileList = initFiles();
         if (deleteOnStartup) {
             deleteFiles();
-            this.files = initFiles();
+            this.fileList = initFiles();
         }
         resetFile();
     }
@@ -71,7 +71,7 @@ public class AutoIncrementedFileLimitStrategy implements FileLimitStrategy {
     }
 
     private void deleteFiles() {
-        for (var file : files) {
+        for (var file : fileList) {
             file.delete();
         }
     }
@@ -86,34 +86,34 @@ public class AutoIncrementedFileLimitStrategy implements FileLimitStrategy {
 
     private void increment() throws IOException {
         closeFile();
-        var last = this.files.size();
+        var last = this.fileList.size();
         var file = new File(basePath + "." + last);
         file.delete();
-        this.files.add(file);
+        this.fileList.add(file);
         resetFile();
     }
 
     private void closeFile() throws IOException {
-        this.file.close();
+        this.raf.close();
     }
 
     private void resetFile() throws IOException {
-        this.file = new RandomAccessFile(files.getLast(), mode);
+        this.raf = new RandomAccessFile(fileList.getLast(), mode);
         if (!override) {
-            var length = this.file.length();
-            this.file.seek(length);
+            var length = this.raf.length();
+            this.raf.seek(length);
             this.written = length;
         } else {
             this.written = 0;
         }
-        this.fileChannel = this.file.getChannel();
+        this.fileChannel = this.raf.getChannel();
     }
 
     @Override
     public void readWith(RandomAccessFileHandler consumer) throws IOException {
-        for (var file : files) {
-            try (var raf = new RandomAccessFile(file, "r")) {
-                consumer.process(raf);
+        for (var file : fileList) {
+            try (var theRaf = new RandomAccessFile(file, "r")) {
+                consumer.process(theRaf);
             }
         }
     }

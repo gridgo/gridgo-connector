@@ -82,6 +82,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
             try {
                 doneSignal.await();
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
             }
 
@@ -140,6 +141,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
                 bindFuture.channel().closeFuture().sync();
             }
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             deferred.reject(e);
         } finally {
             // shutdown the nio event loop groups
@@ -174,6 +176,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
         try {
             this.serverChannel.close().sync();
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             getLogger().warn("Close netty4 socket server error", this.serverChannel);
         } finally {
             this.serverChannel = null;
@@ -184,7 +187,7 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
         try {
             channel.close().sync();
         } catch (InterruptedException e) {
-            // continue
+            Thread.currentThread().interrupt();
         }
     }
 

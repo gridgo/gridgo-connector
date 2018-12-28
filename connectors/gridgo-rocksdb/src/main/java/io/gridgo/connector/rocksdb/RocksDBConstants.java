@@ -14,6 +14,10 @@ public class RocksDBConstants {
     
     public static final String PARAM_WRITE_BUFFER_SIZE = "writeBufferSize";
     
+    public static final String PARAM_MAX_WRITE_BUFFER_NUMBER = "maxWriteBufferNumber";
+    
+    public static final String PARAM_MIN_WRITE_BUFFER_TO_MERGE = "minWriteBufferNumberToMerge";
+    
     public static final String PARAM_ALLOW_2_PHASE_COMMIT = "2pc";
     
     public static final String PARAM_ALLOW_MMAP_READS = "mmapReads";

@@ -4,7 +4,7 @@ import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
 import io.gridgo.framework.support.Message;
 import io.gridgo.utils.ThreadUtils;
 
-public class VertxHttpServerPerfTest {
+public class VertxHttpServerBenchmark {
 
     public static void main(String[] args) {
         var msg = Message.ofAny("helloworld");

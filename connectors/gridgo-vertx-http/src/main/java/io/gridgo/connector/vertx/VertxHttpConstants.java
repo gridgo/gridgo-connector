@@ -10,7 +10,7 @@ public class VertxHttpConstants extends HttpCommonConsumerConstants {
 
     public static final String PLACEHOLDER_PATH = "path";
 
-    public static final String PARAM_KEY_STORE_PASSWORD = "keyStorePassword";
+    public static final String PARAM_KEY_STORE_PASSWD = "keyStorePassword";
 
     public static final String PARAM_KEY_STORE_PATH = "keyStorePath";
 

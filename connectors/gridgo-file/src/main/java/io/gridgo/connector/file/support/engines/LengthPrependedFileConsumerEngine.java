@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 
 import io.gridgo.connector.file.FileConsumer;
+import io.gridgo.connector.file.support.exceptions.FileReadException;
 import io.gridgo.connector.file.support.exceptions.LengthMismatchException;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.impl.MultipartMessage;
@@ -23,12 +24,11 @@ public class LengthPrependedFileConsumerEngine implements FileConsumerEngine {
     public void readAndPublish() {
         var buffer = this.fileConsumer.getBuffer();
         try {
-            this.fileConsumer.getLimitStrategy().readWith(raf -> {
-                readAndPublish(buffer, raf);
-            });
+            this.fileConsumer.getLimitStrategy() //
+                             .readWith(raf -> readAndPublish(buffer, raf));
         } catch (IOException ex) {
             log.error("Exception caught when processing file", ex);
-            throw new RuntimeException(ex);
+            throw new FileReadException(ex);
         }
     }
 

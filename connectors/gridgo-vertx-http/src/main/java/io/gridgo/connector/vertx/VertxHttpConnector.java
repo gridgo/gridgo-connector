@@ -7,7 +7,7 @@ import static io.gridgo.connector.vertx.VertxHttpConstants.ACCEPT_BACKLOG;
 import static io.gridgo.connector.vertx.VertxHttpConstants.PARAM_CLIENT_AUTH;
 import static io.gridgo.connector.vertx.VertxHttpConstants.PARAM_COMPRESSION_LEVEL;
 import static io.gridgo.connector.vertx.VertxHttpConstants.PARAM_EVENT_LOOP_POOL_SIZE;
-import static io.gridgo.connector.vertx.VertxHttpConstants.PARAM_KEY_STORE_PASSWORD;
+import static io.gridgo.connector.vertx.VertxHttpConstants.PARAM_KEY_STORE_PASSWD;
 import static io.gridgo.connector.vertx.VertxHttpConstants.PARAM_KEY_STORE_PATH;
 import static io.gridgo.connector.vertx.VertxHttpConstants.PARAM_SSL;
 import static io.gridgo.connector.vertx.VertxHttpConstants.PARAM_USE_ALPN;
@@ -68,7 +68,7 @@ public class VertxHttpConnector extends AbstractConnector {
         var ssl = Boolean.valueOf(getParam(PARAM_SSL, "false"));
         var clientAuth = ClientAuth.valueOf(getParam(PARAM_CLIENT_AUTH, ClientAuth.NONE.toString()));
         var keyStorePath = getParam(PARAM_KEY_STORE_PATH);
-        var keyStorePassword = getParam(PARAM_KEY_STORE_PASSWORD);
+        var keyStorePassword = getParam(PARAM_KEY_STORE_PASSWD);
         var keyStoreOptions = keyStorePath != null
                 ? new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword)
                 : null;

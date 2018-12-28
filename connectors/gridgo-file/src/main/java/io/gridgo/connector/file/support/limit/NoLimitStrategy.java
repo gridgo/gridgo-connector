@@ -55,7 +55,7 @@ public class NoLimitStrategy implements FileLimitStrategy {
 
     @Override
     public void putBytes(long bytes) throws IOException {
-
+        // Nothing to do here
     }
 
     @Override

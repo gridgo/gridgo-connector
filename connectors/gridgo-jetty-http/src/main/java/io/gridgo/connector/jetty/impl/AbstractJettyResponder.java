@@ -9,7 +9,6 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -24,7 +23,6 @@ import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.StringBody;
-import org.cliffc.high_scale_lib.NonBlockingHashMap;
 import org.joo.promise4j.Deferred;
 import org.joo.promise4j.DeferredStatus;
 import org.joo.promise4j.impl.CompletableDeferredObject;
@@ -52,8 +50,8 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
 
     private static final AtomicLong ID_SEED = new AtomicLong(0);
 
-    private final Map<Long, Deferred<Message, Exception>> deferredResponses = new NonBlockingHashMap<>();
     private Function<Throwable, Message> failureHandler = this::generateFailureMessage;
+
     private final String uniqueIdentifier;
 
     protected AbstractJettyResponder(ConnectorContext context, @NonNull String uniqueIdentifier) {
@@ -63,22 +61,7 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
 
     @Override
     protected void send(Message message, Deferred<Message, Exception> deferredAck) {
-        try {
-            if (message.getRoutingId().isPresent()) {
-                long routingId = message.getRoutingId().get().getLong();
-                var deferredResponse = this.deferredResponses.get(routingId);
-                if (deferredResponse != null) {
-                    deferredResponse.resolve(message);
-                    this.ack(deferredAck);
-                } else {
-                    this.ack(deferredAck, new RuntimeException("Cannot find deferred for routing id: " + routingId));
-                }
-            } else {
-                this.ack(deferredAck, new RuntimeException("Routing id must be provided"));
-            }
-        } catch (Exception e) {
-            deferredAck.reject(e);
-        }
+        super.resolveTraceable(message, deferredAck);
     }
 
     @Override
@@ -95,9 +78,9 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
     }
 
     protected void writeHeaders(@NonNull BObject headers, @NonNull HttpServletResponse response) {
-        for (Entry<String, BElement> entry : headers.entrySet()) {
+        for (var entry : headers.entrySet()) {
             if (entry.getValue().isValue() && !entry.getValue().asValue().isNull()) {
-                String stdHeaderName = lookUpResponseHeader(entry.getKey());
+                var stdHeaderName = lookUpResponseHeader(entry.getKey());
                 if (stdHeaderName != null) {
                     response.addHeader(stdHeaderName, entry.getValue().asValue().getString());
                 }
@@ -106,11 +89,11 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
     }
 
     protected void handleException(Throwable e) {
-        Consumer<Throwable> exceptionHandler = getContext().getExceptionHandler();
+        var exceptionHandler = getContext().getExceptionHandler();
         if (exceptionHandler != null) {
             exceptionHandler.accept(e);
         } else {
-            getLogger().error("Cannot close input stream", e);
+            getLogger().error("Exception caught", e);
         }
     }
 
@@ -232,43 +215,42 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
     }
 
     protected void writeBodyBinary(BElement body, HttpServletResponse response, Consumer<Long> contentLengthConsumer) {
-        InputStream inputStream = null;
-        if (body instanceof BReference) {
-            var obj = body.asReference().getReference();
-            if (obj instanceof InputStream) {
-                inputStream = (InputStream) obj;
-            } else if (obj instanceof ByteBuffer) {
-                inputStream = new ByteBufferInputStream((ByteBuffer) obj);
-            } else if (obj instanceof byte[]) {
-                inputStream = new ByteArrayInputStream((byte[]) obj);
-            } else if (obj instanceof File || obj instanceof Path) {
-                File file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
-                try {
-                    inputStream = new FileInputStream(file);
-                } catch (FileNotFoundException e) {
+        takeOutputStream(response, (output) -> {
+            var inputStream = createInputStream(body);
+            if (inputStream != null) {
+                try (var is = inputStream) {
+                    if (contentLengthConsumer != null) {
+                        contentLengthConsumer.accept((long) is.available());
+                    }
+                    is.transferTo(output);
+                } catch (Exception e) {
                     handleException(e);
                 }
+            } else {
+                body.writeBytes(output);
+            }
+        });
+    }
+
+    private InputStream createInputStream(BElement body) {
+        if (!(body instanceof BReference))
+            return null;
+        var obj = body.asReference().getReference();
+        if (obj instanceof InputStream)
+            return (InputStream) obj;
+        if (obj instanceof ByteBuffer)
+            return new ByteBufferInputStream((ByteBuffer) obj);
+        if (obj instanceof byte[])
+            return new ByteArrayInputStream((byte[]) obj);
+        if (obj instanceof File || obj instanceof Path) {
+            File file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
+            try {
+                return new FileInputStream(file);
+            } catch (FileNotFoundException e) {
+                handleException(e);
             }
         }
-
-        try (var input = inputStream) {
-            takeOutputStream(response, (output) -> {
-                if (input != null) {
-                    try {
-                        if (contentLengthConsumer != null) {
-                            contentLengthConsumer.accept((long) input.available());
-                        }
-                        input.transferTo(output);
-                    } catch (Exception e) {
-                        handleException(e);
-                    }
-                } else {
-                    body.writeBytes(output);
-                }
-            });
-        } catch (IOException e) {
-            handleException(e);
-        }
+        return null;
     }
 
     protected void writePart(String name, BElement value, MultipartEntityBuilder builder) {
@@ -306,7 +288,8 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         }
     }
 
-    protected void writeBodyMultipart(@NonNull BElement body, @NonNull HttpServletResponse response, @NonNull Consumer<String> contentTypeConsumer) {
+    protected void writeBodyMultipart(@NonNull BElement body, @NonNull HttpServletResponse response,
+            @NonNull Consumer<String> contentTypeConsumer) {
         final MultipartEntityBuilder builder = MultipartEntityBuilder.create();
         if (body instanceof BObject) {
             for (Entry<String, BElement> entry : body.asObject().entrySet()) {
@@ -327,7 +310,7 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
                 contentTypeConsumer.accept(entity.getContentType().getValue());
                 entity.writeTo(outstream);
             } catch (IOException e) {
-                handleException(e);
+                handleException(new RuntimeException("Cannot write multipart", e));
             }
         });
 

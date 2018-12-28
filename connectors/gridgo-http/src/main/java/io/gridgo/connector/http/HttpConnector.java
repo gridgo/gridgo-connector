@@ -79,25 +79,29 @@ public class HttpConnector extends AbstractConnector {
         // proxy settings
         var useProxy = getParam(HttpConstants.USE_PROXY);
         if (Boolean.valueOf(useProxy)) {
-            var host = getParam(HttpConstants.PROXY_HOST);
-            var port = getParam(HttpConstants.PROXY_PORT);
-            var securedPort = getParam(HttpConstants.PROXY_SECURED_PORT);
-            var nonProxyHosts = getParam(HttpConstants.NON_PROXY_HOSTS);
-            var proxyType = getParam(HttpConstants.PROXY_TYPE);
-            var realmBean = getParam(HttpConstants.PROXY_REALM_BEAN);
-            config.setProxyServer(new ProxyServer( //
-                    host, //
-                    port != null ? Integer.parseInt(port) : HttpConstants.DEFAULT_PROXY_PORT,
-                    securedPort != null ? Integer.parseInt(securedPort) : HttpConstants.DEFAULT_PROXY_PORT, //
-                    realmBean != null ? getContext().getRegistry().lookupMandatory(realmBean, Realm.class) : null, //
-                    nonProxyHosts != null ? Arrays.asList(nonProxyHosts.split(",")) : Collections.emptyList(),
-                    proxyType != null ? ProxyType.valueOf(proxyType) : ProxyType.HTTP));
+            config.setProxyServer(createProxyServerConfig());
         }
 
         var sslContextBean = getParam(HttpConstants.SSL_CONTEXT);
         if (sslContextBean != null)
             config.setSslContext(getContext().getRegistry().lookupMandatory(sslContextBean, SslContext.class));
         return config;
+    }
+
+    private ProxyServer createProxyServerConfig() {
+        var host = getParam(HttpConstants.PROXY_HOST);
+        var port = getParam(HttpConstants.PROXY_PORT);
+        var securedPort = getParam(HttpConstants.PROXY_SECURED_PORT);
+        var nonProxyHosts = getParam(HttpConstants.NON_PROXY_HOSTS);
+        var proxyType = getParam(HttpConstants.PROXY_TYPE);
+        var realmBean = getParam(HttpConstants.PROXY_REALM_BEAN);
+        return new ProxyServer( //
+                host, //
+                port != null ? Integer.parseInt(port) : HttpConstants.DEFAULT_PROXY_PORT,
+                securedPort != null ? Integer.parseInt(securedPort) : HttpConstants.DEFAULT_PROXY_PORT, //
+                realmBean != null ? getContext().getRegistry().lookupMandatory(realmBean, Realm.class) : null, //
+                nonProxyHosts != null ? Arrays.asList(nonProxyHosts.split(",")) : Collections.emptyList(),
+                proxyType != null ? ProxyType.valueOf(proxyType) : ProxyType.HTTP);
     }
 
     private NameResolver<InetAddress> getNameResolver() {

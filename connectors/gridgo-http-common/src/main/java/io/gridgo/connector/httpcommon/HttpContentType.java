@@ -153,9 +153,9 @@ public enum HttpContentType {
                 return TEXT_HTML;
             case "css":
                 return TEXT_CSS;
+            default:
             }
         }
-
         return DEFAULT_BINARY;
     }
 

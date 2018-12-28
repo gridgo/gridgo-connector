@@ -18,7 +18,7 @@ public abstract class AbstractTraceableResponder extends AbstractResponder imple
 
     private final static IdGenerator ID_SEED = new AtomicIdGenerator();
 
-    private final Map<Object, Deferred<Message, Exception>> deferredResponses = new NonBlockingHashMap<>();
+    protected final Map<Object, Deferred<Message, Exception>> deferredResponses = new NonBlockingHashMap<>();
 
     protected AbstractTraceableResponder(ConnectorContext context) {
         super(context);

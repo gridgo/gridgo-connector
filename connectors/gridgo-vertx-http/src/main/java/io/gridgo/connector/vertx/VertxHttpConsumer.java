@@ -105,6 +105,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
                 try {
                     latch.await();
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     throw new RuntimeException(e);
                 }
             }

@@ -19,7 +19,7 @@ public abstract class AbstractResponder extends AbstractProducer implements Resp
 
     @Override
     public final void send(@NonNull Message message) {
-        if (message.getRoutingId() == null || !message.getRoutingId().isPresent()) {
+        if (message.getRoutingId().isEmpty()) {
             throw new IllegalArgumentException("Message must contain not-null routingId");
         }
         this.send(message, null);
@@ -27,7 +27,7 @@ public abstract class AbstractResponder extends AbstractProducer implements Resp
 
     @Override
     public final Promise<Message, Exception> sendWithAck(@NonNull Message message) {
-        if (message.getRoutingId() == null) {
+        if (message.getRoutingId().isEmpty()) {
             throw new IllegalArgumentException("Message must contain not-null routingId");
         }
         Deferred<Message, Exception> deferred = createDeferred();
@@ -46,7 +46,7 @@ public abstract class AbstractResponder extends AbstractProducer implements Resp
 
     @Override
     protected void onStart() {
-        // responder donot need to be started
+        // responder do not need to be started
     }
 
     @Override
