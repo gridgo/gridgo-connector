@@ -232,6 +232,28 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
     }
 
     protected void writeBodyBinary(BElement body, HttpServletResponse response, Consumer<Long> contentLengthConsumer) {
+        try (var inputStream = createInputStream(body)) {
+
+            takeOutputStream(response, (output) -> {
+                if (inputStream != null) {
+                    try {
+                        if (contentLengthConsumer != null) {
+                            contentLengthConsumer.accept((long) inputStream.available());
+                        }
+                        inputStream.transferTo(output);
+                    } catch (Exception e) {
+                        handleException(e);
+                    }
+                } else {
+                    body.writeBytes(output);
+                }
+            });
+        } catch (IOException e) {
+            handleException(e);
+        }
+    }
+
+    private InputStream createInputStream(BElement body) {
         InputStream inputStream = null;
         if (body instanceof BReference) {
             var obj = body.asReference().getReference();
@@ -250,28 +272,7 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
                 }
             }
         }
-
-        final var input = inputStream;
-        takeOutputStream(response, (output) -> {
-            if (input != null) {
-                try {
-                    if (contentLengthConsumer != null) {
-                        contentLengthConsumer.accept((long) input.available());
-                    }
-                    input.transferTo(output);
-                } catch (Exception e) {
-                    handleException(e);
-                } finally {
-                    try {
-                        input.close();
-                    } catch (IOException e) {
-                        handleException(e);
-                    }
-                }
-            } else {
-                body.writeBytes(output);
-            }
-        });
+        return inputStream;
     }
 
     protected void writePart(String name, BElement value, MultipartEntityBuilder builder) {

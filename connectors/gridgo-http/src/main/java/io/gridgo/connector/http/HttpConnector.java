@@ -95,14 +95,13 @@ public class HttpConnector extends AbstractConnector {
         var nonProxyHosts = getParam(HttpConstants.NON_PROXY_HOSTS);
         var proxyType = getParam(HttpConstants.PROXY_TYPE);
         var realmBean = getParam(HttpConstants.PROXY_REALM_BEAN);
-        var proxyServerConfig = new ProxyServer( //
+        return new ProxyServer( //
                 host, //
                 port != null ? Integer.parseInt(port) : HttpConstants.DEFAULT_PROXY_PORT,
                 securedPort != null ? Integer.parseInt(securedPort) : HttpConstants.DEFAULT_PROXY_PORT, //
                 realmBean != null ? getContext().getRegistry().lookupMandatory(realmBean, Realm.class) : null, //
                 nonProxyHosts != null ? Arrays.asList(nonProxyHosts.split(",")) : Collections.emptyList(),
                 proxyType != null ? ProxyType.valueOf(proxyType) : ProxyType.HTTP);
-        return proxyServerConfig;
     }
 
     private NameResolver<InetAddress> getNameResolver() {

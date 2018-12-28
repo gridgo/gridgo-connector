@@ -112,8 +112,8 @@ public class AutoIncrementedFileLimitStrategy implements FileLimitStrategy {
     @Override
     public void readWith(RandomAccessFileHandler consumer) throws IOException {
         for (var file : fileList) {
-            try (var raf = new RandomAccessFile(file, "r")) {
-                consumer.process(raf);
+            try (var theRaf = new RandomAccessFile(file, "r")) {
+                consumer.process(theRaf);
             }
         }
     }
