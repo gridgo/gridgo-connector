@@ -63,22 +63,7 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
 
     @Override
     protected void send(Message message, Deferred<Message, Exception> deferredAck) {
-        try {
-            if (message.getRoutingId().isPresent()) {
-                long routingId = message.getRoutingId().get().getLong();
-                var deferredResponse = this.deferredResponses.get(routingId);
-                if (deferredResponse != null) {
-                    deferredResponse.resolve(message);
-                    this.ack(deferredAck);
-                } else {
-                    this.ack(deferredAck, new RuntimeException("Cannot find deferred for routing id: " + routingId));
-                }
-            } else {
-                this.ack(deferredAck, new RuntimeException("Routing id must be provided"));
-            }
-        } catch (Exception e) {
-            deferredAck.reject(e);
-        }
+        super.resolveTraceable(message, deferredAck);
     }
 
     @Override
