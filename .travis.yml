@@ -20,4 +20,4 @@ before_install:
   - sudo apt-get install -y libstdc++6
 
 after_success:
-- mvn clean test jacoco:report sonar:sonar coveralls:report -DrepoToken=$CoverallsRepoToken
+- mvn clean test jacoco:report sonar:sonar -Dsonar.projectKey=gridgo_gridgo-connector coveralls:report -DrepoToken=$CoverallsRepoToken
