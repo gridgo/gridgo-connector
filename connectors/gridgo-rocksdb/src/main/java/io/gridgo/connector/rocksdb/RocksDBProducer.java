@@ -1,5 +1,6 @@
 package io.gridgo.connector.rocksdb;
 
+import static io.gridgo.connector.rocksdb.RocksDBConstants.*;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION_GET;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION_GET_ALL;
@@ -165,6 +166,8 @@ public class RocksDBProducer extends AbstractProducer {
         this.options = new Options();
         this.options.setCreateIfMissing(getParamAsBoolean(PARAM_CREATE_IF_MISSING, true)) //
                     .setWriteBufferSize(getParamAsLong(PARAM_WRITE_BUFFER_SIZE, 4 * SizeUnit.MB)) //
+                    .setMaxWriteBufferNumber(getParamAsInt(PARAM_MAX_WRITE_BUFFER_NUMBER, 2)) //
+                    .setMinWriteBufferNumberToMerge(getParamAsInt(PARAM_MIN_WRITE_BUFFER_TO_MERGE, 1)) //
                     .setAllow2pc(getParamAsBoolean(PARAM_ALLOW_2_PHASE_COMMIT, false)) //
                     .setAllowMmapReads(getParamAsBoolean(PARAM_ALLOW_MMAP_READS, false)) //
                     .setAllowMmapWrites(getParamAsBoolean(PARAM_ALLOW_MMAP_WRITES, false));
@@ -173,6 +176,11 @@ public class RocksDBProducer extends AbstractProducer {
     private long getParamAsLong(String name, long defaultValue) {
         Object value = config.getParameters().get(name);
         return value != null ? Long.parseLong(value.toString()) : defaultValue;
+    }
+
+    private int getParamAsInt(String name, int defaultValue) {
+        Object value = config.getParameters().get(name);
+        return value != null ? Integer.parseInt(value.toString()) : defaultValue;
     }
 
     protected boolean getParamAsBoolean(String name, boolean defaultValue) {
