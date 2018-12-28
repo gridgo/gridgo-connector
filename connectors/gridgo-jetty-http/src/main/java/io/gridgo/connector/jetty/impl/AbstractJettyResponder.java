@@ -222,11 +222,11 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         takeOutputStream(response, (output) -> {
             var inputStream = createInputStream(body);
             if (inputStream != null) {
-                try (inputStream) {
+                try (var is = inputStream) {
                     if (contentLengthConsumer != null) {
-                        contentLengthConsumer.accept((long) inputStream.available());
+                        contentLengthConsumer.accept((long) is.available());
                     }
-                    inputStream.transferTo(output);
+                    is.transferTo(output);
                 } catch (Exception e) {
                     handleException(e);
                 }
