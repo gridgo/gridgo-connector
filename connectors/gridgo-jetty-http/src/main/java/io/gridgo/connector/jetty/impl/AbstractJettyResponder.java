@@ -232,47 +232,42 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
     }
 
     protected void writeBodyBinary(BElement body, HttpServletResponse response, Consumer<Long> contentLengthConsumer) {
-        try (var inputStream = createInputStream(body)) {
-
-            takeOutputStream(response, (output) -> {
-                if (inputStream != null) {
-                    try {
-                        if (contentLengthConsumer != null) {
-                            contentLengthConsumer.accept((long) inputStream.available());
-                        }
-                        inputStream.transferTo(output);
-                    } catch (Exception e) {
-                        handleException(e);
+        takeOutputStream(response, (output) -> {
+            var inputStream = createInputStream(body);
+            if (inputStream != null) {
+                try (inputStream) {
+                    if (contentLengthConsumer != null) {
+                        contentLengthConsumer.accept((long) inputStream.available());
                     }
-                } else {
-                    body.writeBytes(output);
+                    inputStream.transferTo(output);
+                } catch (Exception e) {
+                    handleException(e);
                 }
-            });
-        } catch (IOException e) {
-            handleException(e);
-        }
+            } else {
+                body.writeBytes(output);
+            }
+        });
     }
 
     private InputStream createInputStream(BElement body) {
-        InputStream inputStream = null;
-        if (body instanceof BReference) {
-            var obj = body.asReference().getReference();
-            if (obj instanceof InputStream) {
-                inputStream = (InputStream) obj;
-            } else if (obj instanceof ByteBuffer) {
-                inputStream = new ByteBufferInputStream((ByteBuffer) obj);
-            } else if (obj instanceof byte[]) {
-                inputStream = new ByteArrayInputStream((byte[]) obj);
-            } else if (obj instanceof File || obj instanceof Path) {
-                File file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
-                try {
-                    inputStream = new FileInputStream(file);
-                } catch (FileNotFoundException e) {
-                    handleException(e);
-                }
+        if (!(body instanceof BReference))
+            return null;
+        var obj = body.asReference().getReference();
+        if (obj instanceof InputStream)
+            return (InputStream) obj;
+        if (obj instanceof ByteBuffer)
+            return new ByteBufferInputStream((ByteBuffer) obj);
+        if (obj instanceof byte[])
+            return new ByteArrayInputStream((byte[]) obj);
+        if (obj instanceof File || obj instanceof Path) {
+            File file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
+            try {
+                return new FileInputStream(file);
+            } catch (FileNotFoundException e) {
+                handleException(e);
             }
         }
-        return inputStream;
+        return null;
     }
 
     protected void writePart(String name, BElement value, MultipartEntityBuilder builder) {
