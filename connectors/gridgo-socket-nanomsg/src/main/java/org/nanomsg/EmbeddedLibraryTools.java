@@ -11,8 +11,10 @@ public class EmbeddedLibraryTools extends AbstractEmbeddedLibraryTools {
     }
 
     private EmbeddedLibraryTools() {
+        // Nothing to do
     }
 
+    @Override
     protected String[] getPossibleLibs() {
         final var libsFromProps = System.getProperty("jnano.libs");
         if (libsFromProps != null)

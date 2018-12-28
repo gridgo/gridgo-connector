@@ -11,8 +11,10 @@ public class EmbeddedLibraryTools extends AbstractEmbeddedLibraryTools {
     }
 
     private EmbeddedLibraryTools() {
+        // Nothing to do
     }
 
+    @Override
     protected String[] getPossibleLibs() {
         final String libsFromProps = System.getProperty("jzmq.libs");
         if (libsFromProps != null)
