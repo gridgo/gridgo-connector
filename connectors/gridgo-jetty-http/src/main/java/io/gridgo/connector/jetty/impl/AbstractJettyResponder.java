@@ -9,7 +9,6 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -24,7 +23,6 @@ import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.StringBody;
-import org.cliffc.high_scale_lib.NonBlockingHashMap;
 import org.joo.promise4j.Deferred;
 import org.joo.promise4j.DeferredStatus;
 import org.joo.promise4j.impl.CompletableDeferredObject;
@@ -51,8 +49,6 @@ import lombok.NonNull;
 public class AbstractJettyResponder extends AbstractTraceableResponder implements JettyResponder {
 
     private static final AtomicLong ID_SEED = new AtomicLong(0);
-
-    private final Map<Long, Deferred<Message, Exception>> deferredResponses = new NonBlockingHashMap<>();
 
     private Function<Throwable, Message> failureHandler = this::generateFailureMessage;
 
