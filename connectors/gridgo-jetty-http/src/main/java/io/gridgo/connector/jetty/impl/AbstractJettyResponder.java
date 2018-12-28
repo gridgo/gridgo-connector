@@ -53,7 +53,9 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
     private static final AtomicLong ID_SEED = new AtomicLong(0);
 
     private final Map<Long, Deferred<Message, Exception>> deferredResponses = new NonBlockingHashMap<>();
+
     private Function<Throwable, Message> failureHandler = this::generateFailureMessage;
+
     private final String uniqueIdentifier;
 
     protected AbstractJettyResponder(ConnectorContext context, @NonNull String uniqueIdentifier) {
@@ -80,9 +82,9 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
     }
 
     protected void writeHeaders(@NonNull BObject headers, @NonNull HttpServletResponse response) {
-        for (Entry<String, BElement> entry : headers.entrySet()) {
+        for (var entry : headers.entrySet()) {
             if (entry.getValue().isValue() && !entry.getValue().asValue().isNull()) {
-                String stdHeaderName = lookUpResponseHeader(entry.getKey());
+                var stdHeaderName = lookUpResponseHeader(entry.getKey());
                 if (stdHeaderName != null) {
                     response.addHeader(stdHeaderName, entry.getValue().asValue().getString());
                 }
@@ -91,11 +93,11 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
     }
 
     protected void handleException(Throwable e) {
-        Consumer<Throwable> exceptionHandler = getContext().getExceptionHandler();
+        var exceptionHandler = getContext().getExceptionHandler();
         if (exceptionHandler != null) {
             exceptionHandler.accept(e);
         } else {
-            getLogger().error("Cannot close input stream", e);
+            getLogger().error("Exception caught", e);
         }
     }
 
