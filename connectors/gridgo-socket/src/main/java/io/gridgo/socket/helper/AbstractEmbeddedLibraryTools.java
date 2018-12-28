@@ -15,7 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class AbstractEmbeddedLibraryTools {
 
-    protected static String getCurrentPlatformIdentifier() {
+    protected String getCurrentPlatformIdentifier() {
         String osName = System.getProperty("os.name");
         if (osName.toLowerCase().contains("windows")) {
             osName = "Windows";
@@ -27,7 +27,7 @@ public abstract class AbstractEmbeddedLibraryTools {
         return System.getProperty("os.arch") + "/" + osName;
     }
 
-    protected static Collection<String> getEmbeddedLibraryList() {
+    protected Collection<String> getEmbeddedLibraryList() {
         final var result = new ArrayList<String>();
         final var files = catalogClasspath();
 
@@ -40,7 +40,7 @@ public abstract class AbstractEmbeddedLibraryTools {
         return result;
     }
 
-    protected static void catalogArchive(final File jarfile, final Collection<String> files) {
+    protected void catalogArchive(final File jarfile, final Collection<String> files) {
         try (var j = new JarFile(jarfile)) {
             final var e = j.entries();
             while (e.hasMoreElements()) {
@@ -54,7 +54,7 @@ public abstract class AbstractEmbeddedLibraryTools {
         }
     }
 
-    protected static Collection<String> catalogClasspath() {
+    protected Collection<String> catalogClasspath() {
 
         final var files = new ArrayList<String>();
         final var classpath = System.getProperty("java.class.path", "").split(File.pathSeparator);
@@ -73,7 +73,7 @@ public abstract class AbstractEmbeddedLibraryTools {
 
     }
 
-    protected static void catalogFiles(final int prefixlen, final File root, final Collection<String> files) {
+    protected void catalogFiles(final int prefixlen, final File root, final Collection<String> files) {
         final var ff = root.listFiles();
         if (ff == null) {
             throw new IllegalStateException("invalid path listed: " + root);
@@ -88,7 +88,7 @@ public abstract class AbstractEmbeddedLibraryTools {
         }
     }
 
-    public static boolean loadEmbeddedLibrary() {
+    public boolean loadEmbeddedLibrary() {
 
         boolean usingEmbedded = false;
 
@@ -133,11 +133,11 @@ public abstract class AbstractEmbeddedLibraryTools {
         return usingEmbedded;
     }
 
-    protected static String[] getPossibleLibs() {
+    protected String[] getPossibleLibs() {
         return new String[0];
     }
 
-    protected static URL findNativeLibrary(String[] allowedExtensions, StringBuilder url, String lib) {
+    protected URL findNativeLibrary(String[] allowedExtensions, StringBuilder url, String lib) {
         // loop through extensions, stopping after finding first one
         for (String ext : allowedExtensions) {
             var nativeLibraryUrl = AbstractEmbeddedLibraryTools.class.getResource(url.toString() + lib + "." + ext);

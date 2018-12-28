@@ -7,13 +7,13 @@ public class EmbeddedLibraryTools extends AbstractEmbeddedLibraryTools {
     public static final boolean LOADED_EMBEDDED_LIBRARY;
 
     static {
-        LOADED_EMBEDDED_LIBRARY = loadEmbeddedLibrary();
+        LOADED_EMBEDDED_LIBRARY = new EmbeddedLibraryTools().loadEmbeddedLibrary();
     }
 
     private EmbeddedLibraryTools() {
     }
 
-    protected static String[] getPossibleLibs() {
+    protected String[] getPossibleLibs() {
         final var libsFromProps = System.getProperty("jnano.libs");
         if (libsFromProps != null)
             return libsFromProps.split(",");
