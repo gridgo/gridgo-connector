@@ -22,11 +22,10 @@ public class RedisGeoRadiusByMemberHandler extends AbstractRedisCommandHandler {
         final Long count = options.getLong("count", options.getLong("limit", null));
         final String sort = options.getString("sort", null);
         final String unit = options.getString("unit", "m");
+        byte[] storeKey = options.getRaw("store", options.getRaw("storeKey", null));
+        byte[] storeDistKey = options.getRaw("storeDist", options.getRaw("storeDistKey", null));
 
-        if (options.getBoolean("storeResult", false)) {
-            byte[] storeKey = options.getRaw("store", options.getRaw("storeKey", null));
-            byte[] storeDistKey = options.getRaw("storeDist", options.getRaw("storeDistKey", null));
-
+        if (storeKey != null || storeDistKey != null) {
             return redis.georadiusbymember(params[0].asValue().getRaw() //
                     , params[1].asValue().getRaw() //
                     , params[2].asValue().getDouble() //
