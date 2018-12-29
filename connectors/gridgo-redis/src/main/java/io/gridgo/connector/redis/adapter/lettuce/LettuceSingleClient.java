@@ -2,9 +2,12 @@ package io.gridgo.connector.redis.adapter.lettuce;
 
 import java.time.Duration;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.joo.promise4j.Promise;
 
@@ -12,13 +15,13 @@ import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.redis.adapter.RedisConfig;
 import io.gridgo.connector.redis.adapter.RedisType;
+import io.gridgo.utils.PrimitiveUtils;
 import io.gridgo.utils.support.HostAndPort;
 import io.lettuce.core.BitFieldArgs;
-import io.lettuce.core.Consumer;
+import io.lettuce.core.BitFieldArgs.OverflowType;
 import io.lettuce.core.GeoArgs;
 import io.lettuce.core.GeoArgs.Unit;
 import io.lettuce.core.GeoRadiusStoreArgs;
-import io.lettuce.core.KillArgs;
 import io.lettuce.core.Limit;
 import io.lettuce.core.MigrateArgs;
 import io.lettuce.core.Range;
@@ -30,26 +33,15 @@ import io.lettuce.core.RestoreArgs;
 import io.lettuce.core.ScanArgs;
 import io.lettuce.core.ScanCursor;
 import io.lettuce.core.ScriptOutputType;
-import io.lettuce.core.SetArgs;
 import io.lettuce.core.SortArgs;
 import io.lettuce.core.StreamScanCursor;
-import io.lettuce.core.UnblockType;
-import io.lettuce.core.XAddArgs;
-import io.lettuce.core.XClaimArgs;
-import io.lettuce.core.XReadArgs;
-import io.lettuce.core.XReadArgs.StreamOffset;
 import io.lettuce.core.ZAddArgs;
 import io.lettuce.core.ZStoreArgs;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.async.RedisAsyncCommands;
-import io.lettuce.core.output.KeyStreamingChannel;
-import io.lettuce.core.output.KeyValueStreamingChannel;
 import io.lettuce.core.output.ScoredValueStreamingChannel;
-import io.lettuce.core.output.ValueStreamingChannel;
-import io.lettuce.core.protocol.CommandType;
 import lombok.NonNull;
 
-@SuppressWarnings("unchecked")
 public class LettuceSingleClient extends AbstractLettuceClient {
 
     private StatefulRedisConnection<byte[], byte[]> connection;
@@ -239,11 +231,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> xadd(byte[] key, XAddArgs args, Map<byte[], byte[]> body) {
-        return toPromise(commands.xadd(key, args, body));
-    }
-
-    @Override
     public Promise<BElement, Exception> pfcount(byte[]... keys) {
         return toPromise(commands.pfcount(keys));
     }
@@ -294,12 +281,95 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> sdiff(ValueStreamingChannel<byte[]> channel, byte[]... keys) {
-        return toPromise(commands.sdiff(channel, keys));
-    }
+    public Promise<BElement, Exception> bitfield(byte[] key, String overflow, Object... subCommandAndArgs) {
+        final BitFieldArgs bitFieldArgs = new BitFieldArgs();
+        if (overflow != null) {
+            bitFieldArgs.overflow(OverflowType.valueOf(overflow.trim().toUpperCase()));
+        }
+        if (subCommandAndArgs != null && subCommandAndArgs.length > 0) {
+            Stack<Object> stack = new Stack<>();
+            for (int i = subCommandAndArgs.length - 1; i >= 0; i--) {
+                stack.push(subCommandAndArgs[i]);
+            }
 
-    @Override
-    public Promise<BElement, Exception> bitfield(byte[] key, BitFieldArgs bitFieldArgs) {
+            List<Object> cmdAndArgs = new LinkedList<>();
+            Consumer<List<Object>> processGetSubCmd = (_cmdAndArgs) -> {
+                String cmd = _cmdAndArgs.remove(0).toString();
+                switch (cmd.trim().toLowerCase()) {
+                case "get":
+                    if (_cmdAndArgs.size() == 2) {
+                        String type = _cmdAndArgs.remove(0).toString();
+                        int bits = Integer.valueOf(type.substring(1));
+                        int offset = PrimitiveUtils.getIntegerValueFrom(_cmdAndArgs.remove(0));
+                        if (type.startsWith("u")) {
+                            bitFieldArgs.get(BitFieldArgs.unsigned(bits), offset);
+                        } else {
+                            bitFieldArgs.get(BitFieldArgs.signed(bits), offset);
+                        }
+                    } else if (_cmdAndArgs.size() == 1) {
+                        int offset = PrimitiveUtils.getIntegerValueFrom(_cmdAndArgs.remove(0));
+                        bitFieldArgs.get(offset);
+                    } else if (_cmdAndArgs.size() == 0) {
+                        bitFieldArgs.get();
+                    }
+                    break;
+                case "set":
+                    if (_cmdAndArgs.size() == 3) {
+                        String type = _cmdAndArgs.remove(0).toString();
+                        int bits = Integer.valueOf(type.substring(1));
+                        int offset = PrimitiveUtils.getIntegerValueFrom(_cmdAndArgs.remove(0));
+                        long value = PrimitiveUtils.getLongValueFrom(_cmdAndArgs.remove(0));
+                        if (type.startsWith("u")) {
+                            bitFieldArgs.set(BitFieldArgs.unsigned(bits), offset, value);
+                        } else {
+                            bitFieldArgs.set(BitFieldArgs.signed(bits), offset, value);
+                        }
+                    } else if (_cmdAndArgs.size() == 2) {
+                        int offset = PrimitiveUtils.getIntegerValueFrom(_cmdAndArgs.remove(0));
+                        long value = PrimitiveUtils.getLongValueFrom(_cmdAndArgs.remove(0));
+                        bitFieldArgs.set(offset, value);
+                    } else if (_cmdAndArgs.size() == 1) {
+                        long value = PrimitiveUtils.getLongValueFrom(_cmdAndArgs.remove(0));
+                        bitFieldArgs.set(value);
+                    }
+                    break;
+                case "incrby":
+                    if (_cmdAndArgs.size() == 3) {
+                        String type = _cmdAndArgs.remove(0).toString();
+                        int bits = Integer.valueOf(type.substring(1));
+                        int offset = PrimitiveUtils.getIntegerValueFrom(_cmdAndArgs.remove(0));
+                        long value = PrimitiveUtils.getLongValueFrom(_cmdAndArgs.remove(0));
+                        if (type.startsWith("u")) {
+                            bitFieldArgs.incrBy(BitFieldArgs.unsigned(bits), offset, value);
+                        } else {
+                            bitFieldArgs.incrBy(BitFieldArgs.signed(bits), offset, value);
+                        }
+                    } else if (_cmdAndArgs.size() == 2) {
+                        int offset = PrimitiveUtils.getIntegerValueFrom(_cmdAndArgs.remove(0));
+                        long value = PrimitiveUtils.getLongValueFrom(_cmdAndArgs.remove(0));
+                        bitFieldArgs.incrBy(offset, value);
+                    } else if (_cmdAndArgs.size() == 1) {
+                        long value = PrimitiveUtils.getLongValueFrom(_cmdAndArgs.remove(0));
+                        bitFieldArgs.incrBy(value);
+                    }
+                    break;
+                }
+            };
+            while (!stack.isEmpty()) {
+                Object head = stack.pop();
+                if (cmdAndArgs.isEmpty()) {
+                    cmdAndArgs.add(head);
+                } else {
+                    // process cmdAndArgs
+                    processGetSubCmd.accept(cmdAndArgs);
+                    // renew cmdAndArgs
+                    cmdAndArgs = new LinkedList<>();
+                }
+            }
+            if (cmdAndArgs.size() > 0) {
+                processGetSubCmd.accept(cmdAndArgs);
+            }
+        }
         return toPromise(commands.bitfield(key, bitFieldArgs));
     }
 
@@ -355,18 +425,8 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> xadd(byte[] key, XAddArgs args, Object... keysAndValues) {
-        return toPromise(commands.xadd(key, args, keysAndValues));
-    }
-
-    @Override
     public Promise<BElement, Exception> clusterBumpepoch() {
         return toPromise(commands.clusterBumpepoch());
-    }
-
-    @Override
-    public Promise<BElement, Exception> clientKill(KillArgs killArgs) {
-        return toPromise(commands.clientKill(killArgs));
     }
 
     @Override
@@ -405,18 +465,8 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> clientUnblock(long id, UnblockType type) {
-        return toPromise(commands.clientUnblock(id, type));
-    }
-
-    @Override
     public Promise<BElement, Exception> zadd(byte[] key, Object... scoresAndValues) {
         return toPromise(commands.zadd(key, scoresAndValues));
-    }
-
-    @Override
-    public Promise<BElement, Exception> xclaim(byte[] key, Consumer<byte[]> consumer, long minIdleTime, String... messageIds) {
-        return toPromise(commands.xclaim(key, consumer, minIdleTime, messageIds));
     }
 
     @Override
@@ -437,11 +487,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> hincrbyfloat(byte[] key, byte[] field, double amount) {
         return toPromise(commands.hincrbyfloat(key, field, amount));
-    }
-
-    @Override
-    public Promise<BElement, Exception> sinter(ValueStreamingChannel<byte[]> channel, byte[]... keys) {
-        return toPromise(commands.sinter(channel, keys));
     }
 
     @Override
@@ -472,11 +517,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> ping() {
         return toPromise(commands.ping());
-    }
-
-    @Override
-    public Promise<BElement, Exception> xclaim(byte[] key, Consumer<byte[]> consumer, XClaimArgs args, String... messageIds) {
-        return toPromise(commands.xclaim(key, consumer, args, messageIds));
     }
 
     @Override
@@ -540,11 +580,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> hgetall(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key) {
-        return toPromise(commands.hgetall(channel, key));
-    }
-
-    @Override
     public Promise<BElement, Exception> georadius(byte[] key, double longitude, double latitude, double distance, @NonNull String unitStr, byte[] storeKey,
             byte[] storeDistKey, Long count, String sort) {
         GeoRadiusStoreArgs<byte[]> args = buildGeoRadiusStoreArgs(storeKey, storeDistKey, count, sort);
@@ -602,11 +637,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> keys(KeyStreamingChannel<byte[]> channel, byte[] pattern) {
-        return toPromise(commands.keys(channel, pattern));
-    }
-
-    @Override
     public Promise<BElement, Exception> commandInfo(String... cmds) {
         return toPromise(commands.commandInfo(cmds));
     }
@@ -632,23 +662,8 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> commandInfo(CommandType... cmds) {
-        return toPromise(commands.commandInfo(cmds));
-    }
-
-    @Override
     public Promise<BElement, Exception> waitForReplication(int replicas, long timeout) {
         return toPromise(commands.waitForReplication(replicas, timeout));
-    }
-
-    @Override
-    public Promise<BElement, Exception> hkeys(KeyStreamingChannel<byte[]> channel, byte[] key) {
-        return toPromise(commands.hkeys(channel, key));
-    }
-
-    @Override
-    public Promise<BElement, Exception> xgroupCreate(StreamOffset<byte[]> streamOffset, byte[] group) {
-        return toPromise(commands.xgroupCreate(streamOffset, group));
     }
 
     @Override
@@ -677,11 +692,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> xgroupDelconsumer(byte[] key, Consumer<byte[]> consumer) {
-        return toPromise(commands.xgroupDelconsumer(key, consumer));
-    }
-
-    @Override
     public Promise<BElement, Exception> lpushx(byte[] key, byte[]... values) {
         return toPromise(commands.lpushx(key, values));
     }
@@ -706,11 +716,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> hmget(byte[] key, byte[]... fields) {
         return toPromise(commands.hmget(key, fields));
-    }
-
-    @Override
-    public Promise<BElement, Exception> smembers(ValueStreamingChannel<byte[]> channel, byte[] key) {
-        return toPromise(commands.smembers(channel, key));
     }
 
     @Override
@@ -744,18 +749,8 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> hmget(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key, byte[]... fields) {
-        return toPromise(commands.hmget(channel, key, fields));
-    }
-
-    @Override
     public Promise<BElement, Exception> configRewrite() {
         return toPromise(commands.configRewrite());
-    }
-
-    @Override
-    public Promise<BElement, Exception> xgroupSetid(StreamOffset<byte[]> streamOffset, byte[] group) {
-        return toPromise(commands.xgroupSetid(streamOffset, group));
     }
 
     @Override
@@ -766,11 +761,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> clusterSetSlotImporting(int slot, String nodeId) {
         return toPromise(commands.clusterSetSlotImporting(slot, nodeId));
-    }
-
-    @Override
-    public Promise<BElement, Exception> lrange(ValueStreamingChannel<byte[]> channel, byte[] key, long start, long stop) {
-        return toPromise(commands.lrange(channel, key, start, stop));
     }
 
     @Override
@@ -856,11 +846,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> hscan(byte[] key, ScanArgs scanArgs) {
-        return toPromise(commands.hscan(key, scanArgs));
-    }
-
-    @Override
     public Promise<BElement, Exception> debugCrashAndRecover(Long delay) {
         return toPromise(commands.debugCrashAndRecover(delay));
     }
@@ -868,11 +853,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> lset(byte[] key, long index, byte[] value) {
         return toPromise(commands.lset(key, index, value));
-    }
-
-    @Override
-    public Promise<BElement, Exception> xpending(byte[] key, byte[] group, Range<String> range, Limit limit) {
-        return toPromise(commands.xpending(key, group, range, limit));
     }
 
     @Override
@@ -893,11 +873,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> debugHtstats(int db) {
         return toPromise(commands.debugHtstats(db));
-    }
-
-    @Override
-    public Promise<BElement, Exception> hscan(byte[] key, ScanCursor scanCursor, ScanArgs scanArgs) {
-        return toPromise(commands.hscan(key, scanCursor, scanArgs));
     }
 
     @Override
@@ -940,23 +915,8 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> srandmember(ValueStreamingChannel<byte[]> channel, byte[] key, long count) {
-        return toPromise(commands.srandmember(channel, key, count));
-    }
-
-    @Override
-    public Promise<BElement, Exception> xpending(byte[] key, Consumer<byte[]> consumer, Range<String> range, Limit limit) {
-        return toPromise(commands.xpending(key, consumer, range, limit));
-    }
-
-    @Override
     public Promise<BElement, Exception> rpop(byte[] key) {
         return toPromise(commands.rpop(key));
-    }
-
-    @Override
-    public Promise<BElement, Exception> hscan(byte[] key, ScanCursor scanCursor) {
-        return toPromise(commands.hscan(key, scanCursor));
     }
 
     public void debugOom() {
@@ -1004,16 +964,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> hscan(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key) {
-        return toPromise(commands.hscan(channel, key));
-    }
-
-    @Override
-    public Promise<BElement, Exception> xrange(byte[] key, Range<String> range) {
-        return toPromise(commands.xrange(key, range));
-    }
-
-    @Override
     public Promise<BElement, Exception> pexpireat(byte[] key, Date timestamp) {
         return toPromise(commands.pexpireat(key, timestamp));
     }
@@ -1044,23 +994,8 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> hscan(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key, ScanArgs scanArgs) {
-        return toPromise(commands.hscan(channel, key, scanArgs));
-    }
-
-    @Override
     public Promise<BElement, Exception> debugSdslen(byte[] key) {
         return toPromise(commands.debugSdslen(key));
-    }
-
-    @Override
-    public Promise<BElement, Exception> xrange(byte[] key, Range<String> range, Limit limit) {
-        return toPromise(commands.xrange(key, range, limit));
-    }
-
-    @Override
-    public Promise<BElement, Exception> sunion(ValueStreamingChannel<byte[]> channel, byte[]... keys) {
-        return toPromise(commands.sunion(channel, keys));
     }
 
     @Override
@@ -1094,11 +1029,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> hscan(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key, ScanCursor scanCursor, ScanArgs scanArgs) {
-        return toPromise(commands.hscan(channel, key, scanCursor, scanArgs));
-    }
-
-    @Override
     public Promise<BElement, Exception> sunionstore(byte[] destination, byte[]... keys) {
         return toPromise(commands.sunionstore(destination, keys));
     }
@@ -1106,11 +1036,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> flushallAsync() {
         return toPromise(commands.flushallAsync());
-    }
-
-    @Override
-    public Promise<BElement, Exception> xread(StreamOffset<byte[]>... streams) {
-        return toPromise(commands.xread(streams));
     }
 
     @Override
@@ -1149,23 +1074,8 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> xread(XReadArgs args, StreamOffset<byte[]>... streams) {
-        return toPromise(commands.xread(args, streams));
-    }
-
-    @Override
     public Promise<BElement, Exception> info() {
         return toPromise(commands.info());
-    }
-
-    @Override
-    public Promise<BElement, Exception> hscan(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key, ScanCursor scanCursor) {
-        return toPromise(commands.hscan(channel, key, scanCursor));
-    }
-
-    @Override
-    public Promise<BElement, Exception> sscan(byte[] key, ScanArgs scanArgs) {
-        return toPromise(commands.sscan(key, scanArgs));
     }
 
     @Override
@@ -1190,16 +1100,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
             return toPromise(commands.zinterstore(destination, args, keys));
         }
         return toPromise(commands.zinterstore(destination, keys));
-    }
-
-    @Override
-    public Promise<BElement, Exception> sscan(byte[] key, ScanCursor scanCursor, ScanArgs scanArgs) {
-        return toPromise(commands.sscan(key, scanCursor, scanArgs));
-    }
-
-    @Override
-    public Promise<BElement, Exception> xreadgroup(Consumer<byte[]> consumer, StreamOffset<byte[]>... streams) {
-        return toPromise(commands.xreadgroup(consumer, streams));
     }
 
     @Override
@@ -1247,16 +1147,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
         return toPromise(commands.save());
     }
 
-    @Override
-    public Promise<BElement, Exception> sscan(byte[] key, ScanCursor scanCursor) {
-        return toPromise(commands.sscan(key, scanCursor));
-    }
-
-    @Override
-    public Promise<BElement, Exception> xreadgroup(Consumer<byte[]> consumer, XReadArgs args, StreamOffset<byte[]>... streams) {
-        return toPromise(commands.xreadgroup(consumer, args, streams));
-    }
-
     public void shutdown(boolean save) {
         commands.shutdown(save);
     }
@@ -1272,11 +1162,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> sscan(ValueStreamingChannel<byte[]> channel, byte[] key) {
-        return toPromise(commands.sscan(channel, key));
-    }
-
-    @Override
     public Promise<BElement, Exception> slaveof(String host, int port) {
         return toPromise(commands.slaveof(host, port));
     }
@@ -1289,16 +1174,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> getset(byte[] key, byte[] value) {
         return toPromise(commands.getset(key, value));
-    }
-
-    @Override
-    public Promise<BElement, Exception> xrevrange(byte[] key, Range<String> range) {
-        return toPromise(commands.xrevrange(key, range));
-    }
-
-    @Override
-    public Promise<BElement, Exception> sscan(ValueStreamingChannel<byte[]> channel, byte[] key, ScanArgs scanArgs) {
-        return toPromise(commands.sscan(channel, key, scanArgs));
     }
 
     @Override
@@ -1341,11 +1216,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> xrevrange(byte[] key, Range<String> range, Limit limit) {
-        return toPromise(commands.xrevrange(key, range, limit));
-    }
-
-    @Override
     public Promise<BElement, Exception> slowlogGet(int count) {
         return toPromise(commands.slowlogGet(count));
     }
@@ -1353,11 +1223,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> clusterReplicate(String nodeId) {
         return toPromise(commands.clusterReplicate(nodeId));
-    }
-
-    @Override
-    public Promise<BElement, Exception> sscan(ValueStreamingChannel<byte[]> channel, byte[] key, ScanCursor scanCursor, ScanArgs scanArgs) {
-        return toPromise(commands.sscan(channel, key, scanCursor, scanArgs));
     }
 
     @Override
@@ -1406,16 +1271,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> sscan(ValueStreamingChannel<byte[]> channel, byte[] key, ScanCursor scanCursor) {
-        return toPromise(commands.sscan(channel, key, scanCursor));
-    }
-
-    @Override
-    public Promise<BElement, Exception> hvals(ValueStreamingChannel<byte[]> channel, byte[] key) {
-        return toPromise(commands.hvals(channel, key));
-    }
-
-    @Override
     public Promise<BElement, Exception> time() {
         return toPromise(commands.time());
     }
@@ -1436,11 +1291,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> mget(KeyValueStreamingChannel<byte[], byte[]> channel, byte[]... keys) {
-        return toPromise(commands.mget(channel, keys));
-    }
-
-    @Override
     public Promise<BElement, Exception> sort(java.util.function.Consumer<byte[]> channel, byte[] key, String byPattern, List<String> getPatterns, Long count,
             Long offset, String order, boolean alpha) {
         SortArgs sortArgs = buildSortArgs(byPattern, getPatterns, count, offset, order, alpha);
@@ -1451,11 +1301,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> zpopmax(byte[] key, long count) {
         return toPromise(commands.zpopmax(key, count));
-    }
-
-    @Override
-    public Promise<BElement, Exception> sortStore(byte[] key, SortArgs sortArgs, byte[] destination) {
-        return toPromise(commands.sortStore(key, sortArgs, destination));
     }
 
     @Override
@@ -1494,11 +1339,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> set(byte[] key, byte[] value, SetArgs setArgs) {
-        return toPromise(commands.set(key, value, setArgs));
-    }
-
-    @Override
     public Promise<BElement, Exception> type(byte[] key) {
         return toPromise(commands.type(key));
     }
@@ -1516,11 +1356,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> setbit(byte[] key, long offset, int value) {
         return toPromise(commands.setbit(key, offset, value));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zrangeWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, long start, long stop) {
-        return toPromise(commands.zrangeWithScores(channel, key, start, stop));
     }
 
     @Override
@@ -1607,27 +1442,6 @@ public class LettuceSingleClient extends AbstractLettuceClient {
             return toPromise(commands.zrangebyscore(key, range));
         }
         return toPromise(commands.zrangebyscore(bytes -> channel.accept(bytes), key, range));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zrangebyscoreWithScores(byte[] key, Range<? extends Number> range) {
-        return toPromise(commands.zrangebyscoreWithScores(key, range));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zrangebyscoreWithScores(byte[] key, Range<? extends Number> range, Limit limit) {
-        return toPromise(commands.zrangebyscoreWithScores(key, range, limit));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zrangebyscoreWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range) {
-        return toPromise(commands.zrangebyscoreWithScores(channel, key, range));
-    }
-
-    @Override
-    public Promise<BElement, Exception> zrangebyscoreWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range,
-            Limit limit) {
-        return toPromise(commands.zrangebyscoreWithScores(channel, key, range, limit));
     }
 
     @Override

@@ -8,7 +8,6 @@ import io.gridgo.connector.redis.adapter.RedisClient;
 import io.gridgo.connector.redis.command.AbstractRedisCommandHandler;
 import io.gridgo.connector.redis.command.RedisCommand;
 import io.gridgo.connector.redis.command.RedisCommands;
-import io.lettuce.core.BitFieldArgs;
 
 @RedisCommand(RedisCommands.BITFIELD)
 public class RedisBitfieldHandler extends AbstractRedisCommandHandler {
@@ -19,6 +18,11 @@ public class RedisBitfieldHandler extends AbstractRedisCommandHandler {
 
     @Override
     protected Promise<BElement, Exception> process(RedisClient redis, BObject options, BElement[] params) {
-        return redis.bitfield(params[0].asValue().getRaw(), (BitFieldArgs) params[1].asReference().getReference());
+        String overflow = options.getString("overflow", null);
+        Object[] args = new Object[params.length - 1];
+        for (int i = 1; i < params.length; i++) {
+            args[i - 1] = params[i].asValue().getData();
+        }
+        return redis.bitfield(params[0].asValue().getRaw(), overflow, args);
     }
 }

@@ -10,27 +10,7 @@ import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.framework.ComponentLifecycle;
-import io.lettuce.core.BitFieldArgs;
-import io.lettuce.core.Consumer;
-import io.lettuce.core.KillArgs;
-import io.lettuce.core.Limit;
-import io.lettuce.core.Range;
-import io.lettuce.core.ScanArgs;
-import io.lettuce.core.ScanCursor;
-import io.lettuce.core.SetArgs;
-import io.lettuce.core.SortArgs;
-import io.lettuce.core.UnblockType;
-import io.lettuce.core.XAddArgs;
-import io.lettuce.core.XClaimArgs;
-import io.lettuce.core.XReadArgs;
-import io.lettuce.core.XReadArgs.StreamOffset;
-import io.lettuce.core.output.KeyStreamingChannel;
-import io.lettuce.core.output.KeyValueStreamingChannel;
-import io.lettuce.core.output.ScoredValueStreamingChannel;
-import io.lettuce.core.output.ValueStreamingChannel;
-import io.lettuce.core.protocol.CommandType;
 
-@SuppressWarnings("unchecked")
 public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> geoadd(byte[] key, double longitude, double latitude, byte[] member);
@@ -91,8 +71,6 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> bitcount(byte[] key, long start, long end);
 
-    public Promise<BElement, Exception> xadd(byte[] key, XAddArgs args, Map<byte[], byte[]> body);
-
     public Promise<BElement, Exception> pfcount(byte[]... keys);
 
     public Promise<BElement, Exception> pubsubChannels(byte[] channel);
@@ -113,9 +91,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> exists(byte[]... keys);
 
-    public Promise<BElement, Exception> sdiff(ValueStreamingChannel<byte[]> channel, byte[]... keys);
-
-    public Promise<BElement, Exception> bitfield(byte[] key, BitFieldArgs bitFieldArgs);
+    public Promise<BElement, Exception> bitfield(byte[] key, String overflow, Object... subCommandAndArgs);
 
     public Promise<BElement, Exception> swapdb(int db1, int db2);
 
@@ -149,11 +125,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> sdiffstore(byte[] destination, byte[]... keys);
 
-    public Promise<BElement, Exception> xadd(byte[] key, XAddArgs args, Object... keysAndValues);
-
     public Promise<BElement, Exception> clusterBumpepoch();
-
-    public Promise<BElement, Exception> clientKill(KillArgs killArgs);
 
     public Promise<BElement, Exception> bitpos(byte[] key, boolean state);
 
@@ -169,11 +141,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> sinter(byte[]... keys);
 
-    public Promise<BElement, Exception> clientUnblock(long id, UnblockType type);
-
     public Promise<BElement, Exception> zadd(byte[] key, Object... scoresAndValues);
-
-    public Promise<BElement, Exception> xclaim(byte[] key, Consumer<byte[]> consumer, long minIdleTime, String... messageIds);
 
     public Promise<BElement, Exception> echo(byte[] msg);
 
@@ -182,8 +150,6 @@ public interface RedisClient extends ComponentLifecycle {
     public Promise<BElement, Exception> role();
 
     public Promise<BElement, Exception> hincrbyfloat(byte[] key, byte[] field, double amount);
-
-    public Promise<BElement, Exception> sinter(ValueStreamingChannel<byte[]> channel, byte[]... keys);
 
     public Promise<BElement, Exception> clientPause(long timeout);
 
@@ -196,8 +162,6 @@ public interface RedisClient extends ComponentLifecycle {
     public Promise<BElement, Exception> sinterstore(byte[] destination, byte[]... keys);
 
     public Promise<BElement, Exception> ping();
-
-    public Promise<BElement, Exception> xclaim(byte[] key, Consumer<byte[]> consumer, XClaimArgs args, String... messageIds);
 
     public Promise<BElement, Exception> clusterForget(String nodeId);
 
@@ -223,8 +187,6 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> keys(byte[] pattern);
 
-    public Promise<BElement, Exception> hgetall(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key);
-
     public Promise<BElement, Exception> command();
 
     public Promise<BElement, Exception> quit();
@@ -234,8 +196,6 @@ public interface RedisClient extends ComponentLifecycle {
     public Promise<BElement, Exception> clusterDelSlots(int... slots);
 
     public Promise<BElement, Exception> llen(byte[] key);
-
-    public Promise<BElement, Exception> keys(KeyStreamingChannel<byte[]> channel, byte[] pattern);
 
     public Promise<BElement, Exception> commandInfo(String... cmds);
 
@@ -247,15 +207,9 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> clusterSetSlotNode(int slot, String nodeId);
 
-    public Promise<BElement, Exception> commandInfo(CommandType... cmds);
-
     public Promise<BElement, Exception> waitForReplication(int replicas, long timeout);
 
     public Promise<BElement, Exception> migrate(String host, int port, int db, long timeout, boolean copy, boolean replace, byte[] keys, String password);
-
-    public Promise<BElement, Exception> hkeys(KeyStreamingChannel<byte[]> channel, byte[] key);
-
-    public Promise<BElement, Exception> xgroupCreate(StreamOffset<byte[]> streamOffset, byte[] group);
 
     public Promise<BElement, Exception> zadd(byte[] key, boolean xx, boolean nx, boolean ch, Object... scoresAndValues);
 
@@ -269,15 +223,11 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> smembers(byte[] key);
 
-    public Promise<BElement, Exception> xgroupDelconsumer(byte[] key, Consumer<byte[]> consumer);
-
     public Promise<BElement, Exception> lpushx(byte[] key, byte[]... values);
 
     public Promise<BElement, Exception> configGet(String parameter);
 
     public Promise<BElement, Exception> hmget(byte[] key, byte[]... fields);
-
-    public Promise<BElement, Exception> smembers(ValueStreamingChannel<byte[]> channel, byte[] key);
 
     public Promise<BElement, Exception> clusterSetSlotMigrating(int slot, String nodeId);
 
@@ -291,17 +241,11 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> spop(byte[] key);
 
-    public Promise<BElement, Exception> hmget(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key, byte[]... fields);
-
     public Promise<BElement, Exception> configRewrite();
-
-    public Promise<BElement, Exception> xgroupSetid(StreamOffset<byte[]> streamOffset, byte[] group);
 
     public Promise<BElement, Exception> move(byte[] key, int db);
 
     public Promise<BElement, Exception> clusterSetSlotImporting(int slot, String nodeId);
-
-    public Promise<BElement, Exception> lrange(ValueStreamingChannel<byte[]> channel, byte[] key, long start, long stop);
 
     public Promise<BElement, Exception> spop(byte[] key, long count);
 
@@ -337,13 +281,9 @@ public interface RedisClient extends ComponentLifecycle {
 
     public void setAutoFlushCommands(boolean autoFlush);
 
-    public Promise<BElement, Exception> hscan(byte[] key, ScanArgs scanArgs);
-
     public Promise<BElement, Exception> debugCrashAndRecover(Long delay);
 
     public Promise<BElement, Exception> lset(byte[] key, long index, byte[] value);
-
-    public Promise<BElement, Exception> xpending(byte[] key, byte[] group, Range<String> range, Limit limit);
 
     public Promise<BElement, Exception> clusterNodes();
 
@@ -352,8 +292,6 @@ public interface RedisClient extends ComponentLifecycle {
     public Promise<BElement, Exception> srandmember(byte[] key, long count);
 
     public Promise<BElement, Exception> debugHtstats(int db);
-
-    public Promise<BElement, Exception> hscan(byte[] key, ScanCursor scanCursor, ScanArgs scanArgs);
 
     public Promise<BElement, Exception> persist(byte[] key);
 
@@ -371,13 +309,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> zcard(byte[] key);
 
-    public Promise<BElement, Exception> srandmember(ValueStreamingChannel<byte[]> channel, byte[] key, long count);
-
-    public Promise<BElement, Exception> xpending(byte[] key, Consumer<byte[]> consumer, Range<String> range, Limit limit);
-
     public Promise<BElement, Exception> rpop(byte[] key);
-
-    public Promise<BElement, Exception> hscan(byte[] key, ScanCursor scanCursor);
 
     public void debugOom();
 
@@ -405,10 +337,6 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> debugReload();
 
-    public Promise<BElement, Exception> hscan(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key);
-
-    public Promise<BElement, Exception> xrange(byte[] key, Range<String> range);
-
     public Promise<BElement, Exception> pexpireat(byte[] key, Date timestamp);
 
     public Promise<BElement, Exception> clusterCountKeysInSlot(int slot);
@@ -421,13 +349,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> bitopOr(byte[] destination, byte[]... keys);
 
-    public Promise<BElement, Exception> hscan(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key, ScanArgs scanArgs);
-
     public Promise<BElement, Exception> debugSdslen(byte[] key);
-
-    public Promise<BElement, Exception> xrange(byte[] key, Range<String> range, Limit limit);
-
-    public Promise<BElement, Exception> sunion(ValueStreamingChannel<byte[]> channel, byte[]... keys);
 
     public Promise<BElement, Exception> clusterCountFailureReports(String nodeId);
 
@@ -441,13 +363,9 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> zcount(byte[] key, boolean includeLower, long lower, long upper, boolean includeUpper);
 
-    public Promise<BElement, Exception> hscan(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key, ScanCursor scanCursor, ScanArgs scanArgs);
-
     public Promise<BElement, Exception> sunionstore(byte[] destination, byte[]... keys);
 
     public Promise<BElement, Exception> flushallAsync();
-
-    public Promise<BElement, Exception> xread(StreamOffset<byte[]>... streams);
 
     public Promise<BElement, Exception> flushdb();
 
@@ -463,13 +381,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> pttl(byte[] key);
 
-    public Promise<BElement, Exception> xread(XReadArgs args, StreamOffset<byte[]>... streams);
-
     public Promise<BElement, Exception> info();
-
-    public Promise<BElement, Exception> hscan(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key, ScanCursor scanCursor);
-
-    public Promise<BElement, Exception> sscan(byte[] key, ScanArgs scanArgs);
 
     public Promise<BElement, Exception> decrby(byte[] key, long amount);
 
@@ -478,10 +390,6 @@ public interface RedisClient extends ComponentLifecycle {
     public Promise<BElement, Exception> info(String section);
 
     public Promise<BElement, Exception> zinterstore(byte[] destination, String aggregate, List<Double> weights, byte[]... keys);
-
-    public Promise<BElement, Exception> sscan(byte[] key, ScanCursor scanCursor, ScanArgs scanArgs);
-
-    public Promise<BElement, Exception> xreadgroup(Consumer<byte[]> consumer, StreamOffset<byte[]>... streams);
 
     public Promise<BElement, Exception> get(byte[] key);
 
@@ -501,27 +409,17 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> save();
 
-    public Promise<BElement, Exception> sscan(byte[] key, ScanCursor scanCursor);
-
-    public Promise<BElement, Exception> xreadgroup(Consumer<byte[]> consumer, XReadArgs args, StreamOffset<byte[]>... streams);
-
     public void shutdown(boolean save);
 
     public Promise<BElement, Exception> getrange(byte[] key, long start, long end);
 
     public Promise<BElement, Exception> hsetnx(byte[] key, byte[] field, byte[] value);
 
-    public Promise<BElement, Exception> sscan(ValueStreamingChannel<byte[]> channel, byte[] key);
-
     public Promise<BElement, Exception> slaveof(String host, int port);
 
     public Promise<BElement, Exception> clusterSlots();
 
     public Promise<BElement, Exception> getset(byte[] key, byte[] value);
-
-    public Promise<BElement, Exception> xrevrange(byte[] key, Range<String> range);
-
-    public Promise<BElement, Exception> sscan(ValueStreamingChannel<byte[]> channel, byte[] key, ScanArgs scanArgs);
 
     public Promise<BElement, Exception> asking();
 
@@ -537,13 +435,9 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> hstrlen(byte[] key, byte[] field);
 
-    public Promise<BElement, Exception> xrevrange(byte[] key, Range<String> range, Limit limit);
-
     public Promise<BElement, Exception> slowlogGet(int count);
 
     public Promise<BElement, Exception> clusterReplicate(String nodeId);
-
-    public Promise<BElement, Exception> sscan(ValueStreamingChannel<byte[]> channel, byte[] key, ScanCursor scanCursor, ScanArgs scanArgs);
 
     public Promise<BElement, Exception> incrby(byte[] key, long amount);
 
@@ -563,10 +457,6 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> zpopmin(byte[] key, long count);
 
-    public Promise<BElement, Exception> sscan(ValueStreamingChannel<byte[]> channel, byte[] key, ScanCursor scanCursor);
-
-    public Promise<BElement, Exception> hvals(ValueStreamingChannel<byte[]> channel, byte[] key);
-
     public Promise<BElement, Exception> time();
 
     public Promise<BElement, Exception> clusterReset(boolean hard);
@@ -578,11 +468,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> zpopmax(byte[] key);
 
-    public Promise<BElement, Exception> mget(KeyValueStreamingChannel<byte[], byte[]> channel, byte[]... keys);
-
     public Promise<BElement, Exception> zpopmax(byte[] key, long count);
-
-    public Promise<BElement, Exception> sortStore(byte[] key, SortArgs sortArgs, byte[] destination);
 
     public Promise<BElement, Exception> clusterFlushslots();
 
@@ -598,8 +484,6 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> del(byte[]... keys);
 
-    public Promise<BElement, Exception> set(byte[] key, byte[] value, SetArgs setArgs);
-
     public Promise<BElement, Exception> type(byte[] key);
 
     public Promise<BElement, Exception> zrangeWithScores(byte[] key, long start, long stop);
@@ -607,8 +491,6 @@ public interface RedisClient extends ComponentLifecycle {
     public Promise<BElement, Exception> mget(byte[]... keys);
 
     public Promise<BElement, Exception> setbit(byte[] key, long offset, int value);
-
-    public Promise<BElement, Exception> zrangeWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, long start, long stop);
 
     public Promise<BElement, Exception> mset(Map<byte[], byte[]> map);
 
@@ -629,15 +511,6 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> zrangebyscore(java.util.function.Consumer<byte[]> channel, byte[] key, boolean includeLower, long lower, long upper,
             boolean includeUpper, Long offset, Long count);
-
-    public Promise<BElement, Exception> zrangebyscoreWithScores(byte[] key, Range<? extends Number> range);
-
-    public Promise<BElement, Exception> zrangebyscoreWithScores(byte[] key, Range<? extends Number> range, Limit limit);
-
-    public Promise<BElement, Exception> zrangebyscoreWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range);
-
-    public Promise<BElement, Exception> zrangebyscoreWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, Range<? extends Number> range,
-            Limit limit);
 
     public Promise<BElement, Exception> zrank(byte[] key, byte[] member);
 
