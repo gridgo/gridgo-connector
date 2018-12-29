@@ -18,7 +18,8 @@ import lombok.NonNull;
 
 public abstract class AbstractRedisCommandHandler implements RedisCommandHandler, Loggable {
 
-    private static final BElement[] EMPTY_PARAMS = new BElement[0];
+    protected static final byte[][] EMPTY_BYTES_ARRAY = new byte[0][];
+    private static final BElement[] EMPTY_BELEMENT_ARRAY = new BElement[0];
 
     @Getter
     private final String[] keyOrder;
@@ -29,21 +30,17 @@ public abstract class AbstractRedisCommandHandler implements RedisCommandHandler
 
     @Override
     public final Promise<BElement, Exception> execute(@NonNull RedisClient redisClient, BObject options, BElement params) {
-        BElement[] objs = EMPTY_PARAMS;
+        BElement[] objs = EMPTY_BELEMENT_ARRAY;
         if (params != null) {
             if (params instanceof BContainer) {
                 if (params.isArray()) {
-                    objs = params.asArray().toArray(EMPTY_PARAMS);
+                    objs = params.asArray().toArray(EMPTY_BELEMENT_ARRAY);
                 } else if (params.isObject()) {
                     objs = new BElement[this.keyOrder.length];
-                    int count = 0;
-                    BObject paramsObjs = params.asObject();
+                    int index = 0;
+                    BObject paramsObj = params.asObject();
                     for (String key : keyOrder) {
-                        if (paramsObjs.containsKey(key)) {
-                            objs[count++] = paramsObjs.get(key);
-                        } else {
-                            objs[count++] = BValue.ofEmpty();
-                        }
+                        objs[index++] = paramsObj.getOrDefault(key, BValue::ofEmpty);
                     }
                 }
             } else {
@@ -52,6 +49,8 @@ public abstract class AbstractRedisCommandHandler implements RedisCommandHandler
         }
         return process(redisClient, options == null ? BObject.ofEmpty() : options, objs);
     }
+
+    protected abstract Promise<BElement, Exception> process(RedisClient redis, BObject options, BElement[] params);
 
     protected Map<byte[], byte[]> extractMapFromFirst(BElement[] params) {
         return extractMap(params, 0);
@@ -100,5 +99,4 @@ public abstract class AbstractRedisCommandHandler implements RedisCommandHandler
         return extractListBytes(params, 1);
     }
 
-    protected abstract Promise<BElement, Exception> process(RedisClient redis, BObject options, BElement[] params);
 }

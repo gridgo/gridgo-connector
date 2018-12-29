@@ -12,9 +12,6 @@ import io.gridgo.bean.BElement;
 import io.gridgo.framework.ComponentLifecycle;
 import io.lettuce.core.BitFieldArgs;
 import io.lettuce.core.Consumer;
-import io.lettuce.core.GeoArgs;
-import io.lettuce.core.GeoArgs.Unit;
-import io.lettuce.core.GeoRadiusStoreArgs;
 import io.lettuce.core.KillArgs;
 import io.lettuce.core.Limit;
 import io.lettuce.core.MigrateArgs;
@@ -22,7 +19,6 @@ import io.lettuce.core.Range;
 import io.lettuce.core.RestoreArgs;
 import io.lettuce.core.ScanArgs;
 import io.lettuce.core.ScanCursor;
-import io.lettuce.core.ScriptOutputType;
 import io.lettuce.core.SetArgs;
 import io.lettuce.core.SortArgs;
 import io.lettuce.core.UnblockType;
@@ -44,8 +40,6 @@ public interface RedisClient extends ComponentLifecycle {
     public Promise<BElement, Exception> pfadd(byte[] key, byte[]... values);
 
     public Promise<BElement, Exception> discard();
-
-    public Promise<BElement, Exception> eval(String script, ScriptOutputType type, byte[]... keys);
 
     public Promise<BElement, Exception> xack(byte[] key, byte[] group, String... messageIds);
 
@@ -71,7 +65,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> bgsave();
 
-    public Promise<BElement, Exception> eval(String script, ScriptOutputType type, byte[][] keys, byte[]... values);
+    public Promise<BElement, Exception> eval(String script, String outputType, byte[][] keys, byte[]... values);
 
     public Promise<BElement, Exception> geoadd(byte[] key, Object... lngLatMember);
 
@@ -113,7 +107,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> brpop(long timeout, byte[]... keys);
 
-    public Promise<BElement, Exception> evalsha(String digest, ScriptOutputType type, byte[]... keys);
+    public Promise<BElement, Exception> evalsha(String digest, String type, byte[]... keys);
 
     public Promise<BElement, Exception> geohash(byte[] key, byte[]... members);
 
@@ -141,9 +135,19 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> expire(byte[] key, long seconds);
 
-    public Promise<BElement, Exception> evalsha(String digest, ScriptOutputType type, byte[][] keys, byte[]... values);
+    public Promise<BElement, Exception> evalsha(String digest, String outputType, byte[][] keys, byte[]... values);
 
-    public Promise<BElement, Exception> georadius(byte[] key, double longitude, double latitude, double distance, Unit unit);
+    public Promise<BElement, Exception> georadiusbymember(byte[] key, byte[] member, double distance, String unit, byte[] storeKey, byte[] storeDistKey,
+            Long count, String sort);
+
+    public Promise<BElement, Exception> georadiusbymember(byte[] key, byte[] member, double distance, String unitStr, boolean withdistance,
+            boolean withcoordinates, boolean withHash, Long count, String sort);
+
+    public Promise<BElement, Exception> georadius(byte[] key, double longitude, double latitude, double distance, String unit, boolean withdistance,
+            boolean withcoordinates, boolean withHash, Long count, String sort);
+
+    public Promise<BElement, Exception> georadius(byte[] key, double longitude, double latitude, double distance, String unit, byte[] storeKey,
+            byte[] storeDistKey, Long count, String sort);
 
     public Promise<BElement, Exception> sdiffstore(byte[] destination, byte[]... keys);
 
@@ -180,8 +184,6 @@ public interface RedisClient extends ComponentLifecycle {
     public Promise<BElement, Exception> role();
 
     public Promise<BElement, Exception> hincrbyfloat(byte[] key, byte[] field, double amount);
-
-    public Promise<BElement, Exception> georadius(byte[] key, double longitude, double latitude, double distance, Unit unit, GeoArgs geoArgs);
 
     public Promise<BElement, Exception> sinter(ValueStreamingChannel<byte[]> channel, byte[]... keys);
 
@@ -225,9 +227,6 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> hgetall(KeyValueStreamingChannel<byte[], byte[]> channel, byte[] key);
 
-    public Promise<BElement, Exception> georadius(byte[] key, double longitude, double latitude, double distance, Unit unit,
-            GeoRadiusStoreArgs<byte[]> geoRadiusStoreArgs);
-
     public Promise<BElement, Exception> command();
 
     public Promise<BElement, Exception> quit();
@@ -268,8 +267,6 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> hlen(byte[] key);
 
-    public Promise<BElement, Exception> georadiusbymember(byte[] key, byte[] member, double distance, Unit unit);
-
     public Promise<BElement, Exception> clusterSetSlotStable(int slot);
 
     public Promise<BElement, Exception> smembers(byte[] key);
@@ -295,8 +292,6 @@ public interface RedisClient extends ComponentLifecycle {
     public Promise<BElement, Exception> configResetstat();
 
     public Promise<BElement, Exception> lrange(byte[] key, long start, long stop);
-
-    public Promise<BElement, Exception> georadiusbymember(byte[] key, byte[] member, double distance, Unit unit, GeoArgs geoArgs);
 
     public Promise<BElement, Exception> spop(byte[] key);
 
@@ -337,8 +332,6 @@ public interface RedisClient extends ComponentLifecycle {
     public Promise<BElement, Exception> objectIdletime(byte[] key);
 
     public Promise<BElement, Exception> lrem(byte[] key, long count, byte[] value);
-
-    public Promise<BElement, Exception> georadiusbymember(byte[] key, byte[] member, double distance, Unit unit, GeoRadiusStoreArgs<byte[]> geoRadiusStoreArgs);
 
     public Promise<BElement, Exception> xpending(byte[] key, byte[] group);
 
@@ -402,7 +395,15 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> rpoplpush(byte[] source, byte[] destination);
 
-    public Promise<BElement, Exception> geodist(byte[] key, byte[] from, byte[] to, Unit unit);
+    /**
+     * 
+     * @param key
+     * @param from
+     * @param to
+     * @param unit one of m, km, ft, mi
+     * @return
+     */
+    public Promise<BElement, Exception> geodist(byte[] key, byte[] from, byte[] to, String unit);
 
     public Promise<BElement, Exception> srem(byte[] key, byte[]... members);
 
@@ -692,4 +693,5 @@ public interface RedisClient extends ComponentLifecycle {
     public Promise<BElement, Exception> zscore(byte[] key, byte[] member);
 
     public Promise<BElement, Exception> zunionstore(byte[] destination, String aggregate, List<Double> weights, byte[]... keys);
+
 }

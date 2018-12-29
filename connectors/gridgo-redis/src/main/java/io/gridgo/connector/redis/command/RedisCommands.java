@@ -132,7 +132,6 @@ public class RedisCommands {
      */
     public static final String EVAL = "eval";
     public static final String EVALSHA = "evalsha";
-    public static final String SCRIPT_DEBUG = "scriptdebug";
     public static final String SCRIPT_EXISTS = "scriptexists";
     public static final String SCRIPT_FLUSH = "scriptflush";
     public static final String SCRIPT_KILL = "scriptkill";

@@ -91,6 +91,38 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     }
 
     @Override
+    public Promise<BElement, Exception> georadius(byte[] key, double longitude, double latitude, double distance, @NonNull String unitStr, byte[] storeKey,
+            byte[] storeDistKey, Long count, String sort) {
+        GeoRadiusStoreArgs<byte[]> args = buildGeoRadiusStoreArgs(storeKey, storeDistKey, count, sort);
+        Unit unit = Unit.valueOf(unitStr.trim().toLowerCase());
+        return toPromise(commands.georadius(key, longitude, latitude, distance, unit, args));
+    }
+
+    @Override
+    public Promise<BElement, Exception> georadius(byte[] key, double longitude, double latitude, double distance, String unitStr, boolean withdistance,
+            boolean withcoordinates, boolean withHash, Long count, String sort) {
+        GeoArgs geoArgs = buildGeoArgs(withdistance, withcoordinates, withHash, sort, count);
+        Unit unit = Unit.valueOf(unitStr.trim().toLowerCase());
+        return toPromise(commands.georadius(key, longitude, latitude, distance, unit, geoArgs));
+    }
+
+    @Override
+    public Promise<BElement, Exception> georadiusbymember(byte[] key, byte[] member, double distance, @NonNull String unitStr, byte[] storeKey,
+            byte[] storeDistKey, Long count, String sort) {
+        GeoRadiusStoreArgs<byte[]> geoStoreArgs = buildGeoRadiusStoreArgs(storeKey, storeDistKey, count, sort);
+        Unit unit = Unit.valueOf(unitStr.trim().toLowerCase());
+        return toPromise(commands.georadiusbymember(key, member, distance, unit, geoStoreArgs));
+    }
+
+    @Override
+    public Promise<BElement, Exception> georadiusbymember(byte[] key, byte[] member, double distance, String unitStr, boolean withdistance,
+            boolean withcoordinates, boolean withHash, Long count, String sort) {
+        GeoArgs geoArgs = buildGeoArgs(withdistance, withcoordinates, withHash, sort, count);
+        Unit unit = Unit.valueOf(unitStr.trim().toLowerCase());
+        return toPromise(commands.georadiusbymember(key, member, distance, unit, geoArgs));
+    }
+
+    @Override
     public Promise<BElement, Exception> pfadd(byte[] key, byte[]... values) {
         return toPromise(commands.pfadd(key, values));
     }
@@ -98,11 +130,6 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> discard() {
         throw new UnsupportedOperationException("Method is unsupported in redis cluster");
-    }
-
-    @Override
-    public Promise<BElement, Exception> eval(String script, ScriptOutputType type, byte[]... keys) {
-        return toPromise(commands.eval(script, type, keys));
     }
 
     @Override
@@ -166,8 +193,8 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> eval(String script, ScriptOutputType type, byte[][] keys, byte[]... values) {
-        return toPromise(commands.eval(script, type, keys, values));
+    public Promise<BElement, Exception> eval(String script, String type, byte[][] keys, byte[]... values) {
+        return toPromise(commands.eval(script, ScriptOutputType.valueOf(type.trim().toUpperCase()), keys, values));
     }
 
     @Override
@@ -269,7 +296,8 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> evalsha(String digest, ScriptOutputType type, byte[]... keys) {
+    public Promise<BElement, Exception> evalsha(String digest, String outputType, byte[]... keys) {
+        ScriptOutputType type = ScriptOutputType.valueOf(outputType.trim().toUpperCase());
         return toPromise(commands.evalsha(digest, type, keys));
     }
 
@@ -338,13 +366,9 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> evalsha(String digest, ScriptOutputType type, byte[][] keys, byte[]... values) {
+    public Promise<BElement, Exception> evalsha(String digest, String outputType, byte[][] keys, byte[]... values) {
+        ScriptOutputType type = ScriptOutputType.valueOf(outputType.trim().toUpperCase());
         return toPromise(commands.evalsha(digest, type, keys, values));
-    }
-
-    @Override
-    public Promise<BElement, Exception> georadius(byte[] key, double longitude, double latitude, double distance, Unit unit) {
-        return toPromise(commands.georadius(key, longitude, latitude, distance, unit));
     }
 
     @Override
@@ -435,11 +459,6 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> hincrbyfloat(byte[] key, byte[] field, double amount) {
         return toPromise(commands.hincrbyfloat(key, field, amount));
-    }
-
-    @Override
-    public Promise<BElement, Exception> georadius(byte[] key, double longitude, double latitude, double distance, Unit unit, GeoArgs geoArgs) {
-        return toPromise(commands.georadius(key, longitude, latitude, distance, unit, geoArgs));
     }
 
     @Override
@@ -548,12 +567,6 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> georadius(byte[] key, double longitude, double latitude, double distance, Unit unit,
-            GeoRadiusStoreArgs<byte[]> geoRadiusStoreArgs) {
-        return toPromise(commands.georadius(key, longitude, latitude, distance, unit, geoRadiusStoreArgs));
-    }
-
-    @Override
     public Promise<BElement, Exception> command() {
         return toPromise(commands.command());
     }
@@ -649,11 +662,6 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> georadiusbymember(byte[] key, byte[] member, double distance, Unit unit) {
-        return toPromise(commands.georadiusbymember(key, member, distance, unit));
-    }
-
-    @Override
     public Promise<BElement, Exception> clusterSetSlotStable(int slot) {
         return toPromise(commands.clusterSetSlotStable(slot));
     }
@@ -716,11 +724,6 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> lrange(byte[] key, long start, long stop) {
         return toPromise(commands.lrange(key, start, stop));
-    }
-
-    @Override
-    public Promise<BElement, Exception> georadiusbymember(byte[] key, byte[] member, double distance, Unit unit, GeoArgs geoArgs) {
-        return toPromise(commands.georadiusbymember(key, member, distance, unit, geoArgs));
     }
 
     @Override
@@ -819,12 +822,6 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> lrem(byte[] key, long count, byte[] value) {
         return toPromise(commands.lrem(key, count, value));
-    }
-
-    @Override
-    public Promise<BElement, Exception> georadiusbymember(byte[] key, byte[] member, double distance, Unit unit,
-            GeoRadiusStoreArgs<byte[]> geoRadiusStoreArgs) {
-        return toPromise(commands.georadiusbymember(key, member, distance, unit, geoRadiusStoreArgs));
     }
 
     @Override
@@ -979,7 +976,8 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> geodist(byte[] key, byte[] from, byte[] to, Unit unit) {
+    public Promise<BElement, Exception> geodist(byte[] key, byte[] from, byte[] to, String unitStr) {
+        Unit unit = Unit.valueOf(unitStr.trim().toLowerCase());
         return toPromise(commands.geodist(key, from, to, unit));
     }
 

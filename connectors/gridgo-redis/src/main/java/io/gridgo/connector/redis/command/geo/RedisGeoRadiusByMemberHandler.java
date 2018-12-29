@@ -1,0 +1,57 @@
+package io.gridgo.connector.redis.command.geo;
+
+import org.joo.promise4j.Promise;
+
+import io.gridgo.bean.BElement;
+import io.gridgo.bean.BObject;
+import io.gridgo.connector.redis.adapter.RedisClient;
+import io.gridgo.connector.redis.command.AbstractRedisCommandHandler;
+import io.gridgo.connector.redis.command.RedisCommand;
+import io.gridgo.connector.redis.command.RedisCommands;
+
+@RedisCommand(RedisCommands.GEORADIUSBYMEMBER)
+public class RedisGeoRadiusByMemberHandler extends AbstractRedisCommandHandler {
+
+    public RedisGeoRadiusByMemberHandler() {
+        super("key", "member", "distance");
+    }
+
+    @Override
+    protected Promise<BElement, Exception> process(RedisClient redis, BObject options, BElement[] params) {
+
+        final Long count = options.getLong("count", options.getLong("limit", null));
+        final String sort = options.getString("sort", null);
+        final String unit = options.getString("unit", "m");
+
+        if (options.getBoolean("storeResult", false)) {
+            byte[] storeKey = options.getRaw("store", options.getRaw("storeKey", null));
+            byte[] storeDistKey = options.getRaw("storeDist", options.getRaw("storeDistKey", null));
+
+            return redis.georadiusbymember(params[0].asValue().getRaw() //
+                    , params[1].asValue().getRaw() //
+                    , params[2].asValue().getDouble() //
+                    , unit //
+                    , storeKey //
+                    , storeDistKey //
+                    , count //
+                    , sort //
+            );
+        } else {
+            boolean withDistance = options.getBoolean("withDistance", false);
+            boolean withCoordinates = options.getBoolean("withCoordinates", false);
+            boolean withHash = options.getBoolean("withHash", false);
+
+            return redis.georadiusbymember(params[0].asValue().getRaw() //
+                    , params[1].asValue().getRaw() //
+                    , params[2].asValue().getDouble() //
+                    , unit //
+                    , withDistance //
+                    , withCoordinates//
+                    , withHash //
+                    , count //
+                    , sort //
+            );
+        }
+    }
+
+}
