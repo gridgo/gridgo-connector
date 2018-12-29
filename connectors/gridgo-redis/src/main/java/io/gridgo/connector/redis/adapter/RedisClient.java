@@ -14,9 +14,7 @@ import io.lettuce.core.BitFieldArgs;
 import io.lettuce.core.Consumer;
 import io.lettuce.core.KillArgs;
 import io.lettuce.core.Limit;
-import io.lettuce.core.MigrateArgs;
 import io.lettuce.core.Range;
-import io.lettuce.core.RestoreArgs;
 import io.lettuce.core.ScanArgs;
 import io.lettuce.core.ScanCursor;
 import io.lettuce.core.SetArgs;
@@ -253,7 +251,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> waitForReplication(int replicas, long timeout);
 
-    public Promise<BElement, Exception> migrate(String host, int port, byte[] key, int db, long timeout);
+    public Promise<BElement, Exception> migrate(String host, int port, int db, long timeout, boolean copy, boolean replace, byte[] keys, String password);
 
     public Promise<BElement, Exception> hkeys(KeyStreamingChannel<byte[]> channel, byte[] key);
 
@@ -274,8 +272,6 @@ public interface RedisClient extends ComponentLifecycle {
     public Promise<BElement, Exception> xgroupDelconsumer(byte[] key, Consumer<byte[]> consumer);
 
     public Promise<BElement, Exception> lpushx(byte[] key, byte[]... values);
-
-    public Promise<BElement, Exception> migrate(String host, int port, int db, long timeout, MigrateArgs<byte[]> migrateArgs);
 
     public Promise<BElement, Exception> configGet(String parameter);
 
@@ -513,8 +509,6 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> getrange(byte[] key, long start, long end);
 
-    public Promise<BElement, Exception> restore(byte[] key, long ttl, byte[] value);
-
     public Promise<BElement, Exception> hsetnx(byte[] key, byte[] field, byte[] value);
 
     public Promise<BElement, Exception> sscan(ValueStreamingChannel<byte[]> channel, byte[] key);
@@ -533,7 +527,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> slaveofNoOne();
 
-    public Promise<BElement, Exception> restore(byte[] key, byte[] value, RestoreArgs args);
+    public Promise<BElement, Exception> restore(byte[] key, byte[] value, long ttl, boolean replace);
 
     public Promise<BElement, Exception> zlexcount(byte[] key, boolean includeLower, byte[] lower, byte[] upper, boolean includeUpper);
 
@@ -555,8 +549,6 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> zpopmin(byte[] key);
 
-    public Promise<BElement, Exception> sort(byte[] key);
-
     public Promise<BElement, Exception> slowlogLen();
 
     public Promise<BElement, Exception> clusterFailover(boolean force);
@@ -566,8 +558,6 @@ public interface RedisClient extends ComponentLifecycle {
     public Promise<BElement, Exception> slowlogReset();
 
     public Promise<BElement, Exception> incrbyfloat(byte[] key, double amount);
-
-    public Promise<BElement, Exception> sort(ValueStreamingChannel<byte[]> channel, byte[] key);
 
     public Promise<BElement, Exception> xtrim(byte[] key, long count);
 
@@ -583,13 +573,12 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> xtrim(byte[] key, boolean approximateTrimming, long count);
 
-    public Promise<BElement, Exception> sort(byte[] key, SortArgs sortArgs);
+    public Promise<BElement, Exception> sort(java.util.function.Consumer<byte[]> channel, byte[] key, String byPattern, List<String> getPatterns, Long count,
+            Long offset, String order, boolean alpha);
 
     public Promise<BElement, Exception> zpopmax(byte[] key);
 
     public Promise<BElement, Exception> mget(KeyValueStreamingChannel<byte[], byte[]> channel, byte[]... keys);
-
-    public Promise<BElement, Exception> sort(ValueStreamingChannel<byte[]> channel, byte[] key, SortArgs sortArgs);
 
     public Promise<BElement, Exception> zpopmax(byte[] key, long count);
 
@@ -619,40 +608,24 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> setbit(byte[] key, long offset, int value);
 
-    public Promise<BElement, Exception> scan();
-
-    public Promise<BElement, Exception> scan(ScanArgs scanArgs);
-
     public Promise<BElement, Exception> zrangeWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, long start, long stop);
 
     public Promise<BElement, Exception> mset(Map<byte[], byte[]> map);
 
     public Promise<BElement, Exception> setex(byte[] key, long seconds, byte[] value);
 
-    public Promise<BElement, Exception> scan(ScanCursor scanCursor, ScanArgs scanArgs);
-
     public Promise<BElement, Exception> msetnx(Map<byte[], byte[]> map);
 
     public Promise<BElement, Exception> psetex(byte[] key, long milliseconds, byte[] value);
 
-    public Promise<BElement, Exception> scan(ScanCursor scanCursor);
-
     public Promise<BElement, Exception> setnx(byte[] key, byte[] value);
-
-    public Promise<BElement, Exception> scan(KeyStreamingChannel<byte[]> channel);
 
     public Promise<BElement, Exception> zrangebylex(byte[] key, boolean includeLower, byte[] lower, byte[] upper, boolean includeUpper, Long offset,
             Long count);
 
-    public Promise<BElement, Exception> scan(KeyStreamingChannel<byte[]> channel, ScanArgs scanArgs);
-
     public Promise<BElement, Exception> setrange(byte[] key, long offset, byte[] value);
 
-    public Promise<BElement, Exception> scan(KeyStreamingChannel<byte[]> channel, ScanCursor scanCursor, ScanArgs scanArgs);
-
     public Promise<BElement, Exception> strlen(byte[] key);
-
-    public Promise<BElement, Exception> scan(KeyStreamingChannel<byte[]> channel, ScanCursor scanCursor);
 
     public Promise<BElement, Exception> zrangebyscore(java.util.function.Consumer<byte[]> channel, byte[] key, boolean includeLower, long lower, long upper,
             boolean includeUpper, Long offset, Long count);
@@ -694,4 +667,5 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> zunionstore(byte[] destination, String aggregate, List<Double> weights, byte[]... keys);
 
+    public Promise<BElement, Exception> scan(java.util.function.Consumer<byte[]> channel, String cursor, Long count, String match);
 }

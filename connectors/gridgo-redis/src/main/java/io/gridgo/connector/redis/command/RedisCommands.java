@@ -180,7 +180,7 @@ public class RedisCommands {
     public static final String TYPE = "type";
     public static final String UNLINK = "unlink";
     public static final String WAIT = "wait";
-    public static final String SCA = "sca";
+    public static final String SCAN = "scan";
 
     /*
      * CONNECTION

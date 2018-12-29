@@ -632,11 +632,6 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> migrate(String host, int port, byte[] key, int db, long timeout) {
-        return toPromise(commands.migrate(host, port, key, db, timeout));
-    }
-
-    @Override
     public Promise<BElement, Exception> hkeys(KeyStreamingChannel<byte[]> channel, byte[] key) {
         return toPromise(commands.hkeys(channel, key));
     }
@@ -682,7 +677,14 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> migrate(String host, int port, int db, long timeout, MigrateArgs<byte[]> migrateArgs) {
+    public Promise<BElement, Exception> migrate(String host, int port, int db, long timeout, boolean copy, boolean replace, byte[] keys, String password) {
+        MigrateArgs<byte[]> migrateArgs = MigrateArgs.Builder.key(keys).auth(password == null ? null : password.toCharArray());
+        if (copy) {
+            migrateArgs.copy();
+        }
+        if (replace) {
+            migrateArgs.replace();
+        }
         return toPromise(commands.migrate(host, port, db, timeout, migrateArgs));
     }
 
@@ -1276,8 +1278,12 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> restore(byte[] key, long ttl, byte[] value) {
-        return toPromise(commands.restore(key, ttl, value));
+    public Promise<BElement, Exception> restore(byte[] key, byte[] value, long ttl, boolean replace) {
+        RestoreArgs args = RestoreArgs.Builder.ttl(ttl);
+        if (replace) {
+            args.replace();
+        }
+        return toPromise(commands.restore(key, value, args));
     }
 
     @Override
@@ -1323,11 +1329,6 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> slaveofNoOne() {
         return toPromise(commands.slaveofNoOne());
-    }
-
-    @Override
-    public Promise<BElement, Exception> restore(byte[] key, byte[] value, RestoreArgs args) {
-        return toPromise(commands.restore(key, value, args));
     }
 
     @Override
@@ -1382,11 +1383,6 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> sort(byte[] key) {
-        return toPromise(commands.sort(key));
-    }
-
-    @Override
     public Promise<BElement, Exception> slowlogLen() {
         return toPromise(commands.slowlogLen());
     }
@@ -1409,11 +1405,6 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> incrbyfloat(byte[] key, double amount) {
         return toPromise(commands.incrbyfloat(key, amount));
-    }
-
-    @Override
-    public Promise<BElement, Exception> sort(ValueStreamingChannel<byte[]> channel, byte[] key) {
-        return toPromise(commands.sort(channel, key));
     }
 
     @Override
@@ -1452,11 +1443,6 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> sort(byte[] key, SortArgs sortArgs) {
-        return toPromise(commands.sort(key, sortArgs));
-    }
-
-    @Override
     public Promise<BElement, Exception> zpopmax(byte[] key) {
         return toPromise(commands.zpopmax(key));
     }
@@ -1464,11 +1450,6 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     @Override
     public Promise<BElement, Exception> mget(KeyValueStreamingChannel<byte[], byte[]> channel, byte[]... keys) {
         return toPromise(commands.mget(channel, keys));
-    }
-
-    @Override
-    public Promise<BElement, Exception> sort(ValueStreamingChannel<byte[]> channel, byte[] key, SortArgs sortArgs) {
-        return toPromise(commands.sort(channel, key, sortArgs));
     }
 
     @Override
@@ -1542,16 +1523,6 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> scan() {
-        return toPromise(commands.scan());
-    }
-
-    @Override
-    public Promise<BElement, Exception> scan(ScanArgs scanArgs) {
-        return toPromise(commands.scan(scanArgs));
-    }
-
-    @Override
     public Promise<BElement, Exception> zrangeWithScores(ScoredValueStreamingChannel<byte[]> channel, byte[] key, long start, long stop) {
         return toPromise(commands.zrangeWithScores(channel, key, start, stop));
     }
@@ -1567,11 +1538,6 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> scan(ScanCursor scanCursor, ScanArgs scanArgs) {
-        return toPromise(commands.scan(scanCursor, scanArgs));
-    }
-
-    @Override
     public Promise<BElement, Exception> msetnx(Map<byte[], byte[]> map) {
         return toPromise(commands.msetnx(map));
     }
@@ -1582,18 +1548,8 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> scan(ScanCursor scanCursor) {
-        return toPromise(commands.scan(scanCursor));
-    }
-
-    @Override
     public Promise<BElement, Exception> setnx(byte[] key, byte[] value) {
         return toPromise(commands.setnx(key, value));
-    }
-
-    @Override
-    public Promise<BElement, Exception> scan(KeyStreamingChannel<byte[]> channel) {
-        return toPromise(commands.scan(channel));
     }
 
     @Override
@@ -1608,18 +1564,8 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> scan(KeyStreamingChannel<byte[]> channel, ScanArgs scanArgs) {
-        return toPromise(commands.scan(channel, scanArgs));
-    }
-
-    @Override
     public Promise<BElement, Exception> setrange(byte[] key, long offset, byte[] value) {
         return toPromise(commands.setrange(key, offset, value));
-    }
-
-    @Override
-    public Promise<BElement, Exception> scan(KeyStreamingChannel<byte[]> channel, ScanCursor scanCursor, ScanArgs scanArgs) {
-        return toPromise(commands.scan(channel, scanCursor, scanArgs));
     }
 
     @Override
@@ -1628,8 +1574,25 @@ public class LettuceClusterClient extends AbstractLettuceClient {
     }
 
     @Override
-    public Promise<BElement, Exception> scan(KeyStreamingChannel<byte[]> channel, ScanCursor scanCursor) {
-        return toPromise(commands.scan(channel, scanCursor));
+    public Promise<BElement, Exception> scan(java.util.function.Consumer<byte[]> channel, String cursor, Long count, String match) {
+        ScanCursor scanCursor = cursor == null ? null : ScanCursor.of(cursor);
+        if (count != null || match != null) {
+            ScanArgs args = new ScanArgs();
+            if (count != null) {
+                args.limit(count);
+            }
+            if (match != null) {
+                args.match(match);
+            }
+            if (cursor == null) {
+                return toPromise(commands.scan(bytes -> channel.accept(bytes), args));
+            }
+            return toPromise(commands.scan(bytes -> channel.accept(bytes), scanCursor, args));
+        }
+        if (cursor == null) {
+            return toPromise(commands.scan(bytes -> channel.accept(bytes)));
+        }
+        return toPromise(commands.scan(bytes -> channel.accept(bytes), scanCursor));
     }
 
     @Override
@@ -1801,4 +1764,13 @@ public class LettuceClusterClient extends AbstractLettuceClient {
             args.ch();
         return toPromise(commands.zadd(key, args, scoresAndValues));
     }
+
+    @Override
+    public Promise<BElement, Exception> sort(java.util.function.Consumer<byte[]> channel, byte[] key, String byPattern, List<String> getPatterns, Long count,
+            Long offset, String order, boolean alpha) {
+        SortArgs sortArgs = buildSortArgs(byPattern, getPatterns, count, offset, order, alpha);
+
+        return toPromise(commands.sort(bytes -> channel.accept(bytes), key, sortArgs));
+    }
+
 }

@@ -16,6 +16,7 @@ import io.lettuce.core.GeoRadiusStoreArgs;
 import io.lettuce.core.Range;
 import io.lettuce.core.Range.Boundary;
 import io.lettuce.core.RedisFuture;
+import io.lettuce.core.SortArgs;
 import io.lettuce.core.ZStoreArgs;
 import io.lettuce.core.GeoArgs.Sort;
 import io.lettuce.core.codec.ByteArrayCodec;
@@ -128,6 +129,32 @@ public abstract class AbstractLettuceClient extends AbstractComponentLifecycle i
             args.weights(_weights);
         }
         return args;
+    }
+
+    protected SortArgs buildSortArgs(String byPattern, List<String> getPatterns, Long count, Long offset, String order, boolean alpha) {
+        SortArgs sortArgs = new SortArgs();
+        sortArgs.by(byPattern);
+        if (getPatterns != null) {
+            getPatterns.forEach(pattern -> sortArgs.get(pattern));
+        }
+        if (count != null && offset != null) {
+            sortArgs.limit(offset, count);
+        }
+        if (alpha) {
+            sortArgs.alpha();
+        }
+
+        if (order != null) {
+            switch (order.trim().toLowerCase()) {
+            case "asc":
+                sortArgs.asc();
+                break;
+            case "desc":
+                sortArgs.desc();
+                break;
+            }
+        }
+        return sortArgs;
     }
 
     protected Range<Long> buildRangeLong(boolean includeLower, long lower, long upper, boolean includeUpper) {
