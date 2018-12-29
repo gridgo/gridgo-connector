@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.joo.promise4j.Promise;
 
@@ -463,8 +464,8 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> xtrim(byte[] key, boolean approximateTrimming, long count);
 
-    public Promise<BElement, Exception> sort(java.util.function.Consumer<byte[]> channel, byte[] key, String byPattern, List<String> getPatterns, Long count,
-            Long offset, String order, boolean alpha);
+    public Promise<BElement, Exception> sort(Consumer<byte[]> channel, byte[] key, String byPattern, List<String> getPatterns, Long count, Long offset,
+            String order, boolean alpha);
 
     public Promise<BElement, Exception> zpopmax(byte[] key);
 
@@ -478,7 +479,7 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> set(byte[] key, byte[] value);
 
-    public Promise<BElement, Exception> zrange(java.util.function.Consumer<byte[]> valueConsumer, byte[] key, long start, long stop);
+    public Promise<BElement, Exception> zrange(Consumer<byte[]> valueConsumer, byte[] key, long start, long stop);
 
     public Promise<BElement, Exception> ttl(byte[] key);
 
@@ -509,8 +510,8 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> strlen(byte[] key);
 
-    public Promise<BElement, Exception> zrangebyscore(java.util.function.Consumer<byte[]> channel, byte[] key, boolean includeLower, long lower, long upper,
-            boolean includeUpper, Long offset, Long count);
+    public Promise<BElement, Exception> zrangebyscore(Consumer<byte[]> channel, byte[] key, boolean includeLower, long lower, long upper, boolean includeUpper,
+            Long offset, Long count);
 
     public Promise<BElement, Exception> zrank(byte[] key, byte[] member);
 
@@ -522,14 +523,14 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> zremrangebyscore(byte[] key, boolean includeLower, long lower, long upper, boolean includeUpper);
 
-    public Promise<BElement, Exception> zrevrange(java.util.function.Consumer<byte[]> channel, byte[] key, long start, long stop);
+    public Promise<BElement, Exception> zrevrange(Consumer<byte[]> channel, byte[] key, long start, long stop);
 
     public Promise<BElement, Exception> zrevrangeWithScores(byte[] key, long start, long stop);
 
     public Promise<BElement, Exception> zrevrangebylex(byte[] key, boolean includeLower, byte[] lower, byte[] upper, boolean includeUpper, Long offset,
             Long count);
 
-    public Promise<BElement, Exception> zrevrangebyscore(java.util.function.Consumer<byte[]> channel, byte[] key, boolean includeLower, long lower, long upper,
+    public Promise<BElement, Exception> zrevrangebyscore(Consumer<byte[]> channel, byte[] key, boolean includeLower, long lower, long upper,
             boolean includeUpper, Long offset, Long count);
 
     public Promise<BElement, Exception> zrevrank(byte[] key, byte[] member);
@@ -540,5 +541,5 @@ public interface RedisClient extends ComponentLifecycle {
 
     public Promise<BElement, Exception> zunionstore(byte[] destination, String aggregate, List<Double> weights, byte[]... keys);
 
-    public Promise<BElement, Exception> scan(java.util.function.Consumer<byte[]> channel, String cursor, Long count, String match);
+    public Promise<BElement, Exception> scan(Consumer<byte[]> channel, String cursor, Long count, String match);
 }
