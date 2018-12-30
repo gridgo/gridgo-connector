@@ -9,7 +9,7 @@ import java.util.function.Consumer;
 import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BElement;
-import io.gridgo.redis.RedisStringCommands;
+import io.gridgo.redis.command.RedisStringCommands;
 import io.gridgo.utils.PrimitiveUtils;
 import io.lettuce.core.BitFieldArgs;
 import io.lettuce.core.BitFieldArgs.OverflowType;

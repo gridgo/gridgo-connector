@@ -6,7 +6,7 @@ import java.util.List;
 import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BElement;
-import io.gridgo.redis.RedisKeysCommands;
+import io.gridgo.redis.command.RedisKeysCommands;
 import io.lettuce.core.MigrateArgs;
 import io.lettuce.core.RestoreArgs;
 import io.lettuce.core.ScanArgs;

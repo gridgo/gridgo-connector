@@ -1,4 +1,4 @@
-package io.gridgo.redis;
+package io.gridgo.redis.command;
 
 import java.util.List;
 import java.util.function.BiConsumer;

@@ -3,7 +3,7 @@ package io.gridgo.redis.lettuce.delegate;
 import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BElement;
-import io.gridgo.redis.RedisGeoCommands;
+import io.gridgo.redis.command.RedisGeoCommands;
 import io.lettuce.core.GeoArgs;
 import io.lettuce.core.GeoRadiusStoreArgs;
 import io.lettuce.core.GeoArgs.Unit;

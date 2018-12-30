@@ -7,7 +7,7 @@ import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
-import io.gridgo.redis.RedisSortedSetCommands;
+import io.gridgo.redis.command.RedisSortedSetCommands;
 import io.lettuce.core.Limit;
 import io.lettuce.core.Range;
 import io.lettuce.core.RedisFuture;

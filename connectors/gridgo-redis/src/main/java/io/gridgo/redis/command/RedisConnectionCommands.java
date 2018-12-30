@@ -1,4 +1,4 @@
-package io.gridgo.redis;
+package io.gridgo.redis.command;
 
 import org.joo.promise4j.Promise;
 
