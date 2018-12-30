@@ -13,7 +13,7 @@ import io.gridgo.connector.redis.command.RedisCommands;
 public class RedisObjectHandler extends AbstractRedisCommandHandler {
 
     public RedisObjectHandler() {
-        super("key", "db");
+        super("key");
     }
 
     @Override
