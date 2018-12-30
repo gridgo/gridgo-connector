@@ -3,7 +3,7 @@ package io.gridgo.redis.lettuce.delegate;
 import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BElement;
-import io.gridgo.redis.adapter.RedisTransactionCommands;
+import io.gridgo.redis.RedisTransactionCommands;
 import io.lettuce.core.api.async.RedisTransactionalAsyncCommands;
 
 public interface LettuceTransactionCommandsDelegate extends LettuceCommandsDelegate, RedisTransactionCommands {

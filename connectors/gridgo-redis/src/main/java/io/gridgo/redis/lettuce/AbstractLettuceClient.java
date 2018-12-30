@@ -4,8 +4,8 @@ import java.util.function.Function;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.framework.AbstractComponentLifecycle;
-import io.gridgo.redis.adapter.RedisConfig;
-import io.gridgo.redis.adapter.RedisType;
+import io.gridgo.redis.RedisConfig;
+import io.gridgo.redis.RedisType;
 import io.gridgo.redis.lettuce.delegate.LettuceCommandsDelegate;
 import io.gridgo.redis.lettuce.delegate.LettuceGeoCommandsDelegate;
 import io.gridgo.redis.lettuce.delegate.LettuceHashCommandsDelegate;
@@ -22,7 +22,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 
-public abstract class AbstractLettuceClient extends AbstractComponentLifecycle implements io.gridgo.redis.adapter.RedisClient //
+public abstract class AbstractLettuceClient extends AbstractComponentLifecycle implements io.gridgo.redis.RedisClient //
         , LettuceCommandsDelegate //
         , LettuceGeoCommandsDelegate //
         , LettuceHashCommandsDelegate //

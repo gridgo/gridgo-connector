@@ -8,10 +8,10 @@ import io.gridgo.connector.impl.AbstractConnector;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.exceptions.InvalidParamException;
 import io.gridgo.connector.support.exceptions.InvalidPlaceholderException;
-import io.gridgo.redis.adapter.RedisClient;
-import io.gridgo.redis.adapter.RedisClientFactory;
-import io.gridgo.redis.adapter.RedisConfig;
-import io.gridgo.redis.adapter.RedisType;
+import io.gridgo.redis.RedisClient;
+import io.gridgo.redis.RedisClientFactory;
+import io.gridgo.redis.RedisConfig;
+import io.gridgo.redis.RedisType;
 import io.gridgo.utils.support.HostAndPortSet;
 
 @ConnectorEndpoint(scheme = "redis", syntax = "{type}://{address}")

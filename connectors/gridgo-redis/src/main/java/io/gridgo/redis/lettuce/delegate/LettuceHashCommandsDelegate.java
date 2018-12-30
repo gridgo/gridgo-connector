@@ -5,7 +5,7 @@ import java.util.Map;
 import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BElement;
-import io.gridgo.redis.adapter.RedisHashCommands;
+import io.gridgo.redis.RedisHashCommands;
 import io.lettuce.core.api.async.RedisHashAsyncCommands;
 
 public interface LettuceHashCommandsDelegate extends LettuceCommandsDelegate, RedisHashCommands {

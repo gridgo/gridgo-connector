@@ -1,7 +1,7 @@
 package io.gridgo.redis.lettuce;
 
-import io.gridgo.redis.adapter.RedisConfig;
-import io.gridgo.redis.adapter.RedisType;
+import io.gridgo.redis.RedisConfig;
+import io.gridgo.redis.RedisType;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.api.StatefulRedisConnection;

@@ -3,7 +3,7 @@ package io.gridgo.redis.lettuce.delegate;
 import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BElement;
-import io.gridgo.redis.adapter.RedisHyperLogLogCommands;
+import io.gridgo.redis.RedisHyperLogLogCommands;
 import io.lettuce.core.api.async.RedisHLLAsyncCommands;
 
 public interface LettuceHyperLogLogCommandsDelegate extends LettuceCommandsDelegate, RedisHyperLogLogCommands {

@@ -4,8 +4,8 @@ import static io.lettuce.core.RedisURI.DEFAULT_REDIS_PORT;
 
 import java.util.Collection;
 
-import io.gridgo.redis.adapter.RedisConfig;
-import io.gridgo.redis.adapter.RedisType;
+import io.gridgo.redis.RedisConfig;
+import io.gridgo.redis.RedisType;
 import io.gridgo.redis.lettuce.delegate.LettuceClusterConnectionCommandsDelegate;
 import io.gridgo.redis.lettuce.delegate.LettuceTransactionCommandsUnsupported;
 import io.lettuce.core.RedisURI;

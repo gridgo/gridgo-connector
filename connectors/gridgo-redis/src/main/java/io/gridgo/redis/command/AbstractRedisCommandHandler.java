@@ -11,7 +11,7 @@ import io.gridgo.bean.BContainer;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
-import io.gridgo.redis.adapter.RedisClient;
+import io.gridgo.redis.RedisClient;
 import io.gridgo.utils.helper.Loggable;
 import lombok.Getter;
 import lombok.NonNull;

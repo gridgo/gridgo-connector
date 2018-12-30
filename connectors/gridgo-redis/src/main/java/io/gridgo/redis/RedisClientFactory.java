@@ -1,4 +1,4 @@
-package io.gridgo.redis.adapter;
+package io.gridgo.redis;
 
 import io.gridgo.redis.lettuce.LettuceClientFactory;
 
