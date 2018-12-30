@@ -19,12 +19,11 @@ public class RedisZrangeByScoreHandler extends AbstractRedisCommandHandler {
         super("key", "lower", "upper");
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     protected Promise<BElement, Exception> process(RedisClient redis, BObject options, BElement[] params) {
 
         BReference valueConsumerRef = options.getReference("valueConsumer", null);
-        Consumer<byte[]> channel = valueConsumerRef == null ? null : (Consumer<byte[]>) valueConsumerRef.getReference();
+        Consumer<byte[]> channel = valueConsumerRef == null ? null : valueConsumerRef.getReference();
 
         boolean includeLower = options.getBoolean("includeLower", false);
         boolean includeUpper = options.getBoolean("includeUpper", false);

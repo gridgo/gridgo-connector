@@ -1,4 +1,4 @@
-package io.gridgo.redis.command.script;
+package io.gridgo.redis.command.scripting;
 
 import org.joo.promise4j.Promise;
 
@@ -9,16 +9,12 @@ import io.gridgo.redis.command.AbstractRedisCommandHandler;
 import io.gridgo.redis.command.RedisCommand;
 import io.gridgo.redis.command.RedisCommands;
 
-@RedisCommand(RedisCommands.SCRIPT_LOAD)
-public class RedisScriptLoadHandler extends AbstractRedisCommandHandler {
-
-    public RedisScriptLoadHandler() {
-        super("script");
-    }
+@RedisCommand(RedisCommands.SCRIPT_KILL)
+public class RedisScriptKillHandler extends AbstractRedisCommandHandler {
 
     @Override
     protected Promise<BElement, Exception> process(RedisClient redis, BObject options, BElement[] params) {
-        return redis.scriptLoad(params[0].asValue().getRaw());
+        return redis.scriptKill();
     }
 
 }

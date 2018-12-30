@@ -26,7 +26,8 @@ public class RedisObjectHandler extends AbstractRedisCommandHandler {
             return redis.objectEncoding(params[0].asValue().getRaw());
         case "idletime":
             return redis.objectIdletime(params[0].asValue().getRaw());
+        default:
+            throw new IllegalArgumentException("Expect options contain sub command in subCmd or subCommand key, got: " + subCommand);
         }
-        throw new IllegalArgumentException("Expect options contain sub command in subCmd or subCommand key, got: " + subCommand);
     }
 }

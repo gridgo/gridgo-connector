@@ -1,4 +1,4 @@
-package io.gridgo.redis.command.script;
+package io.gridgo.redis.command.scripting;
 
 import org.joo.promise4j.Promise;
 
@@ -21,13 +21,11 @@ public class RedisEvalHandler extends AbstractRedisCommandHandler {
         String outputType = options.getString("scriptOutputType", "status");
         if (params.length > 1) {
             var numKeys = options.getInteger("numKeys", -1);
-            byte[][] keys, values;
+            byte[][] keys;
+            byte[][] values;
             if (numKeys < 0) {
                 values = EMPTY_BYTES_ARRAY;
-                keys = new byte[params.length - 1][];
-                for (int i = 1; i < params.length; i++) {
-                    keys[i - 1] = params[i].asValue().getRaw();
-                }
+                keys = extractListBytesFromSecond(params);
             } else {
                 keys = new byte[numKeys][];
                 values = new byte[params.length - 1 - numKeys][];
