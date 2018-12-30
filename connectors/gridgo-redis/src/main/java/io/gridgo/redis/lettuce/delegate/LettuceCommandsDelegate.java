@@ -9,13 +9,13 @@ import org.joo.promise4j.impl.CompletableDeferredObject;
 
 import io.gridgo.bean.BElement;
 import io.lettuce.core.GeoArgs;
+import io.lettuce.core.GeoArgs.Sort;
 import io.lettuce.core.GeoRadiusStoreArgs;
 import io.lettuce.core.Range;
+import io.lettuce.core.Range.Boundary;
 import io.lettuce.core.RedisFuture;
 import io.lettuce.core.SortArgs;
 import io.lettuce.core.ZStoreArgs;
-import io.lettuce.core.GeoArgs.Sort;
-import io.lettuce.core.Range.Boundary;
 
 public interface LettuceCommandsDelegate {
 

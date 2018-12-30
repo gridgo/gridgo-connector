@@ -15,8 +15,7 @@ public class AbstractRedisConsumer extends AbstractConsumer implements RedisCons
 
     private final Collection<String> topics;
 
-    protected AbstractRedisConsumer(@NonNull ConnectorContext context, @NonNull RedisClient redisClient,
-            @NonNull Collection<String> topics) {
+    protected AbstractRedisConsumer(@NonNull ConnectorContext context, @NonNull RedisClient redisClient, @NonNull Collection<String> topics) {
         super(context);
         this.redisClient = redisClient;
         this.topics = topics;

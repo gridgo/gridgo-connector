@@ -15,6 +15,7 @@ public interface LettuceConnectionCommandsDelegate extends LettuceCommandsDelega
         return getConnectionCommands().auth(password);
     }
 
+    @Override
     default String select(int db) {
         return getConnectionCommands().select(db);
     }
