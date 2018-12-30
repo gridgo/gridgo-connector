@@ -7,12 +7,12 @@ import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.AbstractProducer;
 import io.gridgo.connector.redis.RedisProducer;
-import io.gridgo.connector.redis.adapter.RedisClient;
-import io.gridgo.connector.redis.command.RedisCommandHandler;
-import io.gridgo.connector.redis.command.RedisCommands;
-import io.gridgo.connector.redis.exception.CommandHandlerNotRegisteredException;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
+import io.gridgo.redis.adapter.RedisClient;
+import io.gridgo.redis.command.RedisCommandHandler;
+import io.gridgo.redis.command.RedisCommands;
+import io.gridgo.redis.exception.CommandHandlerNotRegisteredException;
 
 public class AbstractRedisProducer extends AbstractProducer implements RedisProducer {
 

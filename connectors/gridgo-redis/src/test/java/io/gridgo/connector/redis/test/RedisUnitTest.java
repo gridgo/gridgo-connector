@@ -8,8 +8,8 @@ import org.junit.Assert;
 import io.gridgo.bean.BArray;
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
-import io.gridgo.connector.redis.command.RedisCommands;
 import io.gridgo.framework.support.Message;
+import io.gridgo.redis.command.RedisCommands;
 
 public abstract class RedisUnitTest {
 

@@ -4,8 +4,8 @@ import java.util.Collection;
 
 import io.gridgo.connector.impl.AbstractConsumer;
 import io.gridgo.connector.redis.RedisConsumer;
-import io.gridgo.connector.redis.adapter.RedisClient;
 import io.gridgo.connector.support.config.ConnectorContext;
+import io.gridgo.redis.adapter.RedisClient;
 import lombok.NonNull;
 
 @SuppressWarnings("unused")

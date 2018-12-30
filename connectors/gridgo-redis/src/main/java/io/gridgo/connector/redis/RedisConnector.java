@@ -5,13 +5,13 @@ import java.util.Collection;
 import java.util.Optional;
 
 import io.gridgo.connector.impl.AbstractConnector;
-import io.gridgo.connector.redis.adapter.RedisClient;
-import io.gridgo.connector.redis.adapter.RedisClientFactory;
-import io.gridgo.connector.redis.adapter.RedisConfig;
-import io.gridgo.connector.redis.adapter.RedisType;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 import io.gridgo.connector.support.exceptions.InvalidParamException;
 import io.gridgo.connector.support.exceptions.InvalidPlaceholderException;
+import io.gridgo.redis.adapter.RedisClient;
+import io.gridgo.redis.adapter.RedisClientFactory;
+import io.gridgo.redis.adapter.RedisConfig;
+import io.gridgo.redis.adapter.RedisType;
 import io.gridgo.utils.support.HostAndPortSet;
 
 @ConnectorEndpoint(scheme = "redis", syntax = "{type}://{address}")
