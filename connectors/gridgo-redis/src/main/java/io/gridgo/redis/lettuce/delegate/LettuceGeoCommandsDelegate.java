@@ -5,6 +5,7 @@ import org.joo.promise4j.Promise;
 import io.gridgo.bean.BElement;
 import io.gridgo.redis.command.RedisGeoCommands;
 import io.lettuce.core.GeoArgs;
+import io.lettuce.core.GeoArgs.Sort;
 import io.lettuce.core.GeoArgs.Unit;
 import io.lettuce.core.GeoRadiusStoreArgs;
 import io.lettuce.core.api.async.RedisGeoAsyncCommands;
@@ -13,6 +14,50 @@ import lombok.NonNull;
 public interface LettuceGeoCommandsDelegate extends LettuceCommandsDelegate, RedisGeoCommands {
 
     <T extends RedisGeoAsyncCommands<byte[], byte[]>> T getGeoCommands();
+
+    default GeoRadiusStoreArgs<byte[]> buildGeoRadiusStoreArgs(byte[] storeKey, byte[] storeDistKey, Long count, String sort) {
+        GeoRadiusStoreArgs<byte[]> args = (storeKey != null || storeDistKey != null || count != null || sort != null) //
+                ? new GeoRadiusStoreArgs<byte[]>() //
+                : null;
+
+        if (storeKey != null) {
+            args.withStore(storeKey);
+        }
+        if (storeDistKey != null) {
+            args.withStoreDist(storeDistKey);
+        }
+        if (count != null) {
+            args.withCount(count);
+        }
+        if (sort != null) {
+            args.sort(Sort.valueOf(sort.trim().toLowerCase()));
+        }
+        return args;
+    }
+
+    default GeoArgs buildGeoArgs(boolean withdistance, boolean withcoordinates, boolean withHash, String sort, Long count) {
+        GeoArgs geoArgs = new GeoArgs();
+        if (withdistance) {
+            geoArgs.withDistance();
+        }
+
+        if (withcoordinates) {
+            geoArgs.withCoordinates();
+        }
+
+        if (withHash) {
+            geoArgs.withHash();
+        }
+
+        if (sort != null) {
+            geoArgs.sort(Sort.valueOf(sort.trim().toLowerCase()));
+        }
+
+        if (count != null) {
+            geoArgs.withCount(count);
+        }
+        return geoArgs;
+    }
 
     @Override
     default Promise<BElement, Exception> geoadd(byte[] key, double longitude, double latitude, byte[] member) {

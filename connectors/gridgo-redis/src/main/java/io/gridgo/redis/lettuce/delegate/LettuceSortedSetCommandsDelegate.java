@@ -16,6 +16,7 @@ import io.lettuce.core.ScanCursor;
 import io.lettuce.core.StreamScanCursor;
 import io.lettuce.core.ZAddArgs;
 import io.lettuce.core.ZStoreArgs;
+import io.lettuce.core.Range.Boundary;
 import io.lettuce.core.api.async.RedisSortedSetAsyncCommands;
 import io.lettuce.core.output.ScoredValueStreamingChannel;
 import lombok.NonNull;
@@ -23,6 +24,44 @@ import lombok.NonNull;
 public interface LettuceSortedSetCommandsDelegate extends LettuceCommandsDelegate, RedisSortedSetCommands {
 
     <T extends RedisSortedSetAsyncCommands<byte[], byte[]>> T getSortedSetCommands();
+
+    default Range<Long> buildRangeLong(boolean includeLower, long lower, long upper, boolean includeUpper) {
+        Boundary<Long> lowerBoundary = includeLower ? Boundary.including(lower) : Boundary.excluding(lower);
+        Boundary<Long> upperBoundary = includeUpper ? Boundary.including(upper) : Boundary.excluding(upper);
+        return Range.from(lowerBoundary, upperBoundary);
+    }
+
+    default Range<byte[]> buildRangeBytes(boolean includeLower, byte[] lower, byte[] upper, boolean includeUpper) {
+        Boundary<byte[]> lowerBoundary = includeLower ? Boundary.including(lower) : Boundary.excluding(lower);
+        Boundary<byte[]> upperBoundary = includeUpper ? Boundary.including(upper) : Boundary.excluding(upper);
+        return Range.from(lowerBoundary, upperBoundary);
+    }
+
+    default ZStoreArgs buildZStoreArgs(String aggregate, List<Double> weights) {
+        ZStoreArgs args;
+        switch (aggregate.trim().toLowerCase()) {
+        case "min":
+            args = ZStoreArgs.Builder.min();
+            break;
+        case "max":
+            args = ZStoreArgs.Builder.max();
+            break;
+        case "sum":
+            args = ZStoreArgs.Builder.sum();
+            break;
+        default:
+            throw new IllegalArgumentException("aggregate value should be null or one of [min | max | sum], got: " + aggregate);
+        }
+
+        if (weights != null) {
+            double[] _weights = new double[weights.size()];
+            for (int i = 0; i < _weights.length; i++) {
+                _weights[i] = weights.get(i);
+            }
+            args.weights(_weights);
+        }
+        return args;
+    }
 
     @Override
     default Promise<BElement, Exception> bzpopmin(long timeout, byte[]... keys) {

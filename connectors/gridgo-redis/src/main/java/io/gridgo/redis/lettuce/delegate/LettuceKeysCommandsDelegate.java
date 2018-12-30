@@ -18,6 +18,32 @@ public interface LettuceKeysCommandsDelegate extends LettuceCommandsDelegate, Re
 
     <T extends RedisKeyAsyncCommands<byte[], byte[]>> T getKeysCommands();
 
+    default SortArgs buildSortArgs(String byPattern, List<String> getPatterns, Long count, Long offset, String order, boolean alpha) {
+        SortArgs sortArgs = new SortArgs();
+        sortArgs.by(byPattern);
+        if (getPatterns != null) {
+            getPatterns.forEach(pattern -> sortArgs.get(pattern));
+        }
+        if (count != null && offset != null) {
+            sortArgs.limit(offset, count);
+        }
+        if (alpha) {
+            sortArgs.alpha();
+        }
+
+        if (order != null) {
+            switch (order.trim().toLowerCase()) {
+            case "asc":
+                sortArgs.asc();
+                break;
+            case "desc":
+                sortArgs.desc();
+                break;
+            }
+        }
+        return sortArgs;
+    }
+
     @Override
     default Promise<BElement, Exception> dump(byte[] key) {
         return toPromise(getKeysCommands().dump(key));
