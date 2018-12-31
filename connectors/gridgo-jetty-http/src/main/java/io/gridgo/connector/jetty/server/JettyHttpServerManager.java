@@ -1,7 +1,5 @@
 package io.gridgo.connector.jetty.server;
 
-import java.util.Collection;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
@@ -11,7 +9,9 @@ import io.gridgo.utils.ThreadUtils;
 import io.gridgo.utils.support.HostAndPort;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class JettyHttpServerManager {
 
     @Getter
@@ -26,12 +26,11 @@ public class JettyHttpServerManager {
     }
 
     private void onShutdown() {
-        Collection<JettyHttpServer> runningServers = new LinkedList<>(servers.values());
-        for (JettyHttpServer server : runningServers) {
+        for (JettyHttpServer server : servers.values()) {
             try {
                 server.stop();
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("Exception caught while shutting down Jetty HTTP server", e);
             }
         }
     }
@@ -55,7 +54,7 @@ public class JettyHttpServerManager {
 
     public JettyHttpServer getOrCreateJettyServer(@NonNull HostAndPort originAddress, boolean http2Enabled,
             Set<JettyServletContextHandlerOption> options) {
-        HostAndPort address = originAddress.makeCopy();
+        var address = originAddress.makeCopy();
         if (!address.isResolvable()) {
             throw new RuntimeException("Host '" + originAddress.getHost() + "' cannot be resolved");
         }
@@ -68,19 +67,14 @@ public class JettyHttpServerManager {
             address.setHost("localhost");
         }
 
-        JettyHttpServer jettyHttpServer = servers.get(address);
-        if (jettyHttpServer == null) {
-            HostAndPort allInterface = HostAndPort.newInstance(ALL_INTERFACE_HOST, address.getPort());
-            jettyHttpServer = servers.get(allInterface);
-            if (jettyHttpServer == null) {
-                synchronized (this.servers) {
-                    if (!this.servers.containsKey(address) && !this.servers.containsKey(allInterface)) {
-                        jettyHttpServer = new JettyHttpServer(address, http2Enabled, options, this::onServerStop);
-                        this.servers.put(address, jettyHttpServer);
-                    }
-                }
-            }
-        }
-        return jettyHttpServer;
+        var jettyHttpServer = servers.get(address);
+        if (jettyHttpServer != null)
+            return jettyHttpServer;
+        var allInterface = HostAndPort.newInstance(ALL_INTERFACE_HOST, address.getPort());
+        jettyHttpServer = servers.get(allInterface);
+        if (jettyHttpServer != null)
+            return jettyHttpServer;
+        return this.servers.computeIfAbsent(address,
+                key -> new JettyHttpServer(address, http2Enabled, options, this::onServerStop));
     }
 }

@@ -35,13 +35,17 @@ public class SocketConnector extends AbstractConnector implements Connector {
     public static final int DEFAULT_MAX_BATCH_SIZE = 1000;
 
     private String address;
+
     private SocketOptions options;
+
     private final SocketFactory factory;
 
     private boolean batchingEnabled = false;
+
     private int maxBatchSize = DEFAULT_MAX_BATCH_SIZE;
 
     private int bufferSize = DEFAULT_BUFFER_SIZE;
+
     private int ringBufferSize = DEFAULT_RINGBUFFER_SIZE;
 
     protected SocketConnector(SocketFactory factory) {
@@ -118,6 +122,7 @@ public class SocketConnector extends AbstractConnector implements Connector {
                 throw new InvalidPlaceholderException("Invalid pair socket role, expected 'connect' or 'bind'");
             }
             break;
+        default:
         }
         this.producer = Optional.ofNullable(p);
         this.consumer = Optional.ofNullable(c);

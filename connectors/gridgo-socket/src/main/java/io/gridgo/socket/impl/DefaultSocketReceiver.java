@@ -106,6 +106,7 @@ public class DefaultSocketReceiver extends AbstractConsumer
             this.stopDoneTrigger.await();
             this.stopDoneTrigger = null;
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException("Await for stopped error", e);
         }
     }

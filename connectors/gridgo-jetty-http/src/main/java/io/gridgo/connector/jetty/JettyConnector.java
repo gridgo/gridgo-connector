@@ -13,6 +13,8 @@ import io.gridgo.utils.support.HostAndPort;
 @ConnectorEndpoint(scheme = "jetty", syntax = "http://{host}[:{port}][/{path}]")
 public class JettyConnector extends AbstractConnector {
 
+    private static final String FALSE = "false";
+
     @Override
     protected void onInit() {
         String host = getPlaceholder("host");
@@ -38,19 +40,19 @@ public class JettyConnector extends AbstractConnector {
     private Set<JettyServletContextHandlerOption> readOptions() {
         Set<JettyServletContextHandlerOption> options = new HashSet<>();
 
-        if (Boolean.parseBoolean(getParam("session", "false"))) {
+        if (Boolean.parseBoolean(getParam("session", FALSE))) {
             options.add(JettyServletContextHandlerOption.SESSIONS);
         } else {
             options.add(JettyServletContextHandlerOption.NO_SESSIONS);
         }
 
-        if (Boolean.parseBoolean(getParam("security", "false"))) {
+        if (Boolean.parseBoolean(getParam("security", FALSE))) {
             options.add(JettyServletContextHandlerOption.SECURITY);
         } else {
             options.add(JettyServletContextHandlerOption.NO_SECURITY);
         }
 
-        if (Boolean.parseBoolean(getParam("gzip", "false"))) {
+        if (Boolean.parseBoolean(getParam("gzip", FALSE))) {
             options.add(JettyServletContextHandlerOption.GZIP);
         }
 

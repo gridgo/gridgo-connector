@@ -7,7 +7,7 @@ import java.nio.channels.FileChannel;
 
 import lombok.Getter;
 
-public class NoLimitStrategy implements FileLimitStrategy {
+public class NoLimitStrategy extends AbstractFileLimitStrategy {
 
     private String path;
 
@@ -39,7 +39,7 @@ public class NoLimitStrategy implements FileLimitStrategy {
     public void start() throws IOException {
         this.file = new File(path);
         if (deleteOnStartup)
-            this.file.delete();
+            deleteFile(file);
         this.raf = new RandomAccessFile(file, mode);
         this.fileChannel = raf.getChannel();
         if (!override)
@@ -50,7 +50,7 @@ public class NoLimitStrategy implements FileLimitStrategy {
     public void stop() throws IOException {
         this.raf.close();
         if (deleteOnShutdown)
-            this.file.delete();
+            deleteFile(file);
     }
 
     @Override

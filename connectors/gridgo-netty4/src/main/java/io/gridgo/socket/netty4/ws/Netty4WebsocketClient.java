@@ -76,6 +76,7 @@ public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements
                 this.getChannelOpenCallback().run();
             }
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException("Waiting for handshake error", e);
         }
     }

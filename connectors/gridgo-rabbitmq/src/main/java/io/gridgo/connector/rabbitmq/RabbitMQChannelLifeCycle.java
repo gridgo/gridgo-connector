@@ -6,6 +6,7 @@ import java.util.concurrent.TimeoutException;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 
+import io.gridgo.connector.rabbitmq.support.exceptions.ChannelException;
 import io.gridgo.utils.helper.Loggable;
 
 public interface RabbitMQChannelLifeCycle extends Loggable {
@@ -31,7 +32,7 @@ public interface RabbitMQChannelLifeCycle extends Loggable {
 
             return channel;
         } catch (Exception e) {
-            throw new RuntimeException("Init channel error", e);
+            throw new ChannelException("Init channel error", e);
         }
     }
 
@@ -39,7 +40,7 @@ public interface RabbitMQChannelLifeCycle extends Loggable {
         try {
             getChannel().close();
         } catch (IOException | TimeoutException e) {
-            throw new RuntimeException("Close channel error", e);
+            throw new ChannelException("Close channel error", e);
         }
     }
 }

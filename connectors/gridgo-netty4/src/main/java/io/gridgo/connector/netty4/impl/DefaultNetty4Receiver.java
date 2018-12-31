@@ -1,5 +1,7 @@
 package io.gridgo.connector.netty4.impl;
 
+import static io.gridgo.connector.netty4.Netty4Constant.MISC_SOCKET_MSG_TYPE;
+
 import java.util.function.Function;
 
 import org.joo.promise4j.Deferred;
@@ -75,15 +77,15 @@ public class DefaultNetty4Receiver extends AbstractReceiver implements FailureHa
     }
 
     private void onConnectionOpened() {
-        this.publishMessage(this.createMessage().addMisc("socketMessageType", "open"));
+        this.publishMessage(this.createMessage().addMisc(MISC_SOCKET_MSG_TYPE, "open"));
     }
 
     private void onReceive(BElement element) {
-        this.publishMessage(this.parseMessage(element).addMisc("socketMessageType", "message"));
+        this.publishMessage(this.parseMessage(element).addMisc(MISC_SOCKET_MSG_TYPE, "message"));
     }
 
     private void onConnectionClosed() {
-        this.publishMessage(this.createMessage().addMisc("socketMessageType", "close"));
+        this.publishMessage(this.createMessage().addMisc(MISC_SOCKET_MSG_TYPE, "close"));
 
         this.socketClient.setChannelCloseCallback(null);
         this.socketClient.setFailureHandler(null);

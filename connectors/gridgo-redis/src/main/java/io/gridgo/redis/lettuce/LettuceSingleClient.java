@@ -22,7 +22,8 @@ import io.lettuce.core.api.async.RedisStringAsyncCommands;
 import io.lettuce.core.api.async.RedisTransactionalAsyncCommands;
 
 @SuppressWarnings("unchecked")
-public class LettuceSingleClient extends AbstractLettuceClient implements LettuceTransactionCommandsDelegate, LettuceConnectionCommandsDelegate {
+public class LettuceSingleClient extends AbstractLettuceClient
+        implements LettuceTransactionCommandsDelegate, LettuceConnectionCommandsDelegate {
 
     private StatefulRedisConnection<byte[], byte[]> connection;
 
@@ -52,8 +53,7 @@ public class LettuceSingleClient extends AbstractLettuceClient implements Lettuc
             builder.withDatabase(config.getDatabase());
         }
 
-        StatefulRedisConnection<byte[], byte[]> connection = RedisClient.create(builder.build()).connect(this.getCodec());
-        return connection;
+        return RedisClient.create(builder.build()).connect(this.getCodec());
     }
 
     @Override

@@ -2,8 +2,6 @@ package io.gridgo.redis.lettuce;
 
 import static io.lettuce.core.RedisURI.DEFAULT_REDIS_PORT;
 
-import java.util.Collection;
-
 import io.gridgo.redis.RedisConfig;
 import io.gridgo.redis.RedisType;
 import io.gridgo.redis.lettuce.delegate.LettuceClusterConnectionCommandsDelegate;
@@ -23,7 +21,8 @@ import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
 import io.lettuce.core.cluster.api.async.RedisClusterAsyncCommands;
 
 @SuppressWarnings("unchecked")
-public class LettuceClusterClient extends AbstractLettuceClient implements LettuceClusterConnectionCommandsDelegate, LettuceTransactionCommandsUnsupported {
+public class LettuceClusterClient extends AbstractLettuceClient
+        implements LettuceClusterConnectionCommandsDelegate, LettuceTransactionCommandsUnsupported {
 
     private RedisAdvancedClusterAsyncCommands<byte[], byte[]> commands;
 
@@ -33,9 +32,9 @@ public class LettuceClusterClient extends AbstractLettuceClient implements Lettu
 
     @Override
     protected void onStart() {
-        RedisConfig config = this.getConfig();
+        var config = this.getConfig();
 
-        Collection<RedisURI> uris = config.getAddress().convert(hostAndPort -> {
+        var uris = config.getAddress().convert(hostAndPort -> {
             RedisURI uri = RedisURI.create(hostAndPort.getHost(), hostAndPort.getPortOrDefault(DEFAULT_REDIS_PORT));
 
             if (config.getPassword() != null) {
@@ -49,7 +48,7 @@ public class LettuceClusterClient extends AbstractLettuceClient implements Lettu
             return uri;
         });
 
-        RedisClusterClient client = RedisClusterClient.create(uris);
+        var client = RedisClusterClient.create(uris);
         this.commands = client.connect(this.getCodec()).async();
     }
 

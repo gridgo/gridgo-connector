@@ -41,7 +41,9 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
     private Receiver receiver;
 
     private final SocketFactory factory;
+
     private final SocketOptions options;
+
     private final String address;
 
     private Socket socket;
@@ -91,6 +93,7 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
             }
             this.setReceiver(new DefaultSocketReceiver(getContext(), this.socket, bufferSize, getUniqueIdentifier()));
             break;
+        default:
         }
         super.onStart();
     }
@@ -113,10 +116,9 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
     protected void executeSendOnSingleThread(Message message) throws Exception {
         buffer.clear();
         if (options.getType().equalsIgnoreCase("pub")) {
-            if (message.getRoutingId().isPresent()) {
-                BValue routingId = message.getRoutingId().get();
-                buffer.put(routingId.getRaw());
-            }
+            message.getRoutingId() //
+                   .map(BValue::getRaw) //
+                   .ifPresent(buffer::put);
             buffer.put(ZERO_BYTE);
         }
 

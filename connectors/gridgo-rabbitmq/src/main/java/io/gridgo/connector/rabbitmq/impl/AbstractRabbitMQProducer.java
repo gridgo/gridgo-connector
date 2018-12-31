@@ -1,7 +1,6 @@
 package io.gridgo.connector.rabbitmq.impl;
 
 import java.util.Map;
-import java.util.Optional;
 
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
 import org.joo.promise4j.Deferred;
@@ -78,8 +77,8 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
     }
 
     private void _send(final Message request, final Deferred<Message, Exception> deferred) {
-        final Optional<BValue> routingId = request.getRoutingId();
-        final String routingKey = routingId == null ? null : routingId.orElse(BValue.ofEmpty()).getString();
+        var routingId = request.getRoutingId();
+        var routingKey = routingId.orElse(BValue.ofEmpty()).getString();
         var strategy = getContext().getProducerExecutionStrategy().orElse(DEFAULT_EXECUTION_STRATEGY);
 
         strategy.execute(() -> {
@@ -97,48 +96,46 @@ public abstract class AbstractRabbitMQProducer extends AbstractProducer implemen
 
     @Override
     public final Promise<Message, Exception> sendWithAck(@NonNull Message message) {
-        Deferred<Message, Exception> deferred = new AsyncDeferredObject<>();
+        var deferred = new AsyncDeferredObject<Message, Exception>();
         this._send(message, deferred);
         return deferred.promise();
     }
 
     private void onResponse(String consumerTag, Delivery delivery) {
-        String id = delivery.getProperties().getCorrelationId();
-        Deferred<Message, Exception> deferred = this.correlationIdToDeferredMap.get(id);
-        if (deferred != null) {
-            getContext().getCallbackInvokerStrategy().execute(() -> {
-                Message result = null;
-                try {
-                    result = Message.parse(delivery.getBody());
-                } catch (Exception e) {
-                    deferred.reject(e);
-                }
-                if (result != null) {
-                    deferred.resolve(result);
-                }
-            });
-        }
+        var id = delivery.getProperties().getCorrelationId();
+        var deferred = this.correlationIdToDeferredMap.get(id);
+        if (deferred == null)
+            return;
+        getContext().getCallbackInvokerStrategy().execute(() -> {
+            try {
+                var result = Message.parse(delivery.getBody());
+                deferred.resolve(result);
+            } catch (Exception e) {
+                deferred.reject(e);
+            }
+        });
     }
 
     @Override
     public final Promise<Message, Exception> call(Message request) {
         if (this.queueConfig.isRpc()) {
 
-            Optional<BValue> routingId = request.getRoutingId();
-            String routingKey = routingId.isPresent() ? routingId.get().getString() : null;
+            var routingId = request.getRoutingId();
+            var routingKey = routingId.isPresent() ? routingId.get().getString() : null;
 
-            final String corrId = TIME_BASED_ID_GENERATOR.generateId().get().getString();
-            final BasicProperties props = createBasicProperties(corrId);
-            byte[] bytes = buildRequestBody(request.getPayload());
+            var corrId = TIME_BASED_ID_GENERATOR.generateId().orElseThrow().getString();
+            var props = createBasicProperties(corrId);
+            var bytes = buildRequestBody(request.getPayload());
 
-            final Deferred<Message, Exception> deferred = createDeferred();
+            var deferred = createDeferred();
 
             this.correlationIdToDeferredMap.put(corrId, deferred);
             deferred.promise().always((status, message, ex) -> {
                 correlationIdToDeferredMap.remove(corrId);
             });
 
-            var strategy = getContext().getProducerExecutionStrategy().orElse(DEFAULT_EXECUTION_STRATEGY);
+            var strategy = getContext().getProducerExecutionStrategy() //
+                                       .orElse(DEFAULT_EXECUTION_STRATEGY);
             strategy.execute(() -> {
                 try {
                     this.publish(bytes, props, routingKey);

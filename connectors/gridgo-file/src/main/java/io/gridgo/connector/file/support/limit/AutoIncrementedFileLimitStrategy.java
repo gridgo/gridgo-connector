@@ -8,7 +8,7 @@ import java.util.LinkedList;
 
 import lombok.Getter;
 
-public class AutoIncrementedFileLimitStrategy implements FileLimitStrategy {
+public class AutoIncrementedFileLimitStrategy extends AbstractFileLimitStrategy {
 
     private String basePath;
 
@@ -72,7 +72,7 @@ public class AutoIncrementedFileLimitStrategy implements FileLimitStrategy {
 
     private void deleteFiles() {
         for (var file : fileList) {
-            file.delete();
+            deleteFile(file);
         }
     }
 
@@ -88,7 +88,7 @@ public class AutoIncrementedFileLimitStrategy implements FileLimitStrategy {
         closeFile();
         var last = this.fileList.size();
         var file = new File(basePath + "." + last);
-        file.delete();
+        deleteFile(file);
         this.fileList.add(file);
         resetFile();
     }

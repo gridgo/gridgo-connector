@@ -32,6 +32,7 @@ public abstract class BaseSocketFactory extends AbstractSocketFactory {
             case "pair":
                 socket = this.createPairSocket();
                 break;
+            default:
             }
         }
 

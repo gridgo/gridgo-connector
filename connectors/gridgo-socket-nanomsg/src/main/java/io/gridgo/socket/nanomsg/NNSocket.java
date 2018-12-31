@@ -109,6 +109,7 @@ public class NNSocket extends AbstractSocket {
         case "sndprio":
             success = this.applyConfig(nanomsg.NN_SNDPRIO, PrimitiveUtils.getIntegerValueFrom(value));
             break;
+        default:
         }
 
         if (success) {

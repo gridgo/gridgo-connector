@@ -45,7 +45,7 @@ public class SocketUtils {
             Consumer<Throwable> exceptionHandler, //
             Consumer<CountDownLatch> doneSignalOutput) {
 
-        final CountDownLatch doneSignal = new CountDownLatch(1);
+        var doneSignal = new CountDownLatch(1);
 
         if (doneSignalOutput != null) {
             doneSignalOutput.accept(doneSignal);
@@ -56,45 +56,54 @@ public class SocketUtils {
             int rc = socket.receive(buffer);
 
             if (rc < 0) {
-                if (Thread.currentThread().isInterrupted()) {
+                if (Thread.currentThread().isInterrupted())
                     break;
-                }
             } else {
-                recvByteCounter.accept(rc);
-
-                Message message = null;
-                try {
-                    buffer.flip();
-                    if (skipTopicHeader) {
-                        byte b = buffer.get();
-                        while (b != 0) {
-                            b = buffer.get();
-                        }
-                    }
-
-                    message = Message.parse(buffer);
-                    BObject headers = message.getPayload().getHeaders();
-                    if (headers != null && headers.getBoolean(SocketConstants.IS_BATCH, false)) {
-                        BArray subMessages = message.getPayload().getBody().asArray();
-                        recvMsgCounter.accept(headers.getInteger(SocketConstants.BATCH_SIZE, subMessages.size()));
-                        for (BElement payload : subMessages) {
-                            Message subMessage = Message.parse(payload);
-                            receiver.accept(subMessage);
-                        }
-                    } else {
-                        recvMsgCounter.accept(1);
-                        receiver.accept(message);
-                    }
-                } catch (Exception e) {
-                    if (exceptionHandler != null) {
-                        exceptionHandler.accept(e);
-                    } else {
-                        log.error("Error while parse buffer to message", e);
-                    }
-                }
+                process(buffer, skipTopicHeader, receiver, recvByteCounter, recvMsgCounter, exceptionHandler, rc);
             }
         }
 
         doneSignal.countDown();
+    }
+
+    private static void process(ByteBuffer buffer, boolean skipTopicHeader, Consumer<Message> receiver,
+            Consumer<Integer> recvByteCounter, Consumer<Integer> recvMsgCounter, Consumer<Throwable> exceptionHandler,
+            int rc) {
+        recvByteCounter.accept(rc);
+
+        try {
+            buffer.flip();
+            if (skipTopicHeader) {
+                byte b = buffer.get();
+                while (b != 0) {
+                    b = buffer.get();
+                }
+            }
+
+            var message = Message.parse(buffer);
+            BObject headers = message.getPayload().getHeaders();
+            if (headers != null && headers.getBoolean(SocketConstants.IS_BATCH, false)) {
+                processBatch(receiver, recvMsgCounter, message, headers);
+            } else {
+                recvMsgCounter.accept(1);
+                receiver.accept(message);
+            }
+        } catch (Exception e) {
+            if (exceptionHandler != null) {
+                exceptionHandler.accept(e);
+            } else {
+                log.error("Error while parse buffer to message", e);
+            }
+        }
+    }
+
+    private static void processBatch(Consumer<Message> receiver, Consumer<Integer> recvMsgCounter, Message message,
+            BObject headers) {
+        var subMessages = message.getPayload().getBody().asArray();
+        recvMsgCounter.accept(headers.getInteger(SocketConstants.BATCH_SIZE, subMessages.size()));
+        for (BElement payload : subMessages) {
+            var subMessage = Message.parse(payload);
+            receiver.accept(subMessage);
+        }
     }
 }

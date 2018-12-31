@@ -28,7 +28,9 @@ public class DefaultSocketConsumer extends AbstractHasResponderConsumer implemen
     private final int bufferSize;
 
     private final SocketFactory factory;
+
     private final SocketOptions options;
+
     private final String address;
 
     private CountDownLatch stopDoneTrigger;
@@ -53,6 +55,7 @@ public class DefaultSocketConsumer extends AbstractHasResponderConsumer implemen
                 this.stopDoneTrigger.await();
                 this.stopDoneTrigger = null;
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 throw new RuntimeException("error while waiting for stopped", e);
             }
         }
@@ -101,6 +104,7 @@ public class DefaultSocketConsumer extends AbstractHasResponderConsumer implemen
             this.setResponder(new DefaultSocketResponder(getContext(), socket, bufferSize, 1024, batchingEnabled,
                     maxBatchSize, this.getUniqueIdentifier()));
             break;
+        default:
         }
         return socket;
     }

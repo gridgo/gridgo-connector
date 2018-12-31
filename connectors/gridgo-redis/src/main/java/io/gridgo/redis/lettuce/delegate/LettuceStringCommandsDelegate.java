@@ -4,7 +4,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
-import java.util.function.Consumer;
 
 import org.joo.promise4j.Promise;
 
@@ -37,94 +36,106 @@ public interface LettuceStringCommandsDelegate extends LettuceCommandsDelegate, 
     @Override
     default Promise<BElement, Exception> bitfield(byte[] key, String overflow, Object... subCommandAndArgs) {
         final BitFieldArgs bitFieldArgs = new BitFieldArgs();
-        if (overflow != null) {
+        if (overflow != null)
             bitFieldArgs.overflow(OverflowType.valueOf(overflow.trim().toUpperCase()));
+        if (subCommandAndArgs == null || subCommandAndArgs.length == 0)
+            return toPromise(getStringCommands().bitfield(key, bitFieldArgs));
+        var stack = new Stack<>();
+        for (int i = subCommandAndArgs.length - 1; i >= 0; i--) {
+            stack.push(subCommandAndArgs[i]);
         }
-        if (subCommandAndArgs != null && subCommandAndArgs.length > 0) {
-            Stack<Object> stack = new Stack<>();
-            for (int i = subCommandAndArgs.length - 1; i >= 0; i--) {
-                stack.push(subCommandAndArgs[i]);
-            }
 
-            List<Object> cmdAndArgs = new LinkedList<>();
-            Consumer<List<Object>> processGetSubCmd = (_cmdAndArgs) -> {
-                String cmd = _cmdAndArgs.remove(0).toString();
-                switch (cmd.trim().toLowerCase()) {
-                case "get":
-                    if (_cmdAndArgs.size() == 2) {
-                        String type = _cmdAndArgs.remove(0).toString();
-                        int bits = Integer.valueOf(type.substring(1));
-                        int offset = PrimitiveUtils.getIntegerValueFrom(_cmdAndArgs.remove(0));
-                        if (type.startsWith("u")) {
-                            bitFieldArgs.get(BitFieldArgs.unsigned(bits), offset);
-                        } else {
-                            bitFieldArgs.get(BitFieldArgs.signed(bits), offset);
-                        }
-                    } else if (_cmdAndArgs.size() == 1) {
-                        int offset = PrimitiveUtils.getIntegerValueFrom(_cmdAndArgs.remove(0));
-                        bitFieldArgs.get(offset);
-                    } else if (_cmdAndArgs.size() == 0) {
-                        bitFieldArgs.get();
-                    }
-                    break;
-                case "set":
-                    if (_cmdAndArgs.size() == 3) {
-                        String type = _cmdAndArgs.remove(0).toString();
-                        int bits = Integer.valueOf(type.substring(1));
-                        int offset = PrimitiveUtils.getIntegerValueFrom(_cmdAndArgs.remove(0));
-                        long value = PrimitiveUtils.getLongValueFrom(_cmdAndArgs.remove(0));
-                        if (type.startsWith("u")) {
-                            bitFieldArgs.set(BitFieldArgs.unsigned(bits), offset, value);
-                        } else {
-                            bitFieldArgs.set(BitFieldArgs.signed(bits), offset, value);
-                        }
-                    } else if (_cmdAndArgs.size() == 2) {
-                        int offset = PrimitiveUtils.getIntegerValueFrom(_cmdAndArgs.remove(0));
-                        long value = PrimitiveUtils.getLongValueFrom(_cmdAndArgs.remove(0));
-                        bitFieldArgs.set(offset, value);
-                    } else if (_cmdAndArgs.size() == 1) {
-                        long value = PrimitiveUtils.getLongValueFrom(_cmdAndArgs.remove(0));
-                        bitFieldArgs.set(value);
-                    }
-                    break;
-                case "incrby":
-                    if (_cmdAndArgs.size() == 3) {
-                        String type = _cmdAndArgs.remove(0).toString();
-                        int bits = Integer.valueOf(type.substring(1));
-                        int offset = PrimitiveUtils.getIntegerValueFrom(_cmdAndArgs.remove(0));
-                        long value = PrimitiveUtils.getLongValueFrom(_cmdAndArgs.remove(0));
-                        if (type.startsWith("u")) {
-                            bitFieldArgs.incrBy(BitFieldArgs.unsigned(bits), offset, value);
-                        } else {
-                            bitFieldArgs.incrBy(BitFieldArgs.signed(bits), offset, value);
-                        }
-                    } else if (_cmdAndArgs.size() == 2) {
-                        int offset = PrimitiveUtils.getIntegerValueFrom(_cmdAndArgs.remove(0));
-                        long value = PrimitiveUtils.getLongValueFrom(_cmdAndArgs.remove(0));
-                        bitFieldArgs.incrBy(offset, value);
-                    } else if (_cmdAndArgs.size() == 1) {
-                        long value = PrimitiveUtils.getLongValueFrom(_cmdAndArgs.remove(0));
-                        bitFieldArgs.incrBy(value);
-                    }
-                    break;
-                }
-            };
-            while (!stack.isEmpty()) {
-                Object head = stack.pop();
-                if (cmdAndArgs.isEmpty()) {
-                    cmdAndArgs.add(head);
-                } else {
-                    // process cmdAndArgs
-                    processGetSubCmd.accept(cmdAndArgs);
-                    // renew cmdAndArgs
-                    cmdAndArgs = new LinkedList<>();
-                }
-            }
-            if (cmdAndArgs.size() > 0) {
-                processGetSubCmd.accept(cmdAndArgs);
+        var cmdAndArgs = new LinkedList<>();
+        while (!stack.isEmpty()) {
+            var head = stack.pop();
+            if (cmdAndArgs.isEmpty()) {
+                cmdAndArgs.add(head);
+            } else {
+                // process cmdAndArgs
+                processSubCommand(bitFieldArgs, cmdAndArgs);
+                // renew cmdAndArgs
+                cmdAndArgs = new LinkedList<>();
             }
         }
+        if (cmdAndArgs.size() > 0)
+            processSubCommand(bitFieldArgs, cmdAndArgs);
         return toPromise(getStringCommands().bitfield(key, bitFieldArgs));
+    }
+
+    default void processSubCommand(final BitFieldArgs bitFieldArgs, List<Object> cmdAndArgs) {
+        String cmd = cmdAndArgs.remove(0).toString();
+        switch (cmd.trim().toLowerCase()) {
+        case "get":
+            processGetCommand(bitFieldArgs, cmdAndArgs);
+            break;
+        case "set":
+            processSetCommand(bitFieldArgs, cmdAndArgs);
+            break;
+        case "incrby":
+            processIncreaseCommand(bitFieldArgs, cmdAndArgs);
+            break;
+        default:
+        }
+    }
+
+    default void processIncreaseCommand(final BitFieldArgs bitFieldArgs, List<Object> cmdAndArgs) {
+        if (cmdAndArgs.size() == 3) {
+            String type = cmdAndArgs.remove(0).toString();
+            int bits = Integer.valueOf(type.substring(1));
+            int offset = PrimitiveUtils.getIntegerValueFrom(cmdAndArgs.remove(0));
+            long value = PrimitiveUtils.getLongValueFrom(cmdAndArgs.remove(0));
+            if (type.startsWith("u")) {
+                bitFieldArgs.incrBy(BitFieldArgs.unsigned(bits), offset, value);
+            } else {
+                bitFieldArgs.incrBy(BitFieldArgs.signed(bits), offset, value);
+            }
+        } else if (cmdAndArgs.size() == 2) {
+            int offset = PrimitiveUtils.getIntegerValueFrom(cmdAndArgs.remove(0));
+            long value = PrimitiveUtils.getLongValueFrom(cmdAndArgs.remove(0));
+            bitFieldArgs.incrBy(offset, value);
+        } else if (cmdAndArgs.size() == 1) {
+            long value = PrimitiveUtils.getLongValueFrom(cmdAndArgs.remove(0));
+            bitFieldArgs.incrBy(value);
+        }
+    }
+
+    default void processSetCommand(final BitFieldArgs bitFieldArgs, List<Object> cmdAndArgs) {
+        if (cmdAndArgs.size() == 3) {
+            String type = cmdAndArgs.remove(0).toString();
+            int bits = Integer.valueOf(type.substring(1));
+            int offset = PrimitiveUtils.getIntegerValueFrom(cmdAndArgs.remove(0));
+            long value = PrimitiveUtils.getLongValueFrom(cmdAndArgs.remove(0));
+            if (type.startsWith("u")) {
+                bitFieldArgs.set(BitFieldArgs.unsigned(bits), offset, value);
+            } else {
+                bitFieldArgs.set(BitFieldArgs.signed(bits), offset, value);
+            }
+        } else if (cmdAndArgs.size() == 2) {
+            int offset = PrimitiveUtils.getIntegerValueFrom(cmdAndArgs.remove(0));
+            long value = PrimitiveUtils.getLongValueFrom(cmdAndArgs.remove(0));
+            bitFieldArgs.set(offset, value);
+        } else if (cmdAndArgs.size() == 1) {
+            long value = PrimitiveUtils.getLongValueFrom(cmdAndArgs.remove(0));
+            bitFieldArgs.set(value);
+        }
+    }
+
+    default void processGetCommand(final BitFieldArgs bitFieldArgs, List<Object> cmdAndArgs) {
+        if (cmdAndArgs.size() == 2) {
+            String type = cmdAndArgs.remove(0).toString();
+            int bits = Integer.valueOf(type.substring(1));
+            int offset = PrimitiveUtils.getIntegerValueFrom(cmdAndArgs.remove(0));
+            if (type.startsWith("u")) {
+                bitFieldArgs.get(BitFieldArgs.unsigned(bits), offset);
+            } else {
+                bitFieldArgs.get(BitFieldArgs.signed(bits), offset);
+            }
+        } else if (cmdAndArgs.size() == 1) {
+            int offset = PrimitiveUtils.getIntegerValueFrom(cmdAndArgs.remove(0));
+            bitFieldArgs.get(offset);
+        } else if (cmdAndArgs.size() == 0) {
+            bitFieldArgs.get();
+        }
     }
 
     @Override
