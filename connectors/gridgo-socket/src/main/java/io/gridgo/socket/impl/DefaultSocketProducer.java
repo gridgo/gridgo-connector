@@ -113,10 +113,9 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
     protected void executeSendOnSingleThread(Message message) throws Exception {
         buffer.clear();
         if (options.getType().equalsIgnoreCase("pub")) {
-            if (message.getRoutingId().isPresent()) {
-                BValue routingId = message.getRoutingId().get();
-                buffer.put(routingId.getRaw());
-            }
+            message.getRoutingId() //
+                   .map(BValue::getRaw) //
+                   .ifPresent(buffer::put);
             buffer.put(ZERO_BYTE);
         }
 
