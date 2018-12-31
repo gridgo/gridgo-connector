@@ -1,5 +1,7 @@
 package io.gridgo.redis.lettuce.delegate;
 
+import java.util.stream.Collectors;
+
 import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BElement;
@@ -12,7 +14,8 @@ public interface LettuceTransactionCommandsDelegate extends LettuceCommandsDeleg
 
     @Override
     default Promise<BElement, Exception> exec() {
-        return toPromise(getTransactionCommands().exec());
+        return toPromise(getTransactionCommands().exec()//
+                                                 .thenApply(list -> list.stream().map(BElement::ofAny).collect(Collectors.toList())));
     }
 
     @Override

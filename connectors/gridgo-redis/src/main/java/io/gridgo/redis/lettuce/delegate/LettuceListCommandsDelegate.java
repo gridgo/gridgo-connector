@@ -12,12 +12,14 @@ public interface LettuceListCommandsDelegate extends LettuceCommandsDelegate, Re
 
     @Override
     default Promise<BElement, Exception> blpop(long timeout, byte[]... keys) {
-        return toPromise(getListCommands().blpop(timeout, keys));
+        return toPromise(getListCommands().blpop(timeout, keys) //
+                                          .thenApply(this::keyValueToBArray));
     }
 
     @Override
     default Promise<BElement, Exception> brpop(long timeout, byte[]... keys) {
-        return toPromise(getListCommands().brpop(timeout, keys));
+        return toPromise(getListCommands().brpop(timeout, keys) //
+                                          .thenApply(this::keyValueToBArray));
     }
 
     @Override

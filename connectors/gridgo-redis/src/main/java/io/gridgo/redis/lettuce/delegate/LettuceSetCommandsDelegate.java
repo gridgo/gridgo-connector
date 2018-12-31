@@ -87,6 +87,8 @@ public interface LettuceSetCommandsDelegate extends RedisSetCommands, LettuceCom
 
     @Override
     default Promise<BElement, Exception> sscan(byte[] key) {
+        // TODO improve sscan behavior, take cursor and args, return something like
+        // "stream" or "iterator"
         return toPromise(getSetCommands().sscan(key));
     }
 

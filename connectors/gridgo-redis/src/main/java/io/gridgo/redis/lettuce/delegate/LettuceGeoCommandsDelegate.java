@@ -2,12 +2,16 @@ package io.gridgo.redis.lettuce.delegate;
 
 import org.joo.promise4j.Promise;
 
+import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
+import io.gridgo.bean.BObject;
 import io.gridgo.redis.command.RedisGeoCommands;
 import io.lettuce.core.GeoArgs;
 import io.lettuce.core.GeoArgs.Sort;
 import io.lettuce.core.GeoArgs.Unit;
+import io.lettuce.core.GeoCoordinates;
 import io.lettuce.core.GeoRadiusStoreArgs;
+import io.lettuce.core.GeoWithin;
 import io.lettuce.core.api.async.RedisGeoAsyncCommands;
 import lombok.NonNull;
 
@@ -59,6 +63,19 @@ public interface LettuceGeoCommandsDelegate extends LettuceCommandsDelegate, Red
         return geoArgs;
     }
 
+    default BArray geoCoordinatesToBArray(@NonNull GeoCoordinates coordinates) {
+        return BArray.ofSequence(coordinates.getX(), coordinates.getY());
+    }
+
+    default BObject geoWithinToBObject(@NonNull GeoWithin<byte[]> geoWithin) {
+        GeoCoordinates coordinates = geoWithin.getCoordinates();
+        return BObject.ofSequence(//
+                "coordinates", geoCoordinatesToBArray(coordinates) //
+                , "distance", geoWithin.getDistance() //
+                , "geoHash", geoWithin.getGeohash() //
+                , "member", geoWithin.getMember());
+    }
+
     @Override
     default Promise<BElement, Exception> geoadd(byte[] key, double longitude, double latitude, byte[] member) {
         return toPromise(getGeoCommands().geoadd(key, longitude, latitude, member));
@@ -71,7 +88,8 @@ public interface LettuceGeoCommandsDelegate extends LettuceCommandsDelegate, Red
 
     @Override
     default Promise<BElement, Exception> geohash(byte[] key, byte[]... members) {
-        return toPromise(getGeoCommands().geohash(key, members));
+        return toPromise(getGeoCommands().geohash(key, members) //
+                                         .thenApply(list -> this.convertList(list, value -> value.getValue())));
     }
 
     @Override
@@ -87,7 +105,8 @@ public interface LettuceGeoCommandsDelegate extends LettuceCommandsDelegate, Red
             boolean withcoordinates, boolean withHash, Long count, String sort) {
         GeoArgs geoArgs = buildGeoArgs(withdistance, withcoordinates, withHash, sort, count);
         Unit unit = Unit.valueOf(unitStr.trim().toLowerCase());
-        return toPromise(getGeoCommands().georadiusbymember(key, member, distance, unit, geoArgs));
+        return toPromise(getGeoCommands().georadiusbymember(key, member, distance, unit, geoArgs) //
+                                         .thenApply(list -> this.convertList(list, this::geoWithinToBObject)));
     }
 
     @Override
@@ -103,12 +122,14 @@ public interface LettuceGeoCommandsDelegate extends LettuceCommandsDelegate, Red
             boolean withcoordinates, boolean withHash, Long count, String sort) {
         GeoArgs geoArgs = buildGeoArgs(withdistance, withcoordinates, withHash, sort, count);
         Unit unit = Unit.valueOf(unitStr.trim().toLowerCase());
-        return toPromise(getGeoCommands().georadius(key, longitude, latitude, distance, unit, geoArgs));
+        return toPromise(getGeoCommands().georadius(key, longitude, latitude, distance, unit, geoArgs) //
+                                         .thenApply(list -> this.convertList(list, this::geoWithinToBObject)));
     }
 
     @Override
     default Promise<BElement, Exception> geopos(byte[] key, byte[]... members) {
-        return toPromise(getGeoCommands().geopos(key, members));
+        return toPromise(getGeoCommands().geopos(key, members) //
+                                         .thenApply(list -> this.convertList(list, this::geoCoordinatesToBArray)));
     }
 
     @Override

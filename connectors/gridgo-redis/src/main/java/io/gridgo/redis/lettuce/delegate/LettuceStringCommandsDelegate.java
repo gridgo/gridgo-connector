@@ -81,7 +81,7 @@ public interface LettuceStringCommandsDelegate extends LettuceCommandsDelegate, 
     default void processIncreaseCommand(final BitFieldArgs bitFieldArgs, List<Object> cmdAndArgs) {
         if (cmdAndArgs.size() == 3) {
             String type = cmdAndArgs.remove(0).toString();
-            int bits = Integer.valueOf(type.substring(1));
+            int bits = Integer.parseInt(type.substring(1));
             int offset = PrimitiveUtils.getIntegerValueFrom(cmdAndArgs.remove(0));
             long value = PrimitiveUtils.getLongValueFrom(cmdAndArgs.remove(0));
             if (type.startsWith("u")) {
@@ -102,7 +102,7 @@ public interface LettuceStringCommandsDelegate extends LettuceCommandsDelegate, 
     default void processSetCommand(final BitFieldArgs bitFieldArgs, List<Object> cmdAndArgs) {
         if (cmdAndArgs.size() == 3) {
             String type = cmdAndArgs.remove(0).toString();
-            int bits = Integer.valueOf(type.substring(1));
+            int bits = Integer.parseInt(type.substring(1));
             int offset = PrimitiveUtils.getIntegerValueFrom(cmdAndArgs.remove(0));
             long value = PrimitiveUtils.getLongValueFrom(cmdAndArgs.remove(0));
             if (type.startsWith("u")) {
@@ -123,7 +123,7 @@ public interface LettuceStringCommandsDelegate extends LettuceCommandsDelegate, 
     default void processGetCommand(final BitFieldArgs bitFieldArgs, List<Object> cmdAndArgs) {
         if (cmdAndArgs.size() == 2) {
             String type = cmdAndArgs.remove(0).toString();
-            int bits = Integer.valueOf(type.substring(1));
+            int bits = Integer.parseInt(type.substring(1));
             int offset = PrimitiveUtils.getIntegerValueFrom(cmdAndArgs.remove(0));
             if (type.startsWith("u")) {
                 bitFieldArgs.get(BitFieldArgs.unsigned(bits), offset);
@@ -220,7 +220,8 @@ public interface LettuceStringCommandsDelegate extends LettuceCommandsDelegate, 
 
     @Override
     default Promise<BElement, Exception> mget(byte[]... keys) {
-        return toPromise(getStringCommands().mget(keys));
+        return toPromise(getStringCommands().mget(keys) //
+                                            .thenApply(list -> this.convertList(list, this::keyValueToBArray)));
     }
 
     @Override

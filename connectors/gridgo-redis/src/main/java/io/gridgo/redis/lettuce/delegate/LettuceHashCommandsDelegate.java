@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.joo.promise4j.Promise;
 
+import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
 import io.gridgo.redis.command.RedisHashCommands;
 import io.lettuce.core.api.async.RedisHashAsyncCommands;
@@ -44,7 +45,8 @@ public interface LettuceHashCommandsDelegate extends LettuceCommandsDelegate, Re
 
     @Override
     default Promise<BElement, Exception> hmget(byte[] key, byte[]... fields) {
-        return toPromise(getHashCommands().hmget(key, fields));
+        return toPromise(getHashCommands().hmget(key, fields) //
+                                          .thenApply(list -> this.convertList(list, this::keyValueToBArray)));
     }
 
     @Override
@@ -54,7 +56,8 @@ public interface LettuceHashCommandsDelegate extends LettuceCommandsDelegate, Re
 
     @Override
     default Promise<BElement, Exception> hscan(byte[] key) {
-        return toPromise(getHashCommands().hscan(key));
+        return toPromise(getHashCommands().hscan(key) //
+                                          .thenApply(cursor -> BArray.ofSequence(cursor.getCursor(), cursor.getMap())));
     }
 
     @Override
