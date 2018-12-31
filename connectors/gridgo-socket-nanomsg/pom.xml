@@ -15,5 +15,12 @@
 			<artifactId>gridgo-socket</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>org.nanomsg</groupId>
+			<artifactId>nanomsg</artifactId>
+			<version>${project.version}</version>
+			<systemPath>${project.basedir}/lib/org.nanomsg.jar</systemPath>
+			<scope>system</scope>
+		</dependency>
 	</dependencies>
 </project>
