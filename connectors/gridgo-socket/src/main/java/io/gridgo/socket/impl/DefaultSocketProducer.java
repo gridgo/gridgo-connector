@@ -41,7 +41,9 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
     private Receiver receiver;
 
     private final SocketFactory factory;
+
     private final SocketOptions options;
+
     private final String address;
 
     private Socket socket;
@@ -91,6 +93,7 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
             }
             this.setReceiver(new DefaultSocketReceiver(getContext(), this.socket, bufferSize, getUniqueIdentifier()));
             break;
+        default:
         }
         super.onStart();
     }

@@ -122,6 +122,7 @@ public class SocketConnector extends AbstractConnector implements Connector {
                 throw new InvalidPlaceholderException("Invalid pair socket role, expected 'connect' or 'bind'");
             }
             break;
+        default:
         }
         this.producer = Optional.ofNullable(p);
         this.consumer = Optional.ofNullable(c);
