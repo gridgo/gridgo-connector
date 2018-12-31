@@ -7,7 +7,7 @@ import java.nio.channels.FileChannel;
 
 import lombok.Getter;
 
-public class RotatingFileLimitStrategy implements FileLimitStrategy {
+public class RotatingFileLimitStrategy extends AbstractFileLimitStrategy {
 
     private String basePath;
 
@@ -60,7 +60,7 @@ public class RotatingFileLimitStrategy implements FileLimitStrategy {
 
     private void deleteFiles() {
         for (var file : files) {
-            file.delete();
+            deleteFile(file);
         }
     }
 
@@ -104,7 +104,7 @@ public class RotatingFileLimitStrategy implements FileLimitStrategy {
             File f2 = files[i + 1];
             if (f1.exists()) {
                 if (f2.exists())
-                    f2.delete();
+                    deleteFile(f2);
                 f1.renameTo(f2);
             }
         }
