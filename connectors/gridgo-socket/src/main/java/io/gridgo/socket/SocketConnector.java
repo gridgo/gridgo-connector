@@ -1,6 +1,7 @@
 package io.gridgo.socket;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -26,7 +27,8 @@ import io.gridgo.connector.support.exceptions.MalformedEndpointException;
  */
 public class SocketConnector extends AbstractConnector implements Connector {
 
-    public static final Set<String> MULTICAST_TRANSPORTS = new HashSet<>(Arrays.asList("pgm", "epgm"));
+    public static final Set<String> MULTICAST_TRANSPORTS = //
+            Collections.unmodifiableSet(new HashSet<>(Arrays.asList("pgm", "epgm")));
 
     public static final int DEFAULT_BUFFER_SIZE = 128 * 1024;
 
