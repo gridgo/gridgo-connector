@@ -13,7 +13,7 @@ import io.gridgo.redis.command.RedisCommands;
 public class RedisGeoDistHandler extends AbstractRedisCommandHandler {
 
     public RedisGeoDistHandler() {
-        super("key", "from", "to", "unit");
+        super("key", "from", "to");
     }
 
     @Override
