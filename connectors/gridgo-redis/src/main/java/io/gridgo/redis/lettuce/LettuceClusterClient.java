@@ -17,14 +17,15 @@ import io.lettuce.core.api.async.RedisSetAsyncCommands;
 import io.lettuce.core.api.async.RedisSortedSetAsyncCommands;
 import io.lettuce.core.api.async.RedisStringAsyncCommands;
 import io.lettuce.core.cluster.RedisClusterClient;
+import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
 import io.lettuce.core.cluster.api.async.RedisClusterAsyncCommands;
 
 @SuppressWarnings("unchecked")
-public class LettuceClusterClient extends AbstractLettuceClient
-        implements LettuceClusterConnectionCommandsDelegate, LettuceTransactionCommandsUnsupported {
+public class LettuceClusterClient extends AbstractLettuceClient implements LettuceClusterConnectionCommandsDelegate, LettuceTransactionCommandsUnsupported {
 
     private RedisAdvancedClusterAsyncCommands<byte[], byte[]> commands;
+    private StatefulRedisClusterConnection<byte[], byte[]> connection;
 
     protected LettuceClusterClient(RedisConfig config) {
         super(RedisType.CLUSTER, config);
@@ -49,12 +50,13 @@ public class LettuceClusterClient extends AbstractLettuceClient
         });
 
         var client = RedisClusterClient.create(uris);
-        this.commands = client.connect(this.getCodec()).async();
+        this.connection = client.connect(this.getCodec());
+        this.commands = this.connection.async();
     }
 
     @Override
     protected void onStop() {
-
+        this.connection.close();
     }
 
     @Override
