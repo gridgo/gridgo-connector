@@ -15,7 +15,7 @@ import io.gridgo.utils.support.HostAndPort;
 @ConnectorEndpoint(scheme = "netty4", syntax = "{type}:{transport}://{host}[:{port}][/{path}]")
 public class Netty4Connector extends AbstractConnector {
 
-    public static final Collection<String> ALLOWED_TYPES = Arrays.asList("server", "client");
+    protected static final Collection<String> ALLOWED_TYPES = Arrays.asList("server", "client");
 
     private Netty4Transport transport;
     private HostAndPort host;

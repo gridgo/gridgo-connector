@@ -1,7 +1,5 @@
 package io.gridgo.connector.jetty.server;
 
-import java.util.Collection;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
