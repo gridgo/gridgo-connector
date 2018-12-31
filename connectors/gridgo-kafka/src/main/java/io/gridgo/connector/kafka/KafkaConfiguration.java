@@ -120,9 +120,6 @@ public class KafkaConfiguration {
 
     private int reconnectBackoffMaxMs = 1000;
 
-    public KafkaConfiguration() {
-    }
-
     public Properties createProducerProperties() {
         var props = new Properties();
 

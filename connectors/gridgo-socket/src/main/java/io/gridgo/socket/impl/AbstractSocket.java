@@ -45,20 +45,18 @@ public abstract class AbstractSocket implements Socket, Loggable {
 
     @Override
     public final void connect(String address) {
-        if (!this.isAlive()) {
-            if (this.startFlag.compareAndSet(false, true)) {
-                try {
-                    Endpoint endpoint = EndpointParser.parse(address);
-                    this.doConnect(endpoint);
-                    this.endpoint = endpoint;
-                    this.started = true;
-                } catch (Exception ex) {
-                    this.startFlag.set(false);
-                    throw ex;
-                }
-            }
-        } else {
+        if (this.isAlive())
             throw new IllegalStateException("Socket already started");
+        if (this.startFlag.compareAndSet(false, true)) {
+            try {
+                Endpoint endpoint = EndpointParser.parse(address);
+                this.doConnect(endpoint);
+                this.endpoint = endpoint;
+                this.started = true;
+            } catch (Exception ex) {
+                this.startFlag.set(false);
+                throw ex;
+            }
         }
     }
 
