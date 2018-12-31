@@ -79,6 +79,7 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
             try {
                 doneSignal.await();
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
             }
 
@@ -121,6 +122,7 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
         try {
             success = connectFuture.await().isSuccess();
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             deferred.reject(new RuntimeException("Error while connect to " + host, e));
             return;
         }
@@ -144,6 +146,7 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
                 this.connectFuture.channel().closeFuture().await();
             }
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             getLogger().error("Error while waiting for connectFuture tobe closed", e);
         } finally {
             loopGroup.shutdownGracefully();
@@ -197,9 +200,7 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
     @Override
     protected void onClose() throws IOException {
         if (this.getChannel().isOpen()) {
-//			System.out.println("[socket client] - closing channel actively");
             this.getChannel().close().syncUninterruptibly();
-//			System.out.println("[socket client] - channel closed");
         }
     }
 
