@@ -40,26 +40,24 @@ public abstract class AbstractHttpRequestParser implements HttpRequestParser, Lo
         BElement body;
         try {
             body = extractBody(request);
-            Message message = Message.of(Payload.of(headers, body)) //
-                                     .addMisc(HttpCommonConstants.COOKIES, request.getCookies()) //
+            var message = Message.of(Payload.of(headers, body)) //
+                                 .addMisc(HttpCommonConstants.COOKIES, request.getCookies()) //
 
-                                     .addMisc(HttpCommonConstants.LOCAL_NAME, request.getLocalName()) //
-                                     .addMisc(HttpCommonConstants.SERVER_NAME, request.getServerName()) //
-                                     .addMisc(HttpCommonConstants.SERVER_PORT, request.getServerPort()) //
+                                 .addMisc(HttpCommonConstants.LOCAL_NAME, request.getLocalName()) //
+                                 .addMisc(HttpCommonConstants.SERVER_NAME, request.getServerName()) //
+                                 .addMisc(HttpCommonConstants.SERVER_PORT, request.getServerPort()) //
 
-                                     .addMisc(HttpCommonConstants.LOCALE, request.getLocale()) //
-                                     .addMisc(HttpCommonConstants.LOCALES, request.getLocales()) //
+                                 .addMisc(HttpCommonConstants.LOCALE, request.getLocale()) //
+                                 .addMisc(HttpCommonConstants.LOCALES, request.getLocales()) //
 
-                                     .addMisc(HttpCommonConstants.USER_PRINCIPAL, request.getUserPrincipal()) //
+                                 .addMisc(HttpCommonConstants.USER_PRINCIPAL, request.getUserPrincipal()) //
             ;
-            if (options != null) {
-                if (options.contains(JettyServletContextHandlerOption.SESSIONS)) {
-                    message.addMisc(HttpCommonConstants.SESSION, request.getSession());
-                }
+            if (options != null && options.contains(JettyServletContextHandlerOption.SESSIONS)) {
+                message.addMisc(HttpCommonConstants.SESSION, request.getSession());
             }
             return message;
         } catch (Exception e) {
-            throw new RuntimeException("Error while parsing http servlet request", e);
+            throw new HttpRequestParsingException("Error while parsing http servlet request", e);
         }
 
     }
@@ -106,7 +104,7 @@ public abstract class AbstractHttpRequestParser implements HttpRequestParser, Lo
                     continue;
                 }
 
-                int idx = pair.indexOf("=");
+                int idx = pair.indexOf('=');
                 if (idx < 0) {
                     queryPairs.put(pair, "");
                 } else if (idx == 0) {

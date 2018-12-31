@@ -13,6 +13,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.LongConsumer;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletOutputStream;
@@ -214,7 +215,7 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         } else if (body instanceof BReference) {
             writeBodyBinary(body, response);
         } else {
-            takeWriter(response, (writer) -> body.writeJson(writer));
+            takeWriter(response, body::writeJson);
         }
     }
 
@@ -222,8 +223,8 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         writeBodyBinary(body, response, null);
     }
 
-    protected void writeBodyBinary(BElement body, HttpServletResponse response, Consumer<Long> contentLengthConsumer) {
-        takeOutputStream(response, (output) -> {
+    protected void writeBodyBinary(BElement body, HttpServletResponse response, LongConsumer contentLengthConsumer) {
+        takeOutputStream(response, output -> {
             var inputStream = createInputStream(body);
             if (inputStream != null) {
                 try (var is = inputStream) {
@@ -264,27 +265,35 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
     protected void writePart(String name, BElement value, MultipartEntityBuilder builder) {
         name = name == null ? "" : name;
         if (value instanceof BValue) {
-            if (value.getType() == BType.RAW) {
-                builder.addBinaryBody(name, value.asValue().getRaw());
-            } else {
-                builder.addTextBody(name, value.asValue().getString());
-            }
+            writeValue(name, value, builder);
         } else if (value instanceof BReference) {
-            var obj = value.asReference().getReference();
-            if (obj instanceof File || obj instanceof Path) {
-                var file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
-                builder.addBinaryBody(name, file);
-                return;
-            }
-            var inputStream = getInputStreamFromBody(obj);
-
-            if (inputStream != null) {
-                builder.addBinaryBody(name, inputStream);
-            } else {
-                handleException(new IllegalArgumentException("cannot make input stream from BReferrence"));
-            }
+            writeReference(name, value, builder);
         } else {
             builder.addPart(name, new StringBody(value.toJson(), ContentType.APPLICATION_JSON));
+        }
+    }
+
+    private void writeReference(String name, BElement value, MultipartEntityBuilder builder) {
+        var obj = value.asReference().getReference();
+        if (obj instanceof File || obj instanceof Path) {
+            var file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
+            builder.addBinaryBody(name, file);
+            return;
+        }
+        var inputStream = getInputStreamFromBody(obj);
+
+        if (inputStream != null) {
+            builder.addBinaryBody(name, inputStream);
+        } else {
+            handleException(new IllegalArgumentException("cannot make input stream from BReferrence"));
+        }
+    }
+
+    private void writeValue(String name, BElement value, MultipartEntityBuilder builder) {
+        if (value.getType() == BType.RAW) {
+            builder.addBinaryBody(name, value.asValue().getRaw());
+        } else {
+            builder.addTextBody(name, value.asValue().getString());
         }
     }
 
@@ -314,7 +323,7 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
             writePart(null, body, builder);
         }
 
-        takeOutputStream(response, (outstream) -> {
+        takeOutputStream(response, outstream -> {
             try {
                 HttpEntity entity = builder.build();
                 contentTypeConsumer.accept(entity.getContentType().getValue());
@@ -328,11 +337,11 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
 
     protected void writeBodyTextPlain(BElement body, HttpServletResponse response) {
         if (body instanceof BReference) {
-            writeBodyBinary(body, response, (contentLength) -> {
-                response.addHeader(HttpCommonConstants.CONTENT_LENGTH, String.valueOf(contentLength));
-            });
+            writeBodyBinary(body, response, //
+                    contentLength -> response.addHeader(HttpCommonConstants.CONTENT_LENGTH,
+                            String.valueOf(contentLength)));
         } else {
-            takeWriter(response, (writer) -> writer.write(body.toJson()));
+            takeWriter(response, writer -> writer.write(body.toJson()));
         }
     }
 

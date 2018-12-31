@@ -205,10 +205,8 @@ public class UriConnectorResolver implements ConnectorResolver {
     }
 
     private boolean isPlaceholder(char c, boolean insideBracket) {
-        if (insideBracket) {
-            if (c == ':' || c == '/')
-                return true;
-        }
+        if (insideBracket && (c == ':' || c == '/'))
+            return true;
         return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_' || c == '-' || c == '.'
                 || c == '*' || c == ',';
     }

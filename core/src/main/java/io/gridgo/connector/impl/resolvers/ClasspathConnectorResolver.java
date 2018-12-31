@@ -16,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ClasspathConnectorResolver implements ConnectorResolver {
 
-    private final static String DEFAULT_PACKAGE = "io.gridgo.connector";
+    private static final String DEFAULT_PACKAGE = "io.gridgo.connector";
 
     private Map<String, Class<? extends Connector>> classMappings = new HashMap<>();
 
@@ -39,7 +39,7 @@ public class ClasspathConnectorResolver implements ConnectorResolver {
         var connectorClasses = reflections.getSubTypesOf(Connector.class);
 
         if (connectorClasses.isEmpty()) {
-            // TODO log warning
+            log.warn("No connectors found in package {}", pkg);
             return;
         }
 

@@ -103,7 +103,7 @@ public abstract class SingleThreadSendingProducer extends AbstractProducer {
 
     }
 
-    private void _send(Message message, Deferred<Message, Exception> deferred) {
+    private void produceEvent(Message message, Deferred<Message, Exception> deferred) {
         if (!this.isStarted()) {
             return;
         }
@@ -116,7 +116,7 @@ public abstract class SingleThreadSendingProducer extends AbstractProducer {
 
     @Override
     public final void send(Message message) {
-        this._send(message, null);
+        this.produceEvent(message, null);
     }
 
     protected Deferred<Message, Exception> createDeferred() {
@@ -126,7 +126,7 @@ public abstract class SingleThreadSendingProducer extends AbstractProducer {
     @Override
     public final Promise<Message, Exception> sendWithAck(Message message) {
         var deferred = createDeferred();
-        this._send(message, deferred);
+        this.produceEvent(message, deferred);
         return deferred.promise();
     }
 }

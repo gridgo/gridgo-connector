@@ -48,9 +48,8 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
         message.attachSource(getName());
         for (var subscriber : this.subscribers) {
             try {
-                context.getCallbackInvokerStrategy().execute(() -> {
-                    notifySubscriber(message, deferred, subscriber);
-                });
+                context.getCallbackInvokerStrategy() //
+                       .execute(() -> notifySubscriber(message, deferred, subscriber));
             } catch (Exception ex) {
                 notifyErrors(deferred, ex);
             }
