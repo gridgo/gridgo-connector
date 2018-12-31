@@ -32,8 +32,8 @@ public abstract class AbstractTraceableResponder extends AbstractResponder imple
     @Override
     public void resolveTraceable(Message message, Deferred<Message, Exception> deferredAck) {
         try {
-            if (message.getRoutingId().isPresent()) {
-                long routingId = message.getRoutingId().get().getLong();
+            message.getRoutingId().ifPresentOrElse(id -> {
+                long routingId = id.getLong();
                 var deferredResponse = this.deferredResponses.get(routingId);
                 if (deferredResponse != null) {
                     deferredResponse.resolve(message);
@@ -41,9 +41,7 @@ public abstract class AbstractTraceableResponder extends AbstractResponder imple
                 } else {
                     this.ack(deferredAck, new RuntimeException("Cannot find deferred for routing id: " + routingId));
                 }
-            } else {
-                this.ack(deferredAck, new RuntimeException("Routing id must be provided"));
-            }
+            }, () -> this.ack(deferredAck, new RuntimeException("Routing id must be provided")));
         } catch (Exception e) {
             deferredAck.reject(e);
         }
