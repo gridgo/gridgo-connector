@@ -166,33 +166,7 @@ public class KafkaConsumer extends AbstractConsumer {
 
                 while (!stopped && !reConnect && !Thread.currentThread().isInterrupted()) {
 
-                    var allRecords = consumer.poll(pollDuration);
-
-                    for (var partition : allRecords.partitions()) {
-
-                        List<ConsumerRecord<Object, Object>> records = allRecords.records(partition);
-
-                        if (records.isEmpty())
-                            continue;
-
-                        Promise<Long, Exception> promise;
-
-                        if (batchProcessing) {
-                            promise = processBatchRecords(records);
-                        } else {
-                            promise = processSingleRecord(partition, records);
-                        }
-
-                        long offset = -1;
-                        try {
-                            offset = promise.get();
-                        } catch (Exception ex) {
-                            log.error("Exception caught on processing records", ex);
-                            getContext().getExceptionHandler().accept(ex);
-                            reConnect = true;
-                        }
-                        commitOffset(offset, partition);
-                    }
+                    reConnect = fetchAndProcess(reConnect, pollDuration, batchProcessing);
                 }
 
                 if (!reConnect) {
@@ -216,6 +190,37 @@ public class KafkaConsumer extends AbstractConsumer {
                 cleanUpConsumer();
             }
 
+            return reConnect;
+        }
+
+        private boolean fetchAndProcess(boolean reConnect, Duration pollDuration, boolean batchProcessing) {
+            var allRecords = consumer.poll(pollDuration);
+
+            for (var partition : allRecords.partitions()) {
+
+                List<ConsumerRecord<Object, Object>> records = allRecords.records(partition);
+
+                if (records.isEmpty())
+                    continue;
+
+                Promise<Long, Exception> promise;
+
+                if (batchProcessing) {
+                    promise = processBatchRecords(records);
+                } else {
+                    promise = processSingleRecord(partition, records);
+                }
+
+                long offset = -1;
+                try {
+                    offset = promise.get();
+                } catch (Exception ex) {
+                    log.error("Exception caught on processing records", ex);
+                    getContext().getExceptionHandler().accept(ex);
+                    reConnect = true;
+                }
+                commitOffset(offset, partition);
+            }
             return reConnect;
         }
 
