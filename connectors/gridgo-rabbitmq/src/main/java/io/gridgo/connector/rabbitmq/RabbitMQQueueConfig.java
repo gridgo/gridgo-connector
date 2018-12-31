@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class RabbitMQQueueConfig {
 
-    public static final Collection<String> EXCHANGE_TYPES = Arrays.asList("direct", "fanout", "topic", "headers");
+    protected static final Collection<String> EXCHANGE_TYPES = Arrays.asList("direct", "fanout", "topic", "headers");
 
     /**
      * exchange name, default is nameless rabbitMQ default exchange
