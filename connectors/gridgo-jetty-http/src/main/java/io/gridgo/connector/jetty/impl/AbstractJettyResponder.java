@@ -43,6 +43,7 @@ import io.gridgo.connector.jetty.JettyResponder;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
+import io.gridgo.utils.exception.RuntimeIOException;
 import io.gridgo.utils.wrapper.ByteBufferInputStream;
 import lombok.NonNull;
 
@@ -107,22 +108,7 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         BElement body = message.getPayload().getBody();
 
         var headerSetContentType = headers.getString(HttpCommonConstants.CONTENT_TYPE, null);
-        var contentType = HttpContentType.forValue(headerSetContentType);
-
-        if (contentType == null) {
-            if (body instanceof BValue) {
-                contentType = HttpContentType.DEFAULT_TEXT;
-            } else if (body instanceof BReference) {
-                var ref = body.asReference().getReference();
-                if (ref instanceof File || ref instanceof Path) {
-                    contentType = HttpContentType.forFile(ref instanceof File ? (File) ref : ((Path) ref).toFile());
-                } else {
-                    contentType = HttpContentType.DEFAULT_BINARY;
-                }
-            } else {
-                contentType = HttpContentType.DEFAULT_JSON;
-            }
-        }
+        var contentType = parseContentType(body, headerSetContentType);
 
         int statusCode = headers.getInteger(HttpCommonConstants.HEADER_STATUS, HttpStatus.OK_200.getCode());
         response.setStatus(statusCode);
@@ -136,6 +122,11 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
             headers.setAny(HttpCommonConstants.CONTENT_TYPE, contentType.getMime());
         }
 
+        sendResponse(response, headers, body, contentType);
+    }
+
+    private void sendResponse(HttpServletResponse response, BObject headers, BElement body,
+            HttpContentType contentType) {
         if (contentType != HttpContentType.MULTIPART_FORM_DATA || body == null) {
             this.writeHeaders(headers, response);
         }
@@ -160,21 +151,39 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         }
     }
 
+    private HttpContentType parseContentType(BElement body, String headerSetContentType) {
+        var contentType = HttpContentType.forValue(headerSetContentType);
+
+        if (contentType == null) {
+            if (body instanceof BValue) {
+                contentType = HttpContentType.DEFAULT_TEXT;
+            } else if (body instanceof BReference) {
+                var ref = body.asReference().getReference();
+                if (ref instanceof File || ref instanceof Path) {
+                    contentType = HttpContentType.forFile(ref instanceof File ? (File) ref : ((Path) ref).toFile());
+                } else {
+                    contentType = HttpContentType.DEFAULT_BINARY;
+                }
+            } else {
+                contentType = HttpContentType.DEFAULT_JSON;
+            }
+        }
+        return contentType;
+    }
+
     protected void takeWriter(HttpServletResponse response, Consumer<PrintWriter> writerConsumer) {
         PrintWriter writer = null;
 
         try {
             writer = response.getWriter();
         } catch (IOException e) {
-            throw new RuntimeException("Cannot get writer from HttpSerletResponse instance");
+            throw new RuntimeIOException(e);
         }
 
-        if (writer != null) {
-            try {
-                writerConsumer.accept(writer);
-            } finally {
-                writer.flush();
-            }
+        try {
+            writerConsumer.accept(writer);
+        } finally {
+            writer.flush();
         }
     }
 
@@ -185,17 +194,16 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
             outputStream = response.getOutputStream();
         } catch (IOException e) {
             handleException(e);
+            return;
         }
 
-        if (outputStream != null) {
+        try {
+            osConsumer.accept(outputStream);
+        } finally {
             try {
-                osConsumer.accept(outputStream);
-            } finally {
-                try {
-                    outputStream.flush();
-                } catch (IOException e) {
-                    handleException(e);
-                }
+                outputStream.flush();
+            } catch (IOException e) {
+                handleException(e);
             }
         }
     }
@@ -262,21 +270,13 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
                 builder.addTextBody(name, value.asValue().getString());
             }
         } else if (value instanceof BReference) {
-            final InputStream inputStream;
             var obj = value.asReference().getReference();
-            if (obj instanceof InputStream) {
-                inputStream = (InputStream) obj;
-            } else if (obj instanceof ByteBuffer) {
-                inputStream = new ByteBufferInputStream((ByteBuffer) obj);
-            } else if (obj instanceof byte[]) {
-                inputStream = new ByteArrayInputStream((byte[]) obj);
-            } else if (obj instanceof File || obj instanceof Path) {
+            if (obj instanceof File || obj instanceof Path) {
                 var file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
                 builder.addBinaryBody(name, file);
                 return;
-            } else {
-                inputStream = null;
             }
+            var inputStream = getInputStreamFromBody(obj);
 
             if (inputStream != null) {
                 builder.addBinaryBody(name, inputStream);
@@ -286,6 +286,16 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         } else {
             builder.addPart(name, new StringBody(value.toJson(), ContentType.APPLICATION_JSON));
         }
+    }
+
+    private InputStream getInputStreamFromBody(Object obj) {
+        if (obj instanceof InputStream)
+            return (InputStream) obj;
+        if (obj instanceof ByteBuffer)
+            return new ByteBufferInputStream((ByteBuffer) obj);
+        if (obj instanceof byte[])
+            return new ByteArrayInputStream((byte[]) obj);
+        return null;
     }
 
     protected void writeBodyMultipart(@NonNull BElement body, @NonNull HttpServletResponse response,
@@ -310,7 +320,7 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
                 contentTypeConsumer.accept(entity.getContentType().getValue());
                 entity.writeTo(outstream);
             } catch (IOException e) {
-                handleException(new RuntimeException("Cannot write multipart", e));
+                handleException(new RuntimeIOException(e));
             }
         });
 
