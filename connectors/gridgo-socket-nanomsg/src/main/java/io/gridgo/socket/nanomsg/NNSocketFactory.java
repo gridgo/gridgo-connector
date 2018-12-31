@@ -27,6 +27,7 @@ public class NNSocketFactory extends BaseSocketFactory {
             return createNanoSocket(nanomsg.NN_SURVEYOR);
         case "respondent":
             return createNanoSocket(nanomsg.NN_RESPONDENT);
+        default:
         }
         return null;
     }

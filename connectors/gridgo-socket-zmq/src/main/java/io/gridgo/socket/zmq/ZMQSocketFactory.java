@@ -35,6 +35,7 @@ public class ZMQSocketFactory extends BaseSocketFactory {
             return createZmqSocket(ZMQ.ROUTER);
         case "dealer":
             return createZmqSocket(ZMQ.DEALER);
+        default:
         }
         return null;
     }

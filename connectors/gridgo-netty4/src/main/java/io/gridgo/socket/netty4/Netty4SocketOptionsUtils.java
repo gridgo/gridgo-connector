@@ -43,6 +43,7 @@ public class Netty4SocketOptionsUtils {
             case "tcpnodelay":
                 bootstrap.option(ChannelOption.TCP_NODELAY, options.getBoolean("tcpNodelay"));
                 break;
+            default:
             }
         }
     }
