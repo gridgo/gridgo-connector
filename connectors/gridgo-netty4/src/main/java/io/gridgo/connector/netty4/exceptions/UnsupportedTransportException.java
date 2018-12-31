@@ -4,6 +4,10 @@ public class UnsupportedTransportException extends RuntimeException {
 
     private static final long serialVersionUID = 6304366906570241968L;
 
+    public UnsupportedTransportException() {
+        super();
+    }
+
     public UnsupportedTransportException(String message) {
         super(message);
     }
@@ -14,9 +18,5 @@ public class UnsupportedTransportException extends RuntimeException {
 
     public UnsupportedTransportException(Throwable cause) {
         super(cause);
-    }
-
-    public UnsupportedTransportException() {
-        super();
     }
 }

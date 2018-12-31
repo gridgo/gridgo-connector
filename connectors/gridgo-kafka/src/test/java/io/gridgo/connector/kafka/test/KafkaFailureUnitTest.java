@@ -30,21 +30,23 @@ public class KafkaFailureUnitTest {
     private static final double ERROR_RATE = 0.01;
 
     @ClassRule
-    public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(
-            1).withBrokerProperty("auto.create.topics.enable", "false");
+    public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(1).withBrokerProperty(
+            "auto.create.topics.enable", "false");
 
-    @Test
-    public void testConsumerWithError() {
+    private Connector createKafkaConnector(String connectString) {
+        var connector = new DefaultConnectorFactory().createConnector(connectString);
 
-        doTestConsumerWithError(
-                "&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest&pollTimeoutMs=0");
+        Assert.assertNotNull(connector);
+        Assert.assertTrue(connector instanceof KafkaConnector);
+        return connector;
     }
 
-    @Test
-    public void testMultiConsumerWithError() {
+    private String createTopic() {
+        String topicName = UUID.randomUUID().toString();
 
-        doTestConsumerWithError(
-                "&consumersCount=2&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest&pollTimeoutMs=0");
+        var kafkaTestUtils = sharedKafkaTestResource.getKafkaTestUtils();
+        kafkaTestUtils.createTopic(topicName, NUM_PARTITIONS, REPLICATION_FACTOR);
+        return topicName;
     }
 
     private void doTestConsumerWithError(String extraQuery) {
@@ -94,20 +96,10 @@ public class KafkaFailureUnitTest {
         connector.stop();
     }
 
-    private String createTopic() {
-        String topicName = UUID.randomUUID().toString();
-
-        var kafkaTestUtils = sharedKafkaTestResource.getKafkaTestUtils();
-        kafkaTestUtils.createTopic(topicName, NUM_PARTITIONS, REPLICATION_FACTOR);
-        return topicName;
-    }
-
-    private Connector createKafkaConnector(String connectString) {
-        var connector = new DefaultConnectorFactory().createConnector(connectString);
-
-        Assert.assertNotNull(connector);
-        Assert.assertTrue(connector instanceof KafkaConnector);
-        return connector;
+    private void printPace(String name, int numMessages, long elapsed) {
+        DecimalFormat df = new DecimalFormat("###,###.##");
+        System.out.println(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6) + "ms -> pace: "
+                + df.format(1e9 * numMessages / elapsed) + "ops/s");
     }
 
     private void sendTestRecords(String topicName, Producer producer, int numMessages) {
@@ -124,9 +116,15 @@ public class KafkaFailureUnitTest {
         printPace("KafkaEmbeddedProducer", numMessages, elapsed);
     }
 
-    private void printPace(String name, int numMessages, long elapsed) {
-        DecimalFormat df = new DecimalFormat("###,###.##");
-        System.out.println(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6)
-                + "ms -> pace: " + df.format(1e9 * numMessages / elapsed) + "ops/s");
+    @Test
+    public void testConsumerWithError() {
+
+        doTestConsumerWithError("&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest&pollTimeoutMs=0");
+    }
+
+    @Test
+    public void testMultiConsumerWithError() {
+
+        doTestConsumerWithError("&consumersCount=2&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest&pollTimeoutMs=0");
     }
 }

@@ -30,8 +30,7 @@ public class FileConsumer extends AbstractConsumer {
     @Getter
     private FileLimitStrategy limitStrategy;
 
-    public FileConsumer(ConnectorContext context, String path, String format, int bufferSize, boolean lengthPrepend,
-            FileLimitStrategy limitStrategy) {
+    public FileConsumer(ConnectorContext context, String path, String format, int bufferSize, boolean lengthPrepend, FileLimitStrategy limitStrategy) {
         super(context);
         this.path = path;
         this.format = format;
@@ -41,14 +40,13 @@ public class FileConsumer extends AbstractConsumer {
     }
 
     @Override
-    protected void onStart() {
-        readAndPublish();
+    protected String generateName() {
+        return "consumer.file." + path;
     }
 
-    private void readAndPublish() {
-        var engine = lengthPrepend ? new LengthPrependedFileConsumerEngine(this) : new SimpleFileConsumerEngine(this);
-        getContext().getConsumerExecutionStrategy()
-                    .ifPresentOrElse(strategy -> strategy.execute(engine::readAndPublish), engine::readAndPublish);
+    @Override
+    protected void onStart() {
+        readAndPublish();
     }
 
     @Override
@@ -56,12 +54,12 @@ public class FileConsumer extends AbstractConsumer {
         // Nothing to do here
     }
 
-    @Override
-    protected String generateName() {
-        return "consumer.file." + path;
-    }
-
     public void publishMessage(Message msg) {
         publish(msg, null);
+    }
+
+    private void readAndPublish() {
+        var engine = lengthPrepend ? new LengthPrependedFileConsumerEngine(this) : new SimpleFileConsumerEngine(this);
+        getContext().getConsumerExecutionStrategy().ifPresentOrElse(strategy -> strategy.execute(engine::readAndPublish), engine::readAndPublish);
     }
 }

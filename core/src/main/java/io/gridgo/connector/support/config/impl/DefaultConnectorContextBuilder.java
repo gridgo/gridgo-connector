@@ -29,19 +29,19 @@ public class DefaultConnectorContextBuilder implements ConnectorContextBuilder {
 
     @Override
     public ConnectorContext build() {
-        return new DefaultConnectorContext(idGenerator, registry, exceptionHandler, failureHandler,
-                callbackInvokerStrategy, consumerExecutionStrategy, producerExecutionStrategy);
+        return new DefaultConnectorContext(idGenerator, registry, exceptionHandler, failureHandler, callbackInvokerStrategy, consumerExecutionStrategy,
+                producerExecutionStrategy);
     }
 
     @Override
-    public ConnectorContextBuilder setRegistry(final @NonNull Registry registry) {
-        this.registry = registry;
+    public ConnectorContextBuilder setCallbackInvokerStrategy(final @NonNull ExecutionStrategy strategy) {
+        this.callbackInvokerStrategy = strategy;
         return this;
     }
 
     @Override
-    public ConnectorContextBuilder setIdGenerator(final @NonNull IdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+    public ConnectorContextBuilder setConsumerExecutionStrategy(final @NonNull ExecutionStrategy strategy) {
+        this.consumerExecutionStrategy = strategy;
         return this;
     }
 
@@ -58,20 +58,20 @@ public class DefaultConnectorContextBuilder implements ConnectorContextBuilder {
     }
 
     @Override
-    public ConnectorContextBuilder setCallbackInvokerStrategy(final @NonNull ExecutionStrategy strategy) {
-        this.callbackInvokerStrategy = strategy;
-        return this;
-    }
-
-    @Override
-    public ConnectorContextBuilder setConsumerExecutionStrategy(final @NonNull ExecutionStrategy strategy) {
-        this.consumerExecutionStrategy = strategy;
+    public ConnectorContextBuilder setIdGenerator(final @NonNull IdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         return this;
     }
 
     @Override
     public ConnectorContextBuilder setProducerExecutionStrategy(final @NonNull ExecutionStrategy strategy) {
         this.producerExecutionStrategy = strategy;
+        return this;
+    }
+
+    @Override
+    public ConnectorContextBuilder setRegistry(final @NonNull Registry registry) {
+        this.registry = registry;
         return this;
     }
 }

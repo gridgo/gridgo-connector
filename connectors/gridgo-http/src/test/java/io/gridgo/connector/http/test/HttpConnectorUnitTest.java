@@ -18,21 +18,6 @@ import io.netty.resolver.dns.DnsNameResolverBuilder;
 public class HttpConnectorUnitTest {
 
     @Test
-    public void testUri() {
-        String[] testCases = new String[] { //
-                "http://google.com", //
-                "http://google.com:80", //
-                "https://google.com", //
-                "https://google.com/test" //
-        };
-        for (String test : testCases) {
-            var connector = new DefaultConnectorFactory().createConnector(test);
-            Assert.assertNotNull(connector);
-            Assert.assertTrue(connector instanceof HttpConnector);
-        }
-    }
-
-    @Test
     public void testHttp() throws InterruptedException {
         var url = "https://raw.githubusercontent.com/gridgo/gridgo-connector/dungba/developing/connectors/gridgo-http/src/test/resources/test.txt?nameResolverBean=nameResolver";
         var eventLoopGroup = new NioEventLoopGroup();
@@ -110,5 +95,20 @@ public class HttpConnectorUnitTest {
             atomic.get().printStackTrace();
 
         Assert.assertNull(atomic.get());
+    }
+
+    @Test
+    public void testUri() {
+        String[] testCases = new String[] { //
+                "http://google.com", //
+                "http://google.com:80", //
+                "https://google.com", //
+                "https://google.com/test" //
+        };
+        for (String test : testCases) {
+            var connector = new DefaultConnectorFactory().createConnector(test);
+            Assert.assertNotNull(connector);
+            Assert.assertTrue(connector instanceof HttpConnector);
+        }
     }
 }

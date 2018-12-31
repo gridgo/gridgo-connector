@@ -15,21 +15,11 @@ import io.gridgo.framework.ComponentLifecycle;
 public interface Connector extends ComponentLifecycle {
 
     /**
-     * Initialize the connector. This is meant to be called from Gridgo only.
+     * Get the connector config with which this Connector is initialized.
      * 
-     * @param config  the configuration
-     * @param context the context
-     * @return the connector itself for easily chaining method calls
+     * @return the connector config
      */
-    public Connector initialize(ConnectorConfig config, ConnectorContext context);
-
-    /**
-     * Get the associated producer. Some connectors might not have producer and thus
-     * will return <code>Optional.empty()</code>
-     * 
-     * @return the producer
-     */
-    public Optional<Producer> getProducer();
+    public ConnectorConfig getConnectorConfig();
 
     /**
      * Get the associated consumer. Some connectors might not have consumer and thus
@@ -40,9 +30,19 @@ public interface Connector extends ComponentLifecycle {
     public Optional<Consumer> getConsumer();
 
     /**
-     * Get the connector config with which this Connector is initialized.
+     * Get the associated producer. Some connectors might not have producer and thus
+     * will return <code>Optional.empty()</code>
      * 
-     * @return the connector config
+     * @return the producer
      */
-    public ConnectorConfig getConnectorConfig();
+    public Optional<Producer> getProducer();
+
+    /**
+     * Initialize the connector. This is meant to be called from Gridgo only.
+     * 
+     * @param config  the configuration
+     * @param context the context
+     * @return the connector itself for easily chaining method calls
+     */
+    public Connector initialize(ConnectorConfig config, ConnectorContext context);
 }

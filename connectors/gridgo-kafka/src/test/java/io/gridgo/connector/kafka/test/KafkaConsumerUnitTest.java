@@ -31,31 +31,23 @@ public class KafkaConsumerUnitTest {
     private static final int NUM_MESSAGES = 100;
 
     @ClassRule
-    public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(
-            1).withBrokerProperty("auto.create.topics.enable", "false");
+    public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(1).withBrokerProperty(
+            "auto.create.topics.enable", "false");
 
-    @Test
-    public void testConsumer() {
+    private Connector createKafkaConnector(String connectString) {
+        var connector = new DefaultConnectorFactory().createConnector(connectString);
 
-        String extraQuery = "&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest";
-
-        doTestConsumer(extraQuery);
+        Assert.assertNotNull(connector);
+        Assert.assertTrue(connector instanceof KafkaConnector);
+        return connector;
     }
 
-    @Test
-    public void testAutoCommitSyncConsumer() {
+    private String createTopic() {
+        String topicName = UUID.randomUUID().toString();
 
-        String extraQuery = "&consumersCount=1&autoCommitEnable=true&autoCommitOnStop=sync&groupId=test&autoOffsetReset=earliest";
-
-        doTestConsumer(extraQuery);
-    }
-
-    @Test
-    public void testAutoCommitAsyncConsumer() {
-
-        String extraQuery = "&consumersCount=1&autoCommitEnable=true&autoCommitOnStop=async&groupId=test&autoOffsetReset=earliest";
-
-        doTestConsumer(extraQuery);
+        var kafkaTestUtils = sharedKafkaTestResource.getKafkaTestUtils();
+        kafkaTestUtils.createTopic(topicName, NUM_PARTITIONS, REPLICATION_FACTOR);
+        return topicName;
     }
 
     private void doTestConsumer(String extraQuery) {
@@ -91,6 +83,42 @@ public class KafkaConsumerUnitTest {
         printPace("KafkaConsumer", NUM_MESSAGES, elapsed);
 
         connector.stop();
+    }
+
+    private void printPace(String name, int numMessages, long elapsed) {
+        DecimalFormat df = new DecimalFormat("###,###.##");
+        log.info("%s: %d operations were processed in %sms -> pace: %s", name, numMessages, df.format(elapsed / 1e6),
+                df.format(1e9 * numMessages / elapsed) + "ops/s");
+    }
+
+    private void sendTestRecords(String topicName, Producer producer, int numMessages) {
+        log.info("Sending records...");
+
+        long started = System.nanoTime();
+        // Create a new producer
+        // Produce it & wait for it to complete.
+        for (int i = 0; i < numMessages; i++) {
+            Message msg = Message.of(Payload.of(BValue.of(i + "")));
+            producer.send(msg);
+        }
+        long elapsed = System.nanoTime() - started;
+        printPace("KafkaEmbeddedProducer", numMessages, elapsed);
+    }
+
+    @Test
+    public void testAutoCommitAsyncConsumer() {
+
+        String extraQuery = "&consumersCount=1&autoCommitEnable=true&autoCommitOnStop=async&groupId=test&autoOffsetReset=earliest";
+
+        doTestConsumer(extraQuery);
+    }
+
+    @Test
+    public void testAutoCommitSyncConsumer() {
+
+        String extraQuery = "&consumersCount=1&autoCommitEnable=true&autoCommitOnStop=sync&groupId=test&autoOffsetReset=earliest";
+
+        doTestConsumer(extraQuery);
     }
 
     @Test
@@ -130,39 +158,11 @@ public class KafkaConsumerUnitTest {
         connector.stop();
     }
 
-    private String createTopic() {
-        String topicName = UUID.randomUUID().toString();
+    @Test
+    public void testConsumer() {
 
-        var kafkaTestUtils = sharedKafkaTestResource.getKafkaTestUtils();
-        kafkaTestUtils.createTopic(topicName, NUM_PARTITIONS, REPLICATION_FACTOR);
-        return topicName;
-    }
+        String extraQuery = "&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest";
 
-    private Connector createKafkaConnector(String connectString) {
-        var connector = new DefaultConnectorFactory().createConnector(connectString);
-
-        Assert.assertNotNull(connector);
-        Assert.assertTrue(connector instanceof KafkaConnector);
-        return connector;
-    }
-
-    private void sendTestRecords(String topicName, Producer producer, int numMessages) {
-        log.info("Sending records...");
-
-        long started = System.nanoTime();
-        // Create a new producer
-        // Produce it & wait for it to complete.
-        for (int i = 0; i < numMessages; i++) {
-            Message msg = Message.of(Payload.of(BValue.of(i + "")));
-            producer.send(msg);
-        }
-        long elapsed = System.nanoTime() - started;
-        printPace("KafkaEmbeddedProducer", numMessages, elapsed);
-    }
-
-    private void printPace(String name, int numMessages, long elapsed) {
-        DecimalFormat df = new DecimalFormat("###,###.##");
-        log.info("%s: %d operations were processed in %sms -> pace: %s", name, numMessages, df.format(elapsed / 1e6),
-                df.format(1e9 * numMessages / elapsed) + "ops/s");
+        doTestConsumer(extraQuery);
     }
 }

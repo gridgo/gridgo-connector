@@ -33,60 +33,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class KafkaConsumer extends AbstractConsumer {
 
-    private static final int DEFAULT_THREADS = 8;
-
-    private static final ExecutionStrategy DEFAULT_EXECUTION_STRATEGY = new ExecutorExecutionStrategy(DEFAULT_THREADS);
-
-    static {
-        DEFAULT_EXECUTION_STRATEGY.start();
-        Runtime.getRuntime().addShutdownHook(new Thread(DEFAULT_EXECUTION_STRATEGY::stop));
-    }
-
-    private final KafkaConfiguration configuration;
-
-    private List<KafkaFetchRecords> tasks;
-
-    public KafkaConsumer(ConnectorContext context, final @NonNull KafkaConfiguration configuration) {
-        super(context);
-        this.configuration = configuration;
-    }
-
-    @Override
-    protected void onStart() {
-        var consumerExecutionStrategy = getContext().getConsumerExecutionStrategy().orElse(DEFAULT_EXECUTION_STRATEGY);
-        consumerExecutionStrategy.start();
-
-        tasks = new ArrayList<>();
-
-        var props = getProps();
-
-        Pattern pattern = null;
-        if (configuration.isTopicIsPattern()) {
-            pattern = Pattern.compile(configuration.getTopic());
-        }
-
-        for (int i = 0; i < configuration.getConsumersCount(); i++) {
-            KafkaFetchRecords task = new KafkaFetchRecords(configuration.getTopic(), pattern, i + "", props);
-            task.doInit();
-            consumerExecutionStrategy.execute(task);
-            tasks.add(task);
-        }
-    }
-
-    private Properties getProps() {
-        return configuration.createConsumerProperties();
-    }
-
-    @Override
-    protected void onStop() {
-        for (KafkaFetchRecords task : tasks) {
-            task.shutdown();
-        }
-        var consumerExecutionStrategy = getContext().getConsumerExecutionStrategy().orElse(null);
-        if (consumerExecutionStrategy != null)
-            consumerExecutionStrategy.stop();
-    }
-
     class KafkaFetchRecords implements Runnable {
 
         private org.apache.kafka.clients.consumer.KafkaConsumer<Object, Object> consumer;
@@ -108,43 +54,61 @@ public class KafkaConsumer extends AbstractConsumer {
             this.kafkaProps = kafkaProps;
         }
 
-        @Override
-        public void run() {
-            boolean first = true;
-            boolean reConnect = true;
+        private Message buildMessage(ConsumerRecord<Object, Object> record) {
+            var headers = BObject.ofEmpty();
 
-            while (reConnect) {
-                try {
-                    if (!first) {
-                        // re-initialize on re-connect so we have a fresh consumer
-                        doInit();
-                    }
-                } catch (Throwable e) {
-                    log.warn("Exception caught when initializing KafkaConsumer", e);
-                }
+            populateCommonHeaders(headers, record);
 
-                if (!first) {
-                    // skip one poll timeout before trying again
-                    long delay = configuration.getPollTimeoutMs();
-                    try {
-                        Thread.sleep(delay);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                }
-
-                first = false;
-
-                // doRun keeps running until we either shutdown or is told to re-connect
-                reConnect = doRun();
+            headers.putAny(KafkaConstants.OFFSET, record.offset());
+            if (record.key() != null) {
+                headers.putAny(KafkaConstants.KEY, record.key());
             }
+
+            boolean isRaw = false;
+
+            for (Header header : record.headers()) {
+                headers.putAny(header.key(), header.value());
+                if (KafkaConstants.RAW.equals(header.key()))
+                    isRaw = true;
+            }
+
+            var body = isRaw ? BElement.ofBytes((byte[]) record.value()) : BElement.ofAny(record.value());
+            return createMessage(headers, body);
+        }
+
+        private Message buildMessageForBatch(List<ConsumerRecord<Object, Object>> records) {
+            var messages = records.stream().map(this::buildMessage).toArray(size -> new Message[size]);
+            var multiPart = new MultipartMessage(messages);
+
+            var headers = multiPart.getPayload().getHeaders();
+
+            var lastRecord = records.get(records.size() - 1);
+
+            populateCommonHeaders(headers, lastRecord);
+
+            headers.putAny(KafkaConstants.IS_BATCH, true);
+            headers.putAny(KafkaConstants.BATCH_SIZE, records.size());
+            headers.putAny(KafkaConstants.OFFSET, lastRecord.offset());
+            return multiPart;
+        }
+
+        private void cleanUpConsumer() {
+            try {
+                consumer.unsubscribe();
+            } finally {
+                consumer.close();
+            }
+        }
+
+        private void commitOffset(long offset, TopicPartition partition) {
+            if (offset != -1)
+                consumer.commitSync(Collections.singletonMap(partition, new OffsetAndMetadata(offset + 1)));
         }
 
         protected void doInit() {
             ClassLoader threadClassLoader = Thread.currentThread().getContextClassLoader();
             try {
-                Thread.currentThread()
-                      .setContextClassLoader(org.apache.kafka.clients.consumer.KafkaConsumer.class.getClassLoader());
+                Thread.currentThread().setContextClassLoader(org.apache.kafka.clients.consumer.KafkaConsumer.class.getClassLoader());
                 this.consumer = new org.apache.kafka.clients.consumer.KafkaConsumer<>(kafkaProps);
             } finally {
                 Thread.currentThread().setContextClassLoader(threadClassLoader);
@@ -224,41 +188,10 @@ public class KafkaConsumer extends AbstractConsumer {
             return reConnect;
         }
 
-        private void subscribeTopics() {
-            if (configuration.isTopicIsPattern()) {
-                consumer.subscribe(pattern);
-            } else {
-                consumer.subscribe(Arrays.asList(topicName.split(",")));
-            }
-        }
-
-        private void cleanUpConsumer() {
-            try {
-                consumer.unsubscribe();
-            } finally {
-                consumer.close();
-            }
-        }
-
-        private void commitOffset(long offset, TopicPartition partition) {
-            if (offset != -1)
-                consumer.commitSync(Collections.singletonMap(partition, new OffsetAndMetadata(offset + 1)));
-        }
-
-        private void seekOffset(Duration pollDuration) {
-            if (configuration.getSeekTo() != null) {
-                if (configuration.getSeekTo().equals("beginning")) {
-                    // This poll to ensures we have an assigned partition otherwise seek won't work
-                    consumer.poll(pollDuration);
-                    consumer.seekToBeginning(consumer.assignment());
-                } else if (configuration.getSeekTo().equals("end")) {
-                    // This poll to ensures we have an assigned partition otherwise seek won't work
-                    consumer.poll(pollDuration);
-                    consumer.seekToEnd(consumer.assignment());
-                } else {
-                    throw new IllegalArgumentException("Invalid seekTo option: " + configuration.getSeekTo());
-                }
-            }
+        private void populateCommonHeaders(BObject headers, ConsumerRecord<Object, Object> lastRecord) {
+            headers.putAny(KafkaConstants.PARTITION, lastRecord.partition());
+            headers.putAny(KafkaConstants.TOPIC, lastRecord.topic());
+            headers.putAny(KafkaConstants.TIMESTAMP, lastRecord.timestamp());
         }
 
         private Promise<Long, Exception> processBatchRecords(List<ConsumerRecord<Object, Object>> records) {
@@ -270,24 +203,7 @@ public class KafkaConsumer extends AbstractConsumer {
             return deferred.promise().filterDone(result -> partitionLastOffset);
         }
 
-        private Message buildMessageForBatch(List<ConsumerRecord<Object, Object>> records) {
-            var messages = records.stream().map(this::buildMessage).toArray(size -> new Message[size]);
-            var multiPart = new MultipartMessage(messages);
-
-            var headers = multiPart.getPayload().getHeaders();
-
-            var lastRecord = records.get(records.size() - 1);
-
-            populateCommonHeaders(headers, lastRecord);
-
-            headers.putAny(KafkaConstants.IS_BATCH, true);
-            headers.putAny(KafkaConstants.BATCH_SIZE, records.size());
-            headers.putAny(KafkaConstants.OFFSET, lastRecord.offset());
-            return multiPart;
-        }
-
-        private Promise<Long, Exception> processSingleRecord(TopicPartition partition,
-                List<ConsumerRecord<Object, Object>> records) {
+        private Promise<Long, Exception> processSingleRecord(TopicPartition partition, List<ConsumerRecord<Object, Object>> records) {
             boolean breakOnFirstError = configuration.isBreakOnFirstError();
 
             long lastRecord = -1;
@@ -309,32 +225,52 @@ public class KafkaConsumer extends AbstractConsumer {
             return new SimpleDonePromise<>(lastRecord);
         }
 
-        private Message buildMessage(ConsumerRecord<Object, Object> record) {
-            var headers = BObject.ofEmpty();
+        @Override
+        public void run() {
+            boolean first = true;
+            boolean reConnect = true;
 
-            populateCommonHeaders(headers, record);
+            while (reConnect) {
+                try {
+                    if (!first) {
+                        // re-initialize on re-connect so we have a fresh consumer
+                        doInit();
+                    }
+                } catch (Throwable e) {
+                    log.warn("Exception caught when initializing KafkaConsumer", e);
+                }
 
-            headers.putAny(KafkaConstants.OFFSET, record.offset());
-            if (record.key() != null) {
-                headers.putAny(KafkaConstants.KEY, record.key());
+                if (!first) {
+                    // skip one poll timeout before trying again
+                    long delay = configuration.getPollTimeoutMs();
+                    try {
+                        Thread.sleep(delay);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+
+                first = false;
+
+                // doRun keeps running until we either shutdown or is told to re-connect
+                reConnect = doRun();
             }
-
-            boolean isRaw = false;
-
-            for (Header header : record.headers()) {
-                headers.putAny(header.key(), header.value());
-                if (KafkaConstants.RAW.equals(header.key()))
-                    isRaw = true;
-            }
-
-            var body = isRaw ? BElement.ofBytes((byte[]) record.value()) : BElement.ofAny(record.value());
-            return createMessage(headers, body);
         }
 
-        private void populateCommonHeaders(BObject headers, ConsumerRecord<Object, Object> lastRecord) {
-            headers.putAny(KafkaConstants.PARTITION, lastRecord.partition());
-            headers.putAny(KafkaConstants.TOPIC, lastRecord.topic());
-            headers.putAny(KafkaConstants.TIMESTAMP, lastRecord.timestamp());
+        private void seekOffset(Duration pollDuration) {
+            if (configuration.getSeekTo() != null) {
+                if (configuration.getSeekTo().equals("beginning")) {
+                    // This poll to ensures we have an assigned partition otherwise seek won't work
+                    consumer.poll(pollDuration);
+                    consumer.seekToBeginning(consumer.assignment());
+                } else if (configuration.getSeekTo().equals("end")) {
+                    // This poll to ensures we have an assigned partition otherwise seek won't work
+                    consumer.poll(pollDuration);
+                    consumer.seekToEnd(consumer.assignment());
+                } else {
+                    throw new IllegalArgumentException("Invalid seekTo option: " + configuration.getSeekTo());
+                }
+            }
         }
 
         private void shutdown() {
@@ -342,10 +278,72 @@ public class KafkaConsumer extends AbstractConsumer {
             if (consumer != null)
                 consumer.wakeup();
         }
+
+        private void subscribeTopics() {
+            if (configuration.isTopicIsPattern()) {
+                consumer.subscribe(pattern);
+            } else {
+                consumer.subscribe(Arrays.asList(topicName.split(",")));
+            }
+        }
+    }
+
+    private static final int DEFAULT_THREADS = 8;
+
+    private static final ExecutionStrategy DEFAULT_EXECUTION_STRATEGY = new ExecutorExecutionStrategy(DEFAULT_THREADS);
+
+    static {
+        DEFAULT_EXECUTION_STRATEGY.start();
+        Runtime.getRuntime().addShutdownHook(new Thread(DEFAULT_EXECUTION_STRATEGY::stop));
+    }
+
+    private final KafkaConfiguration configuration;
+
+    private List<KafkaFetchRecords> tasks;
+
+    public KafkaConsumer(ConnectorContext context, final @NonNull KafkaConfiguration configuration) {
+        super(context);
+        this.configuration = configuration;
     }
 
     @Override
     protected String generateName() {
         return "consumer.kafka." + configuration.getTopic();
+    }
+
+    private Properties getProps() {
+        return configuration.createConsumerProperties();
+    }
+
+    @Override
+    protected void onStart() {
+        var consumerExecutionStrategy = getContext().getConsumerExecutionStrategy().orElse(DEFAULT_EXECUTION_STRATEGY);
+        consumerExecutionStrategy.start();
+
+        tasks = new ArrayList<>();
+
+        var props = getProps();
+
+        Pattern pattern = null;
+        if (configuration.isTopicIsPattern()) {
+            pattern = Pattern.compile(configuration.getTopic());
+        }
+
+        for (int i = 0; i < configuration.getConsumersCount(); i++) {
+            KafkaFetchRecords task = new KafkaFetchRecords(configuration.getTopic(), pattern, i + "", props);
+            task.doInit();
+            consumerExecutionStrategy.execute(task);
+            tasks.add(task);
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        for (KafkaFetchRecords task : tasks) {
+            task.shutdown();
+        }
+        var consumerExecutionStrategy = getContext().getConsumerExecutionStrategy().orElse(null);
+        if (consumerExecutionStrategy != null)
+            consumerExecutionStrategy.stop();
     }
 }

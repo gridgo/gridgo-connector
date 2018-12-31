@@ -11,17 +11,17 @@ import io.gridgo.framework.support.generators.IdGenerator;
 
 public interface ConnectorContextBuilder extends Builder<ConnectorContext> {
 
-    public ConnectorContextBuilder setRegistry(Registry registry);
+    public ConnectorContextBuilder setCallbackInvokerStrategy(ExecutionStrategy strategy);
 
-    public ConnectorContextBuilder setIdGenerator(IdGenerator idGenerator);
+    public ConnectorContextBuilder setConsumerExecutionStrategy(ExecutionStrategy strategy);
 
     public ConnectorContextBuilder setExceptionHandler(Consumer<Throwable> exceptionHandler);
 
     public ConnectorContextBuilder setFailureHandler(Function<Throwable, Message> failureHandler);
 
-    public ConnectorContextBuilder setCallbackInvokerStrategy(ExecutionStrategy strategy);
-
-    public ConnectorContextBuilder setConsumerExecutionStrategy(ExecutionStrategy strategy);
+    public ConnectorContextBuilder setIdGenerator(IdGenerator idGenerator);
 
     public ConnectorContextBuilder setProducerExecutionStrategy(ExecutionStrategy strategy);
+
+    public ConnectorContextBuilder setRegistry(Registry registry);
 }

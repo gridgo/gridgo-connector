@@ -25,8 +25,17 @@ public abstract class AbstractTraceableResponder extends AbstractResponder imple
     }
 
     @Override
-    protected void send(Message message, Deferred<Message, Exception> deferredAck) {
-        resolveTraceable(message, deferredAck);
+    public DeferredAndRoutingId registerTraceable() {
+        var deferredResponse = new CompletableDeferredObject<Message, Exception>();
+        var routingId = ID_SEED.generateId().orElseThrow().getData();
+        this.deferredResponses.put(routingId, deferredResponse);
+        deferredResponse.promise().always((stt, resp, ex) -> {
+            deferredResponses.remove(routingId);
+        });
+        return DeferredAndRoutingId.builder() //
+                                   .deferred(deferredResponse) //
+                                   .routingId(BValue.of(routingId)) //
+                                   .build();
     }
 
     @Override
@@ -48,16 +57,7 @@ public abstract class AbstractTraceableResponder extends AbstractResponder imple
     }
 
     @Override
-    public DeferredAndRoutingId registerTraceable() {
-        var deferredResponse = new CompletableDeferredObject<Message, Exception>();
-        var routingId = ID_SEED.generateId().orElseThrow().getData();
-        this.deferredResponses.put(routingId, deferredResponse);
-        deferredResponse.promise().always((stt, resp, ex) -> {
-            deferredResponses.remove(routingId);
-        });
-        return DeferredAndRoutingId.builder() //
-                                   .deferred(deferredResponse) //
-                                   .routingId(BValue.of(routingId)) //
-                                   .build();
+    protected void send(Message message, Deferred<Message, Exception> deferredAck) {
+        resolveTraceable(message, deferredAck);
     }
 }

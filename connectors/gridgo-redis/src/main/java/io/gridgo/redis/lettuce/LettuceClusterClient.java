@@ -32,6 +32,56 @@ public class LettuceClusterClient extends AbstractLettuceClient implements Lettu
     }
 
     @Override
+    public <T extends RedisClusterAsyncCommands<byte[], byte[]>> T getConnectionCommands() {
+        return (T) this.commands;
+    }
+
+    @Override
+    public <T extends RedisGeoAsyncCommands<byte[], byte[]>> T getGeoCommands() {
+        return (T) this.commands;
+    }
+
+    @Override
+    public <T extends RedisHashAsyncCommands<byte[], byte[]>> T getHashCommands() {
+        return (T) this.commands;
+    }
+
+    @Override
+    public <T extends RedisHLLAsyncCommands<byte[], byte[]>> T getHyperLogLogCommands() {
+        return (T) this.commands;
+    }
+
+    @Override
+    public <T extends RedisKeyAsyncCommands<byte[], byte[]>> T getKeysCommands() {
+        return (T) this.commands;
+    }
+
+    @Override
+    public <T extends RedisListAsyncCommands<byte[], byte[]>> T getListCommands() {
+        return (T) this.commands;
+    }
+
+    @Override
+    public <T extends RedisScriptingAsyncCommands<byte[], byte[]>> T getScriptingCommands() {
+        return (T) this.commands;
+    }
+
+    @Override
+    public <T extends RedisSetAsyncCommands<byte[], byte[]>> T getSetCommands() {
+        return (T) this.commands;
+    }
+
+    @Override
+    public <T extends RedisSortedSetAsyncCommands<byte[], byte[]>> T getSortedSetCommands() {
+        return (T) this.commands;
+    }
+
+    @Override
+    public <T extends RedisStringAsyncCommands<byte[], byte[]>> T getStringCommands() {
+        return (T) this.commands;
+    }
+
+    @Override
     protected void onStart() {
         var config = this.getConfig();
 
@@ -57,56 +107,6 @@ public class LettuceClusterClient extends AbstractLettuceClient implements Lettu
     @Override
     protected void onStop() {
         this.connection.close();
-    }
-
-    @Override
-    public <T extends RedisClusterAsyncCommands<byte[], byte[]>> T getConnectionCommands() {
-        return (T) this.commands;
-    }
-
-    @Override
-    public <T extends RedisGeoAsyncCommands<byte[], byte[]>> T getGeoCommands() {
-        return (T) this.commands;
-    }
-
-    @Override
-    public <T extends RedisHashAsyncCommands<byte[], byte[]>> T getHashCommands() {
-        return (T) this.commands;
-    }
-
-    @Override
-    public <T extends RedisKeyAsyncCommands<byte[], byte[]>> T getKeysCommands() {
-        return (T) this.commands;
-    }
-
-    @Override
-    public <T extends RedisSetAsyncCommands<byte[], byte[]>> T getSetCommands() {
-        return (T) this.commands;
-    }
-
-    @Override
-    public <T extends RedisSortedSetAsyncCommands<byte[], byte[]>> T getSortedSetCommands() {
-        return (T) this.commands;
-    }
-
-    @Override
-    public <T extends RedisStringAsyncCommands<byte[], byte[]>> T getStringCommands() {
-        return (T) this.commands;
-    }
-
-    @Override
-    public <T extends RedisListAsyncCommands<byte[], byte[]>> T getListCommands() {
-        return (T) this.commands;
-    }
-
-    @Override
-    public <T extends RedisHLLAsyncCommands<byte[], byte[]>> T getHyperLogLogCommands() {
-        return (T) this.commands;
-    }
-
-    @Override
-    public <T extends RedisScriptingAsyncCommands<byte[], byte[]>> T getScriptingCommands() {
-        return (T) this.commands;
     }
 
 }

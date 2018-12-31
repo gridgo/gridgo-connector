@@ -35,6 +35,45 @@ public class SocketUtils {
         return Message.of(payload);
     }
 
+    private static void process(ByteBuffer buffer, boolean skipTopicHeader, Consumer<Message> receiver, Consumer<Integer> recvByteCounter,
+            Consumer<Integer> recvMsgCounter, Consumer<Throwable> exceptionHandler, int rc) {
+        recvByteCounter.accept(rc);
+
+        try {
+            buffer.flip();
+            if (skipTopicHeader) {
+                byte b = buffer.get();
+                while (b != 0) {
+                    b = buffer.get();
+                }
+            }
+
+            var message = Message.parse(buffer);
+            BObject headers = message.getPayload().getHeaders();
+            if (headers != null && headers.getBoolean(SocketConstants.IS_BATCH, false)) {
+                processBatch(receiver, recvMsgCounter, message, headers);
+            } else {
+                recvMsgCounter.accept(1);
+                receiver.accept(message);
+            }
+        } catch (Exception e) {
+            if (exceptionHandler != null) {
+                exceptionHandler.accept(e);
+            } else {
+                log.error("Error while parse buffer to message", e);
+            }
+        }
+    }
+
+    private static void processBatch(Consumer<Message> receiver, Consumer<Integer> recvMsgCounter, Message message, BObject headers) {
+        var subMessages = message.getPayload().getBody().asArray();
+        recvMsgCounter.accept(headers.getInteger(SocketConstants.BATCH_SIZE, subMessages.size()));
+        for (BElement payload : subMessages) {
+            var subMessage = Message.parse(payload);
+            receiver.accept(subMessage);
+        }
+    }
+
     public static void startPolling( //
             Socket socket, //
             ByteBuffer buffer, //
@@ -64,46 +103,5 @@ public class SocketUtils {
         }
 
         doneSignal.countDown();
-    }
-
-    private static void process(ByteBuffer buffer, boolean skipTopicHeader, Consumer<Message> receiver,
-            Consumer<Integer> recvByteCounter, Consumer<Integer> recvMsgCounter, Consumer<Throwable> exceptionHandler,
-            int rc) {
-        recvByteCounter.accept(rc);
-
-        try {
-            buffer.flip();
-            if (skipTopicHeader) {
-                byte b = buffer.get();
-                while (b != 0) {
-                    b = buffer.get();
-                }
-            }
-
-            var message = Message.parse(buffer);
-            BObject headers = message.getPayload().getHeaders();
-            if (headers != null && headers.getBoolean(SocketConstants.IS_BATCH, false)) {
-                processBatch(receiver, recvMsgCounter, message, headers);
-            } else {
-                recvMsgCounter.accept(1);
-                receiver.accept(message);
-            }
-        } catch (Exception e) {
-            if (exceptionHandler != null) {
-                exceptionHandler.accept(e);
-            } else {
-                log.error("Error while parse buffer to message", e);
-            }
-        }
-    }
-
-    private static void processBatch(Consumer<Message> receiver, Consumer<Integer> recvMsgCounter, Message message,
-            BObject headers) {
-        var subMessages = message.getPayload().getBody().asArray();
-        recvMsgCounter.accept(headers.getInteger(SocketConstants.BATCH_SIZE, subMessages.size()));
-        for (BElement payload : subMessages) {
-            var subMessage = Message.parse(payload);
-            receiver.accept(subMessage);
-        }
     }
 }

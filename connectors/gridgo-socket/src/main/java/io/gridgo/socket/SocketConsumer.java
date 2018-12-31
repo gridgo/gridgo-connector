@@ -9,13 +9,12 @@ public interface SocketConsumer extends Consumer, HasResponder {
 
     public final int DEFAULT_RECV_TIMEOUT = 100; // receive timeout apply on polling event loop
 
+    static SocketConsumer of(ConnectorContext context, SocketFactory factory, SocketOptions options, String address, int bufferSize) {
+        return new DefaultSocketConsumer(context, factory, options, address, bufferSize);
+    }
+
     long getTotalRecvBytes();
 
     long getTotalRecvMessages();
-
-    static SocketConsumer of(ConnectorContext context, SocketFactory factory, SocketOptions options, String address,
-            int bufferSize) {
-        return new DefaultSocketConsumer(context, factory, options, address, bufferSize);
-    }
 
 }

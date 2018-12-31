@@ -21,17 +21,6 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
         this.context = context;
     }
 
-    protected Message createMessage(BObject headers, BElement body) {
-        return Message.of(new DefaultPayload(context.getIdGenerator().generateId(), headers, body));
-    }
-
-    protected void ack(Deferred<Message, Exception> deferred, Message response, Exception exception) {
-        if (exception != null)
-            ack(deferred, exception);
-        else
-            ack(deferred, response);
-    }
-
     protected void ack(Deferred<Message, Exception> deferred) {
         if (deferred != null) {
             context.getCallbackInvokerStrategy().execute(() -> tryResolve(deferred, null));
@@ -56,6 +45,17 @@ public abstract class AbstractProducer extends AbstractComponentLifecycle implem
         if (deferred != null) {
             context.getCallbackInvokerStrategy().execute(() -> tryResolve(deferred, response));
         }
+    }
+
+    protected void ack(Deferred<Message, Exception> deferred, Message response, Exception exception) {
+        if (exception != null)
+            ack(deferred, exception);
+        else
+            ack(deferred, response);
+    }
+
+    protected Message createMessage(BObject headers, BElement body) {
+        return Message.of(new DefaultPayload(context.getIdGenerator().generateId(), headers, body));
     }
 
     private Deferred<Message, Exception> tryResolve(Deferred<Message, Exception> deferred, Message response) {

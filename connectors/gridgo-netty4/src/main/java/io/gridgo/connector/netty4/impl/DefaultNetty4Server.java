@@ -14,20 +14,13 @@ import io.gridgo.utils.support.HostAndPort;
 
 public class DefaultNetty4Server extends AbstractNetty4Server {
 
-    public DefaultNetty4Server(ConnectorContext context, Netty4Transport transport, HostAndPort host, String path,
-            BObject options) {
+    public DefaultNetty4Server(ConnectorContext context, Netty4Transport transport, HostAndPort host, String path, BObject options) {
         super(context, transport, host, path, options);
     }
 
     @Override
     protected Responder createResponder() {
         return new DefaultNetty4Responder(this.getContext(), getSocketServer(), this.getUniqueIdentifier());
-    }
-
-    private void publishMessage(Message message) {
-        Deferred<Message, Exception> deferred = this.createDeferred();
-        deferred.promise().fail(this::onFailure);
-        this.publish(message, deferred);
     }
 
     @Override
@@ -51,5 +44,11 @@ public class DefaultNetty4Server extends AbstractNetty4Server {
         message.getMisc().putAll(this.getSocketServer().getChannelDetails(channelId));
         message.addMisc(MISC_SOCKET_MSG_TYPE, "message");
         publishMessage(message);
+    }
+
+    private void publishMessage(Message message) {
+        Deferred<Message, Exception> deferred = this.createDeferred();
+        deferred.promise().fail(this::onFailure);
+        this.publish(message, deferred);
     }
 }

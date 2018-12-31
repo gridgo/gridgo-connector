@@ -15,17 +15,17 @@ import lombok.NonNull;
 
 public interface LettuceCommandsDelegate {
 
-    Function<Object, BElement> getParser();
-
-    default Promise<BElement, Exception> toPromise(@NonNull CompletionStage<?> future) {
-        return new CompletableDeferredObject<BElement, Exception>(future.toCompletableFuture().thenApply(this.getParser())).promise();
-    }
-
     default <T, U> List<U> convertList(@NonNull List<T> list, Function<T, U> mapper) {
         return list.stream().map(mapper).collect(Collectors.toList());
     }
 
+    Function<Object, BElement> getParser();
+
     default BArray keyValueToBArray(KeyValue<byte[], byte[]> keyValue) {
         return BArray.ofSequence(keyValue.getKey(), keyValue.getValue());
+    }
+
+    default Promise<BElement, Exception> toPromise(@NonNull CompletionStage<?> future) {
+        return new CompletableDeferredObject<BElement, Exception>(future.toCompletableFuture().thenApply(this.getParser())).promise();
     }
 }

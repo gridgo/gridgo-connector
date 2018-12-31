@@ -36,72 +36,13 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
     @Setter
     private Consumer<Throwable> failureHandler;
 
-    protected ChannelInboundHandler newChannelHandlerDelegater() {
-        return new SimpleChannelInboundHandler<Object>() {
-
-            protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
-                AbstractNetty4Socket.this.onChannelRead(ctx, msg);
-            };
-
-            @Override
-            public void channelActive(ChannelHandlerContext ctx) throws Exception {
-                AbstractNetty4Socket.this.onChannelActive(ctx);
-                ctx.fireChannelActive();
-            }
-
-            @Override
-            public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-                AbstractNetty4Socket.this.onChannelInactive(ctx);
-                ctx.fireChannelInactive();
-            }
-
-            @Override
-            public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
-                AbstractNetty4Socket.this.onHandlerAdded(ctx);
-            }
-
-            @Override
-            public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                AbstractNetty4Socket.this.onException(ctx, cause);
-            }
-        };
-    }
-
     @Override
-    public final boolean isStarted() {
-        ThreadUtils.busySpin(10, this::isInChangingState);
-        return this.running;
-    }
-
-    protected final boolean isInChangingState() {
-        return startFlag.get() != running;
-    }
-
-    protected final boolean isOkToClose() {
-        return this.startFlag.get() && this.running;
-    }
-
-    protected final boolean tryStart(Runnable starter) {
-        if (!this.isStarted() && this.startFlag.compareAndSet(false, true)) {
-            try {
-                starter.run();
-            } catch (Exception e) {
-                this.startFlag.set(false);
-                throw e;
-            }
-            this.running = true;
-            return true;
+    public final void applyConfig(@NonNull String name, @NonNull Object value) {
+        if (this.isStarted()) {
+            throw new IllegalStateException("Cannot apply config while this socket already stated");
         }
-        return false;
-    }
-
-    @Override
-    public void stop() {
-        try {
-            this.close();
-        } catch (IOException e) {
-            throw new RuntimeException("Error while close netty4 socket", e);
-        }
+        this.configs.putAny(name, value);
+        this.onApplyConfig(name);
     }
 
     @Override
@@ -116,24 +57,56 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
         }
     }
 
-    protected void onClose() throws IOException {
+    protected abstract BElement handleIncomingMessage(String channelId, Object msg) throws Exception;
 
+    protected final boolean isInChangingState() {
+        return startFlag.get() != running;
+    }
+
+    protected final boolean isOkToClose() {
+        return this.startFlag.get() && this.running;
     }
 
     @Override
-    public final void applyConfig(@NonNull String name, @NonNull Object value) {
-        if (this.isStarted()) {
-            throw new IllegalStateException("Cannot apply config while this socket already stated");
-        }
-        this.configs.putAny(name, value);
-        this.onApplyConfig(name);
+    public final boolean isStarted() {
+        ThreadUtils.busySpin(10, this::isInChangingState);
+        return this.running;
+    }
+
+    protected ChannelInboundHandler newChannelHandlerDelegater() {
+        return new SimpleChannelInboundHandler<Object>() {
+
+            @Override
+            public void channelActive(ChannelHandlerContext ctx) throws Exception {
+                AbstractNetty4Socket.this.onChannelActive(ctx);
+                ctx.fireChannelActive();
+            };
+
+            @Override
+            public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+                AbstractNetty4Socket.this.onChannelInactive(ctx);
+                ctx.fireChannelInactive();
+            }
+
+            protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+                AbstractNetty4Socket.this.onChannelRead(ctx, msg);
+            }
+
+            @Override
+            public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+                AbstractNetty4Socket.this.onException(ctx, cause);
+            }
+
+            @Override
+            public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+                AbstractNetty4Socket.this.onHandlerAdded(ctx);
+            }
+        };
     }
 
     protected void onApplyConfig(String name) {
         // do nothing
     }
-
-    protected abstract BElement handleIncomingMessage(String channelId, Object msg) throws Exception;
 
     protected abstract void onChannelActive(ChannelHandlerContext ctx) throws Exception;
 
@@ -141,8 +114,8 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 
     protected abstract void onChannelRead(ChannelHandlerContext ctx, Object msg) throws Exception;
 
-    protected void onHandlerAdded(ChannelHandlerContext ctx) {
-        // do nothing...
+    protected void onClose() throws IOException {
+
     }
 
     protected void onException(ChannelHandlerContext ctx, Throwable cause) {
@@ -150,5 +123,32 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
             this.failureHandler.accept(cause);
         }
         getLogger().error("Error while handling socket msg", cause);
+    }
+
+    protected void onHandlerAdded(ChannelHandlerContext ctx) {
+        // do nothing...
+    }
+
+    @Override
+    public void stop() {
+        try {
+            this.close();
+        } catch (IOException e) {
+            throw new RuntimeException("Error while close netty4 socket", e);
+        }
+    }
+
+    protected final boolean tryStart(Runnable starter) {
+        if (!this.isStarted() && this.startFlag.compareAndSet(false, true)) {
+            try {
+                starter.run();
+            } catch (Exception e) {
+                this.startFlag.set(false);
+                throw e;
+            }
+            this.running = true;
+            return true;
+        }
+        return false;
     }
 }

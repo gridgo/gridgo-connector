@@ -24,6 +24,16 @@ public interface LettuceHashCommandsDelegate extends LettuceCommandsDelegate, Re
     }
 
     @Override
+    default Promise<BElement, Exception> hget(byte[] key, byte[] field) {
+        return toPromise(getHashCommands().hget(key, field));
+    }
+
+    @Override
+    default Promise<BElement, Exception> hgetall(byte[] key) {
+        return toPromise(getHashCommands().hgetall(key));
+    }
+
+    @Override
     default Promise<BElement, Exception> hincrby(byte[] key, byte[] field, long amount) {
         return toPromise(getHashCommands().hincrby(key, field, amount));
     }
@@ -66,6 +76,11 @@ public interface LettuceHashCommandsDelegate extends LettuceCommandsDelegate, Re
     }
 
     @Override
+    default Promise<BElement, Exception> hsetnx(byte[] key, byte[] field, byte[] value) {
+        return toPromise(getHashCommands().hsetnx(key, field, value));
+    }
+
+    @Override
     default Promise<BElement, Exception> hstrlen(byte[] key, byte[] field) {
         return toPromise(getHashCommands().hstrlen(key, field));
     }
@@ -73,20 +88,5 @@ public interface LettuceHashCommandsDelegate extends LettuceCommandsDelegate, Re
     @Override
     default Promise<BElement, Exception> hvals(byte[] key) {
         return toPromise(getHashCommands().hvals(key));
-    }
-
-    @Override
-    default Promise<BElement, Exception> hget(byte[] key, byte[] field) {
-        return toPromise(getHashCommands().hget(key, field));
-    }
-
-    @Override
-    default Promise<BElement, Exception> hgetall(byte[] key) {
-        return toPromise(getHashCommands().hgetall(key));
-    }
-
-    @Override
-    default Promise<BElement, Exception> hsetnx(byte[] key, byte[] field, byte[] value) {
-        return toPromise(getHashCommands().hsetnx(key, field, value));
     }
 }

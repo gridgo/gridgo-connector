@@ -9,8 +9,6 @@ import io.lettuce.core.api.async.RedisScriptingAsyncCommands;
 
 public interface LettuceScriptingCommandsDelegate extends LettuceCommandsDelegate, RedisScriptingCommands {
 
-    <T extends RedisScriptingAsyncCommands<byte[], byte[]>> T getScriptingCommands();
-
     @Override
     default Promise<BElement, Exception> eval(String script, String type, byte[][] keys, byte[]... values) {
         return toPromise(getScriptingCommands().eval(script, ScriptOutputType.valueOf(type.trim().toUpperCase()), keys, values));
@@ -27,6 +25,8 @@ public interface LettuceScriptingCommandsDelegate extends LettuceCommandsDelegat
         ScriptOutputType type = ScriptOutputType.valueOf(outputType.trim().toUpperCase());
         return toPromise(getScriptingCommands().evalsha(digest, type, keys, values));
     }
+
+    <T extends RedisScriptingAsyncCommands<byte[], byte[]>> T getScriptingCommands();
 
     @Override
     default Promise<BElement, Exception> scriptExists(String... digests) {

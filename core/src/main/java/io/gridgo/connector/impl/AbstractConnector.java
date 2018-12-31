@@ -28,19 +28,8 @@ public abstract class AbstractConnector extends AbstractComponentLifecycle imple
     protected Optional<Producer> producer = Optional.empty();
 
     @Override
-    public final Connector initialize(ConnectorConfig config, ConnectorContext context) {
-        if (initialized.compareAndSet(false, true)) {
-            this.context = context;
-            this.connectorConfig = config;
-            this.onInit();
-            return this;
-        }
-        throw new IllegalStateException("Cannot re-init connector of type " + this.getClass().getName());
-    }
-
-    @Override
-    public final Optional<Producer> getProducer() {
-        return producer;
+    protected String generateName() {
+        return "connector." + connectorConfig.getNonQueryEndpoint();
     }
 
     @Override
@@ -62,6 +51,22 @@ public abstract class AbstractConnector extends AbstractComponentLifecycle imple
         return connectorConfig.getPlaceholders().getProperty(name);
     }
 
+    @Override
+    public final Optional<Producer> getProducer() {
+        return producer;
+    }
+
+    @Override
+    public final Connector initialize(ConnectorConfig config, ConnectorContext context) {
+        if (initialized.compareAndSet(false, true)) {
+            this.context = context;
+            this.connectorConfig = config;
+            this.onInit();
+            return this;
+        }
+        throw new IllegalStateException("Cannot re-init connector of type " + this.getClass().getName());
+    }
+
     protected void onInit() {
         // do nothing
     }
@@ -76,10 +81,5 @@ public abstract class AbstractConnector extends AbstractComponentLifecycle imple
     protected void onStop() {
         this.consumer.ifPresent(Consumer::stop);
         this.producer.ifPresent(Producer::stop);
-    }
-
-    @Override
-    protected String generateName() {
-        return "connector." + connectorConfig.getNonQueryEndpoint();
     }
 }

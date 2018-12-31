@@ -24,16 +24,6 @@ public class AbstractRedisProducer extends AbstractProducer implements RedisProd
     }
 
     @Override
-    public void send(Message message) {
-        call(message);
-    }
-
-    @Override
-    public Promise<Message, Exception> sendWithAck(Message message) {
-        return call(message);
-    }
-
-    @Override
     public Promise<Message, Exception> call(Message request) {
 
         BObject headers = request.getPayload().getHeaders();
@@ -57,6 +47,11 @@ public class AbstractRedisProducer extends AbstractProducer implements RedisProd
     }
 
     @Override
+    public boolean isCallSupported() {
+        return true;
+    }
+
+    @Override
     protected void onStart() {
         // do nothing...
     }
@@ -67,7 +62,12 @@ public class AbstractRedisProducer extends AbstractProducer implements RedisProd
     }
 
     @Override
-    public boolean isCallSupported() {
-        return true;
+    public void send(Message message) {
+        call(message);
+    }
+
+    @Override
+    public Promise<Message, Exception> sendWithAck(Message message) {
+        return call(message);
     }
 }

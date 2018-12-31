@@ -19,8 +19,7 @@ import io.gridgo.socket.Socket;
 import lombok.Getter;
 import lombok.NonNull;
 
-public class DefaultSocketResponder extends SingleThreadSendingProducer
-        implements FailureHandlerAware<DefaultSocketResponder>, Responder {
+public class DefaultSocketResponder extends SingleThreadSendingProducer implements FailureHandlerAware<DefaultSocketResponder>, Responder {
 
     private final ByteBuffer buffer;
 
@@ -52,27 +51,16 @@ public class DefaultSocketResponder extends SingleThreadSendingProducer
     }
 
     @Override
-    public DefaultSocketResponder setFailureHandler(Function<Throwable, Message> failureHandler) {
-        this.failureHandler = failureHandler;
-        return this;
-    }
-
-    @Override
-    protected String generateName() {
-        return "responder." + this.uniqueIdentifier;
-    }
-
-    @Override
-    public Promise<Message, Exception> call(Message request) {
-        return Responder.super.call(request);
-    }
-
-    @Override
     protected Message accumulateBatch(@NonNull Collection<Message> messages) {
         if (this.isBatchingEnabled()) {
             return SocketUtils.accumulateBatch(messages);
         }
         throw new IllegalStateException("Batching is disabled");
+    }
+
+    @Override
+    public Promise<Message, Exception> call(Message request) {
+        return Responder.super.call(request);
     }
 
     @Override
@@ -93,6 +81,17 @@ public class DefaultSocketResponder extends SingleThreadSendingProducer
             totalSentBytes += sentBytes;
             totalSentMessages++;
         }
+    }
+
+    @Override
+    protected String generateName() {
+        return "responder." + this.uniqueIdentifier;
+    }
+
+    @Override
+    public DefaultSocketResponder setFailureHandler(Function<Throwable, Message> failureHandler) {
+        this.failureHandler = failureHandler;
+        return this;
     }
 
 }

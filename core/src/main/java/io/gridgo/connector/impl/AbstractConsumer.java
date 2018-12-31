@@ -32,48 +32,42 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
     }
 
     @Override
-    public Consumer subscribe(BiConsumer<Message, Deferred<Message, Exception>> subscriber) {
-        if (!this.subscribers.contains(subscriber)) {
-            this.subscribers.add(subscriber);
-        }
-        return this;
-    }
-
-    @Override
     public void clearSubscribers() {
         this.subscribers.clear();
     }
 
-    protected void publish(@NonNull Message message, Deferred<Message, Exception> deferred) {
-        message.attachSource(getName());
-        for (var subscriber : this.subscribers) {
-            try {
-                context.getCallbackInvokerStrategy() //
-                       .execute(() -> notifySubscriber(message, deferred, subscriber));
-            } catch (Exception ex) {
-                notifyErrors(deferred, ex);
-            }
-        }
+    /**
+     * create a message without payload (message.getPayload() == null) auto id
+     * generated
+     * 
+     * @return the message
+     */
+    protected Message createMessage() {
+        return Message.of(null);
     }
 
-    private void notifySubscriber(Message message, Deferred<Message, Exception> deferred,
-            BiConsumer<Message, Deferred<Message, Exception>> subscriber) {
-        try {
-            subscriber.accept(message, deferred);
-        } catch (Exception ex) {
-            notifyErrors(deferred, ex);
-        }
+    /**
+     * create a message with empty payload's header, auto id generated
+     * 
+     * @param body the body
+     * @return the message
+     */
+    protected Message createMessage(BElement body) {
+        return createMessage(BObject.ofEmpty(), body);
     }
 
-    private void notifyErrors(Deferred<Message, Exception> deferred, Exception ex) {
-        try {
-            getLogger().error("Exception caught while publishing message", ex);
-            if (deferred != null)
-                deferred.reject(ex);
-            getContext().getExceptionHandler().accept(ex);
-        } catch (Exception e2) {
-            getLogger().error("Exception caught while trying to handle exception :(", e2);
-        }
+    /**
+     * create a message with payload which contains the headers and body, auto id
+     * generated
+     * 
+     * @param headers payload's headers
+     * @param body    payload's body
+     * @return the message
+     */
+    protected Message createMessage(@NonNull BObject headers, BElement body) {
+        Payload payload = Payload.of(headers, body);
+        this.ensurePayloadId(payload);
+        return Message.of(payload);
     }
 
     /**
@@ -101,38 +95,23 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
         }
     }
 
-    /**
-     * create a message with payload which contains the headers and body, auto id
-     * generated
-     * 
-     * @param headers payload's headers
-     * @param body    payload's body
-     * @return the message
-     */
-    protected Message createMessage(@NonNull BObject headers, BElement body) {
-        Payload payload = Payload.of(headers, body);
-        this.ensurePayloadId(payload);
-        return Message.of(payload);
+    private void notifyErrors(Deferred<Message, Exception> deferred, Exception ex) {
+        try {
+            getLogger().error("Exception caught while publishing message", ex);
+            if (deferred != null)
+                deferred.reject(ex);
+            getContext().getExceptionHandler().accept(ex);
+        } catch (Exception e2) {
+            getLogger().error("Exception caught while trying to handle exception :(", e2);
+        }
     }
 
-    /**
-     * create a message with empty payload's header, auto id generated
-     * 
-     * @param body the body
-     * @return the message
-     */
-    protected Message createMessage(BElement body) {
-        return createMessage(BObject.ofEmpty(), body);
-    }
-
-    /**
-     * create a message without payload (message.getPayload() == null) auto id
-     * generated
-     * 
-     * @return the message
-     */
-    protected Message createMessage() {
-        return Message.of(null);
+    private void notifySubscriber(Message message, Deferred<Message, Exception> deferred, BiConsumer<Message, Deferred<Message, Exception>> subscriber) {
+        try {
+            subscriber.accept(message, deferred);
+        } catch (Exception ex) {
+            notifyErrors(deferred, ex);
+        }
     }
 
     protected Message parseMessage(BElement data) {
@@ -157,5 +136,25 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
         Message msg = Message.parse(data);
         ensurePayloadId(msg);
         return msg;
+    }
+
+    protected void publish(@NonNull Message message, Deferred<Message, Exception> deferred) {
+        message.attachSource(getName());
+        for (var subscriber : this.subscribers) {
+            try {
+                context.getCallbackInvokerStrategy() //
+                       .execute(() -> notifySubscriber(message, deferred, subscriber));
+            } catch (Exception ex) {
+                notifyErrors(deferred, ex);
+            }
+        }
+    }
+
+    @Override
+    public Consumer subscribe(BiConsumer<Message, Deferred<Message, Exception>> subscriber) {
+        if (!this.subscribers.contains(subscriber)) {
+            this.subscribers.add(subscriber);
+        }
+        return this;
     }
 }

@@ -23,12 +23,6 @@ public class TestFileServer {
 
 //	private final ExecutorService executor = Executors.newCachedThreadPool();
 
-    private Connector connector;
-    private Consumer consumer;
-    private Producer responder;
-
-    private File rootDir;
-
     public static void main(String[] args) {
         if (args == null || args.length == 0) {
             System.out.println("Usage: provide argument 1 as <endpoint>, example: http://localhost:8080/*");
@@ -44,6 +38,12 @@ public class TestFileServer {
         });
         app.start();
     }
+    private Connector connector;
+    private Consumer consumer;
+
+    private Producer responder;
+
+    private File rootDir;
 
     private TestFileServer(String endpoint, String directory) {
         System.out.println("Http server listen on: " + endpoint + ", root dir: " + directory);
@@ -55,24 +55,15 @@ public class TestFileServer {
         }
 
         ConnectorContext connectorContext = new DefaultConnectorContextBuilder() //
-                                                                                // .setCallbackInvokerStrategy(new
-                                                                                // ExecutorExecutionStrategy(executor))
-                                                                                // //
+                                                                                 // .setCallbackInvokerStrategy(new
+                                                                                 // ExecutorExecutionStrategy(executor))
+                                                                                 // //
                                                                                 .setExceptionHandler((ex) -> {
                                                                                     ex.printStackTrace();
                                                                                 }) //
                                                                                 .build();
 
         connector = resolver.resolve("jetty:" + endpoint, connectorContext);
-    }
-
-    private void start() {
-        connector.start();
-
-        consumer = connector.getConsumer().get();
-        responder = connector.getProducer().get();
-
-        consumer.subscribe(this::onRequest);
     }
 
     private void onRequest(Message message) {
@@ -99,6 +90,15 @@ public class TestFileServer {
         Payload payload = Payload.of(headers, body);
         Message response = Message.of(payload).setRoutingIdFromAny(message.getRoutingId().get());
         this.responder.send(response);
+    }
+
+    private void start() {
+        connector.start();
+
+        consumer = connector.getConsumer().get();
+        responder = connector.getProducer().get();
+
+        consumer.subscribe(this::onRequest);
     }
 
     private void stop() {

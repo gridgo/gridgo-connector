@@ -8,22 +8,17 @@ import io.lettuce.core.api.async.RedisAsyncCommands;
 
 public interface LettuceConnectionCommandsDelegate extends LettuceCommandsDelegate, RedisConnectionCommands {
 
-    <T extends RedisAsyncCommands<byte[], byte[]>> T getConnectionCommands();
-
     @Override
     default String auth(String password) {
         return getConnectionCommands().auth(password);
     }
 
     @Override
-    default String select(int db) {
-        return getConnectionCommands().select(db);
-    }
-
-    @Override
     default Promise<BElement, Exception> echo(byte[] msg) {
         return toPromise(getConnectionCommands().echo(msg));
     }
+
+    <T extends RedisAsyncCommands<byte[], byte[]>> T getConnectionCommands();
 
     @Override
     default Promise<BElement, Exception> ping() {
@@ -33,6 +28,11 @@ public interface LettuceConnectionCommandsDelegate extends LettuceCommandsDelega
     @Override
     default Promise<BElement, Exception> quit() {
         return toPromise(getConnectionCommands().quit());
+    }
+
+    @Override
+    default String select(int db) {
+        return getConnectionCommands().select(db);
     }
 
     @Override

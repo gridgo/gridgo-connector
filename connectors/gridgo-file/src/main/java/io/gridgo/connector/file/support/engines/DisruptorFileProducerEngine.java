@@ -28,8 +28,8 @@ public class DisruptorFileProducerEngine extends SingleThreadSendingProducer imp
 
     private ByteBuffer buffer;
 
-    public DisruptorFileProducerEngine(ConnectorContext context, String format, int bufferSize, int ringBufferSize,
-            boolean batchingEnabled, int maxBatchSize, boolean lengthPrepend) {
+    public DisruptorFileProducerEngine(ConnectorContext context, String format, int bufferSize, int ringBufferSize, boolean batchingEnabled, int maxBatchSize,
+            boolean lengthPrepend) {
         super(context, ringBufferSize, batchingEnabled, maxBatchSize);
         this.buffer = ByteBuffer.allocateDirect(bufferSize);
         this.format = format;
@@ -37,9 +37,13 @@ public class DisruptorFileProducerEngine extends SingleThreadSendingProducer imp
     }
 
     @Override
-    protected void onStart() {
-        this.totalSentBytes = 0;
-        super.onStart();
+    protected Message accumulateBatch(Collection<Message> messages) {
+        return new MultipartMessage(messages);
+    }
+
+    @Override
+    public Promise<Message, Exception> call(Message request) {
+        throw new UnsupportedOperationException("File doesn't support call");
     }
 
     @Override
@@ -51,22 +55,18 @@ public class DisruptorFileProducerEngine extends SingleThreadSendingProducer imp
     }
 
     @Override
-    protected Message accumulateBatch(Collection<Message> messages) {
-        return new MultipartMessage(messages);
-    }
-
-    @Override
     protected String generateName() {
         return "disruptor";
     }
 
     @Override
-    public Promise<Message, Exception> call(Message request) {
-        throw new UnsupportedOperationException("File doesn't support call");
+    public boolean isCallSupported() {
+        return false;
     }
 
     @Override
-    public boolean isCallSupported() {
-        return false;
+    protected void onStart() {
+        this.totalSentBytes = 0;
+        super.onStart();
     }
 }

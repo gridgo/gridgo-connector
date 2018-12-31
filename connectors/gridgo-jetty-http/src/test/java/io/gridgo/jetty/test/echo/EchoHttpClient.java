@@ -13,6 +13,8 @@ import io.gridgo.utils.ThreadUtils;
 
 public class EchoHttpClient {
 
+    private static final int N_THREADS = 8;
+
     public static void main(String[] args) {
         if (args == null || args.length == 0) {
             System.out.println("Usage: provide argument 1 as <endpoint>, example: http://localhost:8080/path");
@@ -25,8 +27,6 @@ public class EchoHttpClient {
         app.start();
     }
 
-    private static final int N_THREADS = 8;
-
     private final HttpClient httpClient;
     private final String endpoint;
 
@@ -38,6 +38,16 @@ public class EchoHttpClient {
                                     .build();
     }
 
+    private HttpRequest buildRequest(int id) {
+        URI uri = URI.create(this.endpoint + "?index=" + id);
+        HttpRequest request = HttpRequest.newBuilder().GET().uri(uri).build();
+        return request;
+    }
+
+    private CompletableFuture<HttpResponse<String>> sendRequest(HttpRequest request) {
+        return httpClient.sendAsync(request, BodyHandlers.ofString());
+    }
+
     public void start() {
         int idSeed = 0;
         while (!ThreadUtils.isShuttingDown()) {
@@ -47,16 +57,6 @@ public class EchoHttpClient {
             }
             ThreadUtils.sleep(100);
         }
-    }
-
-    private HttpRequest buildRequest(int id) {
-        URI uri = URI.create(this.endpoint + "?index=" + id);
-        HttpRequest request = HttpRequest.newBuilder().GET().uri(uri).build();
-        return request;
-    }
-
-    private CompletableFuture<HttpResponse<String>> sendRequest(HttpRequest request) {
-        return httpClient.sendAsync(request, BodyHandlers.ofString());
     }
 
     public void stop() {

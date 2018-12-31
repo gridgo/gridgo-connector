@@ -38,12 +38,16 @@ public abstract class AbstractRabbitMQConsumer extends AbstractConsumer implemen
     @Getter(AccessLevel.PROTECTED)
     private final String uniqueIdentifier;
 
-    protected AbstractRabbitMQConsumer(ConnectorContext context, @NonNull Connection connection,
-            @NonNull RabbitMQQueueConfig queueConfig, @NonNull String uniqueIdentifier) {
+    protected AbstractRabbitMQConsumer(ConnectorContext context, @NonNull Connection connection, @NonNull RabbitMQQueueConfig queueConfig,
+            @NonNull String uniqueIdentifier) {
         super(context);
         this.connection = connection;
         this.queueConfig = queueConfig;
         this.uniqueIdentifier = uniqueIdentifier;
+    }
+
+    protected Deferred<Message, Exception> createDeferred() {
+        return new CompletableDeferredObject<>();
     }
 
     @Override
@@ -51,48 +55,8 @@ public abstract class AbstractRabbitMQConsumer extends AbstractConsumer implemen
         return "consumer." + this.getUniqueIdentifier();
     }
 
-    @Override
-    protected void onStart() {
-        this.channel = this.initChannel(connection);
-        this.subscibe(this::onDelivery, this::onCancel);
-    }
-
-    @Override
-    protected void onStop() {
-        this.closeChannel();
-        this.channel = null;
-    }
-
     private void onCancel(String consumerTag) {
         getLogger().info("Cancelled " + consumerTag);
-    }
-
-    private void sendResponse(Exception ex, BasicProperties props) {
-        var headers = BObject.of("status", 500);
-        var body = BValue.of(
-                "Internal server error: " + (ex.getMessage() == null ? "unknown message" : ex.getMessage()));
-        this.sendResponse(createMessage(headers, body), props);
-    }
-
-    private void sendResponse(Message response, BasicProperties props) {
-        final Payload payload = response.getPayload();
-
-        final BValue id = payload.getId().orElse(null);
-        final BObject headers = payload.getHeaders();
-        final BElement body = payload.getBody();
-
-        final String responseQueue = props.getReplyTo();
-        final byte[] bytes = BArray.ofSequence(id, headers, body).toBytes();
-
-        try {
-            this.getChannel().basicPublish("", responseQueue, props, bytes);
-        } catch (IOException e) {
-            getLogger().error("Cannot send response to caller: " + response, e);
-        }
-    }
-
-    protected Deferred<Message, Exception> createDeferred() {
-        return new CompletableDeferredObject<>();
     }
 
     private void onDelivery(String consumerTag, @NonNull Delivery delivery) {
@@ -139,11 +103,46 @@ public abstract class AbstractRabbitMQConsumer extends AbstractConsumer implemen
         this.publish(message, deferred);
     }
 
+    @Override
+    protected void onStart() {
+        this.channel = this.initChannel(connection);
+        this.subscibe(this::onDelivery, this::onCancel);
+    }
+
+    @Override
+    protected void onStop() {
+        this.closeChannel();
+        this.channel = null;
+    }
+
     private void sendAck(long deliveryTag) {
         try {
             this.getChannel().basicAck(deliveryTag, getQueueConfig().isMultipleAck());
         } catch (IOException e) {
             throw new RuntimeException("Cannot send ack for delivery tag: " + deliveryTag, e);
+        }
+    }
+
+    private void sendResponse(Exception ex, BasicProperties props) {
+        var headers = BObject.of("status", 500);
+        var body = BValue.of("Internal server error: " + (ex.getMessage() == null ? "unknown message" : ex.getMessage()));
+        this.sendResponse(createMessage(headers, body), props);
+    }
+
+    private void sendResponse(Message response, BasicProperties props) {
+        final Payload payload = response.getPayload();
+
+        final BValue id = payload.getId().orElse(null);
+        final BObject headers = payload.getHeaders();
+        final BElement body = payload.getBody();
+
+        final String responseQueue = props.getReplyTo();
+        final byte[] bytes = BArray.ofSequence(id, headers, body).toBytes();
+
+        try {
+            this.getChannel().basicPublish("", responseQueue, props, bytes);
+        } catch (IOException e) {
+            getLogger().error("Cannot send response to caller: " + response, e);
         }
     }
 

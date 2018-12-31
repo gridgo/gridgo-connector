@@ -61,14 +61,61 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         this.uniqueIdentifier = uniqueIdentifier;
     }
 
+    private InputStream createInputStream(BElement body) {
+        if (!(body instanceof BReference))
+            return null;
+        var obj = body.asReference().getReference();
+        if (obj instanceof InputStream)
+            return (InputStream) obj;
+        if (obj instanceof ByteBuffer)
+            return new ByteBufferInputStream((ByteBuffer) obj);
+        if (obj instanceof byte[])
+            return new ByteArrayInputStream((byte[]) obj);
+        if (obj instanceof File || obj instanceof Path) {
+            File file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
+            try {
+                return new FileInputStream(file);
+            } catch (FileNotFoundException e) {
+                handleException(e);
+            }
+        }
+        return null;
+    }
+
     @Override
-    protected void send(Message message, Deferred<Message, Exception> deferredAck) {
-        super.resolveTraceable(message, deferredAck);
+    public Message generateFailureMessage(Throwable ex) {
+        // print exception anyway
+        getLogger().error("Error while handling request", ex);
+
+        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR_500;
+        BElement body = BValue.of(status.getDefaultMessage());
+
+        Payload payload = Payload.of(body).addHeader(HttpCommonConstants.HEADER_STATUS, status.getCode());
+        return Message.of(payload);
     }
 
     @Override
     protected String generateName() {
         return "producer.jetty.http-server." + this.uniqueIdentifier;
+    }
+
+    private InputStream getInputStreamFromBody(Object obj) {
+        if (obj instanceof InputStream)
+            return (InputStream) obj;
+        if (obj instanceof ByteBuffer)
+            return new ByteBufferInputStream((ByteBuffer) obj);
+        if (obj instanceof byte[])
+            return new ByteArrayInputStream((byte[]) obj);
+        return null;
+    }
+
+    protected void handleException(Throwable e) {
+        var exceptionHandler = getContext().getExceptionHandler();
+        if (exceptionHandler != null) {
+            exceptionHandler.accept(e);
+        } else {
+            getLogger().error("Exception caught", e);
+        }
     }
 
     protected String lookUpResponseHeader(@NonNull String headerName) {
@@ -77,6 +124,188 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
             return httpHeader.asString();
         }
         return null;
+    }
+
+    private HttpContentType parseContentType(BElement body, String headerSetContentType) {
+        var contentType = HttpContentType.forValue(headerSetContentType);
+
+        if (contentType == null) {
+            if (body instanceof BValue) {
+                contentType = HttpContentType.DEFAULT_TEXT;
+            } else if (body instanceof BReference) {
+                var ref = body.asReference().getReference();
+                if (ref instanceof File || ref instanceof Path) {
+                    contentType = HttpContentType.forFile(ref instanceof File ? (File) ref : ((Path) ref).toFile());
+                } else {
+                    contentType = HttpContentType.DEFAULT_BINARY;
+                }
+            } else {
+                contentType = HttpContentType.DEFAULT_JSON;
+            }
+        }
+        return contentType;
+    }
+
+    @Override
+    public DeferredAndRoutingId registerRequest(@NonNull HttpServletRequest request) {
+        final Deferred<Message, Exception> deferredResponse = new CompletableDeferredObject<>();
+        final AsyncContext asyncContext = request.startAsync();
+        final long routingId = ID_SEED.getAndIncrement();
+        this.deferredResponses.put(routingId, deferredResponse);
+        deferredResponse.promise().always((stt, resp, ex) -> {
+            try {
+                HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();
+                Message responseMessage = stt == DeferredStatus.RESOLVED ? resp : this.failureHandler.apply(ex);
+                writeResponse(response, responseMessage);
+            } catch (Exception e) {
+                handleException(e);
+            } finally {
+                deferredResponses.remove(routingId);
+                asyncContext.complete();
+            }
+        });
+        return DeferredAndRoutingId.builder().deferred(deferredResponse).routingId(BValue.of(routingId)).build();
+    }
+
+    @Override
+    protected void send(Message message, Deferred<Message, Exception> deferredAck) {
+        super.resolveTraceable(message, deferredAck);
+    }
+
+    private void sendResponse(HttpServletResponse response, BObject headers, BElement body, HttpContentType contentType) {
+        if (contentType != HttpContentType.MULTIPART_FORM_DATA || body == null) {
+            this.writeHeaders(headers, response);
+        }
+
+        /* ------------------------------------------ */
+        /**
+         * process body
+         */
+        if (body != null) {
+            if (contentType.isJsonFormat()) {
+                this.writeBodyJson(body, response);
+            } else if (contentType.isBinaryFormat()) {
+                this.writeBodyBinary(body, response);
+            } else if (contentType.isMultipartFormat()) {
+                this.writeBodyMultipart(body, response, contentTypeWithBoundary -> {
+                    headers.setAny(HttpCommonConstants.CONTENT_TYPE, contentTypeWithBoundary);
+                    this.writeHeaders(headers, response);
+                });
+            } else {
+                this.writeBodyTextPlain(body, response);
+            }
+        }
+    }
+
+    @Override
+    public JettyResponder setFailureHandler(Function<Throwable, Message> failureHandler) {
+        this.failureHandler = failureHandler;
+        return this;
+    }
+
+    protected void takeOutputStream(HttpServletResponse response, Consumer<ServletOutputStream> osConsumer) {
+        ServletOutputStream outputStream = null;
+
+        try {
+            outputStream = response.getOutputStream();
+        } catch (IOException e) {
+            handleException(e);
+            return;
+        }
+
+        try {
+            osConsumer.accept(outputStream);
+        } finally {
+            try {
+                outputStream.flush();
+            } catch (IOException e) {
+                handleException(e);
+            }
+        }
+    }
+
+    protected void takeWriter(HttpServletResponse response, Consumer<PrintWriter> writerConsumer) {
+        PrintWriter writer = null;
+
+        try {
+            writer = response.getWriter();
+        } catch (IOException e) {
+            throw new RuntimeIOException(e);
+        }
+
+        try {
+            writerConsumer.accept(writer);
+        } finally {
+            writer.flush();
+        }
+    }
+
+    protected void writeBodyBinary(BElement body, HttpServletResponse response) {
+        writeBodyBinary(body, response, null);
+    }
+
+    protected void writeBodyBinary(BElement body, HttpServletResponse response, LongConsumer contentLengthConsumer) {
+        takeOutputStream(response, output -> {
+            var inputStream = createInputStream(body);
+            if (inputStream != null) {
+                try (var is = inputStream) {
+                    if (contentLengthConsumer != null) {
+                        contentLengthConsumer.accept((long) is.available());
+                    }
+                    is.transferTo(output);
+                } catch (Exception e) {
+                    handleException(e);
+                }
+            } else {
+                body.writeBytes(output);
+            }
+        });
+    }
+
+    protected void writeBodyJson(BElement body, HttpServletResponse response) {
+        if (body instanceof BValue) {
+            writeBodyTextPlain(body, response);
+        } else if (body instanceof BReference) {
+            writeBodyBinary(body, response);
+        } else {
+            takeWriter(response, body::writeJson);
+        }
+    }
+
+    protected void writeBodyMultipart(@NonNull BElement body, @NonNull HttpServletResponse response, @NonNull Consumer<String> contentTypeConsumer) {
+        final MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+        if (body instanceof BObject) {
+            for (Entry<String, BElement> entry : body.asObject().entrySet()) {
+                String name = entry.getKey();
+                writePart(name, entry.getValue(), builder);
+            }
+        } else if (body instanceof BArray) {
+            for (BElement entry : body.asArray()) {
+                writePart(null, entry, builder);
+            }
+        } else {
+            writePart(null, body, builder);
+        }
+
+        takeOutputStream(response, outstream -> {
+            try {
+                HttpEntity entity = builder.build();
+                contentTypeConsumer.accept(entity.getContentType().getValue());
+                entity.writeTo(outstream);
+            } catch (IOException e) {
+                handleException(new RuntimeIOException(e));
+            }
+        });
+
+    }
+
+    protected void writeBodyTextPlain(BElement body, HttpServletResponse response) {
+        if (body instanceof BReference) {
+            writeBodyBinary(body, response, //
+                    contentLength -> response.addHeader(HttpCommonConstants.CONTENT_LENGTH, String.valueOf(contentLength)));
+        } else {
+            takeWriter(response, writer -> writer.write(body.toJson()));
+        }
     }
 
     protected void writeHeaders(@NonNull BObject headers, @NonNull HttpServletResponse response) {
@@ -90,12 +319,30 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         }
     }
 
-    protected void handleException(Throwable e) {
-        var exceptionHandler = getContext().getExceptionHandler();
-        if (exceptionHandler != null) {
-            exceptionHandler.accept(e);
+    protected void writePart(String name, BElement value, MultipartEntityBuilder builder) {
+        name = name == null ? "" : name;
+        if (value instanceof BValue) {
+            writeValue(name, value, builder);
+        } else if (value instanceof BReference) {
+            writeReference(name, value, builder);
         } else {
-            getLogger().error("Exception caught", e);
+            builder.addPart(name, new StringBody(value.toJson(), ContentType.APPLICATION_JSON));
+        }
+    }
+
+    private void writeReference(String name, BElement value, MultipartEntityBuilder builder) {
+        var obj = value.asReference().getReference();
+        if (obj instanceof File || obj instanceof Path) {
+            var file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
+            builder.addBinaryBody(name, file);
+            return;
+        }
+        var inputStream = getInputStreamFromBody(obj);
+
+        if (inputStream != null) {
+            builder.addBinaryBody(name, inputStream);
+        } else {
+            handleException(new IllegalArgumentException("cannot make input stream from BReferrence"));
         }
     }
 
@@ -126,261 +373,11 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         sendResponse(response, headers, body, contentType);
     }
 
-    private void sendResponse(HttpServletResponse response, BObject headers, BElement body,
-            HttpContentType contentType) {
-        if (contentType != HttpContentType.MULTIPART_FORM_DATA || body == null) {
-            this.writeHeaders(headers, response);
-        }
-
-        /* ------------------------------------------ */
-        /**
-         * process body
-         */
-        if (body != null) {
-            if (contentType.isJsonFormat()) {
-                this.writeBodyJson(body, response);
-            } else if (contentType.isBinaryFormat()) {
-                this.writeBodyBinary(body, response);
-            } else if (contentType.isMultipartFormat()) {
-                this.writeBodyMultipart(body, response, contentTypeWithBoundary -> {
-                    headers.setAny(HttpCommonConstants.CONTENT_TYPE, contentTypeWithBoundary);
-                    this.writeHeaders(headers, response);
-                });
-            } else {
-                this.writeBodyTextPlain(body, response);
-            }
-        }
-    }
-
-    private HttpContentType parseContentType(BElement body, String headerSetContentType) {
-        var contentType = HttpContentType.forValue(headerSetContentType);
-
-        if (contentType == null) {
-            if (body instanceof BValue) {
-                contentType = HttpContentType.DEFAULT_TEXT;
-            } else if (body instanceof BReference) {
-                var ref = body.asReference().getReference();
-                if (ref instanceof File || ref instanceof Path) {
-                    contentType = HttpContentType.forFile(ref instanceof File ? (File) ref : ((Path) ref).toFile());
-                } else {
-                    contentType = HttpContentType.DEFAULT_BINARY;
-                }
-            } else {
-                contentType = HttpContentType.DEFAULT_JSON;
-            }
-        }
-        return contentType;
-    }
-
-    protected void takeWriter(HttpServletResponse response, Consumer<PrintWriter> writerConsumer) {
-        PrintWriter writer = null;
-
-        try {
-            writer = response.getWriter();
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
-
-        try {
-            writerConsumer.accept(writer);
-        } finally {
-            writer.flush();
-        }
-    }
-
-    protected void takeOutputStream(HttpServletResponse response, Consumer<ServletOutputStream> osConsumer) {
-        ServletOutputStream outputStream = null;
-
-        try {
-            outputStream = response.getOutputStream();
-        } catch (IOException e) {
-            handleException(e);
-            return;
-        }
-
-        try {
-            osConsumer.accept(outputStream);
-        } finally {
-            try {
-                outputStream.flush();
-            } catch (IOException e) {
-                handleException(e);
-            }
-        }
-    }
-
-    protected void writeBodyJson(BElement body, HttpServletResponse response) {
-        if (body instanceof BValue) {
-            writeBodyTextPlain(body, response);
-        } else if (body instanceof BReference) {
-            writeBodyBinary(body, response);
-        } else {
-            takeWriter(response, body::writeJson);
-        }
-    }
-
-    protected void writeBodyBinary(BElement body, HttpServletResponse response) {
-        writeBodyBinary(body, response, null);
-    }
-
-    protected void writeBodyBinary(BElement body, HttpServletResponse response, LongConsumer contentLengthConsumer) {
-        takeOutputStream(response, output -> {
-            var inputStream = createInputStream(body);
-            if (inputStream != null) {
-                try (var is = inputStream) {
-                    if (contentLengthConsumer != null) {
-                        contentLengthConsumer.accept((long) is.available());
-                    }
-                    is.transferTo(output);
-                } catch (Exception e) {
-                    handleException(e);
-                }
-            } else {
-                body.writeBytes(output);
-            }
-        });
-    }
-
-    private InputStream createInputStream(BElement body) {
-        if (!(body instanceof BReference))
-            return null;
-        var obj = body.asReference().getReference();
-        if (obj instanceof InputStream)
-            return (InputStream) obj;
-        if (obj instanceof ByteBuffer)
-            return new ByteBufferInputStream((ByteBuffer) obj);
-        if (obj instanceof byte[])
-            return new ByteArrayInputStream((byte[]) obj);
-        if (obj instanceof File || obj instanceof Path) {
-            File file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
-            try {
-                return new FileInputStream(file);
-            } catch (FileNotFoundException e) {
-                handleException(e);
-            }
-        }
-        return null;
-    }
-
-    protected void writePart(String name, BElement value, MultipartEntityBuilder builder) {
-        name = name == null ? "" : name;
-        if (value instanceof BValue) {
-            writeValue(name, value, builder);
-        } else if (value instanceof BReference) {
-            writeReference(name, value, builder);
-        } else {
-            builder.addPart(name, new StringBody(value.toJson(), ContentType.APPLICATION_JSON));
-        }
-    }
-
-    private void writeReference(String name, BElement value, MultipartEntityBuilder builder) {
-        var obj = value.asReference().getReference();
-        if (obj instanceof File || obj instanceof Path) {
-            var file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
-            builder.addBinaryBody(name, file);
-            return;
-        }
-        var inputStream = getInputStreamFromBody(obj);
-
-        if (inputStream != null) {
-            builder.addBinaryBody(name, inputStream);
-        } else {
-            handleException(new IllegalArgumentException("cannot make input stream from BReferrence"));
-        }
-    }
-
     private void writeValue(String name, BElement value, MultipartEntityBuilder builder) {
         if (value.getType() == BType.RAW) {
             builder.addBinaryBody(name, value.asValue().getRaw());
         } else {
             builder.addTextBody(name, value.asValue().getString());
         }
-    }
-
-    private InputStream getInputStreamFromBody(Object obj) {
-        if (obj instanceof InputStream)
-            return (InputStream) obj;
-        if (obj instanceof ByteBuffer)
-            return new ByteBufferInputStream((ByteBuffer) obj);
-        if (obj instanceof byte[])
-            return new ByteArrayInputStream((byte[]) obj);
-        return null;
-    }
-
-    protected void writeBodyMultipart(@NonNull BElement body, @NonNull HttpServletResponse response,
-            @NonNull Consumer<String> contentTypeConsumer) {
-        final MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-        if (body instanceof BObject) {
-            for (Entry<String, BElement> entry : body.asObject().entrySet()) {
-                String name = entry.getKey();
-                writePart(name, entry.getValue(), builder);
-            }
-        } else if (body instanceof BArray) {
-            for (BElement entry : body.asArray()) {
-                writePart(null, entry, builder);
-            }
-        } else {
-            writePart(null, body, builder);
-        }
-
-        takeOutputStream(response, outstream -> {
-            try {
-                HttpEntity entity = builder.build();
-                contentTypeConsumer.accept(entity.getContentType().getValue());
-                entity.writeTo(outstream);
-            } catch (IOException e) {
-                handleException(new RuntimeIOException(e));
-            }
-        });
-
-    }
-
-    protected void writeBodyTextPlain(BElement body, HttpServletResponse response) {
-        if (body instanceof BReference) {
-            writeBodyBinary(body, response, //
-                    contentLength -> response.addHeader(HttpCommonConstants.CONTENT_LENGTH,
-                            String.valueOf(contentLength)));
-        } else {
-            takeWriter(response, writer -> writer.write(body.toJson()));
-        }
-    }
-
-    @Override
-    public Message generateFailureMessage(Throwable ex) {
-        // print exception anyway
-        getLogger().error("Error while handling request", ex);
-
-        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR_500;
-        BElement body = BValue.of(status.getDefaultMessage());
-
-        Payload payload = Payload.of(body).addHeader(HttpCommonConstants.HEADER_STATUS, status.getCode());
-        return Message.of(payload);
-    }
-
-    @Override
-    public DeferredAndRoutingId registerRequest(@NonNull HttpServletRequest request) {
-        final Deferred<Message, Exception> deferredResponse = new CompletableDeferredObject<>();
-        final AsyncContext asyncContext = request.startAsync();
-        final long routingId = ID_SEED.getAndIncrement();
-        this.deferredResponses.put(routingId, deferredResponse);
-        deferredResponse.promise().always((stt, resp, ex) -> {
-            try {
-                HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();
-                Message responseMessage = stt == DeferredStatus.RESOLVED ? resp : this.failureHandler.apply(ex);
-                writeResponse(response, responseMessage);
-            } catch (Exception e) {
-                handleException(e);
-            } finally {
-                deferredResponses.remove(routingId);
-                asyncContext.complete();
-            }
-        });
-        return DeferredAndRoutingId.builder().deferred(deferredResponse).routingId(BValue.of(routingId)).build();
-    }
-
-    @Override
-    public JettyResponder setFailureHandler(Function<Throwable, Message> failureHandler) {
-        this.failureHandler = failureHandler;
-        return this;
     }
 }

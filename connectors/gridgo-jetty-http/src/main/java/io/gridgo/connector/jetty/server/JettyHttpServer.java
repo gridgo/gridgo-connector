@@ -37,20 +37,30 @@ public class JettyHttpServer extends NonameComponentLifecycle {
 
     private final boolean http2Enabled;
 
-    JettyHttpServer(@NonNull HostAndPort address, boolean http2Enabled, Set<JettyServletContextHandlerOption> options,
-            Consumer<HostAndPort> onStopCallback) {
+    JettyHttpServer(@NonNull HostAndPort address, boolean http2Enabled, Set<JettyServletContextHandlerOption> options, Consumer<HostAndPort> onStopCallback) {
         this.address = address;
         this.onStopCallback = onStopCallback;
         this.options = options;
         this.http2Enabled = http2Enabled;
     }
 
-    public JettyHttpServer addPathHandler(@NonNull String path,
-            @NonNull BiConsumer<HttpServletRequest, HttpServletResponse> handler) {
+    public JettyHttpServer addPathHandler(@NonNull String path, @NonNull BiConsumer<HttpServletRequest, HttpServletResponse> handler) {
         ServletHolder servletHolder = new ServletHolder(new DelegateServlet(handler));
         servletHolder.getRegistration().setMultipartConfig(new MultipartConfigElement(path));
         this.handler.addServlet(servletHolder, path);
         return this;
+    }
+
+    private ServletContextHandler createServletContextHandler() {
+        if (this.options == null || this.options.size() == 0) {
+            return new ServletContextHandler();
+        } else {
+            int options = 0;
+            for (JettyServletContextHandlerOption option : this.options) {
+                options = options | option.getCode();
+            }
+            return new ServletContextHandler(options);
+        }
     }
 
     @Override
@@ -82,18 +92,6 @@ public class JettyHttpServer extends NonameComponentLifecycle {
             server.start();
         } catch (Exception e) {
             throw new RuntimeException("Cannot start server connector for host: " + address, e);
-        }
-    }
-
-    private ServletContextHandler createServletContextHandler() {
-        if (this.options == null || this.options.size() == 0) {
-            return new ServletContextHandler();
-        } else {
-            int options = 0;
-            for (JettyServletContextHandlerOption option : this.options) {
-                options = options | option.getCode();
-            }
-            return new ServletContextHandler(options);
         }
     }
 

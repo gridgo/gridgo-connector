@@ -20,12 +20,6 @@ public class EchoHttpServer {
 
     private static final ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.connector");
 
-    private final ExecutorService executor = Executors.newCachedThreadPool();
-
-    private Connector connector;
-    private Consumer consumer;
-    private Producer responder;
-
     public static void main(String[] args) {
         if (args == null || args.length == 0) {
             System.out.println("Usage: provide argument 1 as <endpoint>, example: http://localhost:8080/path");
@@ -38,28 +32,23 @@ public class EchoHttpServer {
         app.start();
     }
 
+    private final ExecutorService executor = Executors.newCachedThreadPool();
+    private Connector connector;
+    private Consumer consumer;
+
+    private Producer responder;
+
     private EchoHttpServer(String endpoint) {
         System.out.println("Http server listen on: " + endpoint);
 
         ConnectorContext connectorContext = new DefaultConnectorContextBuilder() //
-                                                                                .setCallbackInvokerStrategy(
-                                                                                        new ExecutorExecutionStrategy(
-                                                                                                executor)) //
+                                                                                .setCallbackInvokerStrategy(new ExecutorExecutionStrategy(executor)) //
                                                                                 .setExceptionHandler((ex) -> {
                                                                                     ex.printStackTrace();
                                                                                 }) //
                                                                                 .build();
 
         connector = resolver.resolve("jetty:" + endpoint, connectorContext);
-    }
-
-    private void start() {
-        connector.start();
-
-        consumer = connector.getConsumer().get();
-        responder = connector.getProducer().get();
-
-        consumer.subscribe(this::onRequest);
     }
 
     private void onRequest(Message message) {
@@ -70,6 +59,15 @@ public class EchoHttpServer {
         Message response = Message.of(payload).setRoutingIdFromAny(message.getRoutingId().get());
 
         this.responder.send(response);
+    }
+
+    private void start() {
+        connector.start();
+
+        consumer = connector.getConsumer().get();
+        responder = connector.getProducer().get();
+
+        consumer.subscribe(this::onRequest);
     }
 
     private void stop() {

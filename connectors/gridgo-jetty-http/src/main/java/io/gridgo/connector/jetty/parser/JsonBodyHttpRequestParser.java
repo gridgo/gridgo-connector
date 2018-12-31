@@ -4,7 +4,6 @@ import static io.gridgo.connector.jetty.support.HttpEntityHelper.parseAsString;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 import io.gridgo.bean.BElement;

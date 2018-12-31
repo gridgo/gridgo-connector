@@ -12,13 +12,13 @@ public interface Netty4SocketServer extends Netty4Socket {
 
     void bind(HostAndPort host);
 
+    Map<String, Object> getChannelDetails(String channelId);
+
     ChannelFuture send(String channelId, BElement data);
-
-    void setReceiveCallback(BiConsumer<String, BElement> onReceiveCallback);
-
-    void setChannelOpenCallback(Consumer<String> onChannelOpenCallback);
 
     void setChannelCloseCallback(Consumer<String> onChannelCloseCallback);
 
-    Map<String, Object> getChannelDetails(String channelId);
+    void setChannelOpenCallback(Consumer<String> onChannelOpenCallback);
+
+    void setReceiveCallback(BiConsumer<String, BElement> onReceiveCallback);
 }

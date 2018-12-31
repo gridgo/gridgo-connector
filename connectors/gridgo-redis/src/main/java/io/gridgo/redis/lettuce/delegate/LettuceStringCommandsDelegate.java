@@ -16,21 +16,19 @@ import io.lettuce.core.api.async.RedisStringAsyncCommands;
 
 public interface LettuceStringCommandsDelegate extends LettuceCommandsDelegate, RedisStringCommands {
 
-    <T extends RedisStringAsyncCommands<byte[], byte[]>> T getStringCommands();
-
     @Override
     default Promise<BElement, Exception> append(byte[] key, byte[] value) {
         return toPromise(getStringCommands().append(key, value));
     }
 
     @Override
-    default Promise<BElement, Exception> bitcount(byte[] key, long start, long end) {
-        return toPromise(getStringCommands().bitcount(key, start, end));
+    default Promise<BElement, Exception> bitcount(byte[] key) {
+        return toPromise(getStringCommands().bitcount(key));
     }
 
     @Override
-    default Promise<BElement, Exception> bitcount(byte[] key) {
-        return toPromise(getStringCommands().bitcount(key));
+    default Promise<BElement, Exception> bitcount(byte[] key, long start, long end) {
+        return toPromise(getStringCommands().bitcount(key, start, end));
     }
 
     @Override
@@ -62,19 +60,119 @@ public interface LettuceStringCommandsDelegate extends LettuceCommandsDelegate, 
         return toPromise(getStringCommands().bitfield(key, bitFieldArgs));
     }
 
-    default void processSubCommand(final BitFieldArgs bitFieldArgs, List<Object> cmdAndArgs) {
-        String cmd = cmdAndArgs.remove(0).toString();
-        switch (cmd.trim().toLowerCase()) {
-        case "get":
-            processGetCommand(bitFieldArgs, cmdAndArgs);
-            break;
-        case "set":
-            processSetCommand(bitFieldArgs, cmdAndArgs);
-            break;
-        case "incrby":
-            processIncreaseCommand(bitFieldArgs, cmdAndArgs);
-            break;
-        default:
+    @Override
+    default Promise<BElement, Exception> bitopAnd(byte[] destination, byte[]... keys) {
+        return toPromise(getStringCommands().bitopAnd(destination, keys));
+    }
+
+    @Override
+    default Promise<BElement, Exception> bitopNot(byte[] destination, byte[] source) {
+        return toPromise(getStringCommands().bitopNot(destination, source));
+    }
+
+    @Override
+    default Promise<BElement, Exception> bitopOr(byte[] destination, byte[]... keys) {
+        return toPromise(getStringCommands().bitopOr(destination, keys));
+    }
+
+    @Override
+    default Promise<BElement, Exception> bitopXor(byte[] destination, byte[]... keys) {
+        return toPromise(getStringCommands().bitopXor(destination, keys));
+    }
+
+    @Override
+    default Promise<BElement, Exception> bitpos(byte[] key, boolean state) {
+        return toPromise(getStringCommands().bitpos(key, state));
+    }
+
+    @Override
+    default Promise<BElement, Exception> bitpos(byte[] key, boolean state, long start) {
+        return toPromise(getStringCommands().bitpos(key, state, start));
+    }
+
+    @Override
+    default Promise<BElement, Exception> bitpos(byte[] key, boolean state, long start, long end) {
+        return toPromise(getStringCommands().bitpos(key, state, start, end));
+    }
+
+    @Override
+    default Promise<BElement, Exception> decr(byte[] key) {
+        return toPromise(getStringCommands().decr(key));
+    }
+
+    @Override
+    default Promise<BElement, Exception> decrby(byte[] key, long amount) {
+        return toPromise(getStringCommands().decrby(key, amount));
+    }
+
+    @Override
+    default Promise<BElement, Exception> get(byte[] key) {
+        return toPromise(getStringCommands().get(key));
+    }
+
+    @Override
+    default Promise<BElement, Exception> getbit(byte[] key, long offset) {
+        return toPromise(getStringCommands().getbit(key, offset));
+    }
+
+    @Override
+    default Promise<BElement, Exception> getrange(byte[] key, long start, long end) {
+        return toPromise(getStringCommands().getrange(key, start, end));
+    }
+
+    @Override
+    default Promise<BElement, Exception> getset(byte[] key, byte[] value) {
+        return toPromise(getStringCommands().getset(key, value));
+    }
+
+    <T extends RedisStringAsyncCommands<byte[], byte[]>> T getStringCommands();
+
+    @Override
+    default Promise<BElement, Exception> incr(byte[] key) {
+        return toPromise(getStringCommands().incr(key));
+    }
+
+    @Override
+    default Promise<BElement, Exception> incrby(byte[] key, long amount) {
+        return toPromise(getStringCommands().incrby(key, amount));
+    }
+
+    @Override
+    default Promise<BElement, Exception> incrbyfloat(byte[] key, double amount) {
+        return toPromise(getStringCommands().incrbyfloat(key, amount));
+    }
+
+    @Override
+    default Promise<BElement, Exception> mget(byte[]... keys) {
+        return toPromise(getStringCommands().mget(keys) //
+                                            .thenApply(list -> this.convertList(list, this::keyValueToBArray)));
+    }
+
+    @Override
+    default Promise<BElement, Exception> mset(Map<byte[], byte[]> map) {
+        return toPromise(getStringCommands().mset(map));
+    }
+
+    @Override
+    default Promise<BElement, Exception> msetnx(Map<byte[], byte[]> map) {
+        return toPromise(getStringCommands().msetnx(map));
+    }
+
+    default void processGetCommand(final BitFieldArgs bitFieldArgs, List<Object> cmdAndArgs) {
+        if (cmdAndArgs.size() == 2) {
+            String type = cmdAndArgs.remove(0).toString();
+            int bits = Integer.parseInt(type.substring(1));
+            int offset = PrimitiveUtils.getIntegerValueFrom(cmdAndArgs.remove(0));
+            if (type.startsWith("u")) {
+                bitFieldArgs.get(BitFieldArgs.unsigned(bits), offset);
+            } else {
+                bitFieldArgs.get(BitFieldArgs.signed(bits), offset);
+            }
+        } else if (cmdAndArgs.size() == 1) {
+            int offset = PrimitiveUtils.getIntegerValueFrom(cmdAndArgs.remove(0));
+            bitFieldArgs.get(offset);
+        } else if (cmdAndArgs.size() == 0) {
+            bitFieldArgs.get();
         }
     }
 
@@ -120,118 +218,20 @@ public interface LettuceStringCommandsDelegate extends LettuceCommandsDelegate, 
         }
     }
 
-    default void processGetCommand(final BitFieldArgs bitFieldArgs, List<Object> cmdAndArgs) {
-        if (cmdAndArgs.size() == 2) {
-            String type = cmdAndArgs.remove(0).toString();
-            int bits = Integer.parseInt(type.substring(1));
-            int offset = PrimitiveUtils.getIntegerValueFrom(cmdAndArgs.remove(0));
-            if (type.startsWith("u")) {
-                bitFieldArgs.get(BitFieldArgs.unsigned(bits), offset);
-            } else {
-                bitFieldArgs.get(BitFieldArgs.signed(bits), offset);
-            }
-        } else if (cmdAndArgs.size() == 1) {
-            int offset = PrimitiveUtils.getIntegerValueFrom(cmdAndArgs.remove(0));
-            bitFieldArgs.get(offset);
-        } else if (cmdAndArgs.size() == 0) {
-            bitFieldArgs.get();
+    default void processSubCommand(final BitFieldArgs bitFieldArgs, List<Object> cmdAndArgs) {
+        String cmd = cmdAndArgs.remove(0).toString();
+        switch (cmd.trim().toLowerCase()) {
+        case "get":
+            processGetCommand(bitFieldArgs, cmdAndArgs);
+            break;
+        case "set":
+            processSetCommand(bitFieldArgs, cmdAndArgs);
+            break;
+        case "incrby":
+            processIncreaseCommand(bitFieldArgs, cmdAndArgs);
+            break;
+        default:
         }
-    }
-
-    @Override
-    default Promise<BElement, Exception> bitopAnd(byte[] destination, byte[]... keys) {
-        return toPromise(getStringCommands().bitopAnd(destination, keys));
-    }
-
-    @Override
-    default Promise<BElement, Exception> bitopNot(byte[] destination, byte[] source) {
-        return toPromise(getStringCommands().bitopNot(destination, source));
-    }
-
-    @Override
-    default Promise<BElement, Exception> bitopOr(byte[] destination, byte[]... keys) {
-        return toPromise(getStringCommands().bitopOr(destination, keys));
-    }
-
-    @Override
-    default Promise<BElement, Exception> bitopXor(byte[] destination, byte[]... keys) {
-        return toPromise(getStringCommands().bitopXor(destination, keys));
-    }
-
-    @Override
-    default Promise<BElement, Exception> bitpos(byte[] key, boolean state, long start, long end) {
-        return toPromise(getStringCommands().bitpos(key, state, start, end));
-    }
-
-    @Override
-    default Promise<BElement, Exception> bitpos(byte[] key, boolean state) {
-        return toPromise(getStringCommands().bitpos(key, state));
-    }
-
-    @Override
-    default Promise<BElement, Exception> bitpos(byte[] key, boolean state, long start) {
-        return toPromise(getStringCommands().bitpos(key, state, start));
-    }
-
-    @Override
-    default Promise<BElement, Exception> decr(byte[] key) {
-        return toPromise(getStringCommands().decr(key));
-    }
-
-    @Override
-    default Promise<BElement, Exception> decrby(byte[] key, long amount) {
-        return toPromise(getStringCommands().decrby(key, amount));
-    }
-
-    @Override
-    default Promise<BElement, Exception> get(byte[] key) {
-        return toPromise(getStringCommands().get(key));
-    }
-
-    @Override
-    default Promise<BElement, Exception> getbit(byte[] key, long offset) {
-        return toPromise(getStringCommands().getbit(key, offset));
-    }
-
-    @Override
-    default Promise<BElement, Exception> getrange(byte[] key, long start, long end) {
-        return toPromise(getStringCommands().getrange(key, start, end));
-    }
-
-    @Override
-    default Promise<BElement, Exception> getset(byte[] key, byte[] value) {
-        return toPromise(getStringCommands().getset(key, value));
-    }
-
-    @Override
-    default Promise<BElement, Exception> incrby(byte[] key, long amount) {
-        return toPromise(getStringCommands().incrby(key, amount));
-    }
-
-    @Override
-    default Promise<BElement, Exception> incrbyfloat(byte[] key, double amount) {
-        return toPromise(getStringCommands().incrbyfloat(key, amount));
-    }
-
-    @Override
-    default Promise<BElement, Exception> incr(byte[] key) {
-        return toPromise(getStringCommands().incr(key));
-    }
-
-    @Override
-    default Promise<BElement, Exception> mget(byte[]... keys) {
-        return toPromise(getStringCommands().mget(keys) //
-                                            .thenApply(list -> this.convertList(list, this::keyValueToBArray)));
-    }
-
-    @Override
-    default Promise<BElement, Exception> mset(Map<byte[], byte[]> map) {
-        return toPromise(getStringCommands().mset(map));
-    }
-
-    @Override
-    default Promise<BElement, Exception> msetnx(Map<byte[], byte[]> map) {
-        return toPromise(getStringCommands().msetnx(map));
     }
 
     @Override

@@ -18,15 +18,29 @@ final class ZMQSocket extends AbstractSocket {
     private static final Map<String, Setter> ZMQ_SOCKET_SETTERS = initSetters();
 
     private static Map<String, Setter> initSetters() {
-        return ObjectUtils.findAllClassSetters(ZMQ.Socket.class).entrySet().stream()
-                          .collect(Collectors.toMap((Map.Entry<String, Setter> entry) -> entry.getKey().toLowerCase(),
-                                  (Map.Entry<String, Setter> entry) -> entry.getValue()));
+        return ObjectUtils.findAllClassSetters(ZMQ.Socket.class).entrySet().stream().collect(
+                Collectors.toMap((Map.Entry<String, Setter> entry) -> entry.getKey().toLowerCase(), (Map.Entry<String, Setter> entry) -> entry.getValue()));
     }
 
     private final ZMQ.Socket socket;
 
     ZMQSocket(ZMQ.Socket socket) {
         this.socket = Assert.notNull(socket, "zmq.socket");
+    }
+
+    @Override
+    public void applyConfig(@NonNull String name, Object value) {
+        Setter setter = ZMQ_SOCKET_SETTERS.get(name.toLowerCase());
+        if (setter != null) {
+            setter.applyAsPrimitive(this.socket, value);
+        }
+    }
+
+    @Override
+    protected void doBind(Endpoint endpoint) {
+        String resolvedAddress = endpoint.getResolvedAddress();
+        this.socket.bind(resolvedAddress);
+        // System.out.println("success bind to: " + resolvedAddress);
     }
 
     @Override
@@ -42,10 +56,11 @@ final class ZMQSocket extends AbstractSocket {
     }
 
     @Override
-    protected void doBind(Endpoint endpoint) {
-        String resolvedAddress = endpoint.getResolvedAddress();
-        this.socket.bind(resolvedAddress);
-        // System.out.println("success bind to: " + resolvedAddress);
+    protected int doReveive(ByteBuffer buffer, boolean block) {
+        if (buffer.isDirect()) {
+            return this.socket.recvZeroCopy(buffer, buffer.capacity(), block ? 0 : ZMQ.NOBLOCK);
+        }
+        return this.socket.recvByteBuffer(buffer, ZMQ.NOBLOCK);
     }
 
     @Override
@@ -63,24 +78,8 @@ final class ZMQSocket extends AbstractSocket {
     }
 
     @Override
-    protected int doReveive(ByteBuffer buffer, boolean block) {
-        if (buffer.isDirect()) {
-            return this.socket.recvZeroCopy(buffer, buffer.capacity(), block ? 0 : ZMQ.NOBLOCK);
-        }
-        return this.socket.recvByteBuffer(buffer, ZMQ.NOBLOCK);
-    }
-
-    @Override
     public int doSubscribe(@NonNull String topic) {
         this.socket.subscribe(topic.getBytes());
         return 0;
-    }
-
-    @Override
-    public void applyConfig(@NonNull String name, Object value) {
-        Setter setter = ZMQ_SOCKET_SETTERS.get(name.toLowerCase());
-        if (setter != null) {
-            setter.applyAsPrimitive(this.socket, value);
-        }
     }
 }

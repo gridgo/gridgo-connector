@@ -34,8 +34,7 @@ public class Netty4WebsocketUtils {
         return send(channel, data, Netty4WebsocketFrameType.TEXT);
     }
 
-    public static ChannelFuture send(@NonNull Channel channel, @NonNull BElement data,
-            @NonNull Netty4WebsocketFrameType frameType) {
+    public static ChannelFuture send(@NonNull Channel channel, @NonNull BElement data, @NonNull Netty4WebsocketFrameType frameType) {
         try (ByteBufOutputStream output = new ByteBufOutputStream(Unpooled.buffer())) {
             WebSocketFrame tobeSentFrame;
 

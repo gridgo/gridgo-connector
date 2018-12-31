@@ -11,6 +11,11 @@ public interface LettuceSetCommandsDelegate extends RedisSetCommands, LettuceCom
     <T extends RedisSetAsyncCommands<byte[], byte[]>> T getSetCommands();
 
     @Override
+    default Promise<BElement, Exception> sadd(byte[] key, byte[]... members) {
+        return toPromise(getSetCommands().sadd(key, members));
+    }
+
+    @Override
     default Promise<BElement, Exception> scard(byte[] key) {
         return toPromise(getSetCommands().scard(key));
     }
@@ -26,13 +31,13 @@ public interface LettuceSetCommandsDelegate extends RedisSetCommands, LettuceCom
     }
 
     @Override
-    default Promise<BElement, Exception> sinterstore(byte[] destination, byte[]... keys) {
-        return toPromise(getSetCommands().sinterstore(destination, keys));
+    default Promise<BElement, Exception> sinter(byte[]... keys) {
+        return toPromise(getSetCommands().sinter(keys));
     }
 
     @Override
-    default Promise<BElement, Exception> sinter(byte[]... keys) {
-        return toPromise(getSetCommands().sinter(keys));
+    default Promise<BElement, Exception> sinterstore(byte[] destination, byte[]... keys) {
+        return toPromise(getSetCommands().sinterstore(destination, keys));
     }
 
     @Override
@@ -41,13 +46,13 @@ public interface LettuceSetCommandsDelegate extends RedisSetCommands, LettuceCom
     }
 
     @Override
-    default Promise<BElement, Exception> smove(byte[] source, byte[] destination, byte[] member) {
-        return toPromise(getSetCommands().smove(source, destination, member));
+    default Promise<BElement, Exception> smembers(byte[] key) {
+        return toPromise(getSetCommands().smembers(key));
     }
 
     @Override
-    default Promise<BElement, Exception> smembers(byte[] key) {
-        return toPromise(getSetCommands().smembers(key));
+    default Promise<BElement, Exception> smove(byte[] source, byte[] destination, byte[] member) {
+        return toPromise(getSetCommands().smove(source, destination, member));
     }
 
     @Override
@@ -61,28 +66,18 @@ public interface LettuceSetCommandsDelegate extends RedisSetCommands, LettuceCom
     }
 
     @Override
-    default Promise<BElement, Exception> srandmember(byte[] key, long count) {
-        return toPromise(getSetCommands().srandmember(key, count));
-    }
-
-    @Override
     default Promise<BElement, Exception> srandmember(byte[] key) {
         return toPromise(getSetCommands().srandmember(key));
     }
 
     @Override
+    default Promise<BElement, Exception> srandmember(byte[] key, long count) {
+        return toPromise(getSetCommands().srandmember(key, count));
+    }
+
+    @Override
     default Promise<BElement, Exception> srem(byte[] key, byte[]... members) {
         return toPromise(getSetCommands().srem(key, members));
-    }
-
-    @Override
-    default Promise<BElement, Exception> sunion(byte[]... keys) {
-        return toPromise(getSetCommands().sunion(keys));
-    }
-
-    @Override
-    default Promise<BElement, Exception> sunionstore(byte[] destination, byte[]... keys) {
-        return toPromise(getSetCommands().sunionstore(destination, keys));
     }
 
     @Override
@@ -93,8 +88,13 @@ public interface LettuceSetCommandsDelegate extends RedisSetCommands, LettuceCom
     }
 
     @Override
-    default Promise<BElement, Exception> sadd(byte[] key, byte[]... members) {
-        return toPromise(getSetCommands().sadd(key, members));
+    default Promise<BElement, Exception> sunion(byte[]... keys) {
+        return toPromise(getSetCommands().sunion(keys));
+    }
+
+    @Override
+    default Promise<BElement, Exception> sunionstore(byte[] destination, byte[]... keys) {
+        return toPromise(getSetCommands().sunionstore(destination, keys));
     }
 
 }

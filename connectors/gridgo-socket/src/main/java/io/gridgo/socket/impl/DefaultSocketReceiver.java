@@ -16,8 +16,7 @@ import io.gridgo.utils.ThreadUtils;
 import lombok.AccessLevel;
 import lombok.Getter;
 
-public class DefaultSocketReceiver extends AbstractConsumer
-        implements Receiver, FailureHandlerAware<DefaultSocketReceiver> {
+public class DefaultSocketReceiver extends AbstractConsumer implements Receiver, FailureHandlerAware<DefaultSocketReceiver> {
 
     @Getter
     private long totalRecvBytes;
@@ -47,31 +46,8 @@ public class DefaultSocketReceiver extends AbstractConsumer
     }
 
     @Override
-    public DefaultSocketReceiver setFailureHandler(Function<Throwable, Message> failureHandler) {
-        this.failureHandler = failureHandler;
-        return this;
-    }
-
-    @Override
     protected String generateName() {
         return "receiver." + this.uniqueIdentifier;
-    }
-
-    private void poll(Socket socket, Consumer<CountDownLatch> doneSignalOutput) {
-        final ByteBuffer buffer = ByteBuffer.allocateDirect(this.bufferSize);
-        Thread.currentThread().setName("[POLLER] " + socket.getEndpoint().getAddress());
-
-        SocketUtils.startPolling(socket, buffer, false, (message) -> {
-            ensurePayloadId(message);
-            publish(message, null);
-        }, (recvBytes) -> {
-            totalRecvBytes += recvBytes;
-        }, (recvMsgs) -> {
-            totalRecvMessages += recvMsgs;
-        }, this.getContext().getExceptionHandler(), doneSignalOutput);
-
-        socket.close();
-        this.poller = null;
     }
 
     @Override
@@ -109,6 +85,29 @@ public class DefaultSocketReceiver extends AbstractConsumer
             Thread.currentThread().interrupt();
             throw new RuntimeException("Await for stopped error", e);
         }
+    }
+
+    private void poll(Socket socket, Consumer<CountDownLatch> doneSignalOutput) {
+        final ByteBuffer buffer = ByteBuffer.allocateDirect(this.bufferSize);
+        Thread.currentThread().setName("[POLLER] " + socket.getEndpoint().getAddress());
+
+        SocketUtils.startPolling(socket, buffer, false, (message) -> {
+            ensurePayloadId(message);
+            publish(message, null);
+        }, (recvBytes) -> {
+            totalRecvBytes += recvBytes;
+        }, (recvMsgs) -> {
+            totalRecvMessages += recvMsgs;
+        }, this.getContext().getExceptionHandler(), doneSignalOutput);
+
+        socket.close();
+        this.poller = null;
+    }
+
+    @Override
+    public DefaultSocketReceiver setFailureHandler(Function<Throwable, Message> failureHandler) {
+        this.failureHandler = failureHandler;
+        return this;
     }
 
 }

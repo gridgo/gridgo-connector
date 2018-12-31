@@ -35,15 +35,8 @@ public class BasicFileProducerEngine extends AbstractProducer implements FilePro
     }
 
     @Override
-    public void send(Message message) {
-        doSend(message, null);
-    }
-
-    @Override
-    public Promise<Message, Exception> sendWithAck(Message message) {
-        var deferred = new CompletableDeferredObject<Message, Exception>();
-        doSend(message, deferred);
-        return deferred.promise();
+    public Promise<Message, Exception> call(Message request) {
+        throw new UnsupportedOperationException("File doesn't support call");
     }
 
     private void doSend(Message message, CompletableDeferredObject<Message, Exception> deferred) {
@@ -60,6 +53,16 @@ public class BasicFileProducerEngine extends AbstractProducer implements FilePro
     }
 
     @Override
+    protected String generateName() {
+        return "basic";
+    }
+
+    @Override
+    public boolean isCallSupported() {
+        return false;
+    }
+
+    @Override
     protected void onStart() {
         this.totalSentBytes = 0;
     }
@@ -70,18 +73,15 @@ public class BasicFileProducerEngine extends AbstractProducer implements FilePro
     }
 
     @Override
-    protected String generateName() {
-        return "basic";
+    public void send(Message message) {
+        doSend(message, null);
     }
 
     @Override
-    public Promise<Message, Exception> call(Message request) {
-        throw new UnsupportedOperationException("File doesn't support call");
-    }
-
-    @Override
-    public boolean isCallSupported() {
-        return false;
+    public Promise<Message, Exception> sendWithAck(Message message) {
+        var deferred = new CompletableDeferredObject<Message, Exception>();
+        doSend(message, deferred);
+        return deferred.promise();
     }
 
 }

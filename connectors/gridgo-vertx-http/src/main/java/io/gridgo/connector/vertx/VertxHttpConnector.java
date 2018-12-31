@@ -32,34 +32,6 @@ import io.vertx.core.net.PemKeyCertOptions;
 @ConnectorEndpoint(scheme = "vertx", syntax = "http://{host}:{port}/[{path}]")
 public class VertxHttpConnector extends AbstractConnector {
 
-    @Override
-    public void onInit() {
-        String path = getPath();
-        String method = getParam(PARAM_METHOD);
-        String format = getParam(PARAM_FORMAT);
-        String vertxBean = getParam(PARAM_VERTX_BEAN);
-        Vertx vertx = null;
-        if (vertxBean != null) {
-            vertx = getContext().getRegistry().lookupMandatory(vertxBean, Vertx.class);
-        }
-        var vertxOptions = buildVertxOptions();
-        var httpOptions = buildHttpServerOptions();
-        var vertxConsumer = new VertxHttpConsumer(getContext(), vertx, vertxOptions, httpOptions, path, method, format,
-                getConnectorConfig().getParameters());
-        this.consumer = Optional.of(vertxConsumer);
-    }
-
-    private VertxOptions buildVertxOptions() {
-        String workerPoolSize = getParam(PARAM_WORKER_POOL_SIZE);
-        String eventLoopPoolSize = getParam(PARAM_EVENT_LOOP_POOL_SIZE);
-        var options = new VertxOptions();
-        if (workerPoolSize != null)
-            options.setWorkerPoolSize(Integer.parseInt(workerPoolSize));
-        if (eventLoopPoolSize != null)
-            options.setEventLoopPoolSize(Integer.parseInt(eventLoopPoolSize));
-        return options;
-    }
-
     private HttpServerOptions buildHttpServerOptions() {
         var acceptBacklog = getParam(ACCEPT_BACKLOG);
         var compressionLevel = getParam(PARAM_COMPRESSION_LEVEL);
@@ -69,13 +41,9 @@ public class VertxHttpConnector extends AbstractConnector {
         var clientAuth = ClientAuth.valueOf(getParam(PARAM_CLIENT_AUTH, ClientAuth.NONE.toString()));
         var keyStorePath = getParam(PARAM_KEY_STORE_PATH);
         var keyStorePassword = getParam(PARAM_KEY_STORE_PASSWD);
-        var keyStoreOptions = keyStorePath != null
-                ? new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword)
-                : null;
-        var options = new HttpServerOptions().setUseAlpn(useAlpn).setSsl(ssl).setClientAuth(clientAuth)
-                                             .setHost(getPlaceholder(PLACEHOLDER_HOST))
-                                             .setPort(Integer.parseInt(getPlaceholder(PLACEHOLDER_PORT)))
-                                             .setKeyStoreOptions(keyStoreOptions);
+        var keyStoreOptions = keyStorePath != null ? new JksOptions().setPath(keyStorePath).setPassword(keyStorePassword) : null;
+        var options = new HttpServerOptions().setUseAlpn(useAlpn).setSsl(ssl).setClientAuth(clientAuth).setHost(getPlaceholder(PLACEHOLDER_HOST))
+                                             .setPort(Integer.parseInt(getPlaceholder(PLACEHOLDER_PORT))).setKeyStoreOptions(keyStoreOptions);
         if (ssl) {
             options.setKeyCertOptions(new PemKeyCertOptions().setCertPath(getParam(PEM_CERT_PATH)) //
                                                              .setKeyPath(getParam(PEM_KEY_PATH)));
@@ -89,10 +57,37 @@ public class VertxHttpConnector extends AbstractConnector {
         return options;
     }
 
+    private VertxOptions buildVertxOptions() {
+        String workerPoolSize = getParam(PARAM_WORKER_POOL_SIZE);
+        String eventLoopPoolSize = getParam(PARAM_EVENT_LOOP_POOL_SIZE);
+        var options = new VertxOptions();
+        if (workerPoolSize != null)
+            options.setWorkerPoolSize(Integer.parseInt(workerPoolSize));
+        if (eventLoopPoolSize != null)
+            options.setEventLoopPoolSize(Integer.parseInt(eventLoopPoolSize));
+        return options;
+    }
+
     private String getPath() {
         String path = getPlaceholder(VertxHttpConstants.PLACEHOLDER_PATH);
         if (path != null)
             path = "/" + path;
         return path;
+    }
+
+    @Override
+    public void onInit() {
+        String path = getPath();
+        String method = getParam(PARAM_METHOD);
+        String format = getParam(PARAM_FORMAT);
+        String vertxBean = getParam(PARAM_VERTX_BEAN);
+        Vertx vertx = null;
+        if (vertxBean != null) {
+            vertx = getContext().getRegistry().lookupMandatory(vertxBean, Vertx.class);
+        }
+        var vertxOptions = buildVertxOptions();
+        var httpOptions = buildHttpServerOptions();
+        var vertxConsumer = new VertxHttpConsumer(getContext(), vertx, vertxOptions, httpOptions, path, method, format, getConnectorConfig().getParameters());
+        this.consumer = Optional.of(vertxConsumer);
     }
 }

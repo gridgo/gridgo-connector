@@ -88,6 +88,28 @@ public class RabbitMQQueueConfig {
         return routingKeys.isEmpty() ? null : routingKeys.get(0);
     }
 
+    public RabbitMQQueueConfig makeCopy() {
+        RabbitMQQueueConfig result = new RabbitMQQueueConfig();
+
+        result.setExchangeName(this.getExchangeName());
+        result.setExchangeType(this.getExchangeType());
+        result.setQueueName(this.getQueueName());
+
+        result.setAutoDelete(this.isAutoDelete());
+        result.setDurable(this.isDurable());
+        result.setExclusive(this.isExclusive());
+
+        result.setAckOnFail(this.isAckOnFail());
+        result.setAutoAck(this.isAutoAck());
+        result.setMultipleAck(this.isMultipleAck());
+
+        result.setRpc(this.isRpc());
+
+        result.getRoutingKeys().addAll(this.getRoutingKeys());
+
+        return result;
+    }
+
     public void readFromBObject(final BObject sourceConfig) {
         this.exchangeName = sourceConfig.getString("exchangeName", this.exchangeName);
         if (this.exchangeName == null) {
@@ -121,27 +143,5 @@ public class RabbitMQQueueConfig {
                 this.routingKeys.add(str.trim());
             }
         }
-    }
-
-    public RabbitMQQueueConfig makeCopy() {
-        RabbitMQQueueConfig result = new RabbitMQQueueConfig();
-
-        result.setExchangeName(this.getExchangeName());
-        result.setExchangeType(this.getExchangeType());
-        result.setQueueName(this.getQueueName());
-
-        result.setAutoDelete(this.isAutoDelete());
-        result.setDurable(this.isDurable());
-        result.setExclusive(this.isExclusive());
-
-        result.setAckOnFail(this.isAckOnFail());
-        result.setAutoAck(this.isAutoAck());
-        result.setMultipleAck(this.isMultipleAck());
-
-        result.setRpc(this.isRpc());
-
-        result.getRoutingKeys().addAll(this.getRoutingKeys());
-
-        return result;
     }
 }

@@ -26,36 +26,6 @@ public class Netty4Connector extends AbstractConnector {
     private Netty4Server consumerServer;
     private Netty4Client producerClient;
 
-    @Override
-    protected void onInit() {
-        final ConnectorConfig config = getConnectorConfig();
-        type = (String) config.getPlaceholders().getOrDefault("type", null);
-        if (type == null || !ALLOWED_TYPES.contains(type.trim().toLowerCase())) {
-            throw new InvalidPlaceholderException("type must be provided and is one of " + ALLOWED_TYPES);
-        }
-
-        String transportName = (String) config.getPlaceholders().getOrDefault("transport", null);
-
-        transport = Netty4Transport.fromName(transportName);
-        if (transport == null) {
-            throw new InvalidPlaceholderException(
-                    "transport must be provided and is one of " + Netty4Transport.values());
-        }
-
-        String hostStr = (String) config.getPlaceholders().getOrDefault("host", "localhost");
-        if (hostStr == null) {
-            throw new InvalidPlaceholderException("Host must be provided by ip, domain name or interface name");
-        }
-
-        int port = Integer.parseInt((String) config.getPlaceholders().getOrDefault("port", "0"));
-
-        this.host = HostAndPort.newInstance(hostStr, port);
-        this.options = BObject.of(config.getParameters());
-        this.path = (String) config.getPlaceholders().getProperty("path", "websocket");
-
-        initProducerAndConsumer();
-    }
-
     private void initProducerAndConsumer() {
         switch (type) {
         case "server":
@@ -70,5 +40,34 @@ public class Netty4Connector extends AbstractConnector {
             break;
         default:
         }
+    }
+
+    @Override
+    protected void onInit() {
+        final ConnectorConfig config = getConnectorConfig();
+        type = (String) config.getPlaceholders().getOrDefault("type", null);
+        if (type == null || !ALLOWED_TYPES.contains(type.trim().toLowerCase())) {
+            throw new InvalidPlaceholderException("type must be provided and is one of " + ALLOWED_TYPES);
+        }
+
+        String transportName = (String) config.getPlaceholders().getOrDefault("transport", null);
+
+        transport = Netty4Transport.fromName(transportName);
+        if (transport == null) {
+            throw new InvalidPlaceholderException("transport must be provided and is one of " + Netty4Transport.values());
+        }
+
+        String hostStr = (String) config.getPlaceholders().getOrDefault("host", "localhost");
+        if (hostStr == null) {
+            throw new InvalidPlaceholderException("Host must be provided by ip, domain name or interface name");
+        }
+
+        int port = Integer.parseInt((String) config.getPlaceholders().getOrDefault("port", "0"));
+
+        this.host = HostAndPort.newInstance(hostStr, port);
+        this.options = BObject.of(config.getParameters());
+        this.path = (String) config.getPlaceholders().getProperty("path", "websocket");
+
+        initProducerAndConsumer();
     }
 }

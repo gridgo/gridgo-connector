@@ -10,12 +10,6 @@ import io.gridgo.utils.helper.Loggable;
 
 public interface Netty4Socket extends Closeable, ComponentLifecycle, Loggable {
 
-    boolean isStarted();
-
-    boolean isRunning();
-
-    void setFailureHandler(Consumer<Throwable> failureHandler);
-
     void applyConfig(String name, Object value);
 
     default void applyConfigs(Map<String, ?> configMap) {
@@ -29,4 +23,10 @@ public interface Netty4Socket extends Closeable, ComponentLifecycle, Loggable {
         getLogger().info("Netty4 Socket is nameless component, so, getName() is unsupported");
         return null;
     }
+
+    boolean isRunning();
+
+    boolean isStarted();
+
+    void setFailureHandler(Consumer<Throwable> failureHandler);
 }

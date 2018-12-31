@@ -13,6 +13,11 @@ import lombok.NonNull;
 public interface Consumer extends ComponentLifecycle {
 
     /**
+     * Clear all subscribers.
+     */
+    public void clearSubscribers();
+
+    /**
      * Subscribe a message handler. This method is similar to
      * <code>subscribe(Consumer)</code> but allow the handler to complete (either
      * resolve or reject) the deferred. Some consumers might require at least one
@@ -21,8 +26,7 @@ public interface Consumer extends ComponentLifecycle {
      * @param subscriber the handler
      * @return the consumer itself
      */
-    public Consumer subscribe(
-            final @NonNull java.util.function.BiConsumer<Message, Deferred<Message, Exception>> subscriber);
+    public Consumer subscribe(final @NonNull java.util.function.BiConsumer<Message, Deferred<Message, Exception>> subscriber);
 
     /**
      * Subscribe a message handler. It will be called whenever a new message
@@ -34,9 +38,4 @@ public interface Consumer extends ComponentLifecycle {
     public default Consumer subscribe(final @NonNull java.util.function.Consumer<Message> subscriber) {
         return subscribe((msg, deferred) -> subscriber.accept(msg));
     }
-
-    /**
-     * Clear all subscribers.
-     */
-    public void clearSubscribers();
 }

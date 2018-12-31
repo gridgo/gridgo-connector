@@ -11,6 +11,11 @@ public class TestConsumer extends AbstractConsumer {
     }
 
     @Override
+    protected String generateName() {
+        return "consumer.test";
+    }
+
+    @Override
     protected void onStart() {
 
     }
@@ -22,10 +27,5 @@ public class TestConsumer extends AbstractConsumer {
 
     public void testPublish() {
         publish(createMessage(BObject.ofEmpty().setAny("test-header", 1), null), null);
-    }
-
-    @Override
-    protected String generateName() {
-        return "consumer.test";
     }
 }

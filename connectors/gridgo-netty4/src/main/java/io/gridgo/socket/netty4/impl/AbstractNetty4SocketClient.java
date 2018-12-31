@@ -89,15 +89,12 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
         });
     }
 
-    private void initChannel(SocketChannel channel) {
-        this.onInitChannel(channel);
-        channel.pipeline().addLast("handler", this.newChannelHandlerDelegater());
-    }
-
-    protected abstract void onInitChannel(SocketChannel ch);
-
     protected Bootstrap createBootstrap() {
         return new Bootstrap().channel(NioSocketChannel.class);
+    }
+
+    protected NioEventLoopGroup createLoopGroup() {
+        return new NioEventLoopGroup(this.getConfigs().getInteger("workerThreads", 1));
     }
 
     private void executeConnect(HostAndPort host, Deferred<Void, Throwable> deferred) {
@@ -153,8 +150,16 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
         }
     }
 
-    protected void onBeforeConnect(HostAndPort host) {
-        // do nothing
+    protected abstract BElement handleIncomingMessage(Object msg) throws Exception;
+
+    @Override
+    protected final BElement handleIncomingMessage(String channelId, Object msg) throws Exception {
+        return this.handleIncomingMessage(msg);
+    }
+
+    private void initChannel(SocketChannel channel) {
+        this.onInitChannel(channel);
+        channel.pipeline().addLast("handler", this.newChannelHandlerDelegater());
     }
 
     protected void onAfterConnect() {
@@ -168,8 +173,8 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
         }
     }
 
-    protected NioEventLoopGroup createLoopGroup() {
-        return new NioEventLoopGroup(this.getConfigs().getInteger("workerThreads", 1));
+    protected void onBeforeConnect(HostAndPort host) {
+        // do nothing
     }
 
     @Override
@@ -198,13 +203,6 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
     }
 
     @Override
-    protected void onClose() throws IOException {
-        if (this.getChannel().isOpen()) {
-            this.getChannel().close().syncUninterruptibly();
-        }
-    }
-
-    @Override
     protected void onChannelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (this.getReceiveCallback() != null) {
             this.getReceiveCallback().accept(this.handleIncomingMessage("", msg));
@@ -212,14 +210,16 @@ public abstract class AbstractNetty4SocketClient extends AbstractNetty4Socket im
     }
 
     @Override
+    protected void onClose() throws IOException {
+        if (this.getChannel().isOpen()) {
+            this.getChannel().close().syncUninterruptibly();
+        }
+    }
+
+    protected abstract void onInitChannel(SocketChannel ch);
+
+    @Override
     public ChannelFuture send(BElement data) {
         return this.channel.writeAndFlush(data);
     }
-
-    @Override
-    protected final BElement handleIncomingMessage(String channelId, Object msg) throws Exception {
-        return this.handleIncomingMessage(msg);
-    }
-
-    protected abstract BElement handleIncomingMessage(Object msg) throws Exception;
 }

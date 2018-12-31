@@ -8,8 +8,6 @@ import io.lettuce.core.api.async.RedisListAsyncCommands;
 
 public interface LettuceListCommandsDelegate extends LettuceCommandsDelegate, RedisListCommands {
 
-    <T extends RedisListAsyncCommands<byte[], byte[]>> T getListCommands();
-
     @Override
     default Promise<BElement, Exception> blpop(long timeout, byte[]... keys) {
         return toPromise(getListCommands().blpop(timeout, keys) //
@@ -26,6 +24,8 @@ public interface LettuceListCommandsDelegate extends LettuceCommandsDelegate, Re
     default Promise<BElement, Exception> brpoplpush(long timeout, byte[] source, byte[] destination) {
         return toPromise(getListCommands().brpoplpush(timeout, source, destination));
     }
+
+    <T extends RedisListAsyncCommands<byte[], byte[]>> T getListCommands();
 
     @Override
     default Promise<BElement, Exception> lindex(byte[] key, long index) {
@@ -58,6 +58,11 @@ public interface LettuceListCommandsDelegate extends LettuceCommandsDelegate, Re
     }
 
     @Override
+    default Promise<BElement, Exception> lrange(byte[] key, long start, long stop) {
+        return toPromise(getListCommands().lrange(key, start, stop));
+    }
+
+    @Override
     default Promise<BElement, Exception> lrem(byte[] key, long count, byte[] value) {
         return toPromise(getListCommands().lrem(key, count, value));
     }
@@ -70,11 +75,6 @@ public interface LettuceListCommandsDelegate extends LettuceCommandsDelegate, Re
     @Override
     default Promise<BElement, Exception> ltrim(byte[] key, long start, long stop) {
         return toPromise(getListCommands().ltrim(key, start, stop));
-    }
-
-    @Override
-    default Promise<BElement, Exception> lrange(byte[] key, long start, long stop) {
-        return toPromise(getListCommands().lrange(key, start, stop));
     }
 
     @Override

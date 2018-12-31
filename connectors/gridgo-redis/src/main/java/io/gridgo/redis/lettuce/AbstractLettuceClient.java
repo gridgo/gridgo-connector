@@ -55,13 +55,13 @@ public abstract class AbstractLettuceClient extends AbstractComponentLifecycle i
         }
     }
 
-    private <T> BElement parse(T data) {
-        return BElement.ofAny(data);
-    }
-
     @Override
     protected String generateName() {
         return type + "." + config.getAddress();
+    }
+
+    private <T> BElement parse(T data) {
+        return BElement.ofAny(data);
     }
 
 }

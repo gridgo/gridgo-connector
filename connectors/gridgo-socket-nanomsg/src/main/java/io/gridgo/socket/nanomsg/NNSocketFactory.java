@@ -14,10 +14,6 @@ public class NNSocketFactory extends BaseSocketFactory {
     @Getter
     private final String type = "nanomsg";
 
-    private Socket createNanoSocket(int type) {
-        return new NNSocket(nanomsg.nn_socket(nanomsg.AF_SP, type), nanomsg);
-    }
-
     protected Socket createCustomSocket(String type) {
         Assert.notNull(type, "Socket type");
         switch (type.toLowerCase()) {
@@ -32,6 +28,18 @@ public class NNSocketFactory extends BaseSocketFactory {
         return null;
     }
 
+    private Socket createNanoSocket(int type) {
+        return new NNSocket(nanomsg.nn_socket(nanomsg.AF_SP, type), nanomsg);
+    }
+
+    protected Socket createPairSocket() {
+        return createNanoSocket(nanomsg.NN_PAIR);
+    }
+
+    protected Socket createPubSocket() {
+        return createNanoSocket(nanomsg.NN_PUB);
+    }
+
     protected Socket createPullSocket() {
         return createNanoSocket(nanomsg.NN_PULL);
     }
@@ -40,23 +48,15 @@ public class NNSocketFactory extends BaseSocketFactory {
         return createNanoSocket(nanomsg.NN_PUSH);
     }
 
-    protected Socket createPubSocket() {
-        return createNanoSocket(nanomsg.NN_PUB);
-    }
-
-    protected Socket createSubSocket() {
-        return createNanoSocket(nanomsg.NN_SUB);
+    protected Socket createRepSocket() {
+        return createNanoSocket(nanomsg.NN_REP);
     }
 
     protected Socket createReqSocket() {
         return createNanoSocket(nanomsg.NN_REQ);
     }
 
-    protected Socket createRepSocket() {
-        return createNanoSocket(nanomsg.NN_REP);
-    }
-
-    protected Socket createPairSocket() {
-        return createNanoSocket(nanomsg.NN_PAIR);
+    protected Socket createSubSocket() {
+        return createNanoSocket(nanomsg.NN_SUB);
     }
 }

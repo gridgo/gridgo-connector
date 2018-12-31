@@ -42,11 +42,11 @@ public interface RedisStringCommands {
 
     public Promise<BElement, Exception> getset(byte[] key, byte[] value);
 
+    public Promise<BElement, Exception> incr(byte[] key);
+
     public Promise<BElement, Exception> incrby(byte[] key, long amount);
 
     public Promise<BElement, Exception> incrbyfloat(byte[] key, double amount);
-
-    public Promise<BElement, Exception> incr(byte[] key);
 
     public Promise<BElement, Exception> mget(byte[]... keys);
 

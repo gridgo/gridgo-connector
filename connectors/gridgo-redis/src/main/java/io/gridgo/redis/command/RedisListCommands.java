@@ -24,13 +24,13 @@ public interface RedisListCommands {
 
     public Promise<BElement, Exception> lpushx(byte[] key, byte[]... values);
 
+    public Promise<BElement, Exception> lrange(byte[] key, long start, long stop);
+
     public Promise<BElement, Exception> lrem(byte[] key, long count, byte[] value);
 
     public Promise<BElement, Exception> lset(byte[] key, long index, byte[] value);
 
     public Promise<BElement, Exception> ltrim(byte[] key, long start, long stop);
-
-    public Promise<BElement, Exception> lrange(byte[] key, long start, long stop);
 
     public Promise<BElement, Exception> rpop(byte[] key);
 

@@ -7,8 +7,6 @@ import io.gridgo.connector.support.exceptions.UnsupportedFormatException;
 
 public interface FileConsumerEngine extends FormattedMarshallable {
 
-    public void readAndPublish();
-
     public default BElement deserialize(byte[] responseBody, int length) {
         if (responseBody == null)
             return null;
@@ -23,4 +21,6 @@ public interface FileConsumerEngine extends FormattedMarshallable {
             return BElement.ofBytes(responseBody);
         throw new UnsupportedFormatException(format);
     }
+
+    public void readAndPublish();
 }

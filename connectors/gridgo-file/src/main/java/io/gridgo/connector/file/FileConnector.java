@@ -31,6 +31,37 @@ public class FileConnector extends AbstractConnector {
 
     private FileLimitStrategy limitStrategy;
 
+    private FileProducerEngine createBasicProducer(String format, int bufferSize, boolean lengthPrepend) {
+        return new BasicFileProducerEngine(getContext(), format, bufferSize, lengthPrepend);
+    }
+
+    private FileProducerEngine createDisruptorProducer(String format, int bufferSize, boolean lengthPrepend) {
+        var strRingBufferSize = getParam("ringBufferSize");
+        var strMaxBatchSize = getParam("maxBatchSize");
+
+        var ringBufferSize = strRingBufferSize != null ? Integer.parseInt(strRingBufferSize) : DEFAULT_RINGBUFFER_SIZE;
+        var maxBatchSize = strMaxBatchSize != null ? Integer.parseInt(strMaxBatchSize) : DEFAULT_MAX_BATCH_SIZE;
+
+        var batchingEnabled = "true".equals(getParam("batchingEnabled"));
+
+        return new DisruptorFileProducerEngine(getContext(), format, bufferSize, ringBufferSize, batchingEnabled, maxBatchSize, lengthPrepend);
+    }
+
+    private FileLimitStrategy createLimitStrategy(String limitStrategy, String path, String mode, long limit, int count, boolean deleteOnStartup,
+            boolean deleteOnShutdown, boolean override) {
+        try {
+            if (limitStrategy == null)
+                return new NoLimitStrategy(path, mode, deleteOnStartup, deleteOnShutdown, override);
+            if (limitStrategy.equals("rotate"))
+                return new RotatingFileLimitStrategy(path, mode, limit, count, deleteOnStartup, deleteOnShutdown, override);
+            if (limitStrategy.equals("autoincrement"))
+                return new AutoIncrementedFileLimitStrategy(path, mode, limit, deleteOnStartup, deleteOnShutdown, override);
+        } catch (IOException ex) {
+            throw new FileInitException("Cannot create limit strategy", ex);
+        }
+        throw new UnsupportedOperationException("Limit Strategy is unsupported: " + limitStrategy);
+    }
+
     @Override
     protected void onInit() {
         var engineName = getPlaceholder("engine");
@@ -64,14 +95,12 @@ public class FileConnector extends AbstractConnector {
         var count = strCount != null ? Integer.parseInt(strCount) : DEFAULT_COUNT;
 
         var strLimitStrategy = getParam("limitStrategy");
-        this.limitStrategy = createLimitStrategy(strLimitStrategy, path, mode, limit, count, deleteOnStartup,
-                deleteOnShutdown, override);
+        this.limitStrategy = createLimitStrategy(strLimitStrategy, path, mode, limit, count, deleteOnStartup, deleteOnShutdown, override);
 
         var producer = new FileProducer(getContext(), path, engine);
         this.producer = Optional.of(producer);
         if (!producerOnly) {
-            this.consumer = Optional.of(
-                    new FileConsumer(getContext(), path, format, bufferSize, lengthPrepend, limitStrategy));
+            this.consumer = Optional.of(new FileConsumer(getContext(), path, format, bufferSize, lengthPrepend, limitStrategy));
         }
     }
 
@@ -96,39 +125,5 @@ public class FileConnector extends AbstractConnector {
         } catch (IOException e) {
             throw new FileInitException("Cannot stop limit strategy", e);
         }
-    }
-
-    private FileLimitStrategy createLimitStrategy(String limitStrategy, String path, String mode, long limit, int count,
-            boolean deleteOnStartup, boolean deleteOnShutdown, boolean override) {
-        try {
-            if (limitStrategy == null)
-                return new NoLimitStrategy(path, mode, deleteOnStartup, deleteOnShutdown, override);
-            if (limitStrategy.equals("rotate"))
-                return new RotatingFileLimitStrategy(path, mode, limit, count, deleteOnStartup, deleteOnShutdown,
-                        override);
-            if (limitStrategy.equals("autoincrement"))
-                return new AutoIncrementedFileLimitStrategy(path, mode, limit, deleteOnStartup, deleteOnShutdown,
-                        override);
-        } catch (IOException ex) {
-            throw new FileInitException("Cannot create limit strategy", ex);
-        }
-        throw new UnsupportedOperationException("Limit Strategy is unsupported: " + limitStrategy);
-    }
-
-    private FileProducerEngine createBasicProducer(String format, int bufferSize, boolean lengthPrepend) {
-        return new BasicFileProducerEngine(getContext(), format, bufferSize, lengthPrepend);
-    }
-
-    private FileProducerEngine createDisruptorProducer(String format, int bufferSize, boolean lengthPrepend) {
-        var strRingBufferSize = getParam("ringBufferSize");
-        var strMaxBatchSize = getParam("maxBatchSize");
-
-        var ringBufferSize = strRingBufferSize != null ? Integer.parseInt(strRingBufferSize) : DEFAULT_RINGBUFFER_SIZE;
-        var maxBatchSize = strMaxBatchSize != null ? Integer.parseInt(strMaxBatchSize) : DEFAULT_MAX_BATCH_SIZE;
-
-        var batchingEnabled = "true".equals(getParam("batchingEnabled"));
-
-        return new DisruptorFileProducerEngine(getContext(), format, bufferSize, ringBufferSize, batchingEnabled,
-                maxBatchSize, lengthPrepend);
     }
 }

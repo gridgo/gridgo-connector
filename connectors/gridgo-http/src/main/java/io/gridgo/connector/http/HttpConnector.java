@@ -22,15 +22,6 @@ public class HttpConnector extends AbstractConnector {
 
     private static final int DEFAULT_MAX_REDIRECTS = 3;
 
-    protected void onInit() {
-        var endpoint = getConnectorConfig().getNonQueryEndpoint();
-        var config = createBuilder();
-        var format = getParam(HttpConstants.PARAM_FORMAT);
-        var method = getParam(HttpConstants.PARAM_METHOD);
-        var nameResolver = getNameResolver();
-        this.producer = Optional.of(new HttpProducer(getContext(), endpoint, config, format, nameResolver, method));
-    }
-
     private Builder createBuilder() {
         var config = Dsl.config();
 
@@ -126,9 +117,18 @@ public class HttpConnector extends AbstractConnector {
             return null;
         try {
             return (NameResolver<InetAddress>) Class.forName(nameResolverClass).getConstructor().newInstance();
-        } catch (InstantiationException | IllegalAccessException | ClassNotFoundException | IllegalArgumentException
-                | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+        } catch (InstantiationException | IllegalAccessException | ClassNotFoundException | IllegalArgumentException | InvocationTargetException
+                | NoSuchMethodException | SecurityException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    protected void onInit() {
+        var endpoint = getConnectorConfig().getNonQueryEndpoint();
+        var config = createBuilder();
+        var format = getParam(HttpConstants.PARAM_FORMAT);
+        var method = getParam(HttpConstants.PARAM_METHOD);
+        var nameResolver = getNameResolver();
+        this.producer = Optional.of(new HttpProducer(getContext(), endpoint, config, format, nameResolver, method));
     }
 }

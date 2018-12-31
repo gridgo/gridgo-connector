@@ -61,9 +61,7 @@ public class TestJettyResponseContentType {
 
     private Connector createConnector(String endpoint) {
         ConnectorContext connectorContext = new DefaultConnectorContextBuilder() //
-                                                                                .setCallbackInvokerStrategy(
-                                                                                        new ExecutorExecutionStrategy(
-                                                                                                executor)) //
+                                                                                .setCallbackInvokerStrategy(new ExecutorExecutionStrategy(executor)) //
                                                                                 .setExceptionHandler((ex) -> {
                                                                                     ex.printStackTrace();
                                                                                 }) //
@@ -81,6 +79,41 @@ public class TestJettyResponseContentType {
         assertTrue(connector.getProducer().get() instanceof JettyResponder);
 
         return connector;
+    }
+
+    @Test
+    public void testResponseBinary() throws URISyntaxException, IOException, InterruptedException {
+
+        System.out.println("Test response content type application/octet-stream");
+
+        Connector connector = createConnector(SERVER_ENDPOINT);
+        connector.start();
+
+        try {
+            Consumer consumer = connector.getConsumer().get();
+            Producer responder = connector.getProducer().get();
+
+            consumer.subscribe(msg -> {
+                Payload payload = Payload.of(BReference.of(getClass().getClassLoader().getResourceAsStream("test.txt")));
+
+                payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.APPLICATION_OCTET_STREAM.getMime());
+                Message message = Message.of(payload).setRoutingId(msg.getRoutingId().get());
+                responder.send(message);
+            });
+
+            var request = RequestBuilder.get(URI).build();
+            var response = httpClient.execute(request);
+
+            String contentType = response.getEntity().getContentType().getValue();
+            assertThat(contentType, Matchers.startsWith(HttpContentType.APPLICATION_OCTET_STREAM.getMime()));
+
+            String content = HttpEntityHelper.parseAsString(response.getEntity().getContent());
+            String fileContent = HttpEntityHelper.parseAsString(getClass().getClassLoader().getResourceAsStream("test.txt"));
+
+            assertEquals(fileContent, content);
+        } finally {
+            connector.stop();
+        }
     }
 
     @Test
@@ -119,6 +152,46 @@ public class TestJettyResponseContentType {
     }
 
     @Test
+    public void testResponseMultiPart() throws URISyntaxException, IOException, InterruptedException {
+
+        System.out.println("Test response content type multipart/form-data");
+
+        Connector connector = createConnector(SERVER_ENDPOINT);
+        connector.start();
+
+        try {
+            Consumer consumer = connector.getConsumer().get();
+            Producer responder = connector.getProducer().get();
+
+            consumer.subscribe(msg -> {
+                Payload payload = Payload.of( //
+                        BObject.ofEmpty() //
+                               .setAny("testText", TEST_TEXT) //
+                               .setAny("testFile", getClass().getClassLoader().getResourceAsStream("test.txt")) //
+                               .setAny("testJsonObject", BObject.ofSequence("keyString", "valueString", "keyNumber", 100)) //
+                               .setAny("testJsonArray", BArray.ofSequence("string", 100, true)) //
+                );
+
+                payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.MULTIPART_FORM_DATA.getMime());
+                Message message = Message.of(payload).setRoutingId(msg.getRoutingId().get());
+                responder.send(message);
+            });
+
+            var request = RequestBuilder.get(URI).build();
+            var response = httpClient.execute(request);
+
+            String contentType = response.getEntity().getContentType().getValue();
+            assertThat(contentType, Matchers.startsWith(HttpContentType.MULTIPART_FORM_DATA.getMime()));
+
+            BArray responseMultiPart = parseAsMultiPart(response.getEntity());
+            assertEquals(4, responseMultiPart.size());
+
+        } finally {
+            connector.stop();
+        }
+    }
+
+    @Test
     public void testResponseTextPlain() throws URISyntaxException, IOException, InterruptedException {
 
         System.out.println("Test response content type text/plain");
@@ -147,84 +220,6 @@ public class TestJettyResponseContentType {
             assertNotNull(responseData);
             assertTrue(responseData.isValue());
             assertEquals(TEST_TEXT, responseData.asValue().getString());
-        } finally {
-            connector.stop();
-        }
-    }
-
-    @Test
-    public void testResponseMultiPart() throws URISyntaxException, IOException, InterruptedException {
-
-        System.out.println("Test response content type multipart/form-data");
-
-        Connector connector = createConnector(SERVER_ENDPOINT);
-        connector.start();
-
-        try {
-            Consumer consumer = connector.getConsumer().get();
-            Producer responder = connector.getProducer().get();
-
-            consumer.subscribe(msg -> {
-                Payload payload = Payload.of( //
-                        BObject.ofEmpty() //
-                               .setAny("testText", TEST_TEXT) //
-                               .setAny("testFile", getClass().getClassLoader().getResourceAsStream("test.txt")) //
-                               .setAny("testJsonObject",
-                                       BObject.ofSequence("keyString", "valueString", "keyNumber", 100)) //
-                               .setAny("testJsonArray", BArray.ofSequence("string", 100, true)) //
-                );
-
-                payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.MULTIPART_FORM_DATA.getMime());
-                Message message = Message.of(payload).setRoutingId(msg.getRoutingId().get());
-                responder.send(message);
-            });
-
-            var request = RequestBuilder.get(URI).build();
-            var response = httpClient.execute(request);
-
-            String contentType = response.getEntity().getContentType().getValue();
-            assertThat(contentType, Matchers.startsWith(HttpContentType.MULTIPART_FORM_DATA.getMime()));
-
-            BArray responseMultiPart = parseAsMultiPart(response.getEntity());
-            assertEquals(4, responseMultiPart.size());
-
-        } finally {
-            connector.stop();
-        }
-    }
-
-    @Test
-    public void testResponseBinary() throws URISyntaxException, IOException, InterruptedException {
-
-        System.out.println("Test response content type application/octet-stream");
-
-        Connector connector = createConnector(SERVER_ENDPOINT);
-        connector.start();
-
-        try {
-            Consumer consumer = connector.getConsumer().get();
-            Producer responder = connector.getProducer().get();
-
-            consumer.subscribe(msg -> {
-                Payload payload = Payload.of(
-                        BReference.of(getClass().getClassLoader().getResourceAsStream("test.txt")));
-
-                payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.APPLICATION_OCTET_STREAM.getMime());
-                Message message = Message.of(payload).setRoutingId(msg.getRoutingId().get());
-                responder.send(message);
-            });
-
-            var request = RequestBuilder.get(URI).build();
-            var response = httpClient.execute(request);
-
-            String contentType = response.getEntity().getContentType().getValue();
-            assertThat(contentType, Matchers.startsWith(HttpContentType.APPLICATION_OCTET_STREAM.getMime()));
-
-            String content = HttpEntityHelper.parseAsString(response.getEntity().getContent());
-            String fileContent = HttpEntityHelper.parseAsString(
-                    getClass().getClassLoader().getResourceAsStream("test.txt"));
-
-            assertEquals(fileContent, content);
         } finally {
             connector.stop();
         }

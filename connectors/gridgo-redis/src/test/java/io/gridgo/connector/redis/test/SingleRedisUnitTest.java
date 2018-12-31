@@ -12,13 +12,13 @@ public class SingleRedisUnitTest extends RedisUnitTest {
 
     @Test
     @Override
-    public void testSetAndGet() throws InterruptedException {
-        super.testSetAndGet();
+    public void testAppend() throws InterruptedException {
+        super.testAppend();
     }
 
     @Test
     @Override
-    public void testAppend() throws InterruptedException {
-        super.testAppend();
+    public void testSetAndGet() throws InterruptedException {
+        super.testSetAndGet();
     }
 }

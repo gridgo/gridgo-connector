@@ -32,8 +32,8 @@ public class RotatingFileLimitStrategy extends AbstractFileLimitStrategy {
 
     private boolean override;
 
-    public RotatingFileLimitStrategy(String basePath, String mode, long limit, int count, boolean deleteOnStartup,
-            boolean deleteOnShutdown, boolean override) throws IOException {
+    public RotatingFileLimitStrategy(String basePath, String mode, long limit, int count, boolean deleteOnStartup, boolean deleteOnShutdown, boolean override)
+            throws IOException {
         this.basePath = basePath;
         this.mode = mode;
         this.limit = limit;
@@ -44,18 +44,8 @@ public class RotatingFileLimitStrategy extends AbstractFileLimitStrategy {
         this.files = initFiles();
     }
 
-    @Override
-    public void start() throws IOException {
-        if (deleteOnStartup)
-            deleteFiles();
-        resetFile();
-    }
-
-    @Override
-    public void stop() throws IOException {
-        closeFile();
-        if (deleteOnShutdown)
-            deleteFiles();
+    private void closeFile() throws IOException {
+        this.file.close();
     }
 
     private void deleteFiles() {
@@ -73,8 +63,23 @@ public class RotatingFileLimitStrategy extends AbstractFileLimitStrategy {
         return files;
     }
 
-    private void closeFile() throws IOException {
-        this.file.close();
+    @Override
+    public void putBytes(long bytes) throws IOException {
+        this.written += bytes;
+        if (this.limit > 0 && this.written > this.limit) {
+            rotate();
+        }
+    }
+
+    @Override
+    public void readWith(RandomAccessFileHandler consumer) throws IOException {
+        for (int i = files.length - 1; i >= 0; i--) {
+            if (!files[i].exists())
+                continue;
+            try (var raf = new RandomAccessFile(files[i], "r")) {
+                consumer.process(raf);
+            }
+        }
     }
 
     private void resetFile() throws IOException {
@@ -87,14 +92,6 @@ public class RotatingFileLimitStrategy extends AbstractFileLimitStrategy {
             this.written = 0;
         }
         this.fileChannel = this.file.getChannel();
-    }
-
-    @Override
-    public void putBytes(long bytes) throws IOException {
-        this.written += bytes;
-        if (this.limit > 0 && this.written > this.limit) {
-            rotate();
-        }
     }
 
     private void rotate() throws IOException {
@@ -112,13 +109,16 @@ public class RotatingFileLimitStrategy extends AbstractFileLimitStrategy {
     }
 
     @Override
-    public void readWith(RandomAccessFileHandler consumer) throws IOException {
-        for (int i = files.length - 1; i >= 0; i--) {
-            if (!files[i].exists())
-                continue;
-            try (var raf = new RandomAccessFile(files[i], "r")) {
-                consumer.process(raf);
-            }
-        }
+    public void start() throws IOException {
+        if (deleteOnStartup)
+            deleteFiles();
+        resetFile();
+    }
+
+    @Override
+    public void stop() throws IOException {
+        closeFile();
+        if (deleteOnShutdown)
+            deleteFiles();
     }
 }

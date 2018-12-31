@@ -206,6 +206,13 @@ public class RedisCommands {
         scanPackage(RedisCommands.class.getPackageName());
     }
 
+    public static RedisCommandHandler getHandler(String command) {
+        if (command == null) {
+            return null;
+        }
+        return handlers.get(command);
+    }
+
     public static void scanPackage(String packageName) {
         scanPackage(packageName, RedisCommands.class.getClassLoader());
     }
@@ -234,12 +241,5 @@ public class RedisCommands {
                 }
             }
         }
-    }
-
-    public static RedisCommandHandler getHandler(String command) {
-        if (command == null) {
-            return null;
-        }
-        return handlers.get(command);
     }
 }

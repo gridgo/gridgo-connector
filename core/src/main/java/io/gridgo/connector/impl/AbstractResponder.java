@@ -15,33 +15,13 @@ public abstract class AbstractResponder extends AbstractProducer implements Resp
         super(context);
     }
 
-    protected abstract void send(Message message, Deferred<Message, Exception> deferred);
-
     @Override
-    public final void send(@NonNull Message message) {
-        if (message.getRoutingId().isEmpty()) {
-            throw new IllegalArgumentException("Message must contain not-null routingId");
-        }
-        this.send(message, null);
-    }
-
-    @Override
-    public final Promise<Message, Exception> sendWithAck(@NonNull Message message) {
-        if (message.getRoutingId().isEmpty()) {
-            throw new IllegalArgumentException("Message must contain not-null routingId");
-        }
-        Deferred<Message, Exception> deferred = createDeferred();
-        this.send(message, deferred);
-        return deferred.promise();
+    public final Promise<Message, Exception> call(Message request) {
+        return Responder.super.call(request);
     }
 
     protected Deferred<Message, Exception> createDeferred() {
         return new AsyncDeferredObject<>();
-    }
-
-    @Override
-    public final Promise<Message, Exception> call(Message request) {
-        return Responder.super.call(request);
     }
 
     @Override
@@ -52,5 +32,25 @@ public abstract class AbstractResponder extends AbstractProducer implements Resp
     @Override
     protected void onStop() {
         // no need to stop a responder
+    }
+
+    @Override
+    public final void send(@NonNull Message message) {
+        if (message.getRoutingId().isEmpty()) {
+            throw new IllegalArgumentException("Message must contain not-null routingId");
+        }
+        this.send(message, null);
+    }
+
+    protected abstract void send(Message message, Deferred<Message, Exception> deferred);
+
+    @Override
+    public final Promise<Message, Exception> sendWithAck(@NonNull Message message) {
+        if (message.getRoutingId().isEmpty()) {
+            throw new IllegalArgumentException("Message must contain not-null routingId");
+        }
+        Deferred<Message, Exception> deferred = createDeferred();
+        this.send(message, deferred);
+        return deferred.promise();
     }
 }

@@ -24,10 +24,6 @@ public class ZMQSocketFactory extends BaseSocketFactory {
         this.ctx = ZMQ.context(ioThreads);
     }
 
-    private Socket createZmqSocket(int type) {
-        return new ZMQSocket(ctx.socket(type));
-    }
-
     protected Socket createCustomSocket(String type) {
         Assert.notNull(type, "Socket type");
         switch (type.toLowerCase()) {
@@ -40,6 +36,14 @@ public class ZMQSocketFactory extends BaseSocketFactory {
         return null;
     }
 
+    protected Socket createPairSocket() {
+        return createZmqSocket(ZMQ.PAIR);
+    }
+
+    protected Socket createPubSocket() {
+        return createZmqSocket(ZMQ.PUB);
+    }
+
     protected Socket createPullSocket() {
         return createZmqSocket(ZMQ.PULL);
     }
@@ -48,23 +52,19 @@ public class ZMQSocketFactory extends BaseSocketFactory {
         return createZmqSocket(ZMQ.PUSH);
     }
 
-    protected Socket createPubSocket() {
-        return createZmqSocket(ZMQ.PUB);
-    }
-
-    protected Socket createSubSocket() {
-        return createZmqSocket(ZMQ.SUB);
+    protected Socket createRepSocket() {
+        return createZmqSocket(ZMQ.REP);
     }
 
     protected Socket createReqSocket() {
         return createZmqSocket(ZMQ.REQ);
     }
 
-    protected Socket createRepSocket() {
-        return createZmqSocket(ZMQ.REP);
+    protected Socket createSubSocket() {
+        return createZmqSocket(ZMQ.SUB);
     }
 
-    protected Socket createPairSocket() {
-        return createZmqSocket(ZMQ.PAIR);
+    private Socket createZmqSocket(int type) {
+        return new ZMQSocket(ctx.socket(type));
     }
 }

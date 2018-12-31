@@ -30,8 +30,7 @@ public class JettyConnector extends AbstractConnector {
         Set<JettyServletContextHandlerOption> options = readOptions();
         boolean http2Enabled = Boolean.valueOf(getParam("http2Enabled", "true"));
 
-        var jettyConsumer = new DefaultJettyConsumer(getContext(), HostAndPort.newInstance(host, port), http2Enabled,
-                path, options);
+        var jettyConsumer = new DefaultJettyConsumer(getContext(), HostAndPort.newInstance(host, port), http2Enabled, path, options);
 
         this.consumer = Optional.of(jettyConsumer);
         this.producer = Optional.of(jettyConsumer.getResponder());

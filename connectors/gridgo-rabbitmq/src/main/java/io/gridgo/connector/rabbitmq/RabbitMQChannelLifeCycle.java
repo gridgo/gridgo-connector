@@ -11,9 +11,17 @@ import io.gridgo.utils.helper.Loggable;
 
 public interface RabbitMQChannelLifeCycle extends Loggable {
 
-    RabbitMQQueueConfig getQueueConfig();
+    default void closeChannel() {
+        try {
+            getChannel().close();
+        } catch (IOException | TimeoutException e) {
+            throw new ChannelException("Close channel error", e);
+        }
+    }
 
     Channel getChannel();
+
+    RabbitMQQueueConfig getQueueConfig();
 
     default Channel initChannel(Connection connection) {
         try {
@@ -26,21 +34,12 @@ public interface RabbitMQChannelLifeCycle extends Loggable {
 
             String queueName = getQueueConfig().getQueueName();
             if (queueName != null && !queueName.isBlank()) {
-                channel.queueDeclare(queueName, getQueueConfig().isDurable(), getQueueConfig().isExclusive(),
-                        getQueueConfig().isAutoDelete(), null);
+                channel.queueDeclare(queueName, getQueueConfig().isDurable(), getQueueConfig().isExclusive(), getQueueConfig().isAutoDelete(), null);
             }
 
             return channel;
         } catch (Exception e) {
             throw new ChannelException("Init channel error", e);
-        }
-    }
-
-    default void closeChannel() {
-        try {
-            getChannel().close();
-        } catch (IOException | TimeoutException e) {
-            throw new ChannelException("Close channel error", e);
         }
     }
 }
