@@ -18,7 +18,8 @@ public interface LettuceKeysCommandsDelegate extends LettuceCommandsDelegate, Re
 
     <T extends RedisKeyAsyncCommands<byte[], byte[]>> T getKeysCommands();
 
-    default SortArgs buildSortArgs(String byPattern, List<String> getPatterns, Long count, Long offset, String order, boolean alpha) {
+    default SortArgs buildSortArgs(String byPattern, List<String> getPatterns, Long count, Long offset, String order,
+            boolean alpha) {
         SortArgs sortArgs = new SortArgs();
         sortArgs.by(byPattern);
         if (getPatterns != null) {
@@ -39,6 +40,7 @@ public interface LettuceKeysCommandsDelegate extends LettuceCommandsDelegate, Re
             case "desc":
                 sortArgs.desc();
                 break;
+            default:
             }
         }
         return sortArgs;
@@ -75,8 +77,10 @@ public interface LettuceKeysCommandsDelegate extends LettuceCommandsDelegate, Re
     }
 
     @Override
-    default Promise<BElement, Exception> migrate(String host, int port, int db, long timeout, boolean copy, boolean replace, byte[] keys, String password) {
-        MigrateArgs<byte[]> migrateArgs = MigrateArgs.Builder.key(keys).auth(password == null ? null : password.toCharArray());
+    default Promise<BElement, Exception> migrate(String host, int port, int db, long timeout, boolean copy,
+            boolean replace, byte[] keys, String password) {
+        MigrateArgs<byte[]> migrateArgs = MigrateArgs.Builder.key(keys)
+                                                             .auth(password == null ? null : password.toCharArray());
         if (copy) {
             migrateArgs.copy();
         }
@@ -131,8 +135,8 @@ public interface LettuceKeysCommandsDelegate extends LettuceCommandsDelegate, Re
     }
 
     @Override
-    default Promise<BElement, Exception> sort(java.util.function.Consumer<byte[]> channel, byte[] key, String byPattern, List<String> getPatterns, Long count,
-            Long offset, String order, boolean alpha) {
+    default Promise<BElement, Exception> sort(java.util.function.Consumer<byte[]> channel, byte[] key, String byPattern,
+            List<String> getPatterns, Long count, Long offset, String order, boolean alpha) {
         SortArgs sortArgs = buildSortArgs(byPattern, getPatterns, count, offset, order, alpha);
 
         return toPromise(getKeysCommands().sort(bytes -> channel.accept(bytes), key, sortArgs));
@@ -159,7 +163,8 @@ public interface LettuceKeysCommandsDelegate extends LettuceCommandsDelegate, Re
     }
 
     @Override
-    default Promise<BElement, Exception> scan(java.util.function.Consumer<byte[]> channel, String cursor, Long count, String match) {
+    default Promise<BElement, Exception> scan(java.util.function.Consumer<byte[]> channel, String cursor, Long count,
+            String match) {
         ScanCursor scanCursor = cursor == null ? null : ScanCursor.of(cursor);
         if (count != null || match != null) {
             ScanArgs args = new ScanArgs();
