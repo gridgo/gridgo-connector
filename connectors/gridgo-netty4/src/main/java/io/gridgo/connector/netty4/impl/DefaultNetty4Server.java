@@ -1,5 +1,7 @@
 package io.gridgo.connector.netty4.impl;
 
+import static io.gridgo.connector.netty4.Netty4Constant.MISC_SOCKET_MSG_TYPE;
+
 import org.joo.promise4j.Deferred;
 
 import io.gridgo.bean.BElement;
@@ -31,8 +33,7 @@ public class DefaultNetty4Server extends AbstractNetty4Server {
     @Override
     protected void onConnectionClose(String channelId) {
         Message message = this.createMessage().setRoutingIdFromAny(channelId);
-        // message.getMisc().putAll(this.getSocketServer().getChannelDetails(channelId));
-        message.addMisc("socketMessageType", "close");
+        message.addMisc(MISC_SOCKET_MSG_TYPE, "close");
         publishMessage(message);
     }
 
@@ -40,7 +41,7 @@ public class DefaultNetty4Server extends AbstractNetty4Server {
     protected void onConnectionOpen(String channelId) {
         Message message = this.createMessage().setRoutingIdFromAny(channelId);
         message.getMisc().putAll(this.getSocketServer().getChannelDetails(channelId));
-        message.addMisc("socketMessageType", "open");
+        message.addMisc(MISC_SOCKET_MSG_TYPE, "open");
         publishMessage(message);
     }
 
@@ -48,7 +49,7 @@ public class DefaultNetty4Server extends AbstractNetty4Server {
     protected void onReceive(String channelId, BElement data) {
         Message message = this.parseMessage(data).setRoutingIdFromAny(channelId);
         message.getMisc().putAll(this.getSocketServer().getChannelDetails(channelId));
-        message.addMisc("socketMessageType", "message");
+        message.addMisc(MISC_SOCKET_MSG_TYPE, "message");
         publishMessage(message);
     }
 }

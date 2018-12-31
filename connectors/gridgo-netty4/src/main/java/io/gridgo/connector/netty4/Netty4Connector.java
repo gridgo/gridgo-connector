@@ -68,6 +68,7 @@ public class Netty4Connector extends AbstractConnector {
             this.producer = Optional.of(producerClient);
             this.consumer = Optional.of(producerClient.getReceiver());
             break;
+        default:
         }
     }
 }
