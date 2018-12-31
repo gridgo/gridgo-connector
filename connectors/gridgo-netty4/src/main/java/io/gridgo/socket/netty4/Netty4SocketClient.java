@@ -12,9 +12,9 @@ public interface Netty4SocketClient extends Netty4Socket {
 
     ChannelFuture send(BElement data);
 
-    void setReceiveCallback(Consumer<BElement> onReceiveCallback);
+    void setChannelCloseCallback(Runnable onChannelCloseCallback);
 
     void setChannelOpenCallback(Runnable onChannelOpenCallback);
 
-    void setChannelCloseCallback(Runnable onChannelCloseCallback);
+    void setReceiveCallback(Consumer<BElement> onReceiveCallback);
 }

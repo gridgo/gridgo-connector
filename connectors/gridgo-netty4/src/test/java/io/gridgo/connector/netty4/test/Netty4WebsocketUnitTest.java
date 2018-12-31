@@ -11,13 +11,8 @@ public class Netty4WebsocketUnitTest extends AbstractNetty4UnitTest {
     private static final String TRANSPORT = "ws";
 
     @Test
-    public void testWsPingPong() throws InterruptedException, PromiseException {
-        this.testPingPong(TRANSPORT, PATH);
-    }
-
-    @Test
-    public void testHandlerException() throws InterruptedException, PromiseException {
-        this.testHandlerException(TRANSPORT, PATH);
+    public void testCloseServer() throws InterruptedException, PromiseException {
+        this.testCloseServer(TRANSPORT, PATH);
     }
 
     @Test
@@ -31,7 +26,12 @@ public class Netty4WebsocketUnitTest extends AbstractNetty4UnitTest {
     }
 
     @Test
-    public void testCloseServer() throws InterruptedException, PromiseException {
-        this.testCloseServer(TRANSPORT, PATH);
+    public void testHandlerException() throws InterruptedException, PromiseException {
+        this.testHandlerException(TRANSPORT, PATH);
+    }
+
+    @Test
+    public void testWsPingPong() throws InterruptedException, PromiseException {
+        this.testPingPong(TRANSPORT, PATH);
     }
 }

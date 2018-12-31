@@ -21,6 +21,11 @@ public class LengthPrependedFileConsumerEngine implements FileConsumerEngine {
     }
 
     @Override
+    public String getFormat() {
+        return this.fileConsumer.getFormat();
+    }
+
+    @Override
     public void readAndPublish() {
         var buffer = this.fileConsumer.getBuffer();
         try {
@@ -63,10 +68,5 @@ public class LengthPrependedFileConsumerEngine implements FileConsumerEngine {
         } catch (EOFException ex) {
             return -1;
         }
-    }
-
-    @Override
-    public String getFormat() {
-        return this.fileConsumer.getFormat();
     }
 }

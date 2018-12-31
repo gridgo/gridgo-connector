@@ -21,6 +21,8 @@ public interface FormattedMarshallable {
         throw new UnsupportedFormatException(format);
     }
 
+    public String getFormat();
+
     public default byte[] serialize(BElement body) {
         if (body == null)
             return null;
@@ -37,6 +39,4 @@ public interface FormattedMarshallable {
         }
         throw new UnsupportedFormatException(format);
     }
-
-    public String getFormat();
 }

@@ -43,13 +43,80 @@ public class HttpProducer extends AbstractHttpProducer {
 
     private String defaultMethod;
 
-    public HttpProducer(ConnectorContext context, String endpointUri, Builder config, String format,
-            NameResolver<InetAddress> nameResolver, String defaultMethod) {
+    public HttpProducer(ConnectorContext context, String endpointUri, Builder config, String format, NameResolver<InetAddress> nameResolver,
+            String defaultMethod) {
         super(context, format);
         this.endpointUri = endpointUri;
         this.config = config;
         this.nameResolver = nameResolver;
         this.defaultMethod = defaultMethod != null ? defaultMethod : DEFAULT_METHOD;
+    }
+
+    private BObject buildHeaders(HttpHeaders headers) {
+        var obj = BObject.ofEmpty();
+        if (headers == null)
+            return obj;
+        var entries = headers.entries();
+        if (entries == null)
+            return obj;
+        entries.forEach(e -> obj.putAny(e.getKey(), e.getValue()));
+        return obj;
+    }
+
+    private Message buildMessage(Response response) {
+        var headers = buildHeaders(response.getHeaders()) //
+                                                         .setAny(HttpConstants.HEADER_STATUS, response.getStatusText())
+                                                         .setAny(HttpConstants.HEADER_STATUS_CODE, response.getStatusCode());
+        var body = deserialize(response.getResponseBodyAsBytes());
+        return createMessage(headers, body);
+    }
+
+    private List<Param> buildParams(BObject object) {
+        return object.entrySet().stream() //
+                     .filter(e -> e.getValue().isValue()) //
+                     .map(e -> new Param(e.getKey(), e.getValue().asValue().getString())) //
+                     .collect(Collectors.toList());
+    }
+
+    private Request buildRequest(Message message) {
+        var builder = createBuilder(message);
+        if (nameResolver != null)
+            builder.setNameResolver(nameResolver);
+        return builder.build();
+    }
+
+    @Override
+    public Promise<Message, Exception> call(Message message) {
+        var deferred = new CompletableDeferredObject<Message, Exception>();
+        var request = buildRequest(message);
+        asyncHttpClient.executeRequest(request, new AsyncCompletionHandler<Object>() {
+
+            @Override
+            public Object onCompleted(Response response) throws Exception {
+                var message = buildMessage(response);
+                ack(deferred, message);
+                return response;
+            }
+
+            @Override
+            public void onThrowable(Throwable t) {
+                ack(deferred, new ConnectionException(t));
+            }
+        });
+        return deferred.promise();
+    }
+
+    private RequestBuilder createBuilder(Message message) {
+        if (message == null)
+            return new RequestBuilder().setUrl(endpointUri);
+        var method = getMethod(message, defaultMethod);
+        var params = buildParams(getQueryParams(message));
+        var body = serialize(message.getPayload().getBody());
+        return new RequestBuilder(method) //
+                                         .setUrl(endpointUri) //
+                                         .setBody(body) //
+                                         .setQueryParams(params);
+
     }
 
     @Override
@@ -113,73 +180,5 @@ public class HttpProducer extends AbstractHttpProducer {
             }
         });
         return deferred.promise();
-    }
-
-    @Override
-    public Promise<Message, Exception> call(Message message) {
-        var deferred = new CompletableDeferredObject<Message, Exception>();
-        var request = buildRequest(message);
-        asyncHttpClient.executeRequest(request, new AsyncCompletionHandler<Object>() {
-
-            @Override
-            public void onThrowable(Throwable t) {
-                ack(deferred, new ConnectionException(t));
-            }
-
-            @Override
-            public Object onCompleted(Response response) throws Exception {
-                var message = buildMessage(response);
-                ack(deferred, message);
-                return response;
-            }
-        });
-        return deferred.promise();
-    }
-
-    private Request buildRequest(Message message) {
-        var builder = createBuilder(message);
-        if (nameResolver != null)
-            builder.setNameResolver(nameResolver);
-        return builder.build();
-    }
-
-    private RequestBuilder createBuilder(Message message) {
-        if (message == null)
-            return new RequestBuilder().setUrl(endpointUri);
-        var method = getMethod(message, defaultMethod);
-        var params = buildParams(getQueryParams(message));
-        var body = serialize(message.getPayload().getBody());
-        return new RequestBuilder(method) //
-                                         .setUrl(endpointUri) //
-                                         .setBody(body) //
-                                         .setQueryParams(params);
-
-    }
-
-    private List<Param> buildParams(BObject object) {
-        return object.entrySet().stream() //
-                     .filter(e -> e.getValue().isValue()) //
-                     .map(e -> new Param(e.getKey(), e.getValue().asValue().getString())) //
-                     .collect(Collectors.toList());
-    }
-
-    private Message buildMessage(Response response) {
-        var headers = buildHeaders(response.getHeaders()) //
-                                                         .setAny(HttpConstants.HEADER_STATUS, response.getStatusText())
-                                                         .setAny(HttpConstants.HEADER_STATUS_CODE,
-                                                                 response.getStatusCode());
-        var body = deserialize(response.getResponseBodyAsBytes());
-        return createMessage(headers, body);
-    }
-
-    private BObject buildHeaders(HttpHeaders headers) {
-        var obj = BObject.ofEmpty();
-        if (headers == null)
-            return obj;
-        var entries = headers.entries();
-        if (entries == null)
-            return obj;
-        entries.forEach(e -> obj.putAny(e.getKey(), e.getValue()));
-        return obj;
     }
 }

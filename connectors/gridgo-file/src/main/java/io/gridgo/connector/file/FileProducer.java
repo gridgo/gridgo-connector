@@ -22,13 +22,8 @@ public class FileProducer extends AbstractProducer {
     }
 
     @Override
-    protected void onStart() {
-        // Nothing to do here
-    }
-
-    @Override
-    protected void onStop() {
-        // Nothing to do here
+    public Promise<Message, Exception> call(Message request) {
+        throw new UnsupportedOperationException("File doesn't support call");
     }
 
     @Override
@@ -37,13 +32,18 @@ public class FileProducer extends AbstractProducer {
     }
 
     @Override
-    public Promise<Message, Exception> call(Message request) {
-        throw new UnsupportedOperationException("File doesn't support call");
+    public boolean isCallSupported() {
+        return false;
     }
 
     @Override
-    public boolean isCallSupported() {
-        return false;
+    protected void onStart() {
+        // Nothing to do here
+    }
+
+    @Override
+    protected void onStop() {
+        // Nothing to do here
     }
 
     @Override

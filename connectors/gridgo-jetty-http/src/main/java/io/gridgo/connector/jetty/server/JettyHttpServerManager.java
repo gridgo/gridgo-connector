@@ -25,35 +25,11 @@ public class JettyHttpServerManager {
         ThreadUtils.registerShutdownTask(this::onShutdown);
     }
 
-    private void onShutdown() {
-        for (JettyHttpServer server : servers.values()) {
-            try {
-                server.stop();
-            } catch (Exception e) {
-                log.error("Exception caught while shutting down Jetty HTTP server", e);
-            }
-        }
-    }
-
-    private void onServerStop(HostAndPort address) {
-        this.servers.remove(address);
-    }
-
-    public JettyHttpServer getOrCreateJettyServer(String address, boolean http2Enabled,
-            Set<JettyServletContextHandlerOption> options) {
-        return this.getOrCreateJettyServer(HostAndPort.fromString(address), http2Enabled, options);
-    }
-
-    public JettyHttpServer getOrCreateJettyServer(String address, boolean http2Enabled) {
-        return this.getOrCreateJettyServer(HostAndPort.fromString(address), http2Enabled, null);
-    }
-
     public JettyHttpServer getOrCreateJettyServer(@NonNull HostAndPort originAddress, boolean http2Enabled) {
         return getOrCreateJettyServer(originAddress, http2Enabled, null);
     }
 
-    public JettyHttpServer getOrCreateJettyServer(@NonNull HostAndPort originAddress, boolean http2Enabled,
-            Set<JettyServletContextHandlerOption> options) {
+    public JettyHttpServer getOrCreateJettyServer(@NonNull HostAndPort originAddress, boolean http2Enabled, Set<JettyServletContextHandlerOption> options) {
         var address = originAddress.makeCopy();
         if (!address.isResolvable()) {
             throw new RuntimeException("Host '" + originAddress.getHost() + "' cannot be resolved");
@@ -74,7 +50,28 @@ public class JettyHttpServerManager {
         jettyHttpServer = servers.get(allInterface);
         if (jettyHttpServer != null)
             return jettyHttpServer;
-        return this.servers.computeIfAbsent(address,
-                key -> new JettyHttpServer(address, http2Enabled, options, this::onServerStop));
+        return this.servers.computeIfAbsent(address, key -> new JettyHttpServer(address, http2Enabled, options, this::onServerStop));
+    }
+
+    public JettyHttpServer getOrCreateJettyServer(String address, boolean http2Enabled) {
+        return this.getOrCreateJettyServer(HostAndPort.fromString(address), http2Enabled, null);
+    }
+
+    public JettyHttpServer getOrCreateJettyServer(String address, boolean http2Enabled, Set<JettyServletContextHandlerOption> options) {
+        return this.getOrCreateJettyServer(HostAndPort.fromString(address), http2Enabled, options);
+    }
+
+    private void onServerStop(HostAndPort address) {
+        this.servers.remove(address);
+    }
+
+    private void onShutdown() {
+        for (JettyHttpServer server : servers.values()) {
+            try {
+                server.stop();
+            } catch (Exception e) {
+                log.error("Exception caught while shutting down Jetty HTTP server", e);
+            }
+        }
     }
 }

@@ -19,8 +19,7 @@ public class DefaultConnectorConfig implements ConnectorConfig {
 
     private Properties placeholders;
 
-    public DefaultConnectorConfig(String scheme, String nonQueryEndpoint, String remaining,
-            Map<String, Object> parameters, Properties placeholders) {
+    public DefaultConnectorConfig(String scheme, String nonQueryEndpoint, String remaining, Map<String, Object> parameters, Properties placeholders) {
         this.scheme = scheme;
         this.nonQueryEndpoint = nonQueryEndpoint;
         this.remaining = remaining;

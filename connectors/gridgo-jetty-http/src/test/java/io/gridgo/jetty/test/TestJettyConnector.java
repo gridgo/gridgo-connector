@@ -54,8 +54,7 @@ public class TestJettyConnector {
     }
 
     private Connector createConnector(String endpoint) {
-        ConnectorContext connectorContext = new DefaultConnectorContextBuilder().setCallbackInvokerStrategy(
-                new ExecutorExecutionStrategy(executor)).build();
+        ConnectorContext connectorContext = new DefaultConnectorContextBuilder().setCallbackInvokerStrategy(new ExecutorExecutionStrategy(executor)).build();
 
         Connector connector = resolver.resolve(endpoint, connectorContext);
 

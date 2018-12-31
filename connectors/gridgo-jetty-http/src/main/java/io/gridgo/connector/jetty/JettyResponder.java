@@ -10,9 +10,9 @@ import io.gridgo.framework.support.Message;
 
 public interface JettyResponder extends Responder, FailureHandlerAware<JettyResponder> {
 
+    public Message generateFailureMessage(Throwable ex);
+
     public DeferredAndRoutingId registerRequest(HttpServletRequest request);
 
     public void writeResponse(HttpServletResponse response, Message responseMessage);
-
-    public Message generateFailureMessage(Throwable ex);
 }

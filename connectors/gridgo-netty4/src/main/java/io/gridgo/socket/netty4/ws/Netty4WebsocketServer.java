@@ -41,6 +41,22 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 
     private static final AttributeKey<WebSocketServerHandshaker> HANDSHAKER = AttributeKey.newInstance("handshaker");
 
+    private static void sendHttpResponse(Channel channel, FullHttpRequest req, FullHttpResponse res) {
+        // Generate an error page if response getStatus code is not OK (200).
+        if (res.status().code() != 200) {
+            ByteBuf buf = Unpooled.copiedBuffer(res.status().toString(), CharsetUtil.UTF_8);
+            res.content().writeBytes(buf);
+            buf.release();
+            HttpUtil.setContentLength(res, res.content().readableBytes());
+        }
+
+        // Send the response and close the connection if necessary.
+        ChannelFuture f = channel.writeAndFlush(res);
+        if (!HttpUtil.isKeepAlive(req) || res.status().code() != 200) {
+            f.addListener(ChannelFutureListener.CLOSE);
+        }
+    }
+
     @Setter
     @Getter(AccessLevel.PROTECTED)
     private String path;
@@ -51,25 +67,68 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
     @Getter(AccessLevel.PROTECTED)
     private WebSocketServerHandshakerFactory wsFactory;
 
+    @Override
+    protected void closeChannel(Channel channel) {
+        channel.writeAndFlush(new CloseWebSocketFrame());
+        super.closeChannel(channel);
+    }
+
     protected String getWsUri(HostAndPort host) {
         String proxy = this.getConfigs().getString("proxy", null);
         String wsUri = proxy == null ? null : proxy;
 
         if (wsUri == null) {
             int port = host.getPortOrDefault(80);
-            wsUri = "ws://" + host.getHostOrDefault("localhost") + (port == 80 ? "" : (":" + port))
-                    + (getPath().startsWith("/") ? "" : "/") + this.getPath();
+            wsUri = "ws://" + host.getHostOrDefault("localhost") + (port == 80 ? "" : (":" + port)) + (getPath().startsWith("/") ? "" : "/") + this.getPath();
         }
 
         return wsUri;
     }
 
-    @Override
-    protected void onBeforeBind(HostAndPort host) {
-        wsFactory = new WebSocketServerHandshakerFactory(getWsUri(host), null, true);
+    @SuppressWarnings("deprecation")
+    private void handleHttpRequest(Channel channel, FullHttpRequest req) {
+        // Handle a bad request.
+        if (!req.decoderResult().isSuccess()) {
+            sendHttpResponse(channel, req, new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST));
+            return;
+        }
 
-        String configFrameType = this.getConfigs().getString("frameType", "text");
-        this.frameType = Netty4WebsocketFrameType.fromNameOrDefault(configFrameType, TEXT);
+        // Allow only GET methods.
+        if (req.method() != GET) {
+            sendHttpResponse(channel, req, new DefaultFullHttpResponse(HTTP_1_1, FORBIDDEN));
+            return;
+        }
+
+        if ("/".equals(req.uri())) {
+            ByteBuf content = Unpooled.copiedBuffer("Default gridgo-socket-netty4 connector websocket welcome page".getBytes());
+            FullHttpResponse res = new DefaultFullHttpResponse(HTTP_1_1, OK, content);
+
+            res.headers().set(CONTENT_TYPE, "text/html; charset=UTF-8");
+            HttpUtil.setContentLength(res, content.readableBytes());
+
+            sendHttpResponse(channel, req, res);
+            return;
+        }
+
+        if ("/favicon.ico".equals(req.uri())) {
+            FullHttpResponse res = new DefaultFullHttpResponse(HTTP_1_1, NOT_FOUND);
+            sendHttpResponse(channel, req, res);
+            return;
+        }
+
+        var channelDetails = getChannelDetails(extractChannelId(channel));
+        req.headers().forEach(entry -> {
+            channelDetails.put(entry.getKey(), entry.getValue());
+        });
+
+        // Handshake
+        final WebSocketServerHandshaker handshaker = getWsFactory().newHandshaker(req);
+        if (handshaker == null) {
+            WebSocketServerHandshakerFactory.sendUnsupportedVersionResponse(channel);
+        } else {
+            handshaker.handshake(channel, req);
+            channel.attr(HANDSHAKER).set(handshaker);
+        }
     }
 
     @Override
@@ -106,73 +165,12 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
         return Netty4WebsocketUtils.parseWebsocketFrame(frame);
     }
 
-    private static void sendHttpResponse(Channel channel, FullHttpRequest req, FullHttpResponse res) {
-        // Generate an error page if response getStatus code is not OK (200).
-        if (res.status().code() != 200) {
-            ByteBuf buf = Unpooled.copiedBuffer(res.status().toString(), CharsetUtil.UTF_8);
-            res.content().writeBytes(buf);
-            buf.release();
-            HttpUtil.setContentLength(res, res.content().readableBytes());
-        }
-
-        // Send the response and close the connection if necessary.
-        ChannelFuture f = channel.writeAndFlush(res);
-        if (!HttpUtil.isKeepAlive(req) || res.status().code() != 200) {
-            f.addListener(ChannelFutureListener.CLOSE);
-        }
-    }
-
-    @SuppressWarnings("deprecation")
-    private void handleHttpRequest(Channel channel, FullHttpRequest req) {
-        // Handle a bad request.
-        if (!req.decoderResult().isSuccess()) {
-            sendHttpResponse(channel, req, new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST));
-            return;
-        }
-
-        // Allow only GET methods.
-        if (req.method() != GET) {
-            sendHttpResponse(channel, req, new DefaultFullHttpResponse(HTTP_1_1, FORBIDDEN));
-            return;
-        }
-
-        if ("/".equals(req.uri())) {
-            ByteBuf content = Unpooled.copiedBuffer(
-                    "Default gridgo-socket-netty4 connector websocket welcome page".getBytes());
-            FullHttpResponse res = new DefaultFullHttpResponse(HTTP_1_1, OK, content);
-
-            res.headers().set(CONTENT_TYPE, "text/html; charset=UTF-8");
-            HttpUtil.setContentLength(res, content.readableBytes());
-
-            sendHttpResponse(channel, req, res);
-            return;
-        }
-
-        if ("/favicon.ico".equals(req.uri())) {
-            FullHttpResponse res = new DefaultFullHttpResponse(HTTP_1_1, NOT_FOUND);
-            sendHttpResponse(channel, req, res);
-            return;
-        }
-
-        var channelDetails = getChannelDetails(extractChannelId(channel));
-        req.headers().forEach(entry -> {
-            channelDetails.put(entry.getKey(), entry.getValue());
-        });
-
-        // Handshake
-        final WebSocketServerHandshaker handshaker = getWsFactory().newHandshaker(req);
-        if (handshaker == null) {
-            WebSocketServerHandshakerFactory.sendUnsupportedVersionResponse(channel);
-        } else {
-            handshaker.handshake(channel, req);
-            channel.attr(HANDSHAKER).set(handshaker);
-        }
-    }
-
     @Override
-    protected void closeChannel(Channel channel) {
-        channel.writeAndFlush(new CloseWebSocketFrame());
-        super.closeChannel(channel);
+    protected void onBeforeBind(HostAndPort host) {
+        wsFactory = new WebSocketServerHandshakerFactory(getWsUri(host), null, true);
+
+        String configFrameType = this.getConfigs().getString("frameType", "text");
+        this.frameType = Netty4WebsocketFrameType.fromNameOrDefault(configFrameType, TEXT);
     }
 
     @Override

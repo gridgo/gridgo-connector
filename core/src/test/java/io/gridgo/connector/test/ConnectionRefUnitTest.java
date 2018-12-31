@@ -8,21 +8,6 @@ import io.gridgo.connector.support.ConnectionRef;
 public class ConnectionRefUnitTest {
 
     @Test
-    public void testSingleThread() {
-        var ref = new ConnectionRef<Object>(new Object());
-        Assert.assertNotNull(ref.getConnection());
-        ref.ref();
-        Assert.assertEquals(1, ref.getRefCount());
-        ref.deref();
-        Assert.assertEquals(0, ref.getRefCount());
-        ref.ref();
-        Assert.assertEquals(1, ref.getRefCount());
-        ref.dispose();
-        Assert.assertNull(ref.getConnection());
-        Assert.assertEquals(1, ref.getRefCount());
-    }
-
-    @Test
     public void testMultiThread() throws InterruptedException {
         var ref = new ConnectionRef<Object>(new Object());
         var t1 = new Thread(() -> {
@@ -92,5 +77,20 @@ public class ConnectionRefUnitTest {
         t1.join();
         t2.join();
         Assert.assertEquals(0, ref.getRefCount());
+    }
+
+    @Test
+    public void testSingleThread() {
+        var ref = new ConnectionRef<Object>(new Object());
+        Assert.assertNotNull(ref.getConnection());
+        ref.ref();
+        Assert.assertEquals(1, ref.getRefCount());
+        ref.deref();
+        Assert.assertEquals(0, ref.getRefCount());
+        ref.ref();
+        Assert.assertEquals(1, ref.getRefCount());
+        ref.dispose();
+        Assert.assertNull(ref.getConnection());
+        Assert.assertEquals(1, ref.getRefCount());
     }
 }

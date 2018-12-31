@@ -45,6 +45,5 @@ public interface ConnectorFactory extends RegistryAware {
      * @param context  the context
      * @return the connector
      */
-    public Connector createConnector(final @NonNull String endpoint, final @NonNull ConnectorResolver resolver,
-            final @NonNull ConnectorContext context);
+    public Connector createConnector(final @NonNull String endpoint, final @NonNull ConnectorResolver resolver, final @NonNull ConnectorContext context);
 }

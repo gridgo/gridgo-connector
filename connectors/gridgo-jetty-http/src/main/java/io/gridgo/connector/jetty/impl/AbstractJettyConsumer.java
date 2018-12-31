@@ -33,8 +33,8 @@ public class AbstractJettyConsumer extends AbstractHasResponderConsumer implemen
 
     private final Set<JettyServletContextHandlerOption> options;
 
-    public AbstractJettyConsumer(ConnectorContext context, @NonNull HostAndPort address, boolean http2Enabled,
-            String path, Set<JettyServletContextHandlerOption> options) {
+    public AbstractJettyConsumer(ConnectorContext context, @NonNull HostAndPort address, boolean http2Enabled, String path,
+            Set<JettyServletContextHandlerOption> options) {
         super(context);
 
         this.options = options;
@@ -44,8 +44,7 @@ public class AbstractJettyConsumer extends AbstractHasResponderConsumer implemen
         path = (path == null || path.isBlank()) ? "/*" : path.trim();
         this.path = path.startsWith("/") ? path : ("/" + path);
 
-        this.httpServer = JettyHttpServerManager.getInstance().getOrCreateJettyServer(this.address, http2Enabled,
-                this.options);
+        this.httpServer = JettyHttpServerManager.getInstance().getOrCreateJettyServer(this.address, http2Enabled, this.options);
         if (this.httpServer == null) {
             throw new RuntimeException("Cannot create http server for address: " + this.address);
         }
@@ -54,18 +53,22 @@ public class AbstractJettyConsumer extends AbstractHasResponderConsumer implemen
         this.setResponder(new DefaultJettyResponder(getContext(), this.uniqueIdentifier));
     }
 
+    protected Deferred<Message, Exception> createDeferred() {
+        return new CompletableDeferredObject<>();
+    }
+
     @Override
     protected String generateName() {
         return "consumer.jetty.http-server." + this.uniqueIdentifier;
     }
 
-    protected JettyResponder getJettyResponder() {
-        return (JettyResponder) this.getResponder();
-    }
-
     protected HttpRequestParser getHttpRequestParser() {
         var parser = this.getContext().getRegistry().lookup("httpRequestParser");
         return parser == null ? HttpRequestParser.DEFAULT : (HttpRequestParser) parser;
+    }
+
+    protected JettyResponder getJettyResponder() {
+        return (JettyResponder) this.getResponder();
     }
 
     private void onHttpRequest(HttpServletRequest request, HttpServletResponse response) {
@@ -75,20 +78,14 @@ public class AbstractJettyConsumer extends AbstractHasResponderConsumer implemen
             requestMessage = this.getHttpRequestParser().parse(request, this.options);
         } catch (Exception e) {
             getLogger().error("error while parsing http request", e);
-            Message responseMessage = this.failureHandler != null ? this.failureHandler.apply(e)
-                    : this.getJettyResponder().generateFailureMessage(e);
+            Message responseMessage = this.failureHandler != null ? this.failureHandler.apply(e) : this.getJettyResponder().generateFailureMessage(e);
             ((JettyResponder) this.getResponder()).writeResponse(response, responseMessage);
         }
 
         if (requestMessage != null) {
             var deferredAndRoutingId = ((JettyResponder) this.getResponder()).registerRequest(request);
-            this.publish(requestMessage.setRoutingIdFromAny(deferredAndRoutingId.getRoutingId()),
-                    deferredAndRoutingId.getDeferred());
+            this.publish(requestMessage.setRoutingIdFromAny(deferredAndRoutingId.getRoutingId()), deferredAndRoutingId.getDeferred());
         }
-    }
-
-    protected Deferred<Message, Exception> createDeferred() {
-        return new CompletableDeferredObject<>();
     }
 
     @Override

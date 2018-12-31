@@ -7,6 +7,26 @@ import io.gridgo.utils.helper.Assert;
 
 public abstract class BaseSocketFactory extends AbstractSocketFactory {
 
+    protected Socket createCustomSocket(String type) {
+        return null;
+    }
+
+    protected Socket createPairSocket() {
+        return null;
+    }
+
+    protected Socket createPubSocket() {
+        return null;
+    }
+
+    protected Socket createPullSocket() {
+        return null;
+    }
+
+    protected Socket createPushSocket() {
+        return null;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public final <T extends Socket> T createSocket(SocketOptions options) {
@@ -46,27 +66,7 @@ public abstract class BaseSocketFactory extends AbstractSocketFactory {
         throw new IllegalArgumentException("Socket type " + options.getType() + " is not supported");
     }
 
-    protected Socket createCustomSocket(String type) {
-        return null;
-    }
-
-    protected Socket createPullSocket() {
-        return null;
-    }
-
-    protected Socket createPushSocket() {
-        return null;
-    }
-
-    protected Socket createPubSocket() {
-        return null;
-    }
-
     protected Socket createSubSocket() {
-        return null;
-    }
-
-    protected Socket createPairSocket() {
         return null;
     }
 

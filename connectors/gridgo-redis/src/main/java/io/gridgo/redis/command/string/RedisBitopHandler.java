@@ -19,6 +19,22 @@ public class RedisBitopHandler extends AbstractRedisCommandHandler {
         super("op", "dest", "src");
     }
 
+    private byte[][] parseKeys(@NonNull BElement keys) {
+        byte[][] result = null;
+        if (keys.isValue()) {
+            result = new byte[][] { keys.asValue().getRaw() };
+        } else if (keys.isArray()) {
+            BArray asArray = keys.asArray();
+            result = new byte[asArray.size()][];
+            for (int i = 0; i < asArray.size(); i++) {
+                result[i] = asArray.getRaw(i);
+            }
+        } else {
+            throw new IllegalRedisCommandsParamsException("Bitop keys must be BValue or BArray");
+        }
+        return result;
+    }
+
     @Override
     protected Promise<BElement, Exception> process(RedisClient redis, BObject options, BElement[] params) {
         final byte[][] keys = this.parseKeys(params[2]);
@@ -34,21 +50,5 @@ public class RedisBitopHandler extends AbstractRedisCommandHandler {
         default:
         }
         return null;
-    }
-
-    private byte[][] parseKeys(@NonNull BElement keys) {
-        byte[][] result = null;
-        if (keys.isValue()) {
-            result = new byte[][] { keys.asValue().getRaw() };
-        } else if (keys.isArray()) {
-            BArray asArray = keys.asArray();
-            result = new byte[asArray.size()][];
-            for (int i = 0; i < asArray.size(); i++) {
-                result[i] = asArray.getRaw(i);
-            }
-        } else {
-            throw new IllegalRedisCommandsParamsException("Bitop keys must be BValue or BArray");
-        }
-        return result;
     }
 }

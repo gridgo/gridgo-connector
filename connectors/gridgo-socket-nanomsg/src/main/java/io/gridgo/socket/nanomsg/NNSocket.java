@@ -25,39 +25,6 @@ public class NNSocket extends AbstractSocket {
         this.nanomsg = Assert.notNull(nanoLibrary, "Nanomsg");
     }
 
-    @Override
-    protected void doClose() {
-        nanomsg.nn_close(getId());
-    }
-
-    @Override
-    protected void doConnect(Endpoint endpoint) {
-        nanomsg.nn_connect(getId(), endpoint.getResolvedAddress());
-    }
-
-    @Override
-    protected void doBind(Endpoint endpoint) {
-        nanomsg.nn_bind(getId(), endpoint.getResolvedAddress());
-    }
-
-    @Override
-    protected int doSend(ByteBuffer buffer, boolean block) {
-        int flags = block ? 0 : nanomsg.NN_DONTWAIT;
-        if (buffer.isDirect()) {
-            return nanomsg.nn_send(getId(), buffer, flags);
-        }
-        int pos = buffer.position();
-        int limit = buffer.limit();
-        byte[] bytes = Arrays.copyOfRange(buffer.array(), pos, limit);
-        nanomsg.nn_sendbyte(getId(), bytes, flags);
-        return bytes.length;
-    }
-
-    @Override
-    protected int doReveive(ByteBuffer buffer, boolean block) {
-        return nanomsg.nn_recv(id, buffer, block ? 0 : nanomsg.NN_DONTWAIT);
-    }
-
     private boolean applyConfig(int option, int value) {
         return nanomsg.nn_setsockopt_int(this.getId(), nanomsg.NN_SOL_SOCKET, option, value) >= 0;
     }
@@ -116,6 +83,39 @@ public class NNSocket extends AbstractSocket {
             // System.out.println("[NNSocket] applied config " + name + " with value " +
             // value);
         }
+    }
+
+    @Override
+    protected void doBind(Endpoint endpoint) {
+        nanomsg.nn_bind(getId(), endpoint.getResolvedAddress());
+    }
+
+    @Override
+    protected void doClose() {
+        nanomsg.nn_close(getId());
+    }
+
+    @Override
+    protected void doConnect(Endpoint endpoint) {
+        nanomsg.nn_connect(getId(), endpoint.getResolvedAddress());
+    }
+
+    @Override
+    protected int doReveive(ByteBuffer buffer, boolean block) {
+        return nanomsg.nn_recv(id, buffer, block ? 0 : nanomsg.NN_DONTWAIT);
+    }
+
+    @Override
+    protected int doSend(ByteBuffer buffer, boolean block) {
+        int flags = block ? 0 : nanomsg.NN_DONTWAIT;
+        if (buffer.isDirect()) {
+            return nanomsg.nn_send(getId(), buffer, flags);
+        }
+        int pos = buffer.position();
+        int limit = buffer.limit();
+        byte[] bytes = Arrays.copyOfRange(buffer.array(), pos, limit);
+        nanomsg.nn_sendbyte(getId(), bytes, flags);
+        return bytes.length;
     }
 
     @Override

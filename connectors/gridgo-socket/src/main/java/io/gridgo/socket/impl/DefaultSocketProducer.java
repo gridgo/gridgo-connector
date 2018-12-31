@@ -69,42 +69,6 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
     }
 
     @Override
-    protected void onStart() {
-        this.socket = this.factory.createSocket(options);
-        String type = options.getType().trim().toLowerCase();
-        switch (type) {
-        case "push":
-            socket.connect(address);
-            break;
-        case "pub":
-            Endpoint endpoint = EndpointParser.parse(address);
-            if (SocketConnector.MULTICAST_TRANSPORTS.contains(endpoint.getProtocol())) {
-                socket.connect(address);
-            } else {
-                socket.bind(address);
-            }
-            break;
-        case "pair":
-            socket.connect(address);
-            int bufferSize = Integer.parseInt(
-                    (String) options.getConfig().getOrDefault("bufferSize", "" + SocketConnector.DEFAULT_BUFFER_SIZE));
-            if (!options.getConfig().containsKey("receiveTimeout")) {
-                socket.applyConfig("receiveTimeout", SocketConsumer.DEFAULT_RECV_TIMEOUT);
-            }
-            this.setReceiver(new DefaultSocketReceiver(getContext(), this.socket, bufferSize, getUniqueIdentifier()));
-            break;
-        default:
-        }
-        super.onStart();
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        this.socket.close();
-    }
-
-    @Override
     protected Message accumulateBatch(@NonNull Collection<Message> messages) {
         if (this.isBatchingEnabled()) {
             return SocketUtils.accumulateBatch(messages);
@@ -154,5 +118,40 @@ public class DefaultSocketProducer extends SingleThreadSendingProducer implement
     @Override
     public boolean isCallSupported() {
         return false;
+    }
+
+    @Override
+    protected void onStart() {
+        this.socket = this.factory.createSocket(options);
+        String type = options.getType().trim().toLowerCase();
+        switch (type) {
+        case "push":
+            socket.connect(address);
+            break;
+        case "pub":
+            Endpoint endpoint = EndpointParser.parse(address);
+            if (SocketConnector.MULTICAST_TRANSPORTS.contains(endpoint.getProtocol())) {
+                socket.connect(address);
+            } else {
+                socket.bind(address);
+            }
+            break;
+        case "pair":
+            socket.connect(address);
+            int bufferSize = Integer.parseInt((String) options.getConfig().getOrDefault("bufferSize", "" + SocketConnector.DEFAULT_BUFFER_SIZE));
+            if (!options.getConfig().containsKey("receiveTimeout")) {
+                socket.applyConfig("receiveTimeout", SocketConsumer.DEFAULT_RECV_TIMEOUT);
+            }
+            this.setReceiver(new DefaultSocketReceiver(getContext(), this.socket, bufferSize, getUniqueIdentifier()));
+            break;
+        default:
+        }
+        super.onStart();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        this.socket.close();
     }
 }

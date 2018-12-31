@@ -28,12 +28,12 @@ import io.gridgo.framework.support.Payload;
 
 public class TestRabbitMQ {
 
-    private static final ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
-
     @FunctionalInterface
     static interface Consumer4Args<One, Two, Three, Four> {
         public void accept(One one, Two two, Three three, Four four);
     }
+
+    private static final ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
 
     private static final String TEXT = "This is message";
 
@@ -91,37 +91,6 @@ public class TestRabbitMQ {
     }
 
     @Test
-    public void testRPC() throws InterruptedException {
-        System.out.println("Test RPC");
-        final Connector connector = RESOLVER.resolve("rabbitmq://localhost?queueName=test&rpc=true");
-        init(connector, (producer, consumer, triggerDone, waitForDone) -> {
-
-            consumer.subscribe((message, deferred) -> {
-                System.out.println("got message from source: " + message.getMisc().get("source"));
-                try {
-                    Payload responsePayload = Payload.of(message.getPayload().getBody());
-                    deferred.resolve(Message.of(responsePayload));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
-
-            final AtomicReference<String> receivedTextRef = new AtomicReference<String>(null);
-            Message msg = Message.of(Payload.of(BElement.ofAny(TEXT)));
-            Promise<Message, Exception> promise = producer.call(msg);
-            promise.done((message) -> {
-                receivedTextRef.set(message.getPayload().getBody().asValue().getString());
-                triggerDone.run();
-            });
-
-            waitForDone.run();
-            assertEquals(TEXT, receivedTextRef.get());
-
-            connector.stop();
-        });
-    }
-
-    @Test
     public void testPubSub() throws InterruptedException {
         System.out.println("Test pub/sub");
         Connector connector1 = RESOLVER.resolve("rabbitmq://localhost/testFanoutExchange?exchangeType=fanout");
@@ -163,11 +132,9 @@ public class TestRabbitMQ {
     @Test
     public void testRoutingKey() throws InterruptedException {
         System.out.println("Test routing key");
-        Connector connector1 = RESOLVER.resolve(
-                "rabbitmq://localhost/testDirectExchange?exchangeType=direct&routingKey=key1");
+        Connector connector1 = RESOLVER.resolve("rabbitmq://localhost/testDirectExchange?exchangeType=direct&routingKey=key1");
 
-        Connector connector2 = RESOLVER.resolve(
-                "rabbitmq://localhost/testDirectExchange?exchangeType=direct&routingKey=key2");
+        Connector connector2 = RESOLVER.resolve("rabbitmq://localhost/testDirectExchange?exchangeType=direct&routingKey=key2");
 
         connector1.start();
         connector2.start();
@@ -212,10 +179,8 @@ public class TestRabbitMQ {
     @Test
     public void testRoutingKeyRPC() throws InterruptedException, PromiseException {
         System.out.println("Test routing key rpc");
-        Connector connector1 = RESOLVER.resolve(
-                "rabbitmq://localhost/testDirectExchangeRPC?exchangeType=direct&routingKey=key1&rpc=true");
-        Connector connector2 = RESOLVER.resolve(
-                "rabbitmq://localhost/testDirectExchangeRPC?exchangeType=direct&routingKey=key2&rpc=true");
+        Connector connector1 = RESOLVER.resolve("rabbitmq://localhost/testDirectExchangeRPC?exchangeType=direct&routingKey=key1&rpc=true");
+        Connector connector2 = RESOLVER.resolve("rabbitmq://localhost/testDirectExchangeRPC?exchangeType=direct&routingKey=key2&rpc=true");
 
         connector1.start();
         connector2.start();
@@ -252,5 +217,36 @@ public class TestRabbitMQ {
         connector1.stop();
 
         connector2.stop();
+    }
+
+    @Test
+    public void testRPC() throws InterruptedException {
+        System.out.println("Test RPC");
+        final Connector connector = RESOLVER.resolve("rabbitmq://localhost?queueName=test&rpc=true");
+        init(connector, (producer, consumer, triggerDone, waitForDone) -> {
+
+            consumer.subscribe((message, deferred) -> {
+                System.out.println("got message from source: " + message.getMisc().get("source"));
+                try {
+                    Payload responsePayload = Payload.of(message.getPayload().getBody());
+                    deferred.resolve(Message.of(responsePayload));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+
+            final AtomicReference<String> receivedTextRef = new AtomicReference<String>(null);
+            Message msg = Message.of(Payload.of(BElement.ofAny(TEXT)));
+            Promise<Message, Exception> promise = producer.call(msg);
+            promise.done((message) -> {
+                receivedTextRef.set(message.getPayload().getBody().asValue().getString());
+                triggerDone.run();
+            });
+
+            waitForDone.run();
+            assertEquals(TEXT, receivedTextRef.get());
+
+            connector.stop();
+        });
     }
 }

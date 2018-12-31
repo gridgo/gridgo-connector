@@ -43,14 +43,8 @@ public abstract class AbstractNetty4Server extends AbstractHasResponderConsumer 
     @Getter(AccessLevel.PROTECTED)
     private Function<Throwable, Message> failureHandler;
 
-    @Override
-    public Netty4Server setFailureHandler(Function<Throwable, Message> failureHandler) {
-        this.failureHandler = failureHandler;
-        return this;
-    }
-
-    protected AbstractNetty4Server(@NonNull ConnectorContext context, @NonNull Netty4Transport transport,
-            @NonNull HostAndPort host, @NonNull String path, @NonNull BObject options) {
+    protected AbstractNetty4Server(@NonNull ConnectorContext context, @NonNull Netty4Transport transport, @NonNull HostAndPort host, @NonNull String path,
+            @NonNull BObject options) {
         super(context);
         this.transport = transport;
         this.host = host;
@@ -58,6 +52,31 @@ public abstract class AbstractNetty4Server extends AbstractHasResponderConsumer 
         this.options = options;
 
         initSocketServer();
+    }
+
+    protected Deferred<Message, Exception> createDeferred() {
+        return new CompletableDeferredObject<>();
+    }
+
+    protected abstract Responder createResponder();
+
+    protected Netty4SocketServer createSocketServer() {
+        switch (this.transport) {
+        case TCP:
+            return new Netty4TCPServer();
+        case WEBSOCKET:
+            return new Netty4WebsocketServer();
+        }
+        throw new UnsupportedTransportException("Transport type doesn't supported: " + this.transport);
+    }
+
+    @Override
+    protected String generateName() {
+        return "consumer." + this.getUniqueIdentifier();
+    }
+
+    protected String getUniqueIdentifier() {
+        return "netty:server:" + this.transport.name().toLowerCase() + "://" + this.host.toIpAndPort();
     }
 
     private void initSocketServer() {
@@ -71,17 +90,19 @@ public abstract class AbstractNetty4Server extends AbstractHasResponderConsumer 
         this.setResponder(this.createResponder());
     }
 
-    protected Netty4SocketServer createSocketServer() {
-        switch (this.transport) {
-        case TCP:
-            return new Netty4TCPServer();
-        case WEBSOCKET:
-            return new Netty4WebsocketServer();
+    protected abstract void onConnectionClose(String channelId);
+
+    protected abstract void onConnectionOpen(String channelId);
+
+    protected final void onFailure(Throwable cause) {
+        if (this.failureHandler != null) {
+            this.failureHandler.apply(cause);
+        } else {
+            getLogger().error("Netty4 consumer error", cause);
         }
-        throw new UnsupportedTransportException("Transport type doesn't supported: " + this.transport);
     }
 
-    protected abstract Responder createResponder();
+    protected abstract void onReceive(String channelId, BElement data);
 
     @Override
     protected void onStart() {
@@ -105,31 +126,10 @@ public abstract class AbstractNetty4Server extends AbstractHasResponderConsumer 
         this.socketServer = null;
     }
 
-    protected String getUniqueIdentifier() {
-        return "netty:server:" + this.transport.name().toLowerCase() + "://" + this.host.toIpAndPort();
-    }
-
     @Override
-    protected String generateName() {
-        return "consumer." + this.getUniqueIdentifier();
+    public Netty4Server setFailureHandler(Function<Throwable, Message> failureHandler) {
+        this.failureHandler = failureHandler;
+        return this;
     }
-
-    protected Deferred<Message, Exception> createDeferred() {
-        return new CompletableDeferredObject<>();
-    }
-
-    protected final void onFailure(Throwable cause) {
-        if (this.failureHandler != null) {
-            this.failureHandler.apply(cause);
-        } else {
-            getLogger().error("Netty4 consumer error", cause);
-        }
-    }
-
-    protected abstract void onConnectionClose(String channelId);
-
-    protected abstract void onConnectionOpen(String channelId);
-
-    protected abstract void onReceive(String channelId, BElement data);
 
 }

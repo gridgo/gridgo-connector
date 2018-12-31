@@ -46,34 +46,28 @@ public class UriConnectorResolver implements ConnectorResolver {
         }
     }
 
-    @Override
-    public Connector resolve(String endpoint, ConnectorContext context) {
-        try {
-            var config = resolveConfig(endpoint, context.getRegistry());
-            return clazz.getConstructor().newInstance().initialize(config, context);
-        } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
-                | NoSuchMethodException | SecurityException e) {
-            throw new ConnectorResolutionException("Exception caught while resolving endpoint " + endpoint, e);
+    private Map<String, Object> extractParameters(String queryPath) {
+        if (queryPath == null)
+            return Collections.emptyMap();
+        var params = new HashMap<String, Object>();
+        var queries = queryPath.split("&");
+        for (String query : queries) {
+            var keyValuePair = query.split("=");
+            if (keyValuePair.length == 2)
+                params.put(keyValuePair[0], URLDecoder.decode(keyValuePair[1], Charset.forName("utf-8")));
         }
+
+        return params;
     }
 
-    private ConnectorConfig resolveConfig(String endpoint, Registry registry) {
-        String schemePart = endpoint;
-        String queryPart = null;
-
-        if (registry != null) {
-            endpoint = registry.substituteRegistries(endpoint);
+    private String extractPlaceholderKey(String syntax, int j, CharBuffer buffer) {
+        buffer.clear();
+        char c;
+        while (j < syntax.length() && (c = syntax.charAt(j++)) != '}') {
+            buffer.put(c);
         }
-
-        int queryPartIdx = endpoint.indexOf('?');
-        if (queryPartIdx != -1) {
-            queryPart = endpoint.substring(queryPartIdx + 1);
-            schemePart = endpoint.substring(0, queryPartIdx);
-        }
-
-        var params = extractParameters(queryPart);
-        var placeholders = extractPlaceholders(schemePart);
-        return new DefaultConnectorConfig(scheme, scheme + ":" + schemePart, schemePart, params, placeholders);
+        buffer.flip();
+        return buffer.toString();
     }
 
     private Properties extractPlaceholders(String schemePart) {
@@ -128,8 +122,7 @@ public class UriConnectorResolver implements ConnectorResolver {
                         continue;
                     }
                     throw new MalformedEndpointException(
-                            String.format("Malformed endpoint, invalid token at %d, expected '%c', actual '%c': %s", i,
-                                    syntaxChar, schemeChar, schemePart));
+                            String.format("Malformed endpoint, invalid token at %d, expected '%c', actual '%c': %s", i, syntaxChar, schemeChar, schemePart));
                 }
                 i++;
                 j++;
@@ -157,22 +150,13 @@ public class UriConnectorResolver implements ConnectorResolver {
         }
 
         if (i < schemePart.length()) {
-            throw new MalformedEndpointException(String.format("Malformed endpoint, unexpected tokens \"%s\": %s",
-                    schemePart.substring(i), schemePart));
+            throw new MalformedEndpointException(String.format("Malformed endpoint, unexpected tokens \"%s\": %s", schemePart.substring(i), schemePart));
         }
         if (j < syntax.length()) {
-            throw new MalformedEndpointException(String.format(
-                    "Malformed endpoint, missing values for syntax \"%s\": %s", syntax.substring(j), schemePart));
+            throw new MalformedEndpointException(String.format("Malformed endpoint, missing values for syntax \"%s\": %s", syntax.substring(j), schemePart));
         }
 
         return props;
-    }
-
-    private int skipOptionalPart(String syntax, int j) {
-        while (j < syntax.length() && syntax.charAt(j) != ']')
-            j++;
-        j++;
-        return j;
     }
 
     private String extractPlaceholderValue(String schemePart, int i, CharBuffer buffer) {
@@ -194,8 +178,7 @@ public class UriConnectorResolver implements ConnectorResolver {
         if (insideBracket) {
             if (schemePart.charAt(i) != ']') {
                 throw new MalformedEndpointException(
-                        String.format("Malformed endpoint, invalid token at %d, expected ']', actualy '%c': %s", i,
-                                schemePart.charAt(i), schemePart));
+                        String.format("Malformed endpoint, invalid token at %d, expected ']', actualy '%c': %s", i, schemePart.charAt(i), schemePart));
             }
             buffer.put(']');
         }
@@ -207,31 +190,43 @@ public class UriConnectorResolver implements ConnectorResolver {
     private boolean isPlaceholder(char c, boolean insideBracket) {
         if (insideBracket && (c == ':' || c == '/'))
             return true;
-        return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_' || c == '-' || c == '.'
-                || c == '*' || c == ',';
+        return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_' || c == '-' || c == '.' || c == '*' || c == ',';
     }
 
-    private String extractPlaceholderKey(String syntax, int j, CharBuffer buffer) {
-        buffer.clear();
-        char c;
-        while (j < syntax.length() && (c = syntax.charAt(j++)) != '}') {
-            buffer.put(c);
+    @Override
+    public Connector resolve(String endpoint, ConnectorContext context) {
+        try {
+            var config = resolveConfig(endpoint, context.getRegistry());
+            return clazz.getConstructor().newInstance().initialize(config, context);
+        } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+                | SecurityException e) {
+            throw new ConnectorResolutionException("Exception caught while resolving endpoint " + endpoint, e);
         }
-        buffer.flip();
-        return buffer.toString();
     }
 
-    private Map<String, Object> extractParameters(String queryPath) {
-        if (queryPath == null)
-            return Collections.emptyMap();
-        var params = new HashMap<String, Object>();
-        var queries = queryPath.split("&");
-        for (String query : queries) {
-            var keyValuePair = query.split("=");
-            if (keyValuePair.length == 2)
-                params.put(keyValuePair[0], URLDecoder.decode(keyValuePair[1], Charset.forName("utf-8")));
+    private ConnectorConfig resolveConfig(String endpoint, Registry registry) {
+        String schemePart = endpoint;
+        String queryPart = null;
+
+        if (registry != null) {
+            endpoint = registry.substituteRegistries(endpoint);
         }
 
-        return params;
+        int queryPartIdx = endpoint.indexOf('?');
+        if (queryPartIdx != -1) {
+            queryPart = endpoint.substring(queryPartIdx + 1);
+            schemePart = endpoint.substring(0, queryPartIdx);
+        }
+
+        var params = extractParameters(queryPart);
+        var placeholders = extractPlaceholders(schemePart);
+        return new DefaultConnectorConfig(scheme, scheme + ":" + schemePart, schemePart, params, placeholders);
+    }
+
+    private int skipOptionalPart(String syntax, int j) {
+        while (j < syntax.length() && syntax.charAt(j) != ']')
+            j++;
+        j++;
+        return j;
     }
 }

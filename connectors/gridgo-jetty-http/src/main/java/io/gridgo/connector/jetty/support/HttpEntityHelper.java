@@ -20,14 +20,6 @@ import io.gridgo.connector.httpcommon.HttpContentType;
 
 public class HttpEntityHelper {
 
-    public static final BArray parseAsMultiPart(HttpEntity entity) throws IOException {
-        return parseAsMultiPart(entity.getContent(), entity.getContentType().getValue());
-    }
-
-    public static final BArray parseAsMultiPart(InputStream input, String contentTypeWithBoundary) throws IOException {
-        return parseAsMultiPart(new MultiPartFormInputStream(input, contentTypeWithBoundary, null, null).getParts());
-    }
-
     public static BArray parseAsMultiPart(Collection<Part> parts) throws IOException {
         BArray results = BArray.ofEmpty();
         for (Part part : parts) {
@@ -50,13 +42,21 @@ public class HttpEntityHelper {
         return results;
     }
 
-    public static String parseAsString(InputStream input, Charset charset) throws IOException {
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        input.transferTo(output);
-        return output.toString(charset);
+    public static final BArray parseAsMultiPart(HttpEntity entity) throws IOException {
+        return parseAsMultiPart(entity.getContent(), entity.getContentType().getValue());
+    }
+
+    public static final BArray parseAsMultiPart(InputStream input, String contentTypeWithBoundary) throws IOException {
+        return parseAsMultiPart(new MultiPartFormInputStream(input, contentTypeWithBoundary, null, null).getParts());
     }
 
     public static String parseAsString(InputStream input) throws IOException {
         return parseAsString(input, Charset.forName("UTF-8"));
+    }
+
+    public static String parseAsString(InputStream input, Charset charset) throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        input.transferTo(output);
+        return output.toString(charset);
     }
 }

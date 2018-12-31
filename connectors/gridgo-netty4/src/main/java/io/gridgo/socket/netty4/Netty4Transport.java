@@ -7,6 +7,18 @@ public enum Netty4Transport {
 
     TCP, WEBSOCKET("ws");
 
+    public static final Netty4Transport fromName(String name) {
+        if (name != null) {
+            name = name.toLowerCase();
+            for (Netty4Transport value : values()) {
+                if (value.aliases.contains(name)) {
+                    return value;
+                }
+            }
+        }
+        return null;
+    }
+
     private final Set<String> aliases = new HashSet<>();
 
     private Netty4Transport() {
@@ -20,17 +32,5 @@ public enum Netty4Transport {
                 this.aliases.add(alias.toLowerCase());
             }
         }
-    }
-
-    public static final Netty4Transport fromName(String name) {
-        if (name != null) {
-            name = name.toLowerCase();
-            for (Netty4Transport value : values()) {
-                if (value.aliases.contains(name)) {
-                    return value;
-                }
-            }
-        }
-        return null;
     }
 }

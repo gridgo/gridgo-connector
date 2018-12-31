@@ -46,13 +46,13 @@ public class DefaultConnectorFactory implements ConnectorFactory {
     }
 
     @Override
-    public Connector createConnector(String endpoint, ConnectorResolver resolver) {
-        return createConnector(endpoint, resolver, builder.build());
+    public Connector createConnector(String endpoint, ConnectorContext context) {
+        return createConnector(endpoint, resolver, context);
     }
 
     @Override
-    public Connector createConnector(String endpoint, ConnectorContext context) {
-        return createConnector(endpoint, resolver, context);
+    public Connector createConnector(String endpoint, ConnectorResolver resolver) {
+        return createConnector(endpoint, resolver, builder.build());
     }
 
     @Override

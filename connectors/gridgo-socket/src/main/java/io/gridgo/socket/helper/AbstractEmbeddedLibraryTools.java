@@ -15,31 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class AbstractEmbeddedLibraryTools {
 
-    protected String getCurrentPlatformIdentifier() {
-        String osName = System.getProperty("os.name");
-        if (osName.toLowerCase().contains("windows")) {
-            osName = "Windows";
-        } else if (osName.toLowerCase().contains("mac os x")) {
-            osName = "Darwin";
-        } else {
-            osName = osName.replaceAll("\\s+", "_");
-        }
-        return System.getProperty("os.arch") + "/" + osName;
-    }
-
-    protected Collection<String> getEmbeddedLibraryList() {
-        final var result = new ArrayList<String>();
-        final var files = catalogClasspath();
-
-        for (final String file : files) {
-            if (file.startsWith("NATIVE")) {
-                result.add(file);
-            }
-        }
-
-        return result;
-    }
-
     protected void catalogArchive(final File jarfile, final Collection<String> files) {
         try (var j = new JarFile(jarfile)) {
             final var e = j.entries();
@@ -88,6 +63,45 @@ public abstract class AbstractEmbeddedLibraryTools {
         }
     }
 
+    protected URL findNativeLibrary(String[] allowedExtensions, StringBuilder url, String lib) {
+        // loop through extensions, stopping after finding first one
+        for (String ext : allowedExtensions) {
+            var nativeLibraryUrl = AbstractEmbeddedLibraryTools.class.getResource(url.toString() + lib + "." + ext);
+            if (nativeLibraryUrl != null)
+                return nativeLibraryUrl;
+        }
+        return null;
+    }
+
+    protected String getCurrentPlatformIdentifier() {
+        String osName = System.getProperty("os.name");
+        if (osName.toLowerCase().contains("windows")) {
+            osName = "Windows";
+        } else if (osName.toLowerCase().contains("mac os x")) {
+            osName = "Darwin";
+        } else {
+            osName = osName.replaceAll("\\s+", "_");
+        }
+        return System.getProperty("os.arch") + "/" + osName;
+    }
+
+    protected Collection<String> getEmbeddedLibraryList() {
+        final var result = new ArrayList<String>();
+        final var files = catalogClasspath();
+
+        for (final String file : files) {
+            if (file.startsWith("NATIVE")) {
+                result.add(file);
+            }
+        }
+
+        return result;
+    }
+
+    protected String[] getPossibleLibs() {
+        return new String[0];
+    }
+
     public boolean loadEmbeddedLibrary() {
 
         boolean usingEmbedded = false;
@@ -113,8 +127,7 @@ public abstract class AbstractEmbeddedLibraryTools {
                 final File libfile = File.createTempFile(lib, ".lib");
                 libfile.deleteOnExit(); // just in case
 
-                try (var in = nativeLibraryUrl.openStream();
-                        var out = new BufferedOutputStream(new FileOutputStream(libfile))) {
+                try (var in = nativeLibraryUrl.openStream(); var out = new BufferedOutputStream(new FileOutputStream(libfile))) {
 
                     int len = 0;
                     byte[] buffer = new byte[8192];
@@ -131,19 +144,5 @@ public abstract class AbstractEmbeddedLibraryTools {
             }
         }
         return usingEmbedded;
-    }
-
-    protected String[] getPossibleLibs() {
-        return new String[0];
-    }
-
-    protected URL findNativeLibrary(String[] allowedExtensions, StringBuilder url, String lib) {
-        // loop through extensions, stopping after finding first one
-        for (String ext : allowedExtensions) {
-            var nativeLibraryUrl = AbstractEmbeddedLibraryTools.class.getResource(url.toString() + lib + "." + ext);
-            if (nativeLibraryUrl != null)
-                return nativeLibraryUrl;
-        }
-        return null;
     }
 }

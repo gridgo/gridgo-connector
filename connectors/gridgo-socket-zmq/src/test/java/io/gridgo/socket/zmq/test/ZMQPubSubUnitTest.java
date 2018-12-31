@@ -22,30 +22,9 @@ import io.gridgo.framework.support.Payload;
 
 public class ZMQPubSubUnitTest {
 
-    private final ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
-
     private static final String TEXT = "This is test text";
 
-    @Test
-    public void testPubSubPGM() throws Exception {
-        System.out.println("Test PGM protocol support");
-
-        String transport = "epgm";
-        String host = "239.192.1.1";
-        int port = 5555;
-        String address = host + ":" + port;
-
-        Connector connector = RESOLVER.resolve("zmq:pub:" + transport + "://" + address);
-        connector.start();
-        assertTrue(connector.getProducer().isPresent());
-        connector.stop();
-    }
-
-    @Test
-    public void testPubSubTCP() throws Exception {
-        System.out.println("Test pub/sub via TCP");
-        testPubSub("tcp", "localhost:5555");
-    }
+    private final ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
 
     private void testPubSub(String transport, String address) throws Exception {
 
@@ -119,6 +98,27 @@ public class ZMQPubSubUnitTest {
             sub2Connector.stop();
             sub3Connector.stop();
         }
+    }
+
+    @Test
+    public void testPubSubPGM() throws Exception {
+        System.out.println("Test PGM protocol support");
+
+        String transport = "epgm";
+        String host = "239.192.1.1";
+        int port = 5555;
+        String address = host + ":" + port;
+
+        Connector connector = RESOLVER.resolve("zmq:pub:" + transport + "://" + address);
+        connector.start();
+        assertTrue(connector.getProducer().isPresent());
+        connector.stop();
+    }
+
+    @Test
+    public void testPubSubTCP() throws Exception {
+        System.out.println("Test pub/sub via TCP");
+        testPubSub("tcp", "localhost:5555");
     }
 
 }

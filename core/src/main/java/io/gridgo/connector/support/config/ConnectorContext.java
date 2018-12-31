@@ -12,17 +12,17 @@ import io.gridgo.framework.support.generators.IdGenerator;
 
 public interface ConnectorContext extends RegistryAware {
 
-    public Registry getRegistry();
+    public ExecutionStrategy getCallbackInvokerStrategy();
 
-    public IdGenerator getIdGenerator();
+    public Optional<ExecutionStrategy> getConsumerExecutionStrategy();
 
     public Consumer<Throwable> getExceptionHandler();
 
     public Optional<Function<Throwable, Message>> getFailureHandler();
 
-    public ExecutionStrategy getCallbackInvokerStrategy();
-
-    public Optional<ExecutionStrategy> getConsumerExecutionStrategy();
+    public IdGenerator getIdGenerator();
 
     public Optional<ExecutionStrategy> getProducerExecutionStrategy();
+
+    public Registry getRegistry();
 }

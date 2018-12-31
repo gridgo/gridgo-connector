@@ -15,14 +15,6 @@ public class ConnectionRef<T> {
         this.connection = connection;
     }
 
-    public int getRefCount() {
-        return refCount.get();
-    }
-
-    public int ref() {
-        return refCount.incrementAndGet();
-    }
-
     public int deref() {
         int value = -1;
         int ref = 0;
@@ -35,5 +27,13 @@ public class ConnectionRef<T> {
 
     public void dispose() {
         this.connection = null;
+    }
+
+    public int getRefCount() {
+        return refCount.get();
+    }
+
+    public int ref() {
+        return refCount.incrementAndGet();
     }
 }

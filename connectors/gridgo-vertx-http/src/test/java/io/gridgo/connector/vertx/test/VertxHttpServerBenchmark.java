@@ -8,8 +8,7 @@ public class VertxHttpServerBenchmark {
 
     public static void main(String[] args) {
         var msg = Message.ofAny("helloworld");
-        var connector = new DefaultConnectorFactory().createConnector(
-                "vertx:http://localhost:8888/?acceptBacklog=10000&method=GET");
+        var connector = new DefaultConnectorFactory().createConnector("vertx:http://localhost:8888/?acceptBacklog=10000&method=GET");
         connector.getConsumer().get().subscribe((request, deferred) -> {
             deferred.resolve(msg);
         });

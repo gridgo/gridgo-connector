@@ -8,8 +8,7 @@ import io.gridgo.utils.support.HostAndPort;
 
 public class DefaultNetty4Client extends AbstractNetty4Client {
 
-    public DefaultNetty4Client(ConnectorContext context, Netty4Transport transport, HostAndPort host, String path,
-            BObject options) {
+    public DefaultNetty4Client(ConnectorContext context, Netty4Transport transport, HostAndPort host, String path, BObject options) {
         super(context, transport, host, path, options);
     }
 

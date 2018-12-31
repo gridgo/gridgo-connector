@@ -33,35 +33,18 @@ public class KafkaProducer extends AbstractProducer {
         this.topics = configuration.getTopic().split(",");
     }
 
-    @Override
-    public void send(Message message) {
-        for (var topic : topics) {
-            var record = buildProducerRecord(topic, message);
-            this.producer.send(record);
-        }
-    }
-
-    @Override
-    public Promise<Message, Exception> sendWithAck(Message message) {
-        var promises = new ArrayList<Promise<Message, Exception>>();
-        for (var topic : topics) {
-            var deferred = new CompletableDeferredObject<Message, Exception>();
-            var record = buildProducerRecord(topic, message);
-            this.producer.send(record, (metadata, ex) -> ack(deferred, metadata, ex));
-            promises.add(deferred);
-        }
-
-        return promises.size() == 1 ? promises.get(0)
-                : JoinedPromise.from(promises).filterDone(this::convertJoinedResult);
-    }
-
-    public Message convertJoinedResult(JoinedResults<Message> results) {
-        return new MultipartMessage(results);
-    }
-
     private void ack(Deferred<Message, Exception> deferred, RecordMetadata metadata, Exception exception) {
         var msg = buildAckMessage(metadata);
         ack(deferred, msg, exception);
+    }
+
+    private Message buildAckMessage(RecordMetadata metadata) {
+        if (metadata == null)
+            return null;
+        var headers = BObject.ofEmpty().setAny(KafkaConstants.IS_ACK_MSG, "true").setAny(KafkaConstants.TIMESTAMP, metadata.timestamp())
+                             .setAny(KafkaConstants.OFFSET, metadata.offset()).setAny(KafkaConstants.PARTITION, metadata.partition())
+                             .setAny(KafkaConstants.TOPIC, metadata.topic());
+        return createMessage(headers, BValue.ofEmpty());
     }
 
     private ProducerRecord<Object, Object> buildProducerRecord(String topic, Message message) {
@@ -88,6 +71,11 @@ public class KafkaProducer extends AbstractProducer {
         return record;
     }
 
+    @Override
+    public Promise<Message, Exception> call(Message request) {
+        throw new UnsupportedOperationException();
+    }
+
     private Object convert(BElement body) {
         if (body == null)
             return null;
@@ -96,20 +84,22 @@ public class KafkaProducer extends AbstractProducer {
         return body.toBytes();
     }
 
-    private Message buildAckMessage(RecordMetadata metadata) {
-        if (metadata == null)
-            return null;
-        var headers = BObject.ofEmpty().setAny(KafkaConstants.IS_ACK_MSG, "true")
-                             .setAny(KafkaConstants.TIMESTAMP, metadata.timestamp())
-                             .setAny(KafkaConstants.OFFSET, metadata.offset())
-                             .setAny(KafkaConstants.PARTITION, metadata.partition())
-                             .setAny(KafkaConstants.TOPIC, metadata.topic());
-        return createMessage(headers, BValue.ofEmpty());
+    public Message convertJoinedResult(JoinedResults<Message> results) {
+        return new MultipartMessage(results);
     }
 
     @Override
-    public Promise<Message, Exception> call(Message request) {
-        throw new UnsupportedOperationException();
+    protected String generateName() {
+        return "producer.kafka." + configuration.getTopic();
+    }
+
+    private Properties getProps() {
+        return configuration.createProducerProperties();
+    }
+
+    @Override
+    public boolean isCallSupported() {
+        return false;
     }
 
     @Override
@@ -121,8 +111,7 @@ public class KafkaProducer extends AbstractProducer {
         try {
             // Kafka uses reflection for loading authentication settings, use its
             // classloader
-            Thread.currentThread()
-                  .setContextClassLoader(org.apache.kafka.clients.producer.KafkaProducer.class.getClassLoader());
+            Thread.currentThread().setContextClassLoader(org.apache.kafka.clients.producer.KafkaProducer.class.getClassLoader());
             this.producer = new org.apache.kafka.clients.producer.KafkaProducer<>(props);
         } finally {
             Thread.currentThread().setContextClassLoader(threadClassLoader);
@@ -135,17 +124,24 @@ public class KafkaProducer extends AbstractProducer {
             this.producer.close();
     }
 
-    private Properties getProps() {
-        return configuration.createProducerProperties();
+    @Override
+    public void send(Message message) {
+        for (var topic : topics) {
+            var record = buildProducerRecord(topic, message);
+            this.producer.send(record);
+        }
     }
 
     @Override
-    protected String generateName() {
-        return "producer.kafka." + configuration.getTopic();
-    }
+    public Promise<Message, Exception> sendWithAck(Message message) {
+        var promises = new ArrayList<Promise<Message, Exception>>();
+        for (var topic : topics) {
+            var deferred = new CompletableDeferredObject<Message, Exception>();
+            var record = buildProducerRecord(topic, message);
+            this.producer.send(record, (metadata, ex) -> ack(deferred, metadata, ex));
+            promises.add(deferred);
+        }
 
-    @Override
-    public boolean isCallSupported() {
-        return false;
+        return promises.size() == 1 ? promises.get(0) : JoinedPromise.from(promises).filterDone(this::convertJoinedResult);
     }
 }

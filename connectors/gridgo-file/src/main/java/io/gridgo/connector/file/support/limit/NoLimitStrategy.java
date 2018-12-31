@@ -26,13 +26,26 @@ public class NoLimitStrategy extends AbstractFileLimitStrategy {
 
     private boolean override;
 
-    public NoLimitStrategy(String path, String mode, boolean deleteOnStartup, boolean deleteOnShutdown,
-            boolean override) {
+    public NoLimitStrategy(String path, String mode, boolean deleteOnStartup, boolean deleteOnShutdown, boolean override) {
         this.path = path;
         this.mode = mode;
         this.deleteOnStartup = deleteOnStartup;
         this.deleteOnShutdown = deleteOnShutdown;
         this.override = override;
+    }
+
+    @Override
+    public void putBytes(long bytes) throws IOException {
+        // Nothing to do here
+    }
+
+    @Override
+    public void readWith(RandomAccessFileHandler consumer) throws IOException {
+        if (!this.file.exists())
+            return;
+        try (var raf = new RandomAccessFile(this.file, "r")) {
+            consumer.process(raf);
+        }
     }
 
     @Override
@@ -51,19 +64,5 @@ public class NoLimitStrategy extends AbstractFileLimitStrategy {
         this.raf.close();
         if (deleteOnShutdown)
             deleteFile(file);
-    }
-
-    @Override
-    public void putBytes(long bytes) throws IOException {
-        // Nothing to do here
-    }
-
-    @Override
-    public void readWith(RandomAccessFileHandler consumer) throws IOException {
-        if (!this.file.exists())
-            return;
-        try (var raf = new RandomAccessFile(this.file, "r")) {
-            consumer.process(raf);
-        }
     }
 }

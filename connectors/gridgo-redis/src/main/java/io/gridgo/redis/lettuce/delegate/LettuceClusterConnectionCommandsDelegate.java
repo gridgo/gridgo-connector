@@ -8,22 +8,17 @@ import io.lettuce.core.cluster.api.async.RedisClusterAsyncCommands;
 
 public interface LettuceClusterConnectionCommandsDelegate extends LettuceCommandsDelegate, RedisConnectionCommands {
 
-    <T extends RedisClusterAsyncCommands<byte[], byte[]>> T getConnectionCommands();
-
     @Override
     default String auth(String password) {
         return getConnectionCommands().auth(password);
     }
 
     @Override
-    default String select(int db) {
-        throw new UnsupportedOperationException("Method is unsupported in redis cluster");
-    }
-
-    @Override
     default Promise<BElement, Exception> echo(byte[] msg) {
         return toPromise(getConnectionCommands().echo(msg));
     }
+
+    <T extends RedisClusterAsyncCommands<byte[], byte[]>> T getConnectionCommands();
 
     @Override
     default Promise<BElement, Exception> ping() {
@@ -33,6 +28,11 @@ public interface LettuceClusterConnectionCommandsDelegate extends LettuceCommand
     @Override
     default Promise<BElement, Exception> quit() {
         return toPromise(getConnectionCommands().quit());
+    }
+
+    @Override
+    default String select(int db) {
+        throw new UnsupportedOperationException("Method is unsupported in redis cluster");
     }
 
     @Override

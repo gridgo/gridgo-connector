@@ -25,6 +25,17 @@ class DefaultNetty4Responder extends AbstractResponder {
     }
 
     @Override
+    protected String generateName() {
+        return "producer." + this.uniqueIdentifier;
+    }
+
+    @Override
+    protected void onStop() {
+        this.socketServer = null;
+        super.onStop();
+    }
+
+    @Override
     protected void send(Message message, Deferred<Message, Exception> deferred) {
         if (!this.isStarted()) {
             return;
@@ -46,17 +57,6 @@ class DefaultNetty4Responder extends AbstractResponder {
                 deferred.resolve(null);
             }
         }
-    }
-
-    @Override
-    protected void onStop() {
-        this.socketServer = null;
-        super.onStop();
-    }
-
-    @Override
-    protected String generateName() {
-        return "producer." + this.uniqueIdentifier;
     }
 
 }

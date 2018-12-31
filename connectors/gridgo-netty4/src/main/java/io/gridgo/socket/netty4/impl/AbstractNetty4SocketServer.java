@@ -92,6 +92,14 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
         });
     }
 
+    protected void closeChannel(Channel channel) {
+        try {
+            channel.close().sync();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
     protected ServerBootstrap createBootstrap() {
         return new ServerBootstrap().channel(NioServerSocketChannel.class);
     }
@@ -150,8 +158,29 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
         }
     }
 
-    protected void onBeforeBind(HostAndPort host) {
-        // do nothing.
+    protected String extractChannelId(Channel channel) {
+        if (channel != null) {
+            return channel.id().asLongText();
+        }
+        return null;
+    }
+
+    protected Channel getChannel(String id) {
+        return this.channels.get(id);
+    }
+
+    @Override
+    public Map<String, Object> getChannelDetails(String channelId) {
+        Channel channel = this.getChannel(channelId);
+        if (channel != null) {
+            return channel.attr(CHANNEL_DETAILS).get();
+        }
+        return null;
+    }
+
+    private void initChannel(SocketChannel socketChannel) {
+        this.onInitChannel(socketChannel);
+        socketChannel.pipeline().addLast(this.newChannelHandlerDelegater());
     }
 
     protected void onAfterBind() {
@@ -165,71 +194,8 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
         }
     }
 
-    @Override
-    protected void onClose() throws IOException {
-        for (Channel channel : this.channels.values()) {
-            channel.close();
-        }
-
-        this.channels.clear();
-
-        try {
-            this.serverChannel.close().sync();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            getLogger().warn("Close netty4 socket server error", this.serverChannel);
-        } finally {
-            this.serverChannel = null;
-        }
-    }
-
-    protected void closeChannel(Channel channel) {
-        try {
-            channel.close().sync();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    private void initChannel(SocketChannel socketChannel) {
-        this.onInitChannel(socketChannel);
-        socketChannel.pipeline().addLast(this.newChannelHandlerDelegater());
-    }
-
-    protected abstract void onInitChannel(SocketChannel socketChannel);
-
-    protected String extractChannelId(Channel channel) {
-        if (channel != null) {
-            return channel.id().asLongText();
-        }
-        return null;
-    }
-
-    protected Channel getChannel(String id) {
-        return this.channels.get(id);
-    }
-
-    @Override
-    protected final void onChannelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        final Channel channel = ctx.channel();
-        String id = this.extractChannelId(channel);
-        if (id != null) {
-            if (this.getReceiveCallback() != null) {
-                BElement incomingMessage = handleIncomingMessage(id, msg);
-                if (incomingMessage != null) {
-                    this.getReceiveCallback().accept(id, incomingMessage);
-                }
-            }
-        }
-    }
-
-    @Override
-    public Map<String, Object> getChannelDetails(String channelId) {
-        Channel channel = this.getChannel(channelId);
-        if (channel != null) {
-            return channel.attr(CHANNEL_DETAILS).get();
-        }
-        return null;
+    protected void onBeforeBind(HostAndPort host) {
+        // do nothing.
     }
 
     @Override
@@ -263,11 +229,44 @@ public abstract class AbstractNetty4SocketServer extends AbstractNetty4Socket im
                     this.getChannelCloseCallback().accept(id);
                 }
             } else {
-                throw new IllegalStateException(
-                        "Something were wrong, the current inactive channel has registered with other channel context");
+                throw new IllegalStateException("Something were wrong, the current inactive channel has registered with other channel context");
             }
         } else {
             getLogger().warn("The current inactive channel hasn't been registered");
         }
     }
+
+    @Override
+    protected final void onChannelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        final Channel channel = ctx.channel();
+        String id = this.extractChannelId(channel);
+        if (id != null) {
+            if (this.getReceiveCallback() != null) {
+                BElement incomingMessage = handleIncomingMessage(id, msg);
+                if (incomingMessage != null) {
+                    this.getReceiveCallback().accept(id, incomingMessage);
+                }
+            }
+        }
+    }
+
+    @Override
+    protected void onClose() throws IOException {
+        for (Channel channel : this.channels.values()) {
+            channel.close();
+        }
+
+        this.channels.clear();
+
+        try {
+            this.serverChannel.close().sync();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            getLogger().warn("Close netty4 socket server error", this.serverChannel);
+        } finally {
+            this.serverChannel = null;
+        }
+    }
+
+    protected abstract void onInitChannel(SocketChannel socketChannel);
 }

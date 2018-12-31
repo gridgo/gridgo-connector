@@ -9,11 +9,11 @@ import lombok.Setter;
 
 public abstract class AbstractHasResponderConsumer extends AbstractConsumer implements HasResponder {
 
-    public AbstractHasResponderConsumer(ConnectorContext context) {
-        super(context);
-    }
-
     @Getter
     @Setter(AccessLevel.PROTECTED)
     private Responder responder;
+
+    public AbstractHasResponderConsumer(ConnectorContext context) {
+        super(context);
+    }
 }

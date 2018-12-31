@@ -31,12 +31,13 @@ public class RabbitMQConnector extends AbstractConnector {
 
     private RabbitMQQueueConfig queueConfig;
 
-    protected Connection newConnection() {
-        try {
-            return factory.newConnection(address);
-        } catch (IOException | TimeoutException e) {
-            throw new RuntimeException(e);
+    @Override
+    protected String generateName() {
+        String routingKey = this.queueConfig.getQueueName() == null ? "" : this.queueConfig.getQueueName();
+        if (routingKey.isBlank()) {
+            routingKey = this.queueConfig.getRoutingKeys().toString();
         }
+        return super.generateName() + "." + this.queueConfig.getExchangeType() + "." + routingKey;
     }
 
     protected String getUniqueIdentifier() {
@@ -44,8 +45,15 @@ public class RabbitMQConnector extends AbstractConnector {
         if (routingKey.isBlank()) {
             routingKey = this.queueConfig.getRoutingKeys().toString();
         }
-        return this.getConnectorConfig().getNonQueryEndpoint() + "." + this.queueConfig.getExchangeType() + "."
-                + routingKey;
+        return this.getConnectorConfig().getNonQueryEndpoint() + "." + this.queueConfig.getExchangeType() + "." + routingKey;
+    }
+
+    protected Connection newConnection() {
+        try {
+            return factory.newConnection(address);
+        } catch (IOException | TimeoutException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -66,8 +74,7 @@ public class RabbitMQConnector extends AbstractConnector {
             this.factory.setCredentialsProvider(new DefaultCredentialsProvider(username, password));
         }
 
-        long autoRecoveryInterval = Long.parseLong(
-                (String) config.getParameters().getOrDefault("autoRecoveryInterval", "1000"));
+        long autoRecoveryInterval = Long.parseLong((String) config.getParameters().getOrDefault("autoRecoveryInterval", "1000"));
         this.factory.setNetworkRecoveryInterval(autoRecoveryInterval);
 
         String exchangeName = (String) this.getConnectorConfig().getPlaceholders().getOrDefault("exchangeName", "");
@@ -79,19 +86,8 @@ public class RabbitMQConnector extends AbstractConnector {
 
         String uniqueIdentifier = this.getUniqueIdentifier();
 
-        this.consumer = Optional.of(
-                new DefaultRabbitMQConsumer(getContext(), newConnection(), queueConfig.makeCopy(), uniqueIdentifier));
-        this.producer = Optional.of(
-                new DefaultRabbitMQProducer(getContext(), newConnection(), queueConfig.makeCopy(), uniqueIdentifier));
-    }
-
-    @Override
-    protected String generateName() {
-        String routingKey = this.queueConfig.getQueueName() == null ? "" : this.queueConfig.getQueueName();
-        if (routingKey.isBlank()) {
-            routingKey = this.queueConfig.getRoutingKeys().toString();
-        }
-        return super.generateName() + "." + this.queueConfig.getExchangeType() + "." + routingKey;
+        this.consumer = Optional.of(new DefaultRabbitMQConsumer(getContext(), newConnection(), queueConfig.makeCopy(), uniqueIdentifier));
+        this.producer = Optional.of(new DefaultRabbitMQProducer(getContext(), newConnection(), queueConfig.makeCopy(), uniqueIdentifier));
     }
 
 }

@@ -66,13 +66,12 @@ public abstract class SingleThreadSendingProducer extends AbstractProducer {
         }
     };
 
-    protected SingleThreadSendingProducer(ConnectorContext context, int ringBufferSize, boolean batchingEnabled,
-            int maxBatchSize) {
+    protected SingleThreadSendingProducer(ConnectorContext context, int ringBufferSize, boolean batchingEnabled, int maxBatchSize) {
         this(context, ringBufferSize, Thread::new, batchingEnabled, maxBatchSize);
     }
 
-    protected SingleThreadSendingProducer(ConnectorContext context, int ringBufferSize, ThreadFactory threadFactory,
-            boolean batchingEnabled, int maxBatchSize) {
+    protected SingleThreadSendingProducer(ConnectorContext context, int ringBufferSize, ThreadFactory threadFactory, boolean batchingEnabled,
+            int maxBatchSize) {
         super(context);
         this.sendWorker = new Disruptor<>(ProducerEvent::new, ringBufferSize, threadFactory);
         this.sendWorker.handleEventsWith(sender);
@@ -88,6 +87,10 @@ public abstract class SingleThreadSendingProducer extends AbstractProducer {
      */
     protected Message accumulateBatch(Collection<Message> messages) {
         throw new UnsupportedOperationException("Method must be overrided by sub class");
+    }
+
+    protected Deferred<Message, Exception> createDeferred() {
+        return new AsyncDeferredObject<>();
     }
 
     protected abstract void executeSendOnSingleThread(Message message) throws Exception;
@@ -117,10 +120,6 @@ public abstract class SingleThreadSendingProducer extends AbstractProducer {
     @Override
     public final void send(Message message) {
         this.produceEvent(message, null);
-    }
-
-    protected Deferred<Message, Exception> createDeferred() {
-        return new AsyncDeferredObject<>();
     }
 
     @Override

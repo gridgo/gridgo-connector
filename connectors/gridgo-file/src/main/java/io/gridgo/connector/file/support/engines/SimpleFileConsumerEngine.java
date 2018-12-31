@@ -11,12 +11,12 @@ public class SimpleFileConsumerEngine implements FileConsumerEngine {
     }
 
     @Override
-    public void readAndPublish() {
-        throw new UnsupportedOperationException("Non-length-prepended mode is not supported for FileConsumer");
+    public String getFormat() {
+        return this.fileConsumer.getFormat();
     }
 
     @Override
-    public String getFormat() {
-        return this.fileConsumer.getFormat();
+    public void readAndPublish() {
+        throw new UnsupportedOperationException("Non-length-prepended mode is not supported for FileConsumer");
     }
 }

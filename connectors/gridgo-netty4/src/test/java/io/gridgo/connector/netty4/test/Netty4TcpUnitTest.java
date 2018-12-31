@@ -10,13 +10,8 @@ public class Netty4TcpUnitTest extends AbstractNetty4UnitTest {
     private static final String TRANSPORT = "tcp";
 
     @Test
-    public void testTcpPingPong() throws InterruptedException, PromiseException {
-        this.testPingPong(TRANSPORT, null);
-    }
-
-    @Test
-    public void testHandlerException() throws InterruptedException, PromiseException {
-        this.testHandlerException(TRANSPORT, null);
+    public void testCloseServer() throws InterruptedException, PromiseException {
+        this.testCloseServer(TRANSPORT, null);
     }
 
     @Test
@@ -30,7 +25,12 @@ public class Netty4TcpUnitTest extends AbstractNetty4UnitTest {
     }
 
     @Test
-    public void testCloseServer() throws InterruptedException, PromiseException {
-        this.testCloseServer(TRANSPORT, null);
+    public void testHandlerException() throws InterruptedException, PromiseException {
+        this.testHandlerException(TRANSPORT, null);
+    }
+
+    @Test
+    public void testTcpPingPong() throws InterruptedException, PromiseException {
+        this.testPingPong(TRANSPORT, null);
     }
 }

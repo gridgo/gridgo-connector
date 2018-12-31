@@ -47,12 +47,6 @@ public abstract class AbstractNetty4Client extends AbstractHasReceiverProducer i
 
     private Function<Throwable, Message> failureHandler;
 
-    @Override
-    public Netty4Client setFailureHandler(Function<Throwable, Message> failureHandler) {
-        this.failureHandler = failureHandler;
-        return this;
-    }
-
     protected AbstractNetty4Client(@NonNull ConnectorContext context, @NonNull Netty4Transport transport, @NonNull HostAndPort host, String path,
             @NonNull BObject options) {
         super(context);
@@ -64,6 +58,32 @@ public abstract class AbstractNetty4Client extends AbstractHasReceiverProducer i
         initSocketClient();
     }
 
+    @Override
+    public Promise<Message, Exception> call(Message request) {
+        throw new UnsupportedOperationException("Cannot make a call on netty4 producer");
+    }
+
+    protected abstract Receiver createReceiver();
+
+    protected Netty4SocketClient createSocketClient() {
+        switch (transport) {
+        case TCP:
+            return new Netty4TCPClient();
+        case WEBSOCKET:
+            return new Netty4WebsocketClient();
+        }
+        throw new UnsupportedTransportException("Transport type " + transport + " doesn't supported");
+    }
+
+    @Override
+    protected String generateName() {
+        return "producer." + this.getUniqueIdentifier();
+    }
+
+    protected String getUniqueIdentifier() {
+        return "netty:client:" + this.transport.name().toLowerCase() + "://" + this.host.toIpAndPort();
+    }
+
     private void initSocketClient() {
         this.socketClient = this.createSocketClient();
         this.socketClient.applyConfigs(this.options);
@@ -72,6 +92,34 @@ public abstract class AbstractNetty4Client extends AbstractHasReceiverProducer i
         }
 
         this.setReceiver(this.createReceiver());
+    }
+
+    @Override
+    public boolean isCallSupported() {
+        return false;
+    }
+
+    private void onSocketFailure(Throwable cause) {
+        if (this.failureHandler != null) {
+            this.failureHandler.apply(cause);
+        }
+    }
+
+    @Override
+    protected void onStart() {
+        this.socketClient.setFailureHandler(this::onSocketFailure);
+        this.socketClient.connect(this.host);
+    }
+
+    @Override
+    protected void onStop() {
+//		System.out.println("Close socket client...");
+        this.socketClient.stop();
+        this.socketClient = null;
+
+//		System.out.println("Close receiver...");
+        this.getReceiver().stop();
+        this.setReceiver(null);
     }
 
     @Override
@@ -111,56 +159,8 @@ public abstract class AbstractNetty4Client extends AbstractHasReceiverProducer i
     }
 
     @Override
-    public Promise<Message, Exception> call(Message request) {
-        throw new UnsupportedOperationException("Cannot make a call on netty4 producer");
-    }
-
-    protected abstract Receiver createReceiver();
-
-    private void onSocketFailure(Throwable cause) {
-        if (this.failureHandler != null) {
-            this.failureHandler.apply(cause);
-        }
-    }
-
-    @Override
-    protected void onStart() {
-        this.socketClient.setFailureHandler(this::onSocketFailure);
-        this.socketClient.connect(this.host);
-    }
-
-    protected Netty4SocketClient createSocketClient() {
-        switch (transport) {
-        case TCP:
-            return new Netty4TCPClient();
-        case WEBSOCKET:
-            return new Netty4WebsocketClient();
-        }
-        throw new UnsupportedTransportException("Transport type " + transport + " doesn't supported");
-    }
-
-    @Override
-    protected void onStop() {
-//		System.out.println("Close socket client...");
-        this.socketClient.stop();
-        this.socketClient = null;
-
-//		System.out.println("Close receiver...");
-        this.getReceiver().stop();
-        this.setReceiver(null);
-    }
-
-    protected String getUniqueIdentifier() {
-        return "netty:client:" + this.transport.name().toLowerCase() + "://" + this.host.toIpAndPort();
-    }
-
-    @Override
-    protected String generateName() {
-        return "producer." + this.getUniqueIdentifier();
-    }
-
-    @Override
-    public boolean isCallSupported() {
-        return false;
+    public Netty4Client setFailureHandler(Function<Throwable, Message> failureHandler) {
+        this.failureHandler = failureHandler;
+        return this;
     }
 }

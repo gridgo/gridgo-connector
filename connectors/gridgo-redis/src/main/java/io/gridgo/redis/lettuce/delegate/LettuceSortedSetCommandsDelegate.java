@@ -5,6 +5,7 @@ import java.util.function.BiConsumer;
 
 import org.joo.promise4j.Promise;
 
+import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.redis.command.RedisSortedSetCommands;
@@ -13,6 +14,7 @@ import io.lettuce.core.Range;
 import io.lettuce.core.RedisFuture;
 import io.lettuce.core.ScanArgs;
 import io.lettuce.core.ScanCursor;
+import io.lettuce.core.ScoredValue;
 import io.lettuce.core.StreamScanCursor;
 import io.lettuce.core.ZAddArgs;
 import io.lettuce.core.ZStoreArgs;
@@ -23,17 +25,15 @@ import lombok.NonNull;
 
 public interface LettuceSortedSetCommandsDelegate extends LettuceCommandsDelegate, RedisSortedSetCommands {
 
-    <T extends RedisSortedSetAsyncCommands<byte[], byte[]>> T getSortedSetCommands();
+    default Range<byte[]> buildRangeBytes(boolean includeLower, byte[] lower, byte[] upper, boolean includeUpper) {
+        Boundary<byte[]> lowerBoundary = includeLower ? Boundary.including(lower) : Boundary.excluding(lower);
+        Boundary<byte[]> upperBoundary = includeUpper ? Boundary.including(upper) : Boundary.excluding(upper);
+        return Range.from(lowerBoundary, upperBoundary);
+    }
 
     default Range<Long> buildRangeLong(boolean includeLower, long lower, long upper, boolean includeUpper) {
         Boundary<Long> lowerBoundary = includeLower ? Boundary.including(lower) : Boundary.excluding(lower);
         Boundary<Long> upperBoundary = includeUpper ? Boundary.including(upper) : Boundary.excluding(upper);
-        return Range.from(lowerBoundary, upperBoundary);
-    }
-
-    default Range<byte[]> buildRangeBytes(boolean includeLower, byte[] lower, byte[] upper, boolean includeUpper) {
-        Boundary<byte[]> lowerBoundary = includeLower ? Boundary.including(lower) : Boundary.excluding(lower);
-        Boundary<byte[]> upperBoundary = includeUpper ? Boundary.including(upper) : Boundary.excluding(upper);
         return Range.from(lowerBoundary, upperBoundary);
     }
 
@@ -64,23 +64,23 @@ public interface LettuceSortedSetCommandsDelegate extends LettuceCommandsDelegat
     }
 
     @Override
-    default Promise<BElement, Exception> bzpopmin(long timeout, byte[]... keys) {
-        return toPromise(getSortedSetCommands().bzpopmin(timeout, keys));
-    }
-
-    @Override
     default Promise<BElement, Exception> bzpopmax(long timeout, byte[]... keys) {
-        return toPromise(getSortedSetCommands().bzpopmax(timeout, keys));
+        return toPromise(getSortedSetCommands().bzpopmax(timeout, keys) //
+                                               .thenApply(keyValue -> BArray.ofSequence(keyValue.getKey(), keyValue.getValue().getValue(),
+                                                       keyValue.getValue().getScore())));
     }
 
     @Override
-    default Promise<BElement, Exception> zadd(byte[] key, Object... scoresAndValues) {
-        return toPromise(getSortedSetCommands().zadd(key, scoresAndValues));
+    default Promise<BElement, Exception> bzpopmin(long timeout, byte[]... keys) {
+        return toPromise(getSortedSetCommands().bzpopmin(timeout, keys) //
+                                               .thenApply(keyValue -> BArray.ofSequence(keyValue.getKey(), keyValue.getValue().getValue(),
+                                                       keyValue.getValue().getScore())));
     }
 
-    @Override
-    default Promise<BElement, Exception> zadd(byte[] key, double score, byte[] member) {
-        return toPromise(getSortedSetCommands().zadd(key, score, member));
+    <T extends RedisSortedSetAsyncCommands<byte[], byte[]>> T getSortedSetCommands();
+
+    default BArray scoredValueToBArray(ScoredValue<byte[]> scoredValue) {
+        return BArray.ofSequence(scoredValue.getValue(), scoredValue.getScore());
     }
 
     @Override
@@ -93,6 +93,16 @@ public interface LettuceSortedSetCommandsDelegate extends LettuceCommandsDelegat
         if (ch)
             args.ch();
         return toPromise(getSortedSetCommands().zadd(key, args, scoresAndValues));
+    }
+
+    @Override
+    default Promise<BElement, Exception> zadd(byte[] key, double score, byte[] member) {
+        return toPromise(getSortedSetCommands().zadd(key, score, member));
+    }
+
+    @Override
+    default Promise<BElement, Exception> zadd(byte[] key, Object... scoresAndValues) {
+        return toPromise(getSortedSetCommands().zadd(key, scoresAndValues));
     }
 
     @Override
@@ -147,23 +157,27 @@ public interface LettuceSortedSetCommandsDelegate extends LettuceCommandsDelegat
     }
 
     @Override
-    default Promise<BElement, Exception> zpopmin(byte[] key, long count) {
-        return toPromise(getSortedSetCommands().zpopmin(key, count));
-    }
-
-    @Override
-    default Promise<BElement, Exception> zpopmin(byte[] key) {
-        return toPromise(getSortedSetCommands().zpopmin(key));
-    }
-
-    @Override
     default Promise<BElement, Exception> zpopmax(byte[] key) {
-        return toPromise(getSortedSetCommands().zpopmax(key));
+        return toPromise(getSortedSetCommands().zpopmax(key) //
+                                               .thenApply(this::scoredValueToBArray));
     }
 
     @Override
     default Promise<BElement, Exception> zpopmax(byte[] key, long count) {
-        return toPromise(getSortedSetCommands().zpopmax(key, count));
+        return toPromise(getSortedSetCommands().zpopmax(key, count) //
+                                               .thenApply(list -> this.convertList(list, this::scoredValueToBArray)));
+    }
+
+    @Override
+    default Promise<BElement, Exception> zpopmin(byte[] key) {
+        return toPromise(getSortedSetCommands().zpopmin(key)//
+                                               .thenApply(this::scoredValueToBArray));
+    }
+
+    @Override
+    default Promise<BElement, Exception> zpopmin(byte[] key, long count) {
+        return toPromise(getSortedSetCommands().zpopmin(key, count)//
+                                               .thenApply(list -> this.convertList(list, this::scoredValueToBArray)));
     }
 
     @Override
@@ -174,17 +188,6 @@ public interface LettuceSortedSetCommandsDelegate extends LettuceCommandsDelegat
     @Override
     default Promise<BElement, Exception> zrange(java.util.function.Consumer<byte[]> channel, byte[] key, long start, long stop) {
         return toPromise(getSortedSetCommands().zrange(bytes -> channel.accept(bytes), key, start, stop));
-    }
-
-    @Override
-    default Promise<BElement, Exception> zrevrangebylex(byte[] key, boolean includeLower, byte[] lower, byte[] upper, boolean includeUpper, Long offset,
-            Long count) {
-        Range<byte[]> range = buildRangeBytes(includeLower, lower, upper, includeUpper);
-        if (offset != null && count != null) {
-            Limit limit = Limit.create(offset, count);
-            return toPromise(getSortedSetCommands().zrangebylex(key, range, limit));
-        }
-        return toPromise(getSortedSetCommands().zrevrangebylex(key, range));
     }
 
     @Override
@@ -217,13 +220,14 @@ public interface LettuceSortedSetCommandsDelegate extends LettuceCommandsDelegat
     }
 
     @Override
-    default Promise<BElement, Exception> zrank(byte[] key, byte[] member) {
-        return toPromise(getSortedSetCommands().zrank(key, member));
+    default Promise<BElement, Exception> zrangeWithScores(byte[] key, long start, long stop) {
+        return toPromise(getSortedSetCommands().zrangeWithScores(key, start, stop) //
+                                               .thenApply(list -> this.convertList(list, this::scoredValueToBArray)));
     }
 
     @Override
-    default Promise<BElement, Exception> zrangeWithScores(byte[] key, long start, long stop) {
-        return toPromise(getSortedSetCommands().zrangeWithScores(key, start, stop));
+    default Promise<BElement, Exception> zrank(byte[] key, byte[] member) {
+        return toPromise(getSortedSetCommands().zrank(key, member));
     }
 
     @Override
@@ -255,8 +259,14 @@ public interface LettuceSortedSetCommandsDelegate extends LettuceCommandsDelegat
     }
 
     @Override
-    default Promise<BElement, Exception> zrevrangeWithScores(byte[] key, long start, long stop) {
-        return toPromise(getSortedSetCommands().zrevrangeWithScores(key, start, stop));
+    default Promise<BElement, Exception> zrevrangebylex(byte[] key, boolean includeLower, byte[] lower, byte[] upper, boolean includeUpper, Long offset,
+            Long count) {
+        Range<byte[]> range = buildRangeBytes(includeLower, lower, upper, includeUpper);
+        if (offset != null && count != null) {
+            Limit limit = Limit.create(offset, count);
+            return toPromise(getSortedSetCommands().zrangebylex(key, range, limit));
+        }
+        return toPromise(getSortedSetCommands().zrevrangebylex(key, range));
     }
 
     @Override
@@ -278,13 +288,19 @@ public interface LettuceSortedSetCommandsDelegate extends LettuceCommandsDelegat
     }
 
     @Override
+    default Promise<BElement, Exception> zrevrangeWithScores(byte[] key, long start, long stop) {
+        return toPromise(getSortedSetCommands().zrevrangeWithScores(key, start, stop) //
+                                               .thenApply(list -> this.convertList(list, this::scoredValueToBArray)));
+    }
+
+    @Override
     default Promise<BElement, Exception> zrevrank(byte[] key, byte[] member) {
         return toPromise(getSortedSetCommands().zrevrank(key, member));
     }
 
     @Override
     default Promise<BElement, Exception> zscan(@NonNull BiConsumer<Double, byte[]> consumer, byte[] key, String cursor, String match, Long limit) {
-
+        // TODO improve zscan behavior
         ScanCursor scanCursor = cursor == null ? null : new ScanCursor();
         ScanArgs scanArgs = (match != null && limit != null) ? ScanArgs.Builder.limit(limit).match(match) : null;
 

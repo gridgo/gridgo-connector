@@ -23,11 +23,22 @@ public abstract class AbstractSocket implements Socket, Loggable {
     private final AtomicReference<String> topic = new AtomicReference<String>(null);
 
     @Override
-    public final boolean isAlive() {
-        ThreadUtils.busySpin(10, () -> {
-            return this.startFlag.get() ^ this.started;
-        });
-        return this.started;
+    public void bind(String address) {
+        if (!this.isAlive()) {
+            if (this.startFlag.compareAndSet(false, true)) {
+                try {
+                    Endpoint endpoint = EndpointParser.parse(address);
+                    doBind(endpoint);
+                    this.endpoint = endpoint;
+                    this.started = true;
+                } catch (Exception ex) {
+                    this.startFlag.set(false);
+                    throw ex;
+                }
+            }
+        } else {
+            throw new IllegalStateException("Socket already started");
+        }
     }
 
     @Override
@@ -60,22 +71,32 @@ public abstract class AbstractSocket implements Socket, Loggable {
         }
     }
 
+    protected abstract void doBind(Endpoint endpoint);
+
+    protected abstract void doClose();
+
+    protected abstract void doConnect(Endpoint endpoint);
+
+    protected abstract int doReveive(ByteBuffer buffer, boolean block);
+
+    protected abstract int doSend(ByteBuffer buffer, boolean block);
+
+    protected abstract int doSubscribe(String topic);
+
     @Override
-    public void bind(String address) {
-        if (!this.isAlive()) {
-            if (this.startFlag.compareAndSet(false, true)) {
-                try {
-                    Endpoint endpoint = EndpointParser.parse(address);
-                    doBind(endpoint);
-                    this.endpoint = endpoint;
-                    this.started = true;
-                } catch (Exception ex) {
-                    this.startFlag.set(false);
-                    throw ex;
-                }
-            }
+    public final boolean isAlive() {
+        ThreadUtils.busySpin(10, () -> {
+            return this.startFlag.get() ^ this.started;
+        });
+        return this.started;
+    }
+
+    @Override
+    public final int receive(ByteBuffer buffer, boolean block) {
+        if (this.isAlive()) {
+            return doReveive(buffer, block);
         } else {
-            throw new IllegalStateException("Socket already started");
+            throw new IllegalStateException("Socket isn't alive");
         }
     }
 
@@ -89,15 +110,6 @@ public abstract class AbstractSocket implements Socket, Loggable {
     }
 
     @Override
-    public final int receive(ByteBuffer buffer, boolean block) {
-        if (this.isAlive()) {
-            return doReveive(buffer, block);
-        } else {
-            throw new IllegalStateException("Socket isn't alive");
-        }
-    }
-
-    @Override
     public final void subscribe(@NonNull String topic) {
         if (this.topic.compareAndSet(null, topic)) {
             this.doSubscribe(this.topic.get());
@@ -105,16 +117,4 @@ public abstract class AbstractSocket implements Socket, Loggable {
             throw new IllegalStateException("Socket already subscribe on other topic: " + this.topic.get());
         }
     }
-
-    protected abstract int doSubscribe(String topic);
-
-    protected abstract int doSend(ByteBuffer buffer, boolean block);
-
-    protected abstract int doReveive(ByteBuffer buffer, boolean block);
-
-    protected abstract void doClose();
-
-    protected abstract void doConnect(Endpoint endpoint);
-
-    protected abstract void doBind(Endpoint endpoint);
 }

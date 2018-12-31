@@ -20,13 +20,13 @@ import io.gridgo.framework.support.Payload;
 
 public class ZMQPairUnitTest {
 
-    private final ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
-
     private static final String TEXT = "This is test text";
 
     private static final int port = 8080;
+
     private static final String host = "localhost";
     private static final String address = host + ":" + port;
+    private final ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
 
     @Test
     public void testPairOneWay() throws InterruptedException, PromiseException {

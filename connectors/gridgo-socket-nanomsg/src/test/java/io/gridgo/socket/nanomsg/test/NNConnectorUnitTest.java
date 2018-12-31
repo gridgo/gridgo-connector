@@ -30,6 +30,171 @@ public class NNConnectorUnitTest {
     private final String host = "localhost";
     private final String address = host + ":" + port;
 
+    private void doAckSend(Consumer consumer, Producer producer) throws InterruptedException, PromiseException {
+        int numMessages = (int) 1e2;
+        CountDownLatch doneSignal = new CountDownLatch(numMessages);
+
+        consumer.subscribe((message) -> {
+            doneSignal.countDown();
+        });
+
+        long start = System.nanoTime();
+        for (int i = 0; i < numMessages; i++) {
+            producer.sendWithAck(Message.of(Payload.of(BObject.ofSequence("index", i)))).get();
+        }
+
+        doneSignal.await();
+        double elapsed = Double.valueOf(System.nanoTime() - start);
+        DecimalFormat df = new DecimalFormat("###,###.##");
+        System.out.println("ACK TRANSMITION DONE (*** not improved), " + numMessages + " messages were transmited in " + df.format(elapsed / 1e6)
+                + "ms -> pace: " + df.format(1e9 * numMessages / elapsed) + "msg/s");
+
+        consumer.clearSubscribers();
+    }
+
+    private void doFnFSend(Consumer consumer, Producer producer) throws InterruptedException {
+        int numMessages = (int) 1e2;
+        CountDownLatch doneSignal = new CountDownLatch(numMessages);
+
+        consumer.subscribe((message) -> {
+            doneSignal.countDown();
+        });
+        long start = System.nanoTime();
+        for (int i = 0; i < numMessages; i++) {
+            producer.send(Message.of(Payload.of(BObject.ofSequence("index", i))));
+        }
+
+        doneSignal.await();
+        double elapsed = Double.valueOf(System.nanoTime() - start);
+        DecimalFormat df = new DecimalFormat("###,###.##");
+        System.out.println("FnF TRANSMITION DONE (*** not improved), " + numMessages + " messages were transmited in " + df.format(elapsed / 1e6)
+                + "ms -> pace: " + df.format(1e9 * numMessages / elapsed) + "msg/s");
+
+        consumer.clearSubscribers();
+    }
+
+    @Test
+    public void testMonoplex() throws InterruptedException, PromiseException {
+
+        String osName = System.getProperty("os.name");
+        if (osName != null && osName.contains("Windows"))
+            return;
+
+        System.out.println("Test tcp monoplex...");
+
+        Connector connector1 = RESOLVER.resolve("nanomsg:pull:tcp://" + address);
+
+        String queryString = "batchingEnabled=true&maxBatchSize=2000&ringBufferSize=2048";
+        Connector connector2 = RESOLVER.resolve("nanomsg:push:tcp://" + address + "?" + queryString);
+
+        connector1.start();
+        assertTrue(connector1.getConsumer().isPresent());
+        Consumer consumer = connector1.getConsumer().get();
+
+        connector2.start();
+        assertTrue(connector2.getProducer().isPresent());
+        Producer producer = connector2.getProducer().get();
+
+        warmUp(consumer, producer);
+
+        try {
+            this.doFnFSend(consumer, producer);
+            this.doAckSend(consumer, producer);
+        } finally {
+            connector1.stop();
+            connector2.stop();
+        }
+    }
+
+    @Test
+    public void testPairOneWay() throws InterruptedException, PromiseException {
+
+        String osName = System.getProperty("os.name");
+        if (osName != null && osName.contains("Windows"))
+            return;
+
+        System.out.println("Test pair oneway...");
+
+        Connector connector1 = RESOLVER.resolve("nanomsg:pair:tcp:bind://" + address);
+        Connector connector2 = RESOLVER.resolve("nanomsg:pair:tcp:connect://" + address);
+
+        connector1.start();
+        assertTrue(connector1.getConsumer().isPresent());
+        assertTrue(connector1.getProducer().isPresent());
+
+        connector2.start();
+        assertTrue(connector2.getConsumer().isPresent());
+        assertTrue(connector2.getProducer().isPresent());
+
+        final CountDownLatch doneSignal = new CountDownLatch(2);
+
+        AtomicReference<String> recvDataRef1 = new AtomicReference<String>(null);
+        AtomicReference<String> recvDataRef2 = new AtomicReference<String>(null);
+
+        connector1.getConsumer().get().subscribe((message) -> {
+            recvDataRef2.set(message.getPayload().getBody().asValue().getString());
+            doneSignal.countDown();
+        });
+
+        connector2.getConsumer().get().subscribe((message) -> {
+            recvDataRef1.set(message.getPayload().getBody().asValue().getString());
+            doneSignal.countDown();
+        });
+
+        connector1.getProducer().get().send(Message.of(Payload.of(BValue.of(TEXT + 1))));
+        connector2.getProducer().get().send(Message.of(Payload.of(BValue.of(TEXT + 2))));
+
+        doneSignal.await();
+
+        assertEquals(TEXT + 1, recvDataRef1.get());
+        assertEquals(TEXT + 2, recvDataRef2.get());
+
+        connector1.stop();
+        connector2.stop();
+    }
+
+    @Test
+    public void testPairPingPong() throws InterruptedException, PromiseException {
+
+        String osName = System.getProperty("os.name");
+        if (osName != null && osName.contains("Windows"))
+            return;
+
+        System.out.println("Test pair ping pong...");
+
+        Connector connector1 = RESOLVER.resolve("nanomsg:pair:tcp:bind://" + address);
+        Connector connector2 = RESOLVER.resolve("nanomsg:pair:tcp:connect://" + address);
+
+        connector1.start();
+        assertTrue(connector1.getConsumer().isPresent());
+        assertTrue(connector1.getProducer().isPresent());
+
+        connector2.start();
+        assertTrue(connector2.getConsumer().isPresent());
+        assertTrue(connector2.getProducer().isPresent());
+
+        Producer responder = connector1.getProducer().get();
+        connector1.getConsumer().get().subscribe((message) -> {
+            responder.send(message);
+        });
+
+        AtomicReference<String> pongDataRef = new AtomicReference<String>(null);
+
+        final CountDownLatch doneSignal = new CountDownLatch(1);
+        connector2.getConsumer().get().subscribe((message) -> {
+            pongDataRef.set(message.getPayload().getBody().asValue().getString());
+            doneSignal.countDown();
+        });
+
+        connector2.getProducer().get().send(Message.of(Payload.of(BValue.of(TEXT))));
+
+        doneSignal.await();
+        assertEquals(TEXT, pongDataRef.get());
+
+        connector1.stop();
+        connector2.stop();
+    }
+
     @Test
     public void testPubSub() throws Exception {
 
@@ -104,128 +269,6 @@ public class NNConnectorUnitTest {
         }
     }
 
-    @Test
-    public void testPairPingPong() throws InterruptedException, PromiseException {
-
-        String osName = System.getProperty("os.name");
-        if (osName != null && osName.contains("Windows"))
-            return;
-
-        System.out.println("Test pair ping pong...");
-
-        Connector connector1 = RESOLVER.resolve("nanomsg:pair:tcp:bind://" + address);
-        Connector connector2 = RESOLVER.resolve("nanomsg:pair:tcp:connect://" + address);
-
-        connector1.start();
-        assertTrue(connector1.getConsumer().isPresent());
-        assertTrue(connector1.getProducer().isPresent());
-
-        connector2.start();
-        assertTrue(connector2.getConsumer().isPresent());
-        assertTrue(connector2.getProducer().isPresent());
-
-        Producer responder = connector1.getProducer().get();
-        connector1.getConsumer().get().subscribe((message) -> {
-            responder.send(message);
-        });
-
-        AtomicReference<String> pongDataRef = new AtomicReference<String>(null);
-
-        final CountDownLatch doneSignal = new CountDownLatch(1);
-        connector2.getConsumer().get().subscribe((message) -> {
-            pongDataRef.set(message.getPayload().getBody().asValue().getString());
-            doneSignal.countDown();
-        });
-
-        connector2.getProducer().get().send(Message.of(Payload.of(BValue.of(TEXT))));
-
-        doneSignal.await();
-        assertEquals(TEXT, pongDataRef.get());
-
-        connector1.stop();
-        connector2.stop();
-    }
-
-    @Test
-    public void testPairOneWay() throws InterruptedException, PromiseException {
-
-        String osName = System.getProperty("os.name");
-        if (osName != null && osName.contains("Windows"))
-            return;
-
-        System.out.println("Test pair oneway...");
-
-        Connector connector1 = RESOLVER.resolve("nanomsg:pair:tcp:bind://" + address);
-        Connector connector2 = RESOLVER.resolve("nanomsg:pair:tcp:connect://" + address);
-
-        connector1.start();
-        assertTrue(connector1.getConsumer().isPresent());
-        assertTrue(connector1.getProducer().isPresent());
-
-        connector2.start();
-        assertTrue(connector2.getConsumer().isPresent());
-        assertTrue(connector2.getProducer().isPresent());
-
-        final CountDownLatch doneSignal = new CountDownLatch(2);
-
-        AtomicReference<String> recvDataRef1 = new AtomicReference<String>(null);
-        AtomicReference<String> recvDataRef2 = new AtomicReference<String>(null);
-
-        connector1.getConsumer().get().subscribe((message) -> {
-            recvDataRef2.set(message.getPayload().getBody().asValue().getString());
-            doneSignal.countDown();
-        });
-
-        connector2.getConsumer().get().subscribe((message) -> {
-            recvDataRef1.set(message.getPayload().getBody().asValue().getString());
-            doneSignal.countDown();
-        });
-
-        connector1.getProducer().get().send(Message.of(Payload.of(BValue.of(TEXT + 1))));
-        connector2.getProducer().get().send(Message.of(Payload.of(BValue.of(TEXT + 2))));
-
-        doneSignal.await();
-
-        assertEquals(TEXT + 1, recvDataRef1.get());
-        assertEquals(TEXT + 2, recvDataRef2.get());
-
-        connector1.stop();
-        connector2.stop();
-    }
-
-    @Test
-    public void testMonoplex() throws InterruptedException, PromiseException {
-
-        String osName = System.getProperty("os.name");
-        if (osName != null && osName.contains("Windows"))
-            return;
-
-        System.out.println("Test tcp monoplex...");
-
-        Connector connector1 = RESOLVER.resolve("nanomsg:pull:tcp://" + address);
-
-        String queryString = "batchingEnabled=true&maxBatchSize=2000&ringBufferSize=2048";
-        Connector connector2 = RESOLVER.resolve("nanomsg:push:tcp://" + address + "?" + queryString);
-
-        connector1.start();
-        assertTrue(connector1.getConsumer().isPresent());
-        Consumer consumer = connector1.getConsumer().get();
-
-        connector2.start();
-        assertTrue(connector2.getProducer().isPresent());
-        Producer producer = connector2.getProducer().get();
-
-        warmUp(consumer, producer);
-
-        try {
-            this.doFnFSend(consumer, producer);
-            this.doAckSend(consumer, producer);
-        } finally {
-            connector1.stop();
-            connector2.stop();
-        }
-    }
-
     private void warmUp(Consumer consumer, Producer producer) throws PromiseException, InterruptedException {
         System.out.println("Started consumer and producer");
         CountDownLatch doneSignal = new CountDownLatch(1);
@@ -236,49 +279,6 @@ public class NNConnectorUnitTest {
         producer.send(Message.of(Payload.of(BObject.ofSequence("cmd", "start"))));
         doneSignal.await();
         System.out.println("Warmup done");
-        consumer.clearSubscribers();
-    }
-
-    private void doFnFSend(Consumer consumer, Producer producer) throws InterruptedException {
-        int numMessages = (int) 1e2;
-        CountDownLatch doneSignal = new CountDownLatch(numMessages);
-
-        consumer.subscribe((message) -> {
-            doneSignal.countDown();
-        });
-        long start = System.nanoTime();
-        for (int i = 0; i < numMessages; i++) {
-            producer.send(Message.of(Payload.of(BObject.ofSequence("index", i))));
-        }
-
-        doneSignal.await();
-        double elapsed = Double.valueOf(System.nanoTime() - start);
-        DecimalFormat df = new DecimalFormat("###,###.##");
-        System.out.println("FnF TRANSMITION DONE (*** not improved), " + numMessages + " messages were transmited in "
-                + df.format(elapsed / 1e6) + "ms -> pace: " + df.format(1e9 * numMessages / elapsed) + "msg/s");
-
-        consumer.clearSubscribers();
-    }
-
-    private void doAckSend(Consumer consumer, Producer producer) throws InterruptedException, PromiseException {
-        int numMessages = (int) 1e2;
-        CountDownLatch doneSignal = new CountDownLatch(numMessages);
-
-        consumer.subscribe((message) -> {
-            doneSignal.countDown();
-        });
-
-        long start = System.nanoTime();
-        for (int i = 0; i < numMessages; i++) {
-            producer.sendWithAck(Message.of(Payload.of(BObject.ofSequence("index", i)))).get();
-        }
-
-        doneSignal.await();
-        double elapsed = Double.valueOf(System.nanoTime() - start);
-        DecimalFormat df = new DecimalFormat("###,###.##");
-        System.out.println("ACK TRANSMITION DONE (*** not improved), " + numMessages + " messages were transmited in "
-                + df.format(elapsed / 1e6) + "ms -> pace: " + df.format(1e9 * numMessages / elapsed) + "msg/s");
-
         consumer.clearSubscribers();
     }
 }

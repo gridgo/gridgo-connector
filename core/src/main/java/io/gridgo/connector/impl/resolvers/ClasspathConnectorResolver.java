@@ -28,26 +28,6 @@ public class ClasspathConnectorResolver implements ConnectorResolver {
         resolveClasspaths(packages);
     }
 
-    private void resolveClasspaths(String[] packages) {
-        for (String pkg : packages) {
-            resolvePackage(pkg);
-        }
-    }
-
-    private void resolvePackage(String pkg) {
-        var reflections = new Reflections(pkg);
-        var connectorClasses = reflections.getSubTypesOf(Connector.class);
-
-        if (connectorClasses.isEmpty()) {
-            log.warn("No connectors found in package {}", pkg);
-            return;
-        }
-
-        for (var clzz : connectorClasses) {
-            registerConnectorClass(clzz);
-        }
-    }
-
     private void registerConnectorClass(Class<? extends Connector> clzz) {
         var endpointAnnotations = clzz.getAnnotationsByType(ConnectorEndpoint.class);
         if (endpointAnnotations.length != 1) {
@@ -59,8 +39,8 @@ public class ClasspathConnectorResolver implements ConnectorResolver {
             scheme = scheme.trim();
             if (classMappings.containsKey(scheme)) {
                 if (log.isWarnEnabled())
-                    log.warn("Duplicate scheme {} when processing connector {}. Existing connector: {}", scheme,
-                            clzz.getClass().getName(), classMappings.get(scheme).getName());
+                    log.warn("Duplicate scheme {} when processing connector {}. Existing connector: {}", scheme, clzz.getClass().getName(),
+                            classMappings.get(scheme).getName());
             } else {
                 classMappings.put(scheme, clzz);
             }
@@ -80,5 +60,25 @@ public class ClasspathConnectorResolver implements ConnectorResolver {
         if (clazz == null)
             throw new UnsupportedSchemeException(scheme);
         return new UriConnectorResolver(scheme, clazz).resolve(remaining, context);
+    }
+
+    private void resolveClasspaths(String[] packages) {
+        for (String pkg : packages) {
+            resolvePackage(pkg);
+        }
+    }
+
+    private void resolvePackage(String pkg) {
+        var reflections = new Reflections(pkg);
+        var connectorClasses = reflections.getSubTypesOf(Connector.class);
+
+        if (connectorClasses.isEmpty()) {
+            log.warn("No connectors found in package {}", pkg);
+            return;
+        }
+
+        for (var clzz : connectorClasses) {
+            registerConnectorClass(clzz);
+        }
     }
 }

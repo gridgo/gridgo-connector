@@ -22,8 +22,7 @@ import io.lettuce.core.api.async.RedisStringAsyncCommands;
 import io.lettuce.core.api.async.RedisTransactionalAsyncCommands;
 
 @SuppressWarnings("unchecked")
-public class LettuceSingleClient extends AbstractLettuceClient
-        implements LettuceTransactionCommandsDelegate, LettuceConnectionCommandsDelegate {
+public class LettuceSingleClient extends AbstractLettuceClient implements LettuceTransactionCommandsDelegate, LettuceConnectionCommandsDelegate {
 
     private StatefulRedisConnection<byte[], byte[]> connection;
 
@@ -57,17 +56,6 @@ public class LettuceSingleClient extends AbstractLettuceClient
     }
 
     @Override
-    protected void onStop() {
-        this.connection.close();
-    }
-
-    @Override
-    protected void onStart() {
-        this.connection = this.createConnection();
-        this.commands = connection.async();
-    }
-
-    @Override
     public <T extends RedisAsyncCommands<byte[], byte[]>> T getConnectionCommands() {
         return (T) this.commands;
     }
@@ -83,7 +71,22 @@ public class LettuceSingleClient extends AbstractLettuceClient
     }
 
     @Override
+    public <T extends RedisHLLAsyncCommands<byte[], byte[]>> T getHyperLogLogCommands() {
+        return (T) this.commands;
+    }
+
+    @Override
     public <T extends RedisKeyAsyncCommands<byte[], byte[]>> T getKeysCommands() {
+        return (T) this.commands;
+    }
+
+    @Override
+    public <T extends RedisListAsyncCommands<byte[], byte[]>> T getListCommands() {
+        return (T) this.commands;
+    }
+
+    @Override
+    public <T extends RedisScriptingAsyncCommands<byte[], byte[]>> T getScriptingCommands() {
         return (T) this.commands;
     }
 
@@ -108,17 +111,13 @@ public class LettuceSingleClient extends AbstractLettuceClient
     }
 
     @Override
-    public <T extends RedisListAsyncCommands<byte[], byte[]>> T getListCommands() {
-        return (T) this.commands;
+    protected void onStart() {
+        this.connection = this.createConnection();
+        this.commands = connection.async();
     }
 
     @Override
-    public <T extends RedisHLLAsyncCommands<byte[], byte[]>> T getHyperLogLogCommands() {
-        return (T) this.commands;
-    }
-
-    @Override
-    public <T extends RedisScriptingAsyncCommands<byte[], byte[]>> T getScriptingCommands() {
-        return (T) this.commands;
+    protected void onStop() {
+        this.connection.close();
     }
 }
