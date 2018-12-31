@@ -53,6 +53,7 @@ public class DefaultSocketConsumer extends AbstractHasResponderConsumer implemen
                 this.stopDoneTrigger.await();
                 this.stopDoneTrigger = null;
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 throw new RuntimeException("error while waiting for stopped", e);
             }
         }
