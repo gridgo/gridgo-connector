@@ -22,8 +22,10 @@ import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 import lombok.NonNull;
 
-public class Netty4UnitTest {
+public abstract class AbstractNetty4UnitTest {
+    
     private final static ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
+    
     private final static String TEXT = "this is test text";
 
     private void assertNetty4Connector(Connector connector) {
