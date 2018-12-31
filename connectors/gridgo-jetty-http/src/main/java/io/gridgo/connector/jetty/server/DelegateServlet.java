@@ -16,7 +16,7 @@ class DelegateServlet extends GenericServlet {
 
     private static final long serialVersionUID = 2512710354394670721L;
 
-    private final BiConsumer<HttpServletRequest, HttpServletResponse> handler;
+    private final transient BiConsumer<HttpServletRequest, HttpServletResponse> handler;
 
     DelegateServlet(@NonNull BiConsumer<HttpServletRequest, HttpServletResponse> handler) {
         this.handler = handler;
