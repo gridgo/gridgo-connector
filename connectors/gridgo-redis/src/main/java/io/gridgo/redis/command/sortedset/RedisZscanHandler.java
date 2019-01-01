@@ -20,7 +20,7 @@ public class RedisZscanHandler extends AbstractRedisCommandHandler {
     protected Promise<BElement, Exception> process(RedisClient redis, BObject options, BElement[] params) {
         final String cursor = options.getString("cursor", null);
         final String match = options.getString("match", null);
-        final Long count = options.getLong("limit", null);
+        final Long count = options.getLong("limit", options.getLong("count", null));
         return redis.zscan(params[0].asValue().getRaw(), cursor, count, match);
     }
 }
