@@ -28,7 +28,7 @@ public interface RedisHashCommands {
 
     public Promise<BElement, Exception> hmset(byte[] key, Map<byte[], byte[]> map);
 
-    public Promise<BElement, Exception> hscan(byte[] key);
+    public Promise<BElement, Exception> hscan(byte[] key, String cursor, Long count, String match);
 
     public Promise<BElement, Exception> hset(byte[] key, byte[] field, byte[] value);
 

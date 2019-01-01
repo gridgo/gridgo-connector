@@ -7,9 +7,13 @@ import org.joo.promise4j.Promise;
 import io.gridgo.bean.BArray;
 import io.gridgo.bean.BElement;
 import io.gridgo.redis.command.RedisHashCommands;
+import io.lettuce.core.MapScanCursor;
+import io.lettuce.core.RedisFuture;
+import io.lettuce.core.ScanArgs;
+import io.lettuce.core.ScanCursor;
 import io.lettuce.core.api.async.RedisHashAsyncCommands;
 
-public interface LettuceHashCommandsDelegate extends LettuceCommandsDelegate, RedisHashCommands {
+public interface LettuceHashCommandsDelegate extends LettuceCommandsDelegate, RedisHashCommands, LettuceScannable {
 
     <T extends RedisHashAsyncCommands<byte[], byte[]>> T getHashCommands();
 
@@ -65,9 +69,26 @@ public interface LettuceHashCommandsDelegate extends LettuceCommandsDelegate, Re
     }
 
     @Override
-    default Promise<BElement, Exception> hscan(byte[] key) {
-        return toPromise(getHashCommands().hscan(key) //
-                                          .thenApply(cursor -> BArray.ofSequence(cursor.getCursor(), cursor.getMap())));
+    default Promise<BElement, Exception> hscan(byte[] key, String cursor, Long count, String match) {
+        ScanCursor scanCursor = cursor == null ? null : ScanCursor.of(cursor);
+        ScanArgs scanArgs = buildScanArgs(count, match);
+
+        RedisFuture<MapScanCursor<byte[], byte[]>> future;
+        if (scanCursor == null) {
+            if (scanArgs == null) {
+                future = getHashCommands().hscan(key);
+            } else {
+                future = getHashCommands().hscan(key, scanArgs);
+            }
+        } else {
+            if (scanArgs == null) {
+                future = getHashCommands().hscan(key, scanCursor);
+            } else {
+                future = getHashCommands().hscan(key, scanCursor, scanArgs);
+            }
+        }
+
+        return toPromise(future.thenApply(mapScanCursor -> BArray.ofSequence(mapScanCursor.getCursor(), mapScanCursor.getMap())));
     }
 
     @Override

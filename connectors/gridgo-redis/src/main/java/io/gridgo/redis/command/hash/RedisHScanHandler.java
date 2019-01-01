@@ -18,7 +18,7 @@ public class RedisHScanHandler extends AbstractRedisCommandHandler {
 
     @Override
     protected Promise<BElement, Exception> process(RedisClient redis, BObject options, BElement[] params) {
-        return redis.hscan(params[0].asValue().getRaw());
+        return redis.hscan(params[0].asValue().getRaw(), null, null, null);
     }
 
 }
