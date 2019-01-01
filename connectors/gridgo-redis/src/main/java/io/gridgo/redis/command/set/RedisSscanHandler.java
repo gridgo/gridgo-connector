@@ -18,7 +18,10 @@ public class RedisSscanHandler extends AbstractRedisCommandHandler {
 
     @Override
     protected Promise<BElement, Exception> process(RedisClient redis, BObject options, BElement[] params) {
-        return redis.sscan(params[0].asValue().getRaw());
+        final String cursor = options.getString("cursor", null);
+        final String match = options.getString("match", null);
+        final Long count = options.getLong("limit", null);
+        return redis.sscan(params[0].asValue().getRaw(), cursor, count, match);
     }
 
 }

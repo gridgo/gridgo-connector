@@ -1,7 +1,6 @@
 package io.gridgo.redis.command;
 
 import java.util.List;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.joo.promise4j.Promise;
@@ -72,7 +71,7 @@ public interface RedisSortedSetCommands {
 
     public Promise<BElement, Exception> zrevrank(byte[] key, byte[] member);
 
-    public Promise<BElement, Exception> zscan(BiConsumer<Double, byte[]> channel, byte[] key, String cursor, String match, Long limit);
+    public Promise<BElement, Exception> zscan(byte[] key, String cursor, Long count, String match);
 
     public Promise<BElement, Exception> zscore(byte[] key, byte[] member);
 

@@ -1,7 +1,6 @@
 package io.gridgo.redis.lettuce.delegate;
 
 import java.util.List;
-import java.util.function.BiConsumer;
 
 import org.joo.promise4j.Promise;
 
@@ -11,19 +10,17 @@ import io.gridgo.bean.BObject;
 import io.gridgo.redis.command.RedisSortedSetCommands;
 import io.lettuce.core.Limit;
 import io.lettuce.core.Range;
+import io.lettuce.core.Range.Boundary;
 import io.lettuce.core.RedisFuture;
 import io.lettuce.core.ScanArgs;
 import io.lettuce.core.ScanCursor;
 import io.lettuce.core.ScoredValue;
-import io.lettuce.core.StreamScanCursor;
+import io.lettuce.core.ScoredValueScanCursor;
 import io.lettuce.core.ZAddArgs;
 import io.lettuce.core.ZStoreArgs;
-import io.lettuce.core.Range.Boundary;
 import io.lettuce.core.api.async.RedisSortedSetAsyncCommands;
-import io.lettuce.core.output.ScoredValueStreamingChannel;
-import lombok.NonNull;
 
-public interface LettuceSortedSetCommandsDelegate extends LettuceCommandsDelegate, RedisSortedSetCommands {
+public interface LettuceSortedSetCommandsDelegate extends LettuceCommandsDelegate, RedisSortedSetCommands, LettuceScannable {
 
     default Range<byte[]> buildRangeBytes(boolean includeLower, byte[] lower, byte[] upper, boolean includeUpper) {
         Boundary<byte[]> lowerBoundary = includeLower ? Boundary.including(lower) : Boundary.excluding(lower);
@@ -299,33 +296,30 @@ public interface LettuceSortedSetCommandsDelegate extends LettuceCommandsDelegat
     }
 
     @Override
-    default Promise<BElement, Exception> zscan(@NonNull BiConsumer<Double, byte[]> consumer, byte[] key, String cursor, String match, Long limit) {
-        // TODO improve zscan behavior
+    default Promise<BElement, Exception> zscan(byte[] key, String cursor, Long count, String match) {
         ScanCursor scanCursor = cursor == null ? null : new ScanCursor();
-        ScanArgs scanArgs = (match != null && limit != null) ? ScanArgs.Builder.limit(limit).match(match) : null;
+        ScanArgs scanArgs = buildScanArgs(count, match);
 
-        final RedisFuture<StreamScanCursor> future;
+        final RedisFuture<ScoredValueScanCursor<byte[]>> future;
 
-        ScoredValueStreamingChannel<byte[]> channel = scoredValue -> consumer.accept(scoredValue.getScore(), scoredValue.getValue());
         if (cursor != null) {
             scanCursor.setCursor(cursor);
             if (scanArgs == null) {
-                future = getSortedSetCommands().zscan(channel, key, scanCursor);
+                future = getSortedSetCommands().zscan(key, scanCursor);
             } else {
-                future = getSortedSetCommands().zscan(channel, key, scanCursor, scanArgs);
+                future = getSortedSetCommands().zscan(key, scanCursor, scanArgs);
             }
         } else {
             if (scanArgs == null) {
-                future = getSortedSetCommands().zscan(channel, key);
+                future = getSortedSetCommands().zscan(key);
             } else {
-                future = getSortedSetCommands().zscan(channel, key, scanArgs);
+                future = getSortedSetCommands().zscan(key, scanArgs);
             }
         }
 
-        return toPromise(future).filterDone(ref -> {
-            StreamScanCursor streamScanCursor = ref.asReference().getReference();
-            return BObject.ofSequence("count", streamScanCursor.getCount(), "cursor", streamScanCursor.getCursor(), "finished", streamScanCursor.isFinished());
-        });
+        return toPromise(future.thenApply(scoredValueScanCursor -> BObject.ofSequence( //
+                "cursor", scoredValueScanCursor.getCursor(), //
+                "values", this.convertList(scoredValueScanCursor.getValues(), this::scoredValueToBArray))));
     }
 
     @Override

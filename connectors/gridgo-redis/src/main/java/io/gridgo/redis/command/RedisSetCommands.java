@@ -34,7 +34,7 @@ public interface RedisSetCommands {
 
     public Promise<BElement, Exception> srem(byte[] key, byte[]... members);
 
-    public Promise<BElement, Exception> sscan(byte[] key);
+    public Promise<BElement, Exception> sscan(byte[] key, String cursor, Long count, String match);
 
     public Promise<BElement, Exception> sunion(byte[]... keys);
 

@@ -3,10 +3,15 @@ package io.gridgo.redis.lettuce.delegate;
 import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BElement;
+import io.gridgo.bean.BObject;
 import io.gridgo.redis.command.RedisSetCommands;
+import io.lettuce.core.RedisFuture;
+import io.lettuce.core.ScanArgs;
+import io.lettuce.core.ScanCursor;
+import io.lettuce.core.ValueScanCursor;
 import io.lettuce.core.api.async.RedisSetAsyncCommands;
 
-public interface LettuceSetCommandsDelegate extends RedisSetCommands, LettuceCommandsDelegate {
+public interface LettuceSetCommandsDelegate extends RedisSetCommands, LettuceCommandsDelegate, LettuceScannable {
 
     <T extends RedisSetAsyncCommands<byte[], byte[]>> T getSetCommands();
 
@@ -81,10 +86,25 @@ public interface LettuceSetCommandsDelegate extends RedisSetCommands, LettuceCom
     }
 
     @Override
-    default Promise<BElement, Exception> sscan(byte[] key) {
-        // TODO improve sscan behavior, take cursor and args, return something like
-        // "stream" or "iterator"
-        return toPromise(getSetCommands().sscan(key));
+    default Promise<BElement, Exception> sscan(byte[] key, String cursor, Long count, String match) {
+        ScanCursor scanCursor = cursor == null ? null : ScanCursor.of(cursor);
+        ScanArgs scanArgs = buildScanArgs(count, match);
+
+        RedisFuture<ValueScanCursor<byte[]>> future;
+        if (scanArgs == null) {
+            if (scanCursor == null) {
+                future = getSetCommands().sscan(key);
+            } else {
+                future = getSetCommands().sscan(key, scanCursor);
+            }
+        } else {
+            if (scanCursor == null) {
+                future = getSetCommands().sscan(key, scanArgs);
+            } else {
+                future = getSetCommands().sscan(key, scanCursor, scanArgs);
+            }
+        }
+        return toPromise(future.thenApply(valueScanCursor -> BObject.ofSequence("cursor", valueScanCursor.getCursor(), "values", valueScanCursor.getValues())));
     }
 
     @Override

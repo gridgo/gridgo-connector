@@ -52,7 +52,7 @@ public interface RedisKeysCommands {
 
     public Promise<BElement, Exception> restore(byte[] key, byte[] value, long ttl, boolean replace);
 
-    public Promise<BElement, Exception> scan(Consumer<byte[]> channel, String cursor, Long count, String match);
+    public Promise<BElement, Exception> scan(String cursor, Long count, String match);
 
     public Promise<BElement, Exception> sort(Consumer<byte[]> channel, byte[] key, String byPattern, List<String> getPatterns, Long count, Long offset,
             String order, boolean alpha);

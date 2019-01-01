@@ -6,15 +6,18 @@ import java.util.List;
 import org.joo.promise4j.Promise;
 
 import io.gridgo.bean.BElement;
+import io.gridgo.bean.BObject;
 import io.gridgo.redis.command.RedisKeysCommands;
+import io.lettuce.core.KeyScanCursor;
 import io.lettuce.core.MigrateArgs;
+import io.lettuce.core.RedisFuture;
 import io.lettuce.core.RestoreArgs;
 import io.lettuce.core.ScanArgs;
 import io.lettuce.core.ScanCursor;
 import io.lettuce.core.SortArgs;
 import io.lettuce.core.api.async.RedisKeyAsyncCommands;
 
-public interface LettuceKeysCommandsDelegate extends LettuceCommandsDelegate, RedisKeysCommands {
+public interface LettuceKeysCommandsDelegate extends LettuceCommandsDelegate, RedisKeysCommands, LettuceScannable {
 
     default SortArgs buildSortArgs(String byPattern, List<String> getPatterns, Long count, Long offset, String order, boolean alpha) {
         SortArgs sortArgs = new SortArgs();
@@ -162,27 +165,25 @@ public interface LettuceKeysCommandsDelegate extends LettuceCommandsDelegate, Re
     }
 
     @Override
-    default Promise<BElement, Exception> scan(java.util.function.Consumer<byte[]> channel, String cursor, Long count, String match) {
-        // TODO change method behaviour, instead of take a channel to consume value,
-        // return something like "stream" or "iterator"
+    default Promise<BElement, Exception> scan(String cursor, Long count, String match) {
+        RedisFuture<KeyScanCursor<byte[]>> future;
         ScanCursor scanCursor = cursor == null ? null : ScanCursor.of(cursor);
-        if (count != null || match != null) {
-            ScanArgs args = new ScanArgs();
-            if (count != null) {
-                args.limit(count);
+        ScanArgs scanArgs = buildScanArgs(count, match);
+
+        if (scanCursor == null) {
+            if (scanArgs == null) {
+                future = getKeysCommands().scan();
+            } else {
+                future = getKeysCommands().scan(scanArgs);
             }
-            if (match != null) {
-                args.match(match);
+        } else {
+            if (scanArgs == null) {
+                future = getKeysCommands().scan(scanCursor);
+            } else {
+                future = getKeysCommands().scan(scanCursor, scanArgs);
             }
-            if (cursor == null) {
-                return toPromise(getKeysCommands().scan(bytes -> channel.accept(bytes), args));
-            }
-            return toPromise(getKeysCommands().scan(bytes -> channel.accept(bytes), scanCursor, args));
         }
-        if (cursor == null) {
-            return toPromise(getKeysCommands().scan(bytes -> channel.accept(bytes)));
-        }
-        return toPromise(getKeysCommands().scan(bytes -> channel.accept(bytes), scanCursor));
+        return toPromise(future.thenApply(keyScanCursor -> BObject.ofSequence("cursor", keyScanCursor.getCursor(), "keys", keyScanCursor.getKeys())));
     }
 
     @Override
