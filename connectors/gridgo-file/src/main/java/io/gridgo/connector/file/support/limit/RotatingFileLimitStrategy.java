@@ -34,8 +34,8 @@ public class RotatingFileLimitStrategy extends AbstractFileLimitStrategy {
 
     private boolean override;
 
-    public RotatingFileLimitStrategy(String basePath, String mode, long limit, int count, boolean deleteOnStartup, boolean deleteOnShutdown, boolean override)
-            throws IOException {
+    public RotatingFileLimitStrategy(String basePath, String mode, long limit, int count, boolean deleteOnStartup,
+            boolean deleteOnShutdown, boolean override) throws IOException {
         this.basePath = basePath;
         this.mode = mode;
         this.limit = limit;
@@ -111,10 +111,10 @@ public class RotatingFileLimitStrategy extends AbstractFileLimitStrategy {
     }
 
     private void tryRename(File f1, File f2) {
-        if (!f1.renameTo(f2)) {
-            if (log.isWarnEnabled())
-                log.warn("Cannot rename file from {} to {}", f1.getAbsolutePath(), f2.getAbsolutePath());
-        }
+        if (f1.renameTo(f2))
+            return;
+        if (log.isWarnEnabled())
+            log.warn("Cannot rename file from {} to {}", f1.getAbsolutePath(), f2.getAbsolutePath());
     }
 
     @Override
