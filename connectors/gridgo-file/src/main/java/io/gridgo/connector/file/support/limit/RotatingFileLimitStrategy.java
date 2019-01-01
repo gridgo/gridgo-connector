@@ -6,7 +6,9 @@ import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class RotatingFileLimitStrategy extends AbstractFileLimitStrategy {
 
     private String basePath;
@@ -99,13 +101,20 @@ public class RotatingFileLimitStrategy extends AbstractFileLimitStrategy {
         for (int i = count - 2; i >= 0; i--) {
             File f1 = files[i];
             File f2 = files[i + 1];
-            if (f1.exists()) {
-                if (f2.exists())
-                    deleteFile(f2);
-                f1.renameTo(f2);
-            }
+            if (!f1.exists())
+                continue;
+            if (f2.exists())
+                deleteFile(f2);
+            tryRename(f1, f2);
         }
         resetFile();
+    }
+
+    private void tryRename(File f1, File f2) {
+        if (!f1.renameTo(f2)) {
+            if (log.isWarnEnabled())
+                log.warn("Cannot rename file from {} to {}", f1.getAbsolutePath(), f2.getAbsolutePath());
+        }
     }
 
     @Override
