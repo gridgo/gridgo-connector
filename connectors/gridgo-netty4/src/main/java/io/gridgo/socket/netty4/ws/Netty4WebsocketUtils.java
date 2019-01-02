@@ -44,7 +44,7 @@ public class Netty4WebsocketUtils {
                 tobeSentFrame = new BinaryWebSocketFrame(output.buffer());
                 break;
             case TEXT:
-                output.write(data.toJson().getBytes());
+                data.writeJson(output);
                 tobeSentFrame = new TextWebSocketFrame(output.buffer());
                 break;
             default:
