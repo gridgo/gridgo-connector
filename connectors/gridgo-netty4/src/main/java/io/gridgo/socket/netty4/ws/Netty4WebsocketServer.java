@@ -35,9 +35,12 @@ import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 
 public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements Netty4Websocket {
+
+    private boolean autoParse = true;
 
     private static final AttributeKey<WebSocketServerHandshaker> HANDSHAKER = AttributeKey.newInstance("handshaker");
 
@@ -66,6 +69,14 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 
     @Getter(AccessLevel.PROTECTED)
     private WebSocketServerHandshakerFactory wsFactory;
+
+    @Override
+    protected void onApplyConfig(@NonNull String name) {
+        super.onApplyConfig(name);
+        if (name.trim().equalsIgnoreCase("autoParse")) {
+            this.autoParse = this.getConfigs().getBoolean("autoParse", true);
+        }
+    }
 
     @Override
     protected void closeChannel(Channel channel) {
@@ -162,7 +173,7 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
             return null;
         }
 
-        return Netty4WebsocketUtils.parseWebsocketFrame(frame);
+        return Netty4WebsocketUtils.parseWebsocketFrame(frame, this.autoParse);
     }
 
     @Override

@@ -28,9 +28,12 @@ import io.netty.handler.codec.http.websocketx.WebSocketVersion;
 import io.netty.util.CharsetUtil;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 
 public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements Netty4Websocket {
+
+    private boolean autoParse = true;
 
     @Setter
     @Getter(AccessLevel.PROTECTED)
@@ -59,8 +62,16 @@ public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements
     }
 
     @Override
+    protected void onApplyConfig(@NonNull String name) {
+        super.onApplyConfig(name);
+        if (name.trim().equalsIgnoreCase("autoParse")) {
+            this.autoParse = this.getConfigs().getBoolean("autoParse", true);
+        }
+    }
+
+    @Override
     protected BElement handleIncomingMessage(Object msg) throws Exception {
-        return Netty4WebsocketUtils.parseWebsocketFrame((WebSocketFrame) msg);
+        return Netty4WebsocketUtils.parseWebsocketFrame((WebSocketFrame) msg, autoParse);
     }
 
     @Override

@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BValue;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -16,16 +17,26 @@ import lombok.NonNull;
 
 public class Netty4WebsocketUtils {
 
-    public static BElement parseWebsocketFrame(WebSocketFrame frame) {
+    public static BElement parseWebsocketFrame(WebSocketFrame frame, boolean autoParseAsBElement) {
         if (frame instanceof BinaryWebSocketFrame) {
-            return BElement.ofBytes(new ByteBufInputStream(((BinaryWebSocketFrame) frame).content()));
+            ByteBuf content = ((BinaryWebSocketFrame) frame).content();
+            if (autoParseAsBElement) {
+                return BElement.ofBytes(new ByteBufInputStream(content));
+            } else {
+                byte[] bytes = new byte[content.readableBytes()];
+                content.readBytes(bytes);
+                return BValue.of(bytes);
+            }
         } else if (frame instanceof TextWebSocketFrame) {
             String text = ((TextWebSocketFrame) frame).text();
-            try {
-                return BElement.ofJson(text);
-            } catch (Exception ex) {
-                return BValue.of(text);
+            if (autoParseAsBElement) {
+                try {
+                    return BElement.ofJson(text);
+                } catch (Exception ex) {
+                    // just do nothing...
+                }
             }
+            return BValue.of(text);
         }
         return null;
     }
