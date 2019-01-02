@@ -161,7 +161,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         return "consumer.vertx:http." + method + "." + path;
     }
 
-    private String getContentType(RoutingContext ctx) {
+    private String getContentType() {
         var format = getFormat();
         if ("raw".equals(format))
             return "application/octet-stream; charset=utf-8";
@@ -292,7 +292,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         var headers = response.getPayload().getHeaders();
 
         if (!headers.containsKey(VertxHttpConstants.HEADER_CONTENT_TYPE)) {
-            headers.setAny(VertxHttpConstants.HEADER_CONTENT_TYPE, getContentType(ctx));
+            headers.setAny(VertxHttpConstants.HEADER_CONTENT_TYPE, getContentType());
         }
 
         for (var entry : headers.entrySet()) {
