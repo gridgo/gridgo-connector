@@ -48,12 +48,8 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 
     private static final Map<String, ConnectionRef<ServerRouterTuple>> SERVER_MAP = new HashMap<>();
 
-    private static final ThreadLocal<Map<String, ConnectionRef<ServerRouterTuple>>> LOCAL_SERVER_MAP = new ThreadLocal<>() {
-        @Override
-        protected Map<String, ConnectionRef<ServerRouterTuple>> initialValue() {
-            return new HashMap<>();
-        }
-    };
+    private static final ThreadLocal<Map<String, ConnectionRef<ServerRouterTuple>>> LOCAL_SERVER_MAP //
+            = ThreadLocal.withInitial(HashMap::new);
 
     private static final int DEFAULT_EXCEPTION_STATUS_CODE = 500;
 
@@ -71,15 +67,16 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 
     private Route route;
 
-    public VertxHttpConsumer(ConnectorContext context, Vertx vertx, VertxOptions vertxOptions, HttpServerOptions options, String path, String method,
-            String format, Map<String, Object> params) {
+    public VertxHttpConsumer(ConnectorContext context, Vertx vertx, VertxOptions vertxOptions,
+            HttpServerOptions options, String path, String method, String format, Map<String, Object> params) {
         super(context, format);
         this.vertx = vertx;
         this.vertxOptions = vertxOptions;
         this.httpOptions = options;
         this.path = path;
         this.method = method;
-        this.parseCookie = Boolean.valueOf(params.getOrDefault(VertxHttpConstants.PARAM_PARSE_COOKIE, "false").toString());
+        this.parseCookie = Boolean.valueOf(
+                params.getOrDefault(VertxHttpConstants.PARAM_PARSE_COOKIE, "false").toString());
     }
 
     private String buildConnectionKey() {
@@ -256,15 +253,18 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         for (var query : ctx.request().params()) {
             queryParams.put(query.getKey(), BValue.of(query.getValue()));
         }
-        headers.set(VertxHttpConstants.HEADER_QUERY_PARAMS, queryParams).setAny(VertxHttpConstants.HEADER_HTTP_METHOD, ctx.request().method().name())
+        headers.set(VertxHttpConstants.HEADER_QUERY_PARAMS, queryParams)
+               .setAny(VertxHttpConstants.HEADER_HTTP_METHOD, ctx.request().method().name())
                .setAny(VertxHttpConstants.HEADER_PATH, ctx.request().path());
 
         if (parseCookie) {
             var cookies = BArray.ofEmpty();
             for (var cookie : ctx.cookies()) {
                 var cookieObj = BObject.ofEmpty() //
-                                       .setAny(VertxHttpConstants.COOKIE_NAME, cookie.getName()).setAny(VertxHttpConstants.COOKIE_DOMAIN, cookie.getDomain())
-                                       .setAny(VertxHttpConstants.COOKIE_PATH, cookie.getPath()).setAny(VertxHttpConstants.COOKIE_VALUE, cookie.getValue());
+                                       .setAny(VertxHttpConstants.COOKIE_NAME, cookie.getName())
+                                       .setAny(VertxHttpConstants.COOKIE_DOMAIN, cookie.getDomain())
+                                       .setAny(VertxHttpConstants.COOKIE_PATH, cookie.getPath())
+                                       .setAny(VertxHttpConstants.COOKIE_VALUE, cookie.getValue());
                 cookies.add(cookieObj);
             }
             headers.put(VertxHttpConstants.HEADER_COOKIE, cookies);
