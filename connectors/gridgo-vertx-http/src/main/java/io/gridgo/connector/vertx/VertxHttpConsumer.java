@@ -121,14 +121,14 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
             connRef = theMap.get(connectionKey);
         } else {
             var latch = new CountDownLatch(1);
-            Vertx vertx = this.vertx;
-            if (vertx == null) {
-                vertx = Vertx.vertx(vertxOptions);
+            var theVertx = this.vertx;
+            if (theVertx == null) {
+                theVertx = Vertx.vertx(vertxOptions);
             }
-            var server = vertx.createHttpServer(httpOptions);
-            var router = initializeRouter(vertx);
+            var server = theVertx.createHttpServer(httpOptions);
+            var router = initializeRouter(theVertx);
             server.requestHandler(router::accept);
-            connRef = new ConnectionRef<>(new ServerRouterTuple(ownedVertx ? vertx : null, server, router));
+            connRef = new ConnectionRef<>(new ServerRouterTuple(ownedVertx ? theVertx : null, server, router));
             theMap.put(connectionKey, connRef);
             server.listen(result -> latch.countDown());
             if (ownedVertx) {
