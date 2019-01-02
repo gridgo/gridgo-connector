@@ -6,7 +6,7 @@ import io.gridgo.bean.BElement;
 import io.gridgo.bean.BValue;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
-import io.netty.buffer.Unpooled;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
@@ -35,7 +35,7 @@ public class Netty4WebsocketUtils {
     }
 
     public static ChannelFuture send(@NonNull Channel channel, @NonNull BElement data, @NonNull Netty4WebsocketFrameType frameType) {
-        try (ByteBufOutputStream output = new ByteBufOutputStream(Unpooled.buffer())) {
+        try (ByteBufOutputStream output = new ByteBufOutputStream(PooledByteBufAllocator.DEFAULT.buffer())) {
             WebSocketFrame tobeSentFrame;
 
             switch (frameType) {
