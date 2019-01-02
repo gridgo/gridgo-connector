@@ -1,8 +1,11 @@
 package io.gridgo.redis.lettuce.delegate;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Stack;
 
 import org.joo.promise4j.Promise;
@@ -31,6 +34,8 @@ public interface LettuceStringCommandsDelegate extends LettuceCommandsDelegate, 
         return toPromise(getStringCommands().bitcount(key, start, end));
     }
 
+    static Set<String> BITFIELD_SUB_COMMANDS = new HashSet<>(Arrays.asList("set", "get", "incrby"));
+
     @Override
     default Promise<BElement, Exception> bitfield(byte[] key, String overflow, Object... subCommandAndArgs) {
         final BitFieldArgs bitFieldArgs = new BitFieldArgs();
@@ -46,13 +51,14 @@ public interface LettuceStringCommandsDelegate extends LettuceCommandsDelegate, 
         var cmdAndArgs = new LinkedList<>();
         while (!stack.isEmpty()) {
             var head = stack.pop();
-            if (cmdAndArgs.isEmpty()) {
+            if (cmdAndArgs.isEmpty() || !BITFIELD_SUB_COMMANDS.contains(head)) {
                 cmdAndArgs.add(head);
             } else {
                 // process cmdAndArgs
                 processSubCommand(bitFieldArgs, cmdAndArgs);
                 // renew cmdAndArgs
                 cmdAndArgs = new LinkedList<>();
+                cmdAndArgs.add(head);
             }
         }
         if (cmdAndArgs.size() > 0)
