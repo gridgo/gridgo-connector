@@ -1,6 +1,6 @@
 # gridgo-connector
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.gridgo/gridgo-connector-core.svg?maxAge=604800)](http://mvnrepository.com/artifact/io.gridgo/gridgo-connector-core)
+[![Maven Central](https://img.shields.io/maven-central/v/io.gridgo/gridgo-connector-core.svg)](http://mvnrepository.com/artifact/io.gridgo/gridgo-connector-core)
 [![Javadocs](http://javadoc.io/badge/io.gridgo/gridgo-connector-core.svg)](http://javadoc.io/doc/io.gridgo/gridgo-connector-core)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Build Status](https://travis-ci.org/gridgo/gridgo-connector.svg?branch=master)](https://travis-ci.org/gridgo/gridgo-connector)
