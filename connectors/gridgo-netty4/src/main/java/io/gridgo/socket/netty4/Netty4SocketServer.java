@@ -10,15 +10,15 @@ import io.netty.channel.ChannelFuture;
 
 public interface Netty4SocketServer extends Netty4Socket {
 
-	void bind(HostAndPort host);
+    void bind(HostAndPort host);
 
-	ChannelFuture send(String channelId, BElement data);
+    Map<String, Object> getChannelDetails(String channelId);
 
-	void setReceiveCallback(BiConsumer<String, BElement> onReceiveCallback);
+    ChannelFuture send(String channelId, BElement data);
 
-	void setChannelOpenCallback(Consumer<String> onChannelOpenCallback);
+    void setChannelCloseCallback(Consumer<String> onChannelCloseCallback);
 
-	void setChannelCloseCallback(Consumer<String> onChannelCloseCallback);
+    void setChannelOpenCallback(Consumer<String> onChannelOpenCallback);
 
-	Map<String, Object> getChannelDetails(String channelId);
+    void setReceiveCallback(BiConsumer<String, BElement> onReceiveCallback);
 }

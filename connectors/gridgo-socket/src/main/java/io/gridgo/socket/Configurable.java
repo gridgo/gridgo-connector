@@ -7,12 +7,12 @@ import io.gridgo.utils.helper.Assert;
 
 public interface Configurable {
 
-	void applyConfig(String name, Object value);
+    default void applyConfig(Map<String, Object> options) {
+        Assert.notNull(options, "Options");
+        for (Entry<String, Object> entry : options.entrySet()) {
+            this.applyConfig(entry.getKey(), entry.getValue());
+        }
+    }
 
-	default void applyConfig(Map<String, Object> options) {
-		Assert.notNull(options, "Options");
-		for (Entry<String, Object> entry : options.entrySet()) {
-			this.applyConfig(entry.getKey(), entry.getValue());
-		}
-	}
+    void applyConfig(String name, Object value);
 }

@@ -23,210 +23,209 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class KafkaProducerUnitTest {
 
-	private static final short REPLICATION_FACTOR = (short) 1;
+    private static final short REPLICATION_FACTOR = (short) 1;
 
-	private static final int NUM_PARTITIONS = 1;
+    private static final int NUM_PARTITIONS = 1;
 
-	private static final int NUM_MESSAGES = 100;
+    private static final int NUM_MESSAGES = 100;
 
-	private static final int NUM_BROKERS = 1;
+    private static final int NUM_BROKERS = 1;
 
-	@ClassRule
-	public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource()
-			.withBrokers(NUM_BROKERS).withBrokerProperty("auto.create.topics.enable", "false");
+    @ClassRule
+    public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(NUM_BROKERS).withBrokerProperty(
+            "auto.create.topics.enable", "false");
 
-	@Test
-	public void testProducerSend() {
-		String extraQuery = "&mode=producer";
-		String topicName = createTopic();
+    private Connector createKafkaConnector(String connectString) {
+        var connector = new DefaultConnectorFactory().createConnector(connectString);
 
-		String brokers = sharedKafkaTestResource.getKafkaConnectString();
+        Assert.assertNotNull(connector);
+        Assert.assertTrue(connector instanceof KafkaConnector);
+        return connector;
+    }
 
-		var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
-		var connector = createKafkaConnector(connectString);
-		var producer = connector.getProducer().orElseThrow();
+    private String createTopic() {
+        String topicName = UUID.randomUUID().toString();
 
-		connector.start();
+        var kafkaTestUtils = sharedKafkaTestResource.getKafkaTestUtils();
+        kafkaTestUtils.createTopic(topicName, NUM_PARTITIONS, REPLICATION_FACTOR);
+        return topicName;
+    }
 
-		String key = "test-key";
-		String value = "test-message";
-		BObject headers = BObject.ofEmpty().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
-		Message msg = Message.of(Payload.of(headers, BValue.of(value)));
+    private void printPace(String name, int numMessages, long elapsed) {
+        DecimalFormat df = new DecimalFormat("###,###.##");
+        log.info(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6) + "ms -> pace: "
+                + df.format(1e9 * numMessages / elapsed) + "ops/s");
+    }
 
-		long started = System.nanoTime();
+    @Test
+    public void testProducerSend() {
+        String extraQuery = "&mode=producer";
+        String topicName = createTopic();
 
-		for (int i = 0; i < NUM_MESSAGES; i++) {
-			producer.send(msg);
-		}
+        String brokers = sharedKafkaTestResource.getKafkaConnectString();
 
-		long elapsed = System.nanoTime() - started;
-		printPace("KafkaProducerSend", NUM_MESSAGES, elapsed);
+        var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
+        var connector = createKafkaConnector(connectString);
+        var producer = connector.getProducer().orElseThrow();
 
-		connector.stop();
-	}
+        connector.start();
 
-	@Test
-	public void testSendObject() {
-		String extraQuery = "&mode=producer&serializerClass=org.apache.kafka.common.serialization.ByteArraySerializer";
-		String topicName = createTopic();
+        String key = "test-key";
+        String value = "test-message";
+        BObject headers = BObject.ofEmpty().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
+        Message msg = Message.of(Payload.of(headers, BValue.of(value)));
 
-		String brokers = sharedKafkaTestResource.getKafkaConnectString();
+        long started = System.nanoTime();
 
-		var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
-		var connector = createKafkaConnector(connectString);
-		var producer = connector.getProducer().orElseThrow();
+        for (int i = 0; i < NUM_MESSAGES; i++) {
+            producer.send(msg);
+        }
 
-		connector.start();
+        long elapsed = System.nanoTime() - started;
+        printPace("KafkaProducerSend", NUM_MESSAGES, elapsed);
 
-		String key = "test-key";
-		BObject headers = BObject.ofEmpty().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
-		Message msg = Message.of(
-				Payload.of(headers, BObject.ofEmpty().setAny("test", 1).setAny("hello", "world")));
+        connector.stop();
+    }
 
-		long started = System.nanoTime();
+    @Test
+    public void testProducerSendMultiTopics() {
+        String extraQuery = "&mode=producer";
 
-		for (int i = 0; i < NUM_MESSAGES; i++) {
-			producer.send(msg);
-		}
+        String topicName = createTopic() + "," + createTopic();
 
-		long elapsed = System.nanoTime() - started;
-		printPace("KafkaProducerSend", NUM_MESSAGES, elapsed);
+        String brokers = sharedKafkaTestResource.getKafkaConnectString();
 
-		connector.stop();
-	}
+        var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
+        var connector = createKafkaConnector(connectString);
+        var producer = connector.getProducer().orElseThrow();
 
-	@Test
-	public void testProducerSendWithAck() {
-		String extraQuery = "&mode=producer";
+        connector.start();
 
-		String topicName = createTopic();
+        String key = "test-key";
+        String value = "test-message";
+        BObject headers = BObject.ofEmpty().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
+        Message msg = Message.of(Payload.of(headers, BValue.of(value)));
 
-		String brokers = sharedKafkaTestResource.getKafkaConnectString();
+        long started = System.nanoTime();
 
-		var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
-		var connector = createKafkaConnector(connectString);
-		var producer = connector.getProducer().orElseThrow();
+        for (int i = 0; i < NUM_MESSAGES; i++) {
+            producer.send(msg);
+        }
 
-		connector.start();
+        long elapsed = System.nanoTime() - started;
+        printPace("KafkaProducerSendMultiTopics", NUM_MESSAGES, elapsed);
 
-		String key = "test-key";
-		String value = "test-message";
-		BObject headers = BObject.ofEmpty().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
-		Message msg = Message.of(Payload.of(headers, BValue.of(value)));
+        connector.stop();
+    }
 
-		CountDownLatch latch = new CountDownLatch(NUM_MESSAGES);
+    @Test
+    public void testProducerSendMultiTopicsWithAck() {
+        String extraQuery = "&mode=producer";
 
-		long started = System.nanoTime();
+        String topicName = createTopic() + "," + createTopic();
 
-		for (int i = 0; i < NUM_MESSAGES; i++) {
-			producer.sendWithAck(msg).done(response -> latch.countDown());
-		}
+        String brokers = sharedKafkaTestResource.getKafkaConnectString();
 
-		try {
-			latch.await();
-		} catch (InterruptedException e) {
+        var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
+        var connector = createKafkaConnector(connectString);
+        var producer = connector.getProducer().orElseThrow();
 
-		}
+        connector.start();
 
-		long elapsed = System.nanoTime() - started;
-		printPace("KafkaProducerSendWithAck", NUM_MESSAGES, elapsed);
+        String key = "test-key";
+        String value = "test-message";
+        BObject headers = BObject.ofEmpty().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
+        Message msg = Message.of(Payload.of(headers, BValue.of(value)));
 
-		connector.stop();
-	}
+        CountDownLatch latch = new CountDownLatch(NUM_MESSAGES);
 
-	@Test
-	public void testProducerSendMultiTopicsWithAck() {
-		String extraQuery = "&mode=producer";
+        long started = System.nanoTime();
 
-		String topicName = createTopic() + "," + createTopic();
+        for (int i = 0; i < NUM_MESSAGES; i++) {
+            producer.sendWithAck(msg).done(response -> {
+                var body = response.getPayload().getBody();
+                if (body.isArray() && body.asArray().size() == 2)
+                    latch.countDown();
+            });
+        }
 
-		String brokers = sharedKafkaTestResource.getKafkaConnectString();
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
 
-		var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
-		var connector = createKafkaConnector(connectString);
-		var producer = connector.getProducer().orElseThrow();
+        }
 
-		connector.start();
+        long elapsed = System.nanoTime() - started;
+        printPace("KafkaProducerSendMultiTopicsWithAck", NUM_MESSAGES, elapsed);
 
-		String key = "test-key";
-		String value = "test-message";
-		BObject headers = BObject.ofEmpty().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
-		Message msg = Message.of(Payload.of(headers, BValue.of(value)));
+        connector.stop();
+    }
 
-		CountDownLatch latch = new CountDownLatch(NUM_MESSAGES);
+    @Test
+    public void testProducerSendWithAck() {
+        String extraQuery = "&mode=producer";
 
-		long started = System.nanoTime();
+        String topicName = createTopic();
 
-		for (int i = 0; i < NUM_MESSAGES; i++) {
-			producer.sendWithAck(msg).done(response -> {
-				var body = response.getPayload().getBody();
-				if (body.isArray() && body.asArray().size() == 2)
-					latch.countDown();
-			});
-		}
+        String brokers = sharedKafkaTestResource.getKafkaConnectString();
 
-		try {
-			latch.await();
-		} catch (InterruptedException e) {
+        var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
+        var connector = createKafkaConnector(connectString);
+        var producer = connector.getProducer().orElseThrow();
 
-		}
+        connector.start();
 
-		long elapsed = System.nanoTime() - started;
-		printPace("KafkaProducerSendMultiTopicsWithAck", NUM_MESSAGES, elapsed);
+        String key = "test-key";
+        String value = "test-message";
+        BObject headers = BObject.ofEmpty().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
+        Message msg = Message.of(Payload.of(headers, BValue.of(value)));
 
-		connector.stop();
-	}
+        CountDownLatch latch = new CountDownLatch(NUM_MESSAGES);
 
-	@Test
-	public void testProducerSendMultiTopics() {
-		String extraQuery = "&mode=producer";
+        long started = System.nanoTime();
 
-		String topicName = createTopic() + "," + createTopic();
+        for (int i = 0; i < NUM_MESSAGES; i++) {
+            producer.sendWithAck(msg).done(response -> latch.countDown());
+        }
 
-		String brokers = sharedKafkaTestResource.getKafkaConnectString();
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
 
-		var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
-		var connector = createKafkaConnector(connectString);
-		var producer = connector.getProducer().orElseThrow();
+        }
 
-		connector.start();
+        long elapsed = System.nanoTime() - started;
+        printPace("KafkaProducerSendWithAck", NUM_MESSAGES, elapsed);
 
-		String key = "test-key";
-		String value = "test-message";
-		BObject headers = BObject.ofEmpty().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
-		Message msg = Message.of(Payload.of(headers, BValue.of(value)));
+        connector.stop();
+    }
 
-		long started = System.nanoTime();
+    @Test
+    public void testSendObject() {
+        String extraQuery = "&mode=producer&serializerClass=org.apache.kafka.common.serialization.ByteArraySerializer";
+        String topicName = createTopic();
 
-		for (int i = 0; i < NUM_MESSAGES; i++) {
-			producer.send(msg);
-		}
+        String brokers = sharedKafkaTestResource.getKafkaConnectString();
 
-		long elapsed = System.nanoTime() - started;
-		printPace("KafkaProducerSendMultiTopics", NUM_MESSAGES, elapsed);
+        var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
+        var connector = createKafkaConnector(connectString);
+        var producer = connector.getProducer().orElseThrow();
 
-		connector.stop();
-	}
+        connector.start();
 
-	private Connector createKafkaConnector(String connectString) {
-		var connector = new DefaultConnectorFactory().createConnector(connectString);
+        String key = "test-key";
+        BObject headers = BObject.ofEmpty().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
+        Message msg = Message.of(Payload.of(headers, BObject.ofEmpty().setAny("test", 1).setAny("hello", "world")));
 
-		Assert.assertNotNull(connector);
-		Assert.assertTrue(connector instanceof KafkaConnector);
-		return connector;
-	}
+        long started = System.nanoTime();
 
-	private String createTopic() {
-		String topicName = UUID.randomUUID().toString();
+        for (int i = 0; i < NUM_MESSAGES; i++) {
+            producer.send(msg);
+        }
 
-		var kafkaTestUtils = sharedKafkaTestResource.getKafkaTestUtils();
-		kafkaTestUtils.createTopic(topicName, NUM_PARTITIONS, REPLICATION_FACTOR);
-		return topicName;
-	}
+        long elapsed = System.nanoTime() - started;
+        printPace("KafkaProducerSend", NUM_MESSAGES, elapsed);
 
-	private void printPace(String name, int numMessages, long elapsed) {
-		DecimalFormat df = new DecimalFormat("###,###.##");
-		log.info(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6)
-				+ "ms -> pace: " + df.format(1e9 * numMessages / elapsed) + "ops/s");
-	}
+        connector.stop();
+    }
 }

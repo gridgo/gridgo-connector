@@ -22,105 +22,103 @@ import io.gridgo.framework.support.Payload;
 
 public class ZMQPubSubUnitTest {
 
-	private final ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
+    private static final String TEXT = "This is test text";
 
-	private static final String TEXT = "This is test text";
+    private final ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
 
-	@Test
-	public void testPubSubPGM() throws Exception {
-		System.out.println("Test PGM protocol support");
+    private void testPubSub(String transport, String address) throws Exception {
 
-		String transport = "epgm";
-		String host = "239.192.1.1";
-		int port = 5555;
-		String address = host + ":" + port;
+        Connector pubConnector = RESOLVER.resolve("zmq:pub:" + transport + "://" + address);
+        Connector sub1Connector = RESOLVER.resolve("zmq:sub:" + transport + "://" + address + "?topic=topic1");
+        Connector sub2Connector = RESOLVER.resolve("zmq:sub:" + transport + "://" + address + "?topic=topic2");
+        Connector sub3Connector = RESOLVER.resolve("zmq:sub:" + transport + "://" + address + "?topic=topic");
 
-		Connector connector = RESOLVER.resolve("zmq:pub:" + transport + "://" + address);
-		connector.start();
-		assertTrue(connector.getProducer().isPresent());
-		connector.stop();
-	}
+        try {
+            pubConnector.start();
+            assertTrue(pubConnector.getProducer().isPresent());
 
-	@Test
-	public void testPubSubTCP() throws Exception {
-		System.out.println("Test pub/sub via TCP");
-		testPubSub("tcp", "localhost:5555");
-	}
+            sub1Connector.start();
+            assertTrue(sub1Connector.getConsumer().isPresent());
 
-	private void testPubSub(String transport, String address) throws Exception {
-		
-		Connector pubConnector = RESOLVER.resolve("zmq:pub:" + transport + "://" + address);
-		Connector sub1Connector = RESOLVER.resolve("zmq:sub:" + transport + "://" + address + "?topic=topic1");
-		Connector sub2Connector = RESOLVER.resolve("zmq:sub:" + transport + "://" + address + "?topic=topic2");
-		Connector sub3Connector = RESOLVER.resolve("zmq:sub:" + transport + "://" + address + "?topic=topic");
+            sub2Connector.start();
+            assertTrue(sub2Connector.getConsumer().isPresent());
 
-		try {
-			pubConnector.start();
-			assertTrue(pubConnector.getProducer().isPresent());
+            sub3Connector.start();
+            assertTrue(sub3Connector.getConsumer().isPresent());
 
-			sub1Connector.start();
-			assertTrue(sub1Connector.getConsumer().isPresent());
+            Producer publisher = pubConnector.getProducer().get();
+            Consumer subscriber1 = sub1Connector.getConsumer().get();
+            Consumer subscriber2 = sub2Connector.getConsumer().get();
+            Consumer subscriber3 = sub3Connector.getConsumer().get();
 
-			sub2Connector.start();
-			assertTrue(sub2Connector.getConsumer().isPresent());
+            final String text1 = TEXT + 1;
+            final String text2 = TEXT + 2;
 
-			sub3Connector.start();
-			assertTrue(sub3Connector.getConsumer().isPresent());
+            final AtomicReference<String> recv1 = new AtomicReference<String>();
+            final AtomicReference<String> recv2 = new AtomicReference<String>();
+            final Set<String> recv3 = new HashSet<>();
 
-			Producer publisher = pubConnector.getProducer().get();
-			Consumer subscriber1 = sub1Connector.getConsumer().get();
-			Consumer subscriber2 = sub2Connector.getConsumer().get();
-			Consumer subscriber3 = sub3Connector.getConsumer().get();
+            final CountDownLatch doneSignal = new CountDownLatch(4);
 
-			final String text1 = TEXT + 1;
-			final String text2 = TEXT + 2;
+            subscriber1.subscribe((msg) -> {
+                String body = msg.getPayload().getBody().asValue().getString();
+                recv1.set(body);
+                doneSignal.countDown();
+            });
 
-			final AtomicReference<String> recv1 = new AtomicReference<String>();
-			final AtomicReference<String> recv2 = new AtomicReference<String>();
-			final Set<String> recv3 = new HashSet<>();
+            subscriber2.subscribe((msg) -> {
+                String body = msg.getPayload().getBody().asValue().getString();
+                recv2.set(body);
+                doneSignal.countDown();
+            });
 
-			final CountDownLatch doneSignal = new CountDownLatch(4);
+            subscriber3.subscribe((msg) -> {
+                String body = msg.getPayload().getBody().asValue().getString();
+                recv3.add(body);
+                doneSignal.countDown();
+            });
 
-			subscriber1.subscribe((msg) -> {
-				String body = msg.getPayload().getBody().asValue().getString();
-				recv1.set(body);
-				doneSignal.countDown();
-			});
+            // publish data
+            publisher.send(Message.of(Payload.of(BValue.of(text1))).setRoutingIdFromAny("topic1"));
+            publisher.send(Message.of(Payload.of(BValue.of(text2))).setRoutingIdFromAny("topic2"));
 
-			subscriber2.subscribe((msg) -> {
-				String body = msg.getPayload().getBody().asValue().getString();
-				recv2.set(body);
-				doneSignal.countDown();
-			});
+            doneSignal.await(5, TimeUnit.SECONDS);
 
-			subscriber3.subscribe((msg) -> {
-				String body = msg.getPayload().getBody().asValue().getString();
-				recv3.add(body);
-				doneSignal.countDown();
-			});
+            assertEquals(text1, recv1.get());
+            assertEquals(text2, recv2.get());
 
-			// publish data
-			publisher.send(
-					Message.of(Payload.of(BValue.of(text1))).setRoutingIdFromAny("topic1"));
-			publisher.send(
-					Message.of(Payload.of(BValue.of(text2))).setRoutingIdFromAny("topic2"));
+            assertTrue(recv3.contains(text1));
+            assertTrue(recv3.contains(text2));
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        } finally {
+            pubConnector.stop();
+            sub1Connector.stop();
+            sub2Connector.stop();
+            sub3Connector.stop();
+        }
+    }
 
-			doneSignal.await(5, TimeUnit.SECONDS);
+    @Test
+    public void testPubSubPGM() throws Exception {
+        System.out.println("Test PGM protocol support");
 
-			assertEquals(text1, recv1.get());
-			assertEquals(text2, recv2.get());
+        String transport = "epgm";
+        String host = "239.192.1.1";
+        int port = 5555;
+        String address = host + ":" + port;
 
-			assertTrue(recv3.contains(text1));
-			assertTrue(recv3.contains(text2));
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw e;
-		} finally {
-			pubConnector.stop();
-			sub1Connector.stop();
-			sub2Connector.stop();
-			sub3Connector.stop();
-		}
-	}
+        Connector connector = RESOLVER.resolve("zmq:pub:" + transport + "://" + address);
+        connector.start();
+        assertTrue(connector.getProducer().isPresent());
+        connector.stop();
+    }
+
+    @Test
+    public void testPubSubTCP() throws Exception {
+        System.out.println("Test pub/sub via TCP");
+        testPubSub("tcp", "localhost:5555");
+    }
 
 }

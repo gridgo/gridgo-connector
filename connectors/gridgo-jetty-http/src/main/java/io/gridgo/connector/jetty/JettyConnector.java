@@ -13,47 +13,48 @@ import io.gridgo.utils.support.HostAndPort;
 @ConnectorEndpoint(scheme = "jetty", syntax = "http://{host}[:{port}][/{path}]")
 public class JettyConnector extends AbstractConnector {
 
-	@Override
-	protected void onInit() {
-		String host = getPlaceholder("host");
+    private static final String FALSE = "false";
 
-		String portStr = getPlaceholder("port");
-		int port = portStr == null ? 80 : Integer.parseInt(portStr);
+    @Override
+    protected void onInit() {
+        String host = getPlaceholder("host");
 
-		String path = getPlaceholder("path");
-		if (path == null || path.isBlank()) {
-			path = "/*";
-		}
+        String portStr = getPlaceholder("port");
+        int port = portStr == null ? 80 : Integer.parseInt(portStr);
 
-		Set<JettyServletContextHandlerOption> options = readOptions();
-		boolean http2Enabled = Boolean.valueOf(getParam("http2Enabled", "true"));
+        String path = getPlaceholder("path");
+        if (path == null || path.isBlank()) {
+            path = "/*";
+        }
 
-		var jettyConsumer = new DefaultJettyConsumer(getContext(), HostAndPort.newInstance(host, port), http2Enabled,
-				path, options);
+        Set<JettyServletContextHandlerOption> options = readOptions();
+        boolean http2Enabled = Boolean.valueOf(getParam("http2Enabled", "true"));
 
-		this.consumer = Optional.of(jettyConsumer);
-		this.producer = Optional.of(jettyConsumer.getResponder());
-	}
+        var jettyConsumer = new DefaultJettyConsumer(getContext(), HostAndPort.newInstance(host, port), http2Enabled, path, options);
 
-	private Set<JettyServletContextHandlerOption> readOptions() {
-		Set<JettyServletContextHandlerOption> options = new HashSet<>();
+        this.consumer = Optional.of(jettyConsumer);
+        this.producer = Optional.of(jettyConsumer.getResponder());
+    }
 
-		if (Boolean.parseBoolean(getParam("session", "false"))) {
-			options.add(JettyServletContextHandlerOption.SESSIONS);
-		} else {
-			options.add(JettyServletContextHandlerOption.NO_SESSIONS);
-		}
+    private Set<JettyServletContextHandlerOption> readOptions() {
+        Set<JettyServletContextHandlerOption> options = new HashSet<>();
 
-		if (Boolean.parseBoolean(getParam("security", "false"))) {
-			options.add(JettyServletContextHandlerOption.SECURITY);
-		} else {
-			options.add(JettyServletContextHandlerOption.NO_SECURITY);
-		}
+        if (Boolean.parseBoolean(getParam("session", FALSE))) {
+            options.add(JettyServletContextHandlerOption.SESSIONS);
+        } else {
+            options.add(JettyServletContextHandlerOption.NO_SESSIONS);
+        }
 
-		if (Boolean.parseBoolean(getParam("gzip", "false"))) {
-			options.add(JettyServletContextHandlerOption.GZIP);
-		}
+        if (Boolean.parseBoolean(getParam("security", FALSE))) {
+            options.add(JettyServletContextHandlerOption.SECURITY);
+        } else {
+            options.add(JettyServletContextHandlerOption.NO_SECURITY);
+        }
 
-		return options;
-	}
+        if (Boolean.parseBoolean(getParam("gzip", FALSE))) {
+            options.add(JettyServletContextHandlerOption.GZIP);
+        }
+
+        return options;
+    }
 }

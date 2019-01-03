@@ -26,131 +26,132 @@ import lombok.Setter;
 
 public class DefaultSocketProducer extends SingleThreadSendingProducer implements SocketProducer, Loggable {
 
-	private static final byte ZERO_BYTE = (byte) 0;
+    private static final byte ZERO_BYTE = (byte) 0;
 
-	private final ByteBuffer buffer;
+    private final ByteBuffer buffer;
 
-	@Getter
-	private long totalSentBytes;
+    @Getter
+    private long totalSentBytes;
 
-	@Getter
-	private long totalSentMessages;
+    @Getter
+    private long totalSentMessages;
 
-	@Getter
-	@Setter(AccessLevel.PROTECTED)
-	private Receiver receiver;
+    @Getter
+    @Setter(AccessLevel.PROTECTED)
+    private Receiver receiver;
 
-	private final SocketFactory factory;
-	private final SocketOptions options;
-	private final String address;
+    private final SocketFactory factory;
 
-	private Socket socket;
+    private final SocketOptions options;
 
-	public DefaultSocketProducer(//
-			ConnectorContext context, //
-			SocketFactory factory, //
-			SocketOptions options, //
-			String address, //
-			int bufferSize, //
-			int ringBufferSize, //
-			boolean batchingEnabled, //
-			int maxBatchingSize) {
+    private final String address;
 
-		super(context, ringBufferSize, (runnable) -> {
-			return new Thread(runnable);
-		}, batchingEnabled, maxBatchingSize);
+    private Socket socket;
 
-		this.buffer = ByteBuffer.allocateDirect(bufferSize);
-		this.options = options;
-		this.factory = factory;
-		this.address = address;
-	}
+    public DefaultSocketProducer(//
+            ConnectorContext context, //
+            SocketFactory factory, //
+            SocketOptions options, //
+            String address, //
+            int bufferSize, //
+            int ringBufferSize, //
+            boolean batchingEnabled, //
+            int maxBatchingSize) {
 
-	@Override
-	protected void onStart() {
-		this.socket = this.factory.createSocket(options);
-		String type = options.getType().trim().toLowerCase();
-		switch (type) {
-		case "push":
-			socket.connect(address);
-			break;
-		case "pub":
-			Endpoint endpoint = EndpointParser.parse(address);
-			if (SocketConnector.MULTICAST_TRANSPORTS.contains(endpoint.getProtocol())) {
-				socket.connect(address);
-			} else {
-				socket.bind(address);
-			}
-			break;
-		case "pair":
-			socket.connect(address);
-			int bufferSize = Integer.parseInt(
-					(String) options.getConfig().getOrDefault("bufferSize", "" + SocketConnector.DEFAULT_BUFFER_SIZE));
-			if (!options.getConfig().containsKey("receiveTimeout")) {
-				socket.applyConfig("receiveTimeout", SocketConsumer.DEFAULT_RECV_TIMEOUT);
-			}
-			this.setReceiver(new DefaultSocketReceiver(getContext(), this.socket, bufferSize, getUniqueIdentifier()));
-			break;
-		}
-		super.onStart();
-	}
+        super(context, ringBufferSize, (runnable) -> {
+            return new Thread(runnable);
+        }, batchingEnabled, maxBatchingSize);
 
-	@Override
-	protected void onStop() {
-		super.onStop();
-		this.socket.close();
-	}
+        this.buffer = ByteBuffer.allocateDirect(bufferSize);
+        this.options = options;
+        this.factory = factory;
+        this.address = address;
+    }
 
-	@Override
-	protected Message accumulateBatch(@NonNull Collection<Message> messages) {
-		if (this.isBatchingEnabled()) {
-			return SocketUtils.accumulateBatch(messages);
-		}
-		throw new IllegalStateException("Batching is disabled");
-	}
+    @Override
+    protected Message accumulateBatch(@NonNull Collection<Message> messages) {
+        if (this.isBatchingEnabled()) {
+            return SocketUtils.accumulateBatch(messages);
+        }
+        throw new IllegalStateException("Batching is disabled");
+    }
 
-	@Override
-	protected void executeSendOnSingleThread(Message message) throws Exception {
-		buffer.clear();
-		if (options.getType().equalsIgnoreCase("pub")) {
-			if (message.getRoutingId().isPresent()) {
-				BValue routingId = message.getRoutingId().get();
-				buffer.put(routingId.getRaw());
-			}
-			buffer.put(ZERO_BYTE);
-		}
+    @Override
+    protected void executeSendOnSingleThread(Message message) throws Exception {
+        buffer.clear();
+        if (options.getType().equalsIgnoreCase("pub")) {
+            message.getRoutingId() //
+                   .map(BValue::getRaw) //
+                   .ifPresent(buffer::put);
+            buffer.put(ZERO_BYTE);
+        }
 
-		Payload payload = message.getPayload();
-		if (payload != null) {
-			payload.toBArray().writeBytes(buffer);
+        Payload payload = message.getPayload();
+        if (payload != null) {
+            payload.toBArray().writeBytes(buffer);
 
-			buffer.flip();
-			int sentBytes = this.socket.send(buffer);
-			if (sentBytes == -1) {
-				throw new SendMessageException();
-			}
-			totalSentBytes += sentBytes;
-			totalSentMessages++;
-		}
-	}
+            buffer.flip();
+            int sentBytes = this.socket.send(buffer);
+            if (sentBytes == -1) {
+                throw new SendMessageException();
+            }
+            totalSentBytes += sentBytes;
+            totalSentMessages++;
+        }
+    }
 
-	@Override
-	protected String generateName() {
-		return "producer." + this.getUniqueIdentifier();
-	}
+    @Override
+    protected String generateName() {
+        return "producer." + this.getUniqueIdentifier();
+    }
 
-	private String getUniqueIdentifier() {
-		return new StringBuilder() //
-				.append(this.factory.getType()) //
-				.append(".") //
-				.append(this.options.getType()) //
-				.append(".") //
-				.append(this.address) //
-				.toString();
-	}
+    private String getUniqueIdentifier() {
+        return new StringBuilder() //
+                                  .append(this.factory.getType()) //
+                                  .append(".") //
+                                  .append(this.options.getType()) //
+                                  .append(".") //
+                                  .append(this.address) //
+                                  .toString();
+    }
 
-	@Override
-	public boolean isCallSupported() {
-		return false;
-	}
+    @Override
+    public boolean isCallSupported() {
+        return false;
+    }
+
+    @Override
+    protected void onStart() {
+        this.socket = this.factory.createSocket(options);
+        String type = options.getType().trim().toLowerCase();
+        switch (type) {
+        case "push":
+            socket.connect(address);
+            break;
+        case "pub":
+            Endpoint endpoint = EndpointParser.parse(address);
+            if (SocketConnector.MULTICAST_TRANSPORTS.contains(endpoint.getProtocol())) {
+                socket.connect(address);
+            } else {
+                socket.bind(address);
+            }
+            break;
+        case "pair":
+            socket.connect(address);
+            int bufferSize = Integer.parseInt((String) options.getConfig().getOrDefault("bufferSize", "" + SocketConnector.DEFAULT_BUFFER_SIZE));
+            if (!options.getConfig().containsKey("receiveTimeout")) {
+                socket.applyConfig("receiveTimeout", SocketConsumer.DEFAULT_RECV_TIMEOUT);
+            }
+            this.setReceiver(new DefaultSocketReceiver(getContext(), this.socket, bufferSize, getUniqueIdentifier()));
+            break;
+        default:
+        }
+        super.onStart();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        this.socket.close();
+    }
 }

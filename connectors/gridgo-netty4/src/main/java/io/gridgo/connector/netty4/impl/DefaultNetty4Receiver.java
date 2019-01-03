@@ -1,5 +1,7 @@
 package io.gridgo.connector.netty4.impl;
 
+import static io.gridgo.connector.netty4.Netty4Constant.MISC_SOCKET_MSG_TYPE;
+
 import java.util.function.Function;
 
 import org.joo.promise4j.Deferred;
@@ -17,80 +19,79 @@ import lombok.NonNull;
 
 public class DefaultNetty4Receiver extends AbstractReceiver implements FailureHandlerAware<DefaultNetty4Receiver> {
 
-	private Netty4SocketClient socketClient;
+    private Netty4SocketClient socketClient;
 
-	private final String uniqueIdentifier;
+    private final String uniqueIdentifier;
 
-	public DefaultNetty4Receiver(ConnectorContext context, @NonNull Netty4SocketClient socketClient,
-			@NonNull String uniqueIdentifier) {
-		super(context);
-		this.socketClient = socketClient;
-		this.uniqueIdentifier = uniqueIdentifier;
-	}
+    @Getter(AccessLevel.PROTECTED)
+    private Function<Throwable, Message> failureHandler;
 
-	@Getter(AccessLevel.PROTECTED)
-	private Function<Throwable, Message> failureHandler;
+    public DefaultNetty4Receiver(ConnectorContext context, @NonNull Netty4SocketClient socketClient, @NonNull String uniqueIdentifier) {
+        super(context);
+        this.socketClient = socketClient;
+        this.uniqueIdentifier = uniqueIdentifier;
+    }
 
-	@Override
-	public DefaultNetty4Receiver setFailureHandler(Function<Throwable, Message> failureHandler) {
-		this.failureHandler = failureHandler;
-		return this;
-	}
+    protected Deferred<Message, Exception> createDeferred() {
+        return new CompletableDeferredObject<>();
+    }
 
-	@Override
-	protected void onStart() {
-		this.socketClient.setChannelCloseCallback(this::onConnectionClosed);
-		this.socketClient.setChannelOpenCallback(this::onConnectionOpened);
-		this.socketClient.setReceiveCallback(this::onReceive);
-		this.socketClient.setFailureHandler(this::onFailure);
-	}
+    @Override
+    protected String generateName() {
+        return "consumer." + this.uniqueIdentifier;
+    }
 
-	private void onFailure(Throwable cause) {
-		if (!this.socketClient.isRunning()) {
-			this.socketClient.setChannelCloseCallback(null);
-			this.socketClient.setFailureHandler(null);
-		}
+    private void onConnectionClosed() {
+        this.publishMessage(this.createMessage().addMisc(MISC_SOCKET_MSG_TYPE, "close"));
 
-		if (this.failureHandler != null) {
-			this.failureHandler.apply(cause);
-		} else {
-			getLogger().error("Receiver error: ", cause);
-		}
-	}
+        this.socketClient.setChannelCloseCallback(null);
+        this.socketClient.setFailureHandler(null);
+    }
 
-	@Override
-	protected void onStop() {
-		this.socketClient.setChannelOpenCallback(null);
-		this.socketClient.setReceiveCallback(null);
-	}
+    private void onConnectionOpened() {
+        this.publishMessage(this.createMessage().addMisc(MISC_SOCKET_MSG_TYPE, "open"));
+    }
 
-	protected Deferred<Message, Exception> createDeferred() {
-		return new CompletableDeferredObject<>();
-	}
+    private void onFailure(Throwable cause) {
+        if (!this.socketClient.isRunning()) {
+            this.socketClient.setChannelCloseCallback(null);
+            this.socketClient.setFailureHandler(null);
+        }
 
-	private void publishMessage(Message message) {
-		Deferred<Message, Exception> deferred = this.createDeferred();
-		deferred.promise().fail(this::onFailure);
-		this.publish(message, deferred);
-	}
+        if (this.failureHandler != null) {
+            this.failureHandler.apply(cause);
+        } else {
+            getLogger().error("Receiver error: ", cause);
+        }
+    }
 
-	private void onConnectionOpened() {
-		this.publishMessage(this.createMessage().addMisc("socketMessageType", "open"));
-	}
+    private void onReceive(BElement element) {
+        this.publishMessage(this.parseMessage(element).addMisc(MISC_SOCKET_MSG_TYPE, "message"));
+    }
 
-	private void onReceive(BElement element) {
-		this.publishMessage(this.parseMessage(element).addMisc("socketMessageType", "message"));
-	}
+    @Override
+    protected void onStart() {
+        this.socketClient.setChannelCloseCallback(this::onConnectionClosed);
+        this.socketClient.setChannelOpenCallback(this::onConnectionOpened);
+        this.socketClient.setReceiveCallback(this::onReceive);
+        this.socketClient.setFailureHandler(this::onFailure);
+    }
 
-	private void onConnectionClosed() {
-		this.publishMessage(this.createMessage().addMisc("socketMessageType", "close"));
+    @Override
+    protected void onStop() {
+        this.socketClient.setChannelOpenCallback(null);
+        this.socketClient.setReceiveCallback(null);
+    }
 
-		this.socketClient.setChannelCloseCallback(null);
-		this.socketClient.setFailureHandler(null);
-	}
+    private void publishMessage(Message message) {
+        Deferred<Message, Exception> deferred = this.createDeferred();
+        deferred.promise().fail(this::onFailure);
+        this.publish(message, deferred);
+    }
 
-	@Override
-	protected String generateName() {
-		return "consumer." + this.uniqueIdentifier;
-	}
+    @Override
+    public DefaultNetty4Receiver setFailureHandler(Function<Throwable, Message> failureHandler) {
+        this.failureHandler = failureHandler;
+        return this;
+    }
 }

@@ -17,135 +17,131 @@ import io.gridgo.framework.support.Payload;
 
 public class FileConsumerUnitTest {
 
-	private static final int NUM_MESSAGES = 2;
-	private static final int LIMIT = 100;
+    private static final int NUM_MESSAGES = 2;
+    private static final int LIMIT = 100;
 
-	@Test
-	public void testMultiConnector() throws InterruptedException {
-		var msg = Message.of(Payload.of(BValue.of("hello")));
+    private long appendFile(Message msg, int numMessages, String endpoint) throws InterruptedException {
+        var connector1 = new DefaultConnectorFactory().createConnector(endpoint);
+        connector1.start();
 
-		var numMessages = 1;
-		var endpoint1 = "file://[testTwice.txt]?format=raw&batchingEnabled=true&lengthPrepend=true&deleteOnStartup=true&producerOnly=true";
+        var producer = (FileProducer) connector1.getProducer().orElseThrow();
+        var latch = new CountDownLatch(numMessages);
+        for (int i = 0; i < numMessages; i++) {
+            producer.sendWithAck(msg).always((s, r, e) -> latch.countDown());
+        }
+        latch.await();
+        connector1.stop();
+        return producer.getEngine().getTotalSentBytes();
+    }
 
-		appendFile(msg, numMessages, endpoint1);
+    private void doTestFile(String scheme, String format, String batchEnabled, String lengthPrepend) throws InterruptedException {
+        var totalSentBytes = prepareFile(scheme, format, batchEnabled, lengthPrepend);
 
-		var endpoint2 = "file://[testTwice.txt]?format=raw&batchingEnabled=true&lengthPrepend=true&producerOnly=true";
-		appendFile(msg, numMessages, endpoint2);
+        var endpoint = scheme + "://[test." + lengthPrepend + "." + batchEnabled + "." + format + "]?format=" + format + "&limitStrategy=rotate&limitSize="
+                + LIMIT + "&deleteOnShutdown=true&lengthPrepend=" + lengthPrepend;
+        var strategy = new ExecutorExecutionStrategy(1);
+        var context = new DefaultConnectorContextBuilder().setConsumerExecutionStrategy(strategy).build();
+        var connector = new DefaultConnectorFactory().createConnector(endpoint, context);
+        var consumer = connector.getConsumer().orElseThrow();
+        var latch = new CountDownLatch(NUM_MESSAGES);
+        var exRef = new AtomicReference<>();
+        consumer.subscribe(msg -> {
+            var response = msg.getPayload().getBody().asValue().getString();
+            if (!"hello".equals(response))
+                exRef.set(new RuntimeException("Expected: hello. Actual: " + response));
+            latch.countDown();
+        });
+        var start = System.nanoTime();
+        connector.start();
+        latch.await();
 
-		var endpoint = "file://[testTwice.txt]?format=raw&deleteOnShutdown=true&lengthPrepend=true";
-		var strategy = new ExecutorExecutionStrategy(1);
-		var context = new DefaultConnectorContextBuilder().setConsumerExecutionStrategy(strategy).build();
-		var connector = new DefaultConnectorFactory().createConnector(endpoint, context);
-		var consumer = connector.getConsumer().orElseThrow();
-		var latch = new CountDownLatch(numMessages * 2);
-		var exRef = new AtomicReference<>();
-		consumer.subscribe(request -> {
-			var response = request.getPayload().getBody().asValue().getString();
-			if (!"hello".equals(response))
-				exRef.set(new RuntimeException("Expected: hello. Actual: " + response));
-			latch.countDown();
-		});
-		connector.start();
-		latch.await();
+        var elapsed = System.nanoTime() - start;
+        printPace("Consumer (format=" + format + ", batchingEnabled=" + batchEnabled + ", lengthPrepend=" + lengthPrepend + ")\n", NUM_MESSAGES, elapsed,
+                totalSentBytes);
 
-		connector.stop();
-		strategy.stop();
-		Assert.assertNull(exRef.get());
-	}
+        connector.stop();
+        strategy.stop();
+        Assert.assertNull(exRef.get());
+    }
 
-	private long appendFile(Message msg, int numMessages, String endpoint) throws InterruptedException {
-		var connector1 = new DefaultConnectorFactory().createConnector(endpoint);
-		connector1.start();
+    private long prepareFile(String scheme, String format, String batchEnabled, String lengthPrepend) throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(scheme + "://[test." + lengthPrepend + "." + batchEnabled + "." + format + "]?format="
+                + format + "&batchingEnabled=" + batchEnabled + "&lengthPrepend=" + lengthPrepend + "&limitStrategy=rotate&limitSize=" + LIMIT
+                + "&deleteOnStartup=true&maxBatchSize=1000&producerOnly=true");
+        connector.start();
 
-		var producer = (FileProducer) connector1.getProducer().orElseThrow();
-		var latch = new CountDownLatch(numMessages);
-		for (int i = 0; i < numMessages; i++) {
-			producer.sendWithAck(msg).always((s, r, e) -> latch.countDown());
-		}
-		latch.await();
-		connector1.stop();
-		return producer.getEngine().getTotalSentBytes();
-	}
+        var producer = (FileProducer) connector.getProducer().orElseThrow();
 
-	@Test
-	public void testBatchWithLengthPrepend() throws InterruptedException {
-		System.out.println("Test batching with length prepend\n");
-		doTestFile("file:disruptor", "xml", "true", "true");
-		doTestFile("file:disruptor", "json", "true", "true");
-		doTestFile("file:disruptor", "raw", "true", "true");
-		System.out.println("-----");
-	}
+        var msg = Message.of(Payload.of(BValue.of("hello")));
 
-	@Test
-	public void testNonBatchWithLengthPrepend() throws InterruptedException {
-		System.out.println("Test non-batching with length prepend\n");
-		doTestFile("file:disruptor", "xml", "false", "true");
-		doTestFile("file:disruptor", "json", "false", "true");
-		doTestFile("file:disruptor", "raw", "false", "true");
-		System.out.println("-----");
-	}
+        var latch = new CountDownLatch(NUM_MESSAGES);
 
-	private void doTestFile(String scheme, String format, String batchEnabled, String lengthPrepend)
-			throws InterruptedException {
-		var totalSentBytes = prepareFile(scheme, format, batchEnabled, lengthPrepend);
+        for (int i = 0; i < NUM_MESSAGES; i++) {
+            producer.sendWithAck(msg).always((s, r, e) -> latch.countDown());
+        }
 
-		var endpoint = scheme + "://[test." + lengthPrepend + "." + batchEnabled + "." + format + "]?format=" + format
-				+ "&limitStrategy=rotate&limitSize=" + LIMIT + "&deleteOnShutdown=true&lengthPrepend=" + lengthPrepend;
-		var strategy = new ExecutorExecutionStrategy(1);
-		var context = new DefaultConnectorContextBuilder().setConsumerExecutionStrategy(strategy).build();
-		var connector = new DefaultConnectorFactory().createConnector(endpoint, context);
-		var consumer = connector.getConsumer().orElseThrow();
-		var latch = new CountDownLatch(NUM_MESSAGES);
-		var exRef = new AtomicReference<>();
-		consumer.subscribe(msg -> {
-			var response = msg.getPayload().getBody().asValue().getString();
-			if (!"hello".equals(response))
-				exRef.set(new RuntimeException("Expected: hello. Actual: " + response));
-			latch.countDown();
-		});
-		var start = System.nanoTime();
-		connector.start();
-		latch.await();
+        latch.await();
 
-		var elapsed = System.nanoTime() - start;
-		printPace("Consumer (format=" + format + ", batchingEnabled=" + batchEnabled + ", lengthPrepend="
-				+ lengthPrepend + ")\n", NUM_MESSAGES, elapsed, totalSentBytes);
+        connector.stop();
 
-		connector.stop();
-		strategy.stop();
-		Assert.assertNull(exRef.get());
-	}
+        return producer.getEngine().getTotalSentBytes();
+    }
 
-	private long prepareFile(String scheme, String format, String batchEnabled, String lengthPrepend)
-			throws InterruptedException {
-		var connector = new DefaultConnectorFactory().createConnector(scheme + "://[test." + lengthPrepend + "."
-				+ batchEnabled + "." + format + "]?format=" + format + "&batchingEnabled=" + batchEnabled
-				+ "&lengthPrepend=" + lengthPrepend + "&limitStrategy=rotate&limitSize=" + LIMIT
-				+ "&deleteOnStartup=true&maxBatchSize=1000&producerOnly=true");
-		connector.start();
+    private void printPace(String name, int numMessages, long elapsed, long totalSentBytes) {
+        DecimalFormat df = new DecimalFormat("###,###.##");
+        System.out.println("Total sent bytes: " + df.format(totalSentBytes));
+        System.out.println(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6) + "ms -> pace: "
+                + df.format(1e9 * numMessages / elapsed) + "ops/s" + " with bandwidth of " + df.format(1e9 * totalSentBytes / elapsed / 1024 / 1024) + "MB/s");
+    }
 
-		var producer = (FileProducer) connector.getProducer().orElseThrow();
+    @Test
+    public void testBatchWithLengthPrepend() throws InterruptedException {
+        System.out.println("Test batching with length prepend\n");
+        doTestFile("file:disruptor", "xml", "true", "true");
+        doTestFile("file:disruptor", "json", "true", "true");
+        doTestFile("file:disruptor", "raw", "true", "true");
+        System.out.println("-----");
+    }
 
-		var msg = Message.of(Payload.of(BValue.of("hello")));
+    @Test
+    public void testMultiConnector() throws InterruptedException {
+        var msg = Message.of(Payload.of(BValue.of("hello")));
 
-		var latch = new CountDownLatch(NUM_MESSAGES);
+        var numMessages = 1;
+        var endpoint1 = "file://[testTwice.txt]?format=raw&batchingEnabled=true&lengthPrepend=true&deleteOnStartup=true&producerOnly=true";
 
-		for (int i = 0; i < NUM_MESSAGES; i++) {
-			producer.sendWithAck(msg).always((s, r, e) -> latch.countDown());
-		}
+        appendFile(msg, numMessages, endpoint1);
 
-		latch.await();
+        var endpoint2 = "file://[testTwice.txt]?format=raw&batchingEnabled=true&lengthPrepend=true&producerOnly=true";
+        appendFile(msg, numMessages, endpoint2);
 
-		connector.stop();
+        var endpoint = "file://[testTwice.txt]?format=raw&deleteOnShutdown=true&lengthPrepend=true";
+        var strategy = new ExecutorExecutionStrategy(1);
+        var context = new DefaultConnectorContextBuilder().setConsumerExecutionStrategy(strategy).build();
+        var connector = new DefaultConnectorFactory().createConnector(endpoint, context);
+        var consumer = connector.getConsumer().orElseThrow();
+        var latch = new CountDownLatch(numMessages * 2);
+        var exRef = new AtomicReference<>();
+        consumer.subscribe(request -> {
+            var response = request.getPayload().getBody().asValue().getString();
+            if (!"hello".equals(response))
+                exRef.set(new RuntimeException("Expected: hello. Actual: " + response));
+            latch.countDown();
+        });
+        connector.start();
+        latch.await();
 
-		return producer.getEngine().getTotalSentBytes();
-	}
+        connector.stop();
+        strategy.stop();
+        Assert.assertNull(exRef.get());
+    }
 
-	private void printPace(String name, int numMessages, long elapsed, long totalSentBytes) {
-		DecimalFormat df = new DecimalFormat("###,###.##");
-		System.out.println("Total sent bytes: " + df.format(totalSentBytes));
-		System.out.println(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6)
-				+ "ms -> pace: " + df.format(1e9 * numMessages / elapsed) + "ops/s" + " with bandwidth of "
-				+ df.format(1e9 * totalSentBytes / elapsed / 1024 / 1024) + "MB/s");
-	}
+    @Test
+    public void testNonBatchWithLengthPrepend() throws InterruptedException {
+        System.out.println("Test non-batching with length prepend\n");
+        doTestFile("file:disruptor", "xml", "false", "true");
+        doTestFile("file:disruptor", "json", "false", "true");
+        doTestFile("file:disruptor", "raw", "false", "true");
+        System.out.println("-----");
+    }
 }

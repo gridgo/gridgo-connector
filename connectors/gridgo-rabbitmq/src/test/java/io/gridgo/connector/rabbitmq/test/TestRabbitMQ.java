@@ -28,229 +28,225 @@ import io.gridgo.framework.support.Payload;
 
 public class TestRabbitMQ {
 
-	private static final ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
+    @FunctionalInterface
+    static interface Consumer4Args<One, Two, Three, Four> {
+        public void accept(One one, Two two, Three three, Four four);
+    }
 
-	@FunctionalInterface
-	static interface Consumer4Args<One, Two, Three, Four> {
-		public void accept(One one, Two two, Three three, Four four);
-	}
+    private static final ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
 
-	private static final String TEXT = "This is message";
+    private static final String TEXT = "This is message";
 
-	private void init(Connector connector, Consumer4Args<Producer, Consumer, Runnable, Runnable> output) {
-		assertNotNull(connector);
-		assertTrue(connector instanceof RabbitMQConnector);
+    private void init(Connector connector, Consumer4Args<Producer, Consumer, Runnable, Runnable> output) {
+        assertNotNull(connector);
+        assertTrue(connector instanceof RabbitMQConnector);
 
-		connector.start();
+        connector.start();
 
-		Producer producer = connector.getProducer().get();
-		assertNotNull(producer);
-		assertTrue(producer instanceof RabbitMQProducer);
+        Producer producer = connector.getProducer().get();
+        assertNotNull(producer);
+        assertTrue(producer instanceof RabbitMQProducer);
 
-		Consumer consumer = connector.getConsumer().get();
-		assertNotNull(consumer);
-		assertTrue(consumer instanceof RabbitMQConsumer);
+        Consumer consumer = connector.getConsumer().get();
+        assertNotNull(consumer);
+        assertTrue(consumer instanceof RabbitMQConsumer);
 
-		final AtomicReference<CountDownLatch> doneSignal = new AtomicReference<CountDownLatch>(new CountDownLatch(1));
+        final AtomicReference<CountDownLatch> doneSignal = new AtomicReference<CountDownLatch>(new CountDownLatch(1));
 
-		final Runnable triggerDone = () -> {
-			doneSignal.get().countDown();
-			doneSignal.set(new CountDownLatch(1));
-		};
+        final Runnable triggerDone = () -> {
+            doneSignal.get().countDown();
+            doneSignal.set(new CountDownLatch(1));
+        };
 
-		final Runnable waitForDone = () -> {
-			try {
-				doneSignal.get().await();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		};
-		output.accept(producer, consumer, triggerDone, waitForDone);
-	}
+        final Runnable waitForDone = () -> {
+            try {
+                doneSignal.get().await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        };
+        output.accept(producer, consumer, triggerDone, waitForDone);
+    }
 
-	@Test
-	public void testDirectQueue() throws InterruptedException {
-		System.out.println("Test direct queue");
-		final Connector connector = RESOLVER.resolve("rabbitmq://localhost?queueName=test");
-		init(connector, (producer, consumer, triggerDone, waitForDone) -> {
+    @Test
+    public void testDirectQueue() throws InterruptedException {
+        System.out.println("Test direct queue");
+        final Connector connector = RESOLVER.resolve("rabbitmq://localhost?queueName=test");
+        init(connector, (producer, consumer, triggerDone, waitForDone) -> {
 
-			final AtomicReference<String> receivedTextRef = new AtomicReference<String>(null);
+            final AtomicReference<String> receivedTextRef = new AtomicReference<String>(null);
 
-			consumer.subscribe((message, deferred) -> {
-				receivedTextRef.set(message.getPayload().getBody().asValue().getString());
-				triggerDone.run();
-			});
+            consumer.subscribe((message, deferred) -> {
+                receivedTextRef.set(message.getPayload().getBody().asValue().getString());
+                triggerDone.run();
+            });
 
-			producer.send(Message.of(Payload.of(BElement.fromAny(TEXT))));
+            producer.send(Message.of(Payload.of(BElement.ofAny(TEXT))));
 
-			waitForDone.run();
-			assertEquals(TEXT, receivedTextRef.get());
+            waitForDone.run();
+            assertEquals(TEXT, receivedTextRef.get());
 
-			connector.stop();
-		});
-	}
+            connector.stop();
+        });
+    }
 
-	@Test
-	public void testRPC() throws InterruptedException {
-		System.out.println("Test RPC");
-		final Connector connector = RESOLVER.resolve("rabbitmq://localhost?queueName=test&rpc=true");
-		init(connector, (producer, consumer, triggerDone, waitForDone) -> {
+    @Test
+    public void testPubSub() throws InterruptedException {
+        System.out.println("Test pub/sub");
+        Connector connector1 = RESOLVER.resolve("rabbitmq://localhost/testFanoutExchange?exchangeType=fanout");
+        Connector connector2 = RESOLVER.resolve("rabbitmq://localhost/testFanoutExchange?exchangeType=fanout");
 
-			consumer.subscribe((message, deferred) -> {
-				System.out.println("got message from source: " + message.getMisc().get("source"));
-				try {
-					Payload responsePayload = Payload.of(message.getPayload().getBody());
-					deferred.resolve(Message.of(responsePayload));
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			});
+        connector1.start();
 
-			final AtomicReference<String> receivedTextRef = new AtomicReference<String>(null);
-			Message msg = Message.of(Payload.of(BElement.fromAny(TEXT)));
-			Promise<Message, Exception> promise = producer.call(msg);
-			promise.done((message) -> {
-				receivedTextRef.set(message.getPayload().getBody().asValue().getString());
-				triggerDone.run();
-			});
+        Producer producer = connector1.getProducer().get();
+        Consumer consumer1 = connector1.getConsumer().get();
 
-			waitForDone.run();
-			assertEquals(TEXT, receivedTextRef.get());
+        connector2.start();
+        Consumer consumer2 = connector2.getConsumer().get();
 
-			connector.stop();
-		});
-	}
+        final AtomicReference<String> receivedTextRef1 = new AtomicReference<String>(null);
+        final AtomicReference<String> receivedTextRef2 = new AtomicReference<String>(null);
 
-	@Test
-	public void testPubSub() throws InterruptedException {
-		System.out.println("Test pub/sub");
-		Connector connector1 = RESOLVER.resolve("rabbitmq://localhost/testFanoutExchange?exchangeType=fanout");
-		Connector connector2 = RESOLVER.resolve("rabbitmq://localhost/testFanoutExchange?exchangeType=fanout");
+        CountDownLatch doneSignal = new CountDownLatch(2);
 
-		connector1.start();
+        consumer1.subscribe((message, deferred) -> {
+            receivedTextRef1.set(message.getPayload().getBody().asValue().getString());
+            doneSignal.countDown();
+        });
 
-		Producer producer = connector1.getProducer().get();
-		Consumer consumer1 = connector1.getConsumer().get();
+        consumer2.subscribe((message, deferred) -> {
+            receivedTextRef2.set(message.getPayload().getBody().asValue().getString());
+            doneSignal.countDown();
+        });
 
-		connector2.start();
-		Consumer consumer2 = connector2.getConsumer().get();
+        producer.send(Message.of(Payload.of(BElement.ofAny(TEXT))));
 
-		final AtomicReference<String> receivedTextRef1 = new AtomicReference<String>(null);
-		final AtomicReference<String> receivedTextRef2 = new AtomicReference<String>(null);
+        doneSignal.await();
+        assertEquals(TEXT, receivedTextRef1.get());
+        assertEquals(TEXT, receivedTextRef2.get());
 
-		CountDownLatch doneSignal = new CountDownLatch(2);
+        connector1.stop();
+        connector2.stop();
+    }
 
-		consumer1.subscribe((message, deferred) -> {
-			receivedTextRef1.set(message.getPayload().getBody().asValue().getString());
-			doneSignal.countDown();
-		});
+    @Test
+    public void testRoutingKey() throws InterruptedException {
+        System.out.println("Test routing key");
+        Connector connector1 = RESOLVER.resolve("rabbitmq://localhost/testDirectExchange?exchangeType=direct&routingKey=key1");
 
-		consumer2.subscribe((message, deferred) -> {
-			receivedTextRef2.set(message.getPayload().getBody().asValue().getString());
-			doneSignal.countDown();
-		});
+        Connector connector2 = RESOLVER.resolve("rabbitmq://localhost/testDirectExchange?exchangeType=direct&routingKey=key2");
 
-		producer.send(Message.of(Payload.of(BElement.fromAny(TEXT))));
+        connector1.start();
+        connector2.start();
 
-		doneSignal.await();
-		assertEquals(TEXT, receivedTextRef1.get());
-		assertEquals(TEXT, receivedTextRef2.get());
+        Producer producer1 = connector1.getProducer().get();
+        Consumer consumer1 = connector1.getConsumer().get();
 
-		connector1.stop();
-		connector2.stop();
-	}
+        Consumer consumer2 = connector2.getConsumer().get();
 
-	@Test
-	public void testRoutingKey() throws InterruptedException {
-		System.out.println("Test routing key");
-		Connector connector1 = RESOLVER
-				.resolve("rabbitmq://localhost/testDirectExchange?exchangeType=direct&routingKey=key1");
+        final String text1 = TEXT + "1";
+        final String text2 = TEXT + "2";
 
-		Connector connector2 = RESOLVER
-				.resolve("rabbitmq://localhost/testDirectExchange?exchangeType=direct&routingKey=key2");
+        final AtomicReference<String> receivedTextRef1 = new AtomicReference<String>(null);
+        final AtomicReference<String> receivedTextRef2 = new AtomicReference<String>(null);
 
-		connector1.start();
-		connector2.start();
+        CountDownLatch doneSignal = new CountDownLatch(2);
 
-		Producer producer1 = connector1.getProducer().get();
-		Consumer consumer1 = connector1.getConsumer().get();
+        consumer1.subscribe((message, deferred) -> {
+            System.out.println("consumer 1: got message from source: " + message.getMisc().get("source"));
+            receivedTextRef1.set(message.getPayload().getBody().asValue().getString());
+            doneSignal.countDown();
+        });
 
-		Consumer consumer2 = connector2.getConsumer().get();
+        consumer2.subscribe((message, deferred) -> {
+            System.out.println("consumer 2: got message from source: " + message.getMisc().get("source"));
+            receivedTextRef2.set(message.getPayload().getBody().asValue().getString());
+            doneSignal.countDown();
+        });
 
-		final String text1 = TEXT + "1";
-		final String text2 = TEXT + "2";
+        producer1.send(Message.of(BValue.of("key1"), Payload.of(BElement.ofAny(text1))));
+        producer1.send(Message.of(BValue.of("key2"), Payload.of(BElement.ofAny(text2))));
 
-		final AtomicReference<String> receivedTextRef1 = new AtomicReference<String>(null);
-		final AtomicReference<String> receivedTextRef2 = new AtomicReference<String>(null);
+        doneSignal.await();
+        assertEquals(text1, receivedTextRef1.get());
+        assertEquals(text2, receivedTextRef2.get());
 
-		CountDownLatch doneSignal = new CountDownLatch(2);
+        connector1.stop();
 
-		consumer1.subscribe((message, deferred) -> {
-			System.out.println("consumer 1: got message from source: " + message.getMisc().get("source"));
-			receivedTextRef1.set(message.getPayload().getBody().asValue().getString());
-			doneSignal.countDown();
-		});
+        connector2.stop();
+    }
 
-		consumer2.subscribe((message, deferred) -> {
-			System.out.println("consumer 2: got message from source: " + message.getMisc().get("source"));
-			receivedTextRef2.set(message.getPayload().getBody().asValue().getString());
-			doneSignal.countDown();
-		});
+    @Test
+    public void testRoutingKeyRPC() throws InterruptedException, PromiseException {
+        System.out.println("Test routing key rpc");
+        Connector connector1 = RESOLVER.resolve("rabbitmq://localhost/testDirectExchangeRPC?exchangeType=direct&routingKey=key1&rpc=true");
+        Connector connector2 = RESOLVER.resolve("rabbitmq://localhost/testDirectExchangeRPC?exchangeType=direct&routingKey=key2&rpc=true");
 
-		producer1.send(Message.of(BValue.of("key1"), Payload.of(BElement.fromAny(text1))));
-		producer1.send(Message.of(BValue.of("key2"), Payload.of(BElement.fromAny(text2))));
+        connector1.start();
+        connector2.start();
 
-		doneSignal.await();
-		assertEquals(text1, receivedTextRef1.get());
-		assertEquals(text2, receivedTextRef2.get());
+        Producer producer = connector1.getProducer().get();
+        Consumer consumer1 = connector1.getConsumer().get();
 
-		connector1.stop();
+        Consumer consumer2 = connector2.getConsumer().get();
 
-		connector2.stop();
-	}
+        final String text1 = TEXT + "1";
+        final String text2 = TEXT + "2";
 
-	@Test
-	public void testRoutingKeyRPC() throws InterruptedException, PromiseException {
-		System.out.println("Test routing key rpc");
-		Connector connector1 = RESOLVER
-				.resolve("rabbitmq://localhost/testDirectExchangeRPC?exchangeType=direct&routingKey=key1&rpc=true");
-		Connector connector2 = RESOLVER
-				.resolve("rabbitmq://localhost/testDirectExchangeRPC?exchangeType=direct&routingKey=key2&rpc=true");
+        BiConsumer<Message, Deferred<Message, Exception>> echoMessageHandler = (message, deferred) -> {
+            try {
+                Payload responsePayload = Payload.of(message.getPayload().getBody());
+                deferred.resolve(Message.of(responsePayload));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        };
 
-		connector1.start();
-		connector2.start();
+        consumer1.subscribe(echoMessageHandler);
+        consumer2.subscribe(echoMessageHandler);
 
-		Producer producer = connector1.getProducer().get();
-		Consumer consumer1 = connector1.getConsumer().get();
+        Message req1 = Message.of(BValue.of("key1"), Payload.of(BElement.ofAny(text1)));
+        Message req2 = Message.of(BValue.of("key2"), Payload.of(BElement.ofAny(text2)));
 
-		Consumer consumer2 = connector2.getConsumer().get();
+        Message resp1 = producer.call(req1).get();
+        Message resp2 = producer.call(req2).get();
 
-		final String text1 = TEXT + "1";
-		final String text2 = TEXT + "2";
+        assertEquals(text1, resp1.getPayload().getBody().asValue().getString());
+        assertEquals(text2, resp2.getPayload().getBody().asValue().getString());
 
-		BiConsumer<Message, Deferred<Message, Exception>> echoMessageHandler = (message, deferred) -> {
-			try {
-				Payload responsePayload = Payload.of(message.getPayload().getBody());
-				deferred.resolve(Message.of(responsePayload));
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		};
+        connector1.stop();
 
-		consumer1.subscribe(echoMessageHandler);
-		consumer2.subscribe(echoMessageHandler);
+        connector2.stop();
+    }
 
-		Message req1 = Message.of(BValue.of("key1"), Payload.of(BElement.fromAny(text1)));
-		Message req2 = Message.of(BValue.of("key2"), Payload.of(BElement.fromAny(text2)));
+    @Test
+    public void testRPC() throws InterruptedException {
+        System.out.println("Test RPC");
+        final Connector connector = RESOLVER.resolve("rabbitmq://localhost?queueName=test&rpc=true");
+        init(connector, (producer, consumer, triggerDone, waitForDone) -> {
 
-		Message resp1 = producer.call(req1).get();
-		Message resp2 = producer.call(req2).get();
+            consumer.subscribe((message, deferred) -> {
+                System.out.println("got message from source: " + message.getMisc().get("source"));
+                try {
+                    Payload responsePayload = Payload.of(message.getPayload().getBody());
+                    deferred.resolve(Message.of(responsePayload));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
 
-		assertEquals(text1, resp1.getPayload().getBody().asValue().getString());
-		assertEquals(text2, resp2.getPayload().getBody().asValue().getString());
+            final AtomicReference<String> receivedTextRef = new AtomicReference<String>(null);
+            Message msg = Message.of(Payload.of(BElement.ofAny(TEXT)));
+            Promise<Message, Exception> promise = producer.call(msg);
+            promise.done((message) -> {
+                receivedTextRef.set(message.getPayload().getBody().asValue().getString());
+                triggerDone.run();
+            });
 
-		connector1.stop();
+            waitForDone.run();
+            assertEquals(TEXT, receivedTextRef.get());
 
-		connector2.stop();
-	}
+            connector.stop();
+        });
+    }
 }

@@ -8,113 +8,112 @@ import java.util.LinkedList;
 
 import lombok.Getter;
 
-public class AutoIncrementedFileLimitStrategy implements FileLimitStrategy {
+public class AutoIncrementedFileLimitStrategy extends AbstractFileLimitStrategy {
 
-	private String basePath;
+    private String basePath;
 
-	private String mode;
+    private String mode;
 
-	private long limit;
+    private long limit;
 
-	private RandomAccessFile file;
+    private RandomAccessFile raf;
 
-	@Getter
-	private FileChannel fileChannel;
+    @Getter
+    private FileChannel fileChannel;
 
-	private long written = -1;
+    private long written = -1;
 
-	private LinkedList<File> files;
+    private LinkedList<File> fileList;
 
-	private boolean deleteOnStartup;
+    private boolean deleteOnStartup;
 
-	private boolean deleteOnShutdown;
+    private boolean deleteOnShutdown;
 
-	private boolean override;
+    private boolean override;
 
-	public AutoIncrementedFileLimitStrategy(String basePath, String mode, long limit, boolean deleteOnStartup,
-			boolean deleteOnShutdown, boolean override) throws IOException {
-		this.basePath = basePath;
-		this.mode = mode;
-		this.limit = limit;
-		this.deleteOnStartup = deleteOnStartup;
-		this.deleteOnShutdown = deleteOnShutdown;
-		this.override = override;
-	}
+    public AutoIncrementedFileLimitStrategy(String basePath, String mode, long limit, boolean deleteOnStartup, boolean deleteOnShutdown, boolean override) {
+        this.basePath = basePath;
+        this.mode = mode;
+        this.limit = limit;
+        this.deleteOnStartup = deleteOnStartup;
+        this.deleteOnShutdown = deleteOnShutdown;
+        this.override = override;
+    }
 
-	@Override
-	public void start() throws IOException {
-		this.files = initFiles();
-		if (deleteOnStartup) {
-			deleteFiles();
-			this.files = initFiles();
-		}
-		resetFile();
-	}
+    private void closeFile() throws IOException {
+        this.raf.close();
+    }
 
-	@Override
-	public void stop() throws IOException {
-		closeFile();
-		if (deleteOnShutdown)
-			deleteFiles();
-	}
+    private void deleteFiles() {
+        for (var file : fileList) {
+            deleteFile(file);
+        }
+    }
 
-	private LinkedList<File> initFiles() {
-		var files = new LinkedList<File>();
-		files.add(new File(basePath));
-		for (var i = 0;; i++) {
-			var file = new File(basePath + "." + i);
-			if (!file.exists())
-				break;
-			files.add(file);
-		}
-		return files;
-	}
+    private void increment() throws IOException {
+        closeFile();
+        var last = this.fileList.size();
+        var file = new File(basePath + "." + last);
+        deleteFile(file);
+        this.fileList.add(file);
+        resetFile();
+    }
 
-	private void deleteFiles() {
-		for (var file : files) {
-			file.delete();
-		}
-	}
+    private LinkedList<File> initFiles() {
+        var files = new LinkedList<File>();
+        files.add(new File(basePath));
+        for (var i = 0;; i++) {
+            var file = new File(basePath + "." + i);
+            if (!file.exists())
+                break;
+            files.add(file);
+        }
+        return files;
+    }
 
-	@Override
-	public void putBytes(long bytes) throws IOException {
-		this.written += bytes;
-		if (this.limit > 0 && this.written > this.limit) {
-			increment();
-		}
-	}
+    @Override
+    public void putBytes(long bytes) throws IOException {
+        this.written += bytes;
+        if (this.limit > 0 && this.written > this.limit) {
+            increment();
+        }
+    }
 
-	private void increment() throws IOException {
-		closeFile();
-		var last = this.files.size();
-		var file = new File(basePath + "." + last);
-		file.delete();
-		this.files.add(file);
-		resetFile();
-	}
+    @Override
+    public void readWith(RandomAccessFileHandler consumer) throws IOException {
+        for (var file : fileList) {
+            try (var theRaf = new RandomAccessFile(file, "r")) {
+                consumer.process(theRaf);
+            }
+        }
+    }
 
-	private void closeFile() throws IOException {
-		this.file.close();
-	}
+    private void resetFile() throws IOException {
+        this.raf = new RandomAccessFile(fileList.getLast(), mode);
+        if (!override) {
+            var length = this.raf.length();
+            this.raf.seek(length);
+            this.written = length;
+        } else {
+            this.written = 0;
+        }
+        this.fileChannel = this.raf.getChannel();
+    }
 
-	private void resetFile() throws IOException {
-		this.file = new RandomAccessFile(files.getLast(), mode);
-		if (!override) {
-			var length = this.file.length();
-			this.file.seek(length);
-			this.written = length;
-		} else {
-			this.written = 0;
-		}
-		this.fileChannel = this.file.getChannel();
-	}
+    @Override
+    public void start() throws IOException {
+        this.fileList = initFiles();
+        if (deleteOnStartup) {
+            deleteFiles();
+            this.fileList = initFiles();
+        }
+        resetFile();
+    }
 
-	@Override
-	public void readWith(RandomAccessFileHandler consumer) throws IOException {
-		for (var file : files) {
-			try (var raf = new RandomAccessFile(file, "r")) {
-				consumer.process(raf);
-			}
-		}
-	}
+    @Override
+    public void stop() throws IOException {
+        closeFile();
+        if (deleteOnShutdown)
+            deleteFiles();
+    }
 }

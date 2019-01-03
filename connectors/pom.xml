@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>io.gridgo</groupId>
 		<artifactId>gridgo-connector</artifactId>
-		<version>0.2.0</version>
+		<version>0.3.0</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
@@ -19,11 +19,14 @@
 		<module>gridgo-kafka</module>
 		<module>gridgo-rabbitmq</module>
 		<module>gridgo-vertx-http</module>
+		<module>gridgo-rocksdb</module>
 		<module>gridgo-mongodb</module>
 		<module>gridgo-http-common</module>
 		<module>gridgo-jetty-http</module>
 		<module>gridgo-http</module>
+		<module>gridgo-http-jdk</module>
 		<module>gridgo-file</module>
+		<module>gridgo-redis</module>
 	</modules>
 
 	<dependencies>

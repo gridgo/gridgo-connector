@@ -7,12 +7,12 @@ import io.gridgo.framework.support.Message;
 
 public interface FailureHandlerAware<T> {
 
-	public T setFailureHandler(Function<Throwable, Message> failureHandler);
+    public default T setFailureHandler(Consumer<Throwable> failureHandler) {
+        return setFailureHandler((ex) -> {
+            failureHandler.accept(ex);
+            return null;
+        });
+    }
 
-	public default T setFailureHandler(Consumer<Throwable> failureHandler) {
-		return setFailureHandler((ex) -> {
-			failureHandler.accept(ex);
-			return null;
-		});
-	}
+    public T setFailureHandler(Function<Throwable, Message> failureHandler);
 }

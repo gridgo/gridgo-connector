@@ -7,8 +7,23 @@ Connectors
 |===
 | Component | Available From | Description
 
+| link:gridgo-file/README.adoc[File] (gridgo-file) +
+`file://filePath` | 0.2.0 | Allow journalling messages to files with rolling support.
+
+| link:gridgo-http/README.adoc[HTTP] (gridgo-http) +
+`http://httpPath` | 0.2.0 | Allow sending HTTP requests.
+
+| link:gridgo-http-jdk/README.adoc[HTTP/2] (gridgo-http-jdk) +
+`http2://httpPath` | 0.3.0 | Allow sending HTTP/2 requests using Java 9+ built-in HttpClient.
+
 | link:gridgo-kafka/README.adoc[Kafka] (gridgo-kafka) +
 `kafka:topic` | 0.1.0 | Allows messages to be sent to (or consumed from) Apache Kafka brokers.
+
+| link:gridgo-mongodb/README.adoc[MongoDB] (gridgo-mongodb) +
+`mongodb:mongoBean/database/collection` | 0.1.0 | Allow retrieving and updating MongoDB documents
+
+| link:gridgo-socket-nanomsg/README.adoc[NanoMSG] (gridgo-socket-nanomsg) +
+`nanomsg:type:transport://host:port` | 0.1.0 | // TODO: Fill description.
 
 | link:gridgo-netty4/README.adoc[Netty4] (gridgo-netty4) +
 | 0.1.0 | // TODO: Fill description.
@@ -16,14 +31,14 @@ Connectors
 | link:gridgo-rabbitmq/README.adoc[RabbitMQ] (gridgo-rabbitmq) +
 `rabbitmq://address/exchangeName` | 0.1.0 | Allows messages to be sent to (or consumed from) Rabbit MQ.
 
-| link:gridgo-socket-nanomsg/README.adoc[NanoMSG] (gridgo-socket-nanomsg) +
-`nanomsg:type:transport://host:port` | 0.1.0 | // TODO: Fill description.
+| link:gridgo-rocksdb/README.adoc[RocksDB] (gridgo-rocksdb) +
+`rocksdb://path` | 0.3.0 | Allow retrieving and updating data from RocksDB
 
 | link:gridgo-socket-zmq/README.adoc[ZMQ] (gridgo-socket-zmq) +
 `zmq:type:transport://host:port` | 0.1.0 | // TODO: Fill description.
 
-| link:gridgo-vertx-http/README.adoc[VertX HTTP] (gridgo-vertx-http) +
-`vertx:http://host:port/path` | 0.1.0 | HTTP server using the VertX.
+| link:gridgo-vertx-http/README.adoc[Vert.x HTTP] (gridgo-vertx-http) +
+`vertx:http://host:port/path` | 0.1.0 | HTTP server using Vert.x.
 
 |===
 // components: END

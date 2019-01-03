@@ -25,111 +25,111 @@ import lombok.NonNull;
 
 public abstract class AbstractNetty4Server extends AbstractHasResponderConsumer implements Netty4Server {
 
-	@Getter(AccessLevel.PROTECTED)
-	private final Netty4Transport transport;
+    @Getter(AccessLevel.PROTECTED)
+    private final Netty4Transport transport;
 
-	@Getter(AccessLevel.PROTECTED)
-	private final HostAndPort host;
+    @Getter(AccessLevel.PROTECTED)
+    private final HostAndPort host;
 
-	@Getter(AccessLevel.PROTECTED)
-	private final BObject options;
+    @Getter(AccessLevel.PROTECTED)
+    private final BObject options;
 
-	@Getter(AccessLevel.PROTECTED)
-	private final String path;
+    @Getter(AccessLevel.PROTECTED)
+    private final String path;
 
-	@Getter(AccessLevel.PROTECTED)
-	private Netty4SocketServer socketServer;
+    @Getter(AccessLevel.PROTECTED)
+    private Netty4SocketServer socketServer;
 
-	@Getter(AccessLevel.PROTECTED)
-	private Function<Throwable, Message> failureHandler;
+    @Getter(AccessLevel.PROTECTED)
+    private Function<Throwable, Message> failureHandler;
 
-	@Override
-	public Netty4Server setFailureHandler(Function<Throwable, Message> failureHandler) {
-		this.failureHandler = failureHandler;
-		return this;
-	}
+    protected AbstractNetty4Server(@NonNull ConnectorContext context, @NonNull Netty4Transport transport, @NonNull HostAndPort host, @NonNull String path,
+            @NonNull BObject options) {
+        super(context);
+        this.transport = transport;
+        this.host = host;
+        this.path = path;
+        this.options = options;
 
-	protected AbstractNetty4Server(@NonNull ConnectorContext context, @NonNull Netty4Transport transport,
-			@NonNull HostAndPort host, @NonNull String path, @NonNull BObject options) {
-		super(context);
-		this.transport = transport;
-		this.host = host;
-		this.path = path;
-		this.options = options;
+        initSocketServer();
+    }
 
-		initSocketServer();
-	}
+    protected Deferred<Message, Exception> createDeferred() {
+        return new CompletableDeferredObject<>();
+    }
 
-	private void initSocketServer() {
-		this.socketServer = this.createSocketServer();
+    protected abstract Responder createResponder();
 
-		this.socketServer.applyConfigs(this.options);
-		if (this.socketServer instanceof Netty4Websocket) {
-			((Netty4Websocket) this.socketServer).setPath(this.getPath());
-		}
+    protected Netty4SocketServer createSocketServer() {
+        switch (this.transport) {
+        case TCP:
+            return new Netty4TCPServer();
+        case WEBSOCKET:
+            return new Netty4WebsocketServer();
+        }
+        throw new UnsupportedTransportException("Transport type doesn't supported: " + this.transport);
+    }
 
-		this.setResponder(this.createResponder());
-	}
+    @Override
+    protected String generateName() {
+        return "consumer." + this.getUniqueIdentifier();
+    }
 
-	protected Netty4SocketServer createSocketServer() {
-		switch (this.transport) {
-		case TCP:
-			return new Netty4TCPServer();
-		case WEBSOCKET:
-			return new Netty4WebsocketServer();
-		}
-		throw new UnsupportedTransportException("Transport type doesn't supported: " + this.transport);
-	}
+    protected String getUniqueIdentifier() {
+        return "netty:server:" + this.transport.name().toLowerCase() + "://" + this.host.toIpAndPort();
+    }
 
-	protected abstract Responder createResponder();
+    private void initSocketServer() {
+        this.socketServer = this.createSocketServer();
 
-	@Override
-	protected void onStart() {
-		this.socketServer.setChannelOpenCallback(this::onConnectionOpen);
-		this.socketServer.setChannelCloseCallback(this::onConnectionClose);
-		this.socketServer.setReceiveCallback(this::onReceive);
-		this.socketServer.setFailureHandler(this::onFailure);
+        this.socketServer.applyConfigs(this.options);
+        if (this.socketServer instanceof Netty4Websocket) {
+            ((Netty4Websocket) this.socketServer).setPath(this.getPath());
+        }
 
-		this.socketServer.bind(host);
-	}
+        this.setResponder(this.createResponder());
+    }
 
-	@Override
-	protected void onStop() {
-		this.getResponder().stop();
-		this.setResponder(null);
+    protected abstract void onConnectionClose(String channelId);
 
-		this.socketServer.stop();
-		this.socketServer.setChannelCloseCallback(null);
-		this.socketServer.setChannelOpenCallback(null);
-		this.socketServer.setReceiveCallback(null);
-		this.socketServer = null;
-	}
+    protected abstract void onConnectionOpen(String channelId);
 
-	protected String getUniqueIdentifier() {
-		return "netty:server:" + this.transport.name().toLowerCase() + "://" + this.host.toIpAndPort();
-	}
+    protected final void onFailure(Throwable cause) {
+        if (this.failureHandler != null) {
+            this.failureHandler.apply(cause);
+        } else {
+            getLogger().error("Netty4 consumer error", cause);
+        }
+    }
 
-	@Override
-	protected String generateName() {
-		return "consumer." + this.getUniqueIdentifier();
-	}
+    protected abstract void onReceive(String channelId, BElement data);
 
-	protected Deferred<Message, Exception> createDeferred() {
-		return new CompletableDeferredObject<>();
-	}
+    @Override
+    protected void onStart() {
+        this.socketServer.setChannelOpenCallback(this::onConnectionOpen);
+        this.socketServer.setChannelCloseCallback(this::onConnectionClose);
+        this.socketServer.setReceiveCallback(this::onReceive);
+        this.socketServer.setFailureHandler(this::onFailure);
 
-	protected final void onFailure(Throwable cause) {
-		if (this.failureHandler != null) {
-			this.failureHandler.apply(cause);
-		} else {
-			getLogger().error("Netty4 consumer error", cause);
-		}
-	}
+        this.socketServer.bind(host);
+    }
 
-	protected abstract void onConnectionClose(String channelId);
+    @Override
+    protected void onStop() {
+        this.getResponder().stop();
+        this.setResponder(null);
 
-	protected abstract void onConnectionOpen(String channelId);
+        this.socketServer.stop();
+        this.socketServer.setChannelCloseCallback(null);
+        this.socketServer.setChannelOpenCallback(null);
+        this.socketServer.setReceiveCallback(null);
+        this.socketServer = null;
+    }
 
-	protected abstract void onReceive(String channelId, BElement data);
+    @Override
+    public Netty4Server setFailureHandler(Function<Throwable, Message> failureHandler) {
+        this.failureHandler = failureHandler;
+        return this;
+    }
 
 }

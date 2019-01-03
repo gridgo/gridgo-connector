@@ -19,288 +19,282 @@ import org.junit.Test;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
-import io.gridgo.connector.support.exceptions.FailureHandlerAware;
+import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 
 public class VertxHttpUnitTest {
 
-	@Test
-	public void testMultiConnector() throws ClientProtocolException, IOException {
-		var connector1 = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8083/");
-		var connector2 = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8083/api1");
-		var connector3 = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8083/api2");
-		connector1.start();
-		connector2.start();
-		connector3.start();
+    private StringBuffer readResponse(HttpResponse response) throws IOException {
+        BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+        StringBuffer result = new StringBuffer();
+        String line = "";
+        while ((line = rd.readLine()) != null) {
+            result.append(line);
+        }
+        rd.close();
+        return result;
+    }
 
-		var consumer1 = connector1.getConsumer().orElseThrow();
-		var consumer2 = connector2.getConsumer().orElseThrow();
-		var consumer3 = connector3.getConsumer().orElseThrow();
+    private Deferred<Message, Exception> resolveSimple(Message request, Deferred<Message, Exception> deferred, int i) {
+        return deferred.resolve(Message.of(Payload.of(BValue.of(i))));
+    }
 
-		consumer1.subscribe((request, deferred) -> resolveSimple(request, deferred, 1));
-		consumer2.subscribe((request, deferred) -> resolveSimple(request, deferred, 2));
-		consumer3.subscribe((request, deferred) -> resolveSimple(request, deferred, 3));
+    @Test
+    public void testAllMethods() throws ClientProtocolException, IOException {
+        var connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8080/");
+        connector.start();
+        var consumer = connector.getConsumer().orElseThrow();
+        consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
 
-		var client = HttpClientBuilder.create().build();
-		testRoot(client);
-		testApi1(client);
-		testApi2(client);
+        String url = "http://127.0.0.1:8080";
+        var client = HttpClientBuilder.create().build();
 
-		connector1.stop();
+        var request = new HttpPost(url);
+        request.addHeader("test-header", "XYZ");
+        request.setEntity(new StringEntity("{'abc':'def'}"));
+        var response = client.execute(request);
+        Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+        Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
+        var result = readResponse(response);
+        Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
 
-		var request4 = new HttpGet("http://127.0.0.1:8083");
-		var response4 = client.execute(request4);
-		Assert.assertEquals(404, response4.getStatusLine().getStatusCode());
+        var putRequest = new HttpPut(url);
+        putRequest.addHeader("test-header", "XYZ");
+        putRequest.setEntity(new StringEntity("{'abc':'def'}"));
+        response = client.execute(putRequest);
+        Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+        Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
+        result = readResponse(response);
+        Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
 
-		testApi1(client);
-		testApi2(client);
+        client.close();
 
-		connector2.stop();
-		connector3.stop();
-	}
+        connector.stop();
+    }
 
-	private void testRoot(CloseableHttpClient client) throws IOException, ClientProtocolException {
-		var request1 = new HttpGet("http://127.0.0.1:8083");
-		var result1 = readResponse(client.execute(request1)).toString();
-		Assert.assertEquals("1", result1);
-	}
+    @Test
+    public void testAllMethodsWithPath() throws ClientProtocolException, IOException {
+        var connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8080/api");
+        connector.start();
+        var consumer = connector.getConsumer().orElseThrow();
+        consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
 
-	private void testApi2(CloseableHttpClient client) throws IOException, ClientProtocolException {
-		var request3 = new HttpGet("http://127.0.0.1:8083/api2");
-		var result3 = readResponse(client.execute(request3)).toString();
-		Assert.assertEquals("3", result3);
-	}
+        String url = "http://127.0.0.1:8080/api";
+        var client = HttpClientBuilder.create().build();
 
-	private void testApi1(CloseableHttpClient client) throws IOException, ClientProtocolException {
-		var request2 = new HttpGet("http://127.0.0.1:8083/api1");
-		var result2 = readResponse(client.execute(request2)).toString();
-		Assert.assertEquals("2", result2);
-	}
+        var request = new HttpPost(url);
+        request.addHeader("test-header", "XYZ");
+        request.setEntity(new StringEntity("{'abc':'def'}"));
+        var response = client.execute(request);
+        Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+        Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
+        var result = readResponse(response);
+        Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
 
-	private Deferred<Message, Exception> resolveSimple(Message request, Deferred<Message, Exception> deferred, int i) {
-		return deferred.resolve(Message.of(Payload.of(BValue.of(i))));
-	}
+        var putRequest = new HttpPut(url);
+        putRequest.addHeader("test-header", "XYZ");
+        putRequest.setEntity(new StringEntity("{'abc':'def'}"));
+        response = client.execute(putRequest);
+        Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+        Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
+        result = readResponse(response);
+        Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
 
-	@Test
-	public void testCustomFailureHandler() throws ClientProtocolException, IOException {
-		var connector = new DefaultConnectorFactory()
-				.createConnector("vertx:http://127.0.0.1:8082/?method=POST&format=xml");
+        client.close();
 
-		connector.start();
+        connector.stop();
+    }
 
-		Assert.assertNotNull(connector.getProducer());
-		Assert.assertTrue(!connector.getProducer().isPresent());
+    private void testApi1(CloseableHttpClient client) throws IOException, ClientProtocolException {
+        var request2 = new HttpGet("http://127.0.0.1:8083/api1");
+        var result2 = readResponse(client.execute(request2)).toString();
+        Assert.assertEquals("2", result2);
+    }
 
-		var consumer = connector.getConsumer().orElseThrow();
-		if (consumer instanceof FailureHandlerAware) {
-			((FailureHandlerAware<?>) consumer).setFailureHandler(ex -> {
-				BObject headers = BObject.ofEmpty().setAny("error", true).setAny("cause", ex.getMessage());
-				return Message.of(Payload.of(headers, BValue.of("Error")));
-			});
-		}
-		consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
+    private void testApi2(CloseableHttpClient client) throws IOException, ClientProtocolException {
+        var request3 = new HttpGet("http://127.0.0.1:8083/api2");
+        var result3 = readResponse(client.execute(request3)).toString();
+        Assert.assertEquals("3", result3);
+    }
 
-		String url = "http://127.0.0.1:8082";
-		var client = HttpClientBuilder.create().build();
-		var request = new HttpPost(url);
-		request.addHeader("test-header", "XYZ");
-		request.setEntity(new StringEntity("{'abc':'def'}"));
-		var response = client.execute(request);
-		Assert.assertEquals(500, response.getStatusLine().getStatusCode());
-		Assert.assertNull(response.getFirstHeader("test-header"));
-		Assert.assertEquals("true", response.getFirstHeader("error").getValue());
-		Assert.assertEquals("Cannot parse xml", response.getFirstHeader("cause").getValue());
+    @Test
+    public void testCompression() throws ClientProtocolException, IOException {
+        var connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8080/?method=POST&gzip=true&compressionLevel=5");
+        connector.start();
+        var consumer = connector.getConsumer().orElseThrow();
+        consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
 
-		var result = readResponse(response);
+        String url = "http://127.0.0.1:8080";
+        var client = HttpClientBuilder.create().build();
+        var request = new HttpPost(url);
+        request.addHeader("test-header", "XYZ");
+        request.setEntity(new StringEntity("{'abc':'def'}"));
+        var response = client.execute(request);
+        Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+        Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
+        Assert.assertEquals("gzip,deflate", response.getFirstHeader("Accept-Encoding").getValue());
 
-		Assert.assertEquals("<string value=\"Error\"/>", result.toString());
+        var result = readResponse(response);
 
-		client.close();
+        Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
 
-		connector.stop();
-	}
+        client.close();
 
-	@Test
-	public void testFailure() throws ClientProtocolException, IOException {
-		var connector = new DefaultConnectorFactory()
-				.createConnector("vertx:http://127.0.0.1:8082/?method=POST&format=xml");
-		connector.start();
-		Assert.assertNotNull(connector.getProducer());
-		Assert.assertTrue(!connector.getProducer().isPresent());
-		var consumer = connector.getConsumer().orElseThrow();
-		consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
+        connector.stop();
+    }
 
-		String url = "http://127.0.0.1:8082";
-		var client = HttpClientBuilder.create().build();
-		var request = new HttpPost(url);
-		request.addHeader("test-header", "XYZ");
-		request.setEntity(new StringEntity("{'abc':'def'}"));
-		var response = client.execute(request);
-		Assert.assertEquals(500, response.getStatusLine().getStatusCode());
-		Assert.assertNull(response.getFirstHeader("test-header"));
+    @Test
+    public void testCustomFailureHandler() throws ClientProtocolException, IOException {
+        var connectorContext = new DefaultConnectorContextBuilder().setFailureHandler(ex -> {
+            BObject headers = BObject.ofEmpty().setAny("error", true).setAny("cause", ex.getMessage());
+            return Message.of(Payload.of(headers, BValue.of("Error")));
+        }).build();
+        var connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8082/?method=POST&format=xml", connectorContext);
 
-		var result = readResponse(response);
+        connector.start();
 
-		Assert.assertEquals("Cannot parse xml", result.toString());
+        Assert.assertNotNull(connector.getProducer());
+        Assert.assertTrue(!connector.getProducer().isPresent());
 
-		client.close();
+        var consumer = connector.getConsumer().orElseThrow();
+        consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
 
-		connector.stop();
-	}
+        String url = "http://127.0.0.1:8082";
+        var client = HttpClientBuilder.create().build();
+        var request = new HttpPost(url);
+        request.addHeader("test-header", "XYZ");
+        request.setEntity(new StringEntity("{'abc':'def'}"));
+        var response = client.execute(request);
+        Assert.assertEquals(500, response.getStatusLine().getStatusCode());
+        Assert.assertNull(response.getFirstHeader("test-header"));
+        Assert.assertEquals("true", response.getFirstHeader("error").getValue());
+        Assert.assertEquals("Cannot parse xml", response.getFirstHeader("cause").getValue());
 
-	@Test
-	public void testSimple() throws ClientProtocolException, IOException {
-		var connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8080/?method=POST");
-		connector.start();
-		var consumer = connector.getConsumer().orElseThrow();
-		consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
+        var result = readResponse(response);
 
-		String url = "http://127.0.0.1:8080";
-		var client = HttpClientBuilder.create().build();
-		var request = new HttpPost(url);
-		request.addHeader("test-header", "XYZ");
-		request.setEntity(new StringEntity("{'abc':'def'}"));
-		var response = client.execute(request);
-		Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-		Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
+        Assert.assertEquals("<string value=\"Error\"/>", result.toString());
 
-		var result = readResponse(response);
+        client.close();
 
-		Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
+        connector.stop();
+    }
 
-		client.close();
+    @Test
+    public void testFailure() throws ClientProtocolException, IOException {
+        var connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8082/?method=POST&format=xml");
+        connector.start();
+        Assert.assertNotNull(connector.getProducer());
+        Assert.assertTrue(!connector.getProducer().isPresent());
+        var consumer = connector.getConsumer().orElseThrow();
+        consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
 
-		connector.stop();
-	}
+        String url = "http://127.0.0.1:8082";
+        var client = HttpClientBuilder.create().build();
+        var request = new HttpPost(url);
+        request.addHeader("test-header", "XYZ");
+        request.setEntity(new StringEntity("{'abc':'def'}"));
+        var response = client.execute(request);
+        Assert.assertEquals(500, response.getStatusLine().getStatusCode());
+        Assert.assertNull(response.getFirstHeader("test-header"));
 
-	@Test
-	public void testAllMethods() throws ClientProtocolException, IOException {
-		var connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8080/");
-		connector.start();
-		var consumer = connector.getConsumer().orElseThrow();
-		consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
+        var result = readResponse(response);
 
-		String url = "http://127.0.0.1:8080";
-		var client = HttpClientBuilder.create().build();
+        Assert.assertEquals("Cannot parse xml", result.toString());
 
-		var request = new HttpPost(url);
-		request.addHeader("test-header", "XYZ");
-		request.setEntity(new StringEntity("{'abc':'def'}"));
-		var response = client.execute(request);
-		Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-		Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
-		var result = readResponse(response);
-		Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
+        client.close();
 
-		var putRequest = new HttpPut(url);
-		putRequest.addHeader("test-header", "XYZ");
-		putRequest.setEntity(new StringEntity("{'abc':'def'}"));
-		response = client.execute(putRequest);
-		Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-		Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
-		result = readResponse(response);
-		Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
+        connector.stop();
+    }
 
-		client.close();
+    @Test
+    public void testMultiConnector() throws ClientProtocolException, IOException {
+        var connector1 = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8083/");
+        var connector2 = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8083/api1");
+        var connector3 = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8083/api2");
+        connector1.start();
+        connector2.start();
+        connector3.start();
 
-		connector.stop();
-	}
+        var consumer1 = connector1.getConsumer().orElseThrow();
+        var consumer2 = connector2.getConsumer().orElseThrow();
+        var consumer3 = connector3.getConsumer().orElseThrow();
 
-	@Test
-	public void testAllMethodsWithPath() throws ClientProtocolException, IOException {
-		var connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8080/api");
-		connector.start();
-		var consumer = connector.getConsumer().orElseThrow();
-		consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
+        consumer1.subscribe((request, deferred) -> resolveSimple(request, deferred, 1));
+        consumer2.subscribe((request, deferred) -> resolveSimple(request, deferred, 2));
+        consumer3.subscribe((request, deferred) -> resolveSimple(request, deferred, 3));
 
-		String url = "http://127.0.0.1:8080/api";
-		var client = HttpClientBuilder.create().build();
+        var client = HttpClientBuilder.create().build();
+        testRoot(client);
+        testApi1(client);
+        testApi2(client);
 
-		var request = new HttpPost(url);
-		request.addHeader("test-header", "XYZ");
-		request.setEntity(new StringEntity("{'abc':'def'}"));
-		var response = client.execute(request);
-		Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-		Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
-		var result = readResponse(response);
-		Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
+        connector1.stop();
 
-		var putRequest = new HttpPut(url);
-		putRequest.addHeader("test-header", "XYZ");
-		putRequest.setEntity(new StringEntity("{'abc':'def'}"));
-		response = client.execute(putRequest);
-		Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-		Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
-		result = readResponse(response);
-		Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
+        var request4 = new HttpGet("http://127.0.0.1:8083");
+        var response4 = client.execute(request4);
+        Assert.assertEquals(404, response4.getStatusLine().getStatusCode());
 
-		client.close();
+        testApi1(client);
+        testApi2(client);
 
-		connector.stop();
-	}
+        connector2.stop();
+        connector3.stop();
+    }
 
-	@Test
-	public void testCompression() throws ClientProtocolException, IOException {
-		var connector = new DefaultConnectorFactory()
-				.createConnector("vertx:http://127.0.0.1:8080/?method=POST&gzip=true&compressionLevel=5");
-		connector.start();
-		var consumer = connector.getConsumer().orElseThrow();
-		consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
+    private void testRoot(CloseableHttpClient client) throws IOException, ClientProtocolException {
+        var request1 = new HttpGet("http://127.0.0.1:8083");
+        var result1 = readResponse(client.execute(request1)).toString();
+        Assert.assertEquals("1", result1);
+    }
 
-		String url = "http://127.0.0.1:8080";
-		var client = HttpClientBuilder.create().build();
-		var request = new HttpPost(url);
-		request.addHeader("test-header", "XYZ");
-		request.setEntity(new StringEntity("{'abc':'def'}"));
-		var response = client.execute(request);
-		Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-		Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
-		Assert.assertEquals("gzip,deflate", response.getFirstHeader("Accept-Encoding").getValue());
+    @Test
+    public void testSimple() throws ClientProtocolException, IOException {
+        var connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8080/?method=POST");
+        connector.start();
+        var consumer = connector.getConsumer().orElseThrow();
+        consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
 
-		var result = readResponse(response);
+        String url = "http://127.0.0.1:8080";
+        var client = HttpClientBuilder.create().build();
+        var request = new HttpPost(url);
+        request.addHeader("test-header", "XYZ");
+        request.setEntity(new StringEntity("{'abc':'def'}"));
+        var response = client.execute(request);
+        Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+        Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
 
-		Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
+        var result = readResponse(response);
 
-		client.close();
+        Assert.assertEquals("{\"abc\":\"def\"}", result.toString());
 
-		connector.stop();
-	}
+        client.close();
 
-	private StringBuffer readResponse(HttpResponse response) throws IOException {
-		BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-		StringBuffer result = new StringBuffer();
-		String line = "";
-		while ((line = rd.readLine()) != null) {
-			result.append(line);
-		}
-		rd.close();
-		return result;
-	}
+        connector.stop();
+    }
 
-	@Test
-	public void testXml() throws ClientProtocolException, IOException {
-		var connector = new DefaultConnectorFactory()
-				.createConnector("vertx:http://127.0.0.1:8081/?method=POST&format=xml");
-		connector.start();
-		var consumer = connector.getConsumer().orElseThrow();
-		consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
+    @Test
+    public void testXml() throws ClientProtocolException, IOException {
+        var connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8081/?method=POST&format=xml");
+        connector.start();
+        var consumer = connector.getConsumer().orElseThrow();
+        consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
 
-		String url = "http://127.0.0.1:8081";
-		var client = HttpClientBuilder.create().build();
-		var request = new HttpPost(url);
-		request.addHeader("test-header", "XYZ");
-		request.setEntity(new StringEntity("<object><string name=\"abc\" value=\"def\"/></object>"));
-		var response = client.execute(request);
+        String url = "http://127.0.0.1:8081";
+        var client = HttpClientBuilder.create().build();
+        var request = new HttpPost(url);
+        request.addHeader("test-header", "XYZ");
+        request.setEntity(new StringEntity("<object><string name=\"abc\" value=\"def\"/></object>"));
+        var response = client.execute(request);
 
-		var result = readResponse(response);
+        var result = readResponse(response);
 
-		Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-		Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
-		Assert.assertEquals("<object><string name=\"abc\" value=\"def\"/></object>", result.toString());
+        Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+        Assert.assertEquals("XYZ", response.getFirstHeader("test-header").getValue());
+        Assert.assertEquals("<object><string name=\"abc\" value=\"def\"/></object>", result.toString());
 
-		client.close();
+        client.close();
 
-		connector.stop();
-	}
+        connector.stop();
+    }
 }

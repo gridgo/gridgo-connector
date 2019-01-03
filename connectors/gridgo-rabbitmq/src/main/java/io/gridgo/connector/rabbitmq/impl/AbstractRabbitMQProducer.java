@@ -1,7 +1,6 @@
 package io.gridgo.connector.rabbitmq.impl;
 
 import java.util.Map;
-import java.util.Optional;
 
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
 import org.joo.promise4j.Deferred;
@@ -20,6 +19,8 @@ import io.gridgo.connector.impl.AbstractProducer;
 import io.gridgo.connector.rabbitmq.RabbitMQProducer;
 import io.gridgo.connector.rabbitmq.RabbitMQQueueConfig;
 import io.gridgo.connector.support.config.ConnectorContext;
+import io.gridgo.framework.execution.ExecutionStrategy;
+import io.gridgo.framework.execution.impl.DefaultExecutionStrategy;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 import io.gridgo.framework.support.generators.impl.TimeBasedIdGenerator;
@@ -29,142 +30,143 @@ import lombok.NonNull;
 
 public abstract class AbstractRabbitMQProducer extends AbstractProducer implements RabbitMQProducer {
 
-	private static final TimeBasedIdGenerator TIME_BASED_ID_GENERATOR = new TimeBasedIdGenerator();
+    private static final TimeBasedIdGenerator TIME_BASED_ID_GENERATOR = new TimeBasedIdGenerator();
 
-	private final Connection connection;
+    private static final ExecutionStrategy DEFAULT_EXECUTION_STRATEGY = new DefaultExecutionStrategy();
 
-	@Getter
-	private final RabbitMQQueueConfig queueConfig;
+    private final Connection connection;
 
-	@Getter
-	private Channel channel;
+    @Getter
+    private final RabbitMQQueueConfig queueConfig;
 
-	@Getter
-	private String responseQueue;
+    @Getter
+    private Channel channel;
 
-	@Getter(AccessLevel.PROTECTED)
-	private final String uniqueIdentifier;
+    @Getter
+    private String responseQueue;
 
-	private final Map<String, Deferred<Message, Exception>> correlationIdToDeferredMap = new NonBlockingHashMap<>();
+    @Getter(AccessLevel.PROTECTED)
+    private final String uniqueIdentifier;
 
-	protected AbstractRabbitMQProducer(@NonNull ConnectorContext context, @NonNull Connection connection,
-			@NonNull RabbitMQQueueConfig queueConfig, @NonNull String uniqueIdentifier) {
-		super(context);
-		this.connection = connection;
-		this.queueConfig = queueConfig;
-		this.uniqueIdentifier = uniqueIdentifier;
-	}
+    private final Map<String, Deferred<Message, Exception>> correlationIdToDeferredMap = new NonBlockingHashMap<>();
 
-	@Override
-	protected String generateName() {
-		return null;
-	}
+    protected AbstractRabbitMQProducer(@NonNull ConnectorContext context, @NonNull Connection connection, @NonNull RabbitMQQueueConfig queueConfig,
+            @NonNull String uniqueIdentifier) {
+        super(context);
+        this.connection = connection;
+        this.queueConfig = queueConfig;
+        this.uniqueIdentifier = uniqueIdentifier;
+    }
 
-	@Override
-	protected void onStart() {
-		this.channel = this.initChannel(connection);
-		if (this.getQueueConfig().isRpc()) {
-			this.responseQueue = this.initResponseQueue(this::onResponse);
-		}
-	}
+    private void _send(final Message request, final Deferred<Message, Exception> deferred) {
+        var routingId = request.getRoutingId();
+        var routingKey = routingId.orElse(BValue.ofEmpty()).getString();
+        var strategy = getContext().getProducerExecutionStrategy().orElse(DEFAULT_EXECUTION_STRATEGY);
 
-	@Override
-	protected void onStop() {
-		this.closeChannel();
-	}
+        strategy.execute(() -> {
+            this.publish(buildRequestBody(request.getPayload()), null, routingKey);
+            if (deferred != null) {
+                deferred.resolve(null);
+            }
+        });
+    }
 
-	private void _send(final Message request, final Deferred<Message, Exception> deferred) {
-		final Optional<BValue> routingId = request.getRoutingId();
-		final String routingKey = routingId == null ? null : routingId.orElse(BValue.ofEmpty()).getString();
+    protected byte[] buildRequestBody(Payload payload) {
+        return BArray.ofSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody()).toBytes();
+    }
 
-		getContext().getProducerExecutionStrategy().execute(() -> {
-			this.publish(buildRequestBody(request.getPayload()), null, routingKey);
-			if (deferred != null) {
-				deferred.resolve(null);
-			}
-		});
-	}
+    @Override
+    public final Promise<Message, Exception> call(Message request) {
+        if (this.queueConfig.isRpc()) {
 
-	@Override
-	public final void send(@NonNull Message request) {
-		this._send(request, null);
-	}
+            var routingId = request.getRoutingId();
+            var routingKey = routingId.isPresent() ? routingId.get().getString() : null;
 
-	@Override
-	public final Promise<Message, Exception> sendWithAck(@NonNull Message message) {
-		Deferred<Message, Exception> deferred = new AsyncDeferredObject<>();
-		this._send(message, deferred);
-		return deferred.promise();
-	}
+            var corrId = TIME_BASED_ID_GENERATOR.generateId().orElseThrow().getString();
+            var props = createBasicProperties(corrId);
+            var bytes = buildRequestBody(request.getPayload());
 
-	private void onResponse(String consumerTag, Delivery delivery) {
-		String id = delivery.getProperties().getCorrelationId();
-		Deferred<Message, Exception> deferred = this.correlationIdToDeferredMap.get(id);
-		if (deferred != null) {
-			getContext().getCallbackInvokerStrategy().execute(() -> {
-				Message result = null;
-				try {
-					result = Message.parse(delivery.getBody());
-				} catch (Exception e) {
-					deferred.reject(e);
-				}
-				if (result != null) {
-					deferred.resolve(result);
-				}
-			});
-		}
-	}
+            var deferred = createDeferred();
 
-	@Override
-	public final Promise<Message, Exception> call(Message request) {
-		if (this.queueConfig.isRpc()) {
+            this.correlationIdToDeferredMap.put(corrId, deferred);
+            deferred.promise().always((status, message, ex) -> {
+                correlationIdToDeferredMap.remove(corrId);
+            });
 
-			Optional<BValue> routingId = request.getRoutingId();
-			String routingKey = routingId.isPresent() ? routingId.get().getString() : null;
+            var strategy = getContext().getProducerExecutionStrategy() //
+                                       .orElse(DEFAULT_EXECUTION_STRATEGY);
+            strategy.execute(() -> {
+                try {
+                    this.publish(bytes, props, routingKey);
+                } catch (Exception e) {
+                    deferred.reject(e);
+                }
+            });
 
-			final String corrId = TIME_BASED_ID_GENERATOR.generateId().get().getString();
-			final BasicProperties props = createBasicProperties(corrId);
-			byte[] bytes = buildRequestBody(request.getPayload());
+            return deferred.promise();
+        }
 
-			final Deferred<Message, Exception> deferred = createDeferred();
+        throw new UnsupportedOperationException("Cannot make a call on non-rpc rabbitmq producer, use rpc=true in connector endpoint");
+    }
 
-			this.correlationIdToDeferredMap.put(corrId, deferred);
-			deferred.promise().always((status, message, ex) -> {
-				correlationIdToDeferredMap.remove(corrId);
-			});
+    protected BasicProperties createBasicProperties(String correlationId) {
+        return new BasicProperties.Builder() //
+                                            .correlationId(correlationId) //
+                                            .replyTo(this.responseQueue) //
+                                            .build();
+    }
 
-			getContext().getProducerExecutionStrategy().execute(() -> {
-				try {
-					this.publish(bytes, props, routingKey);
-				} catch (Exception e) {
-					deferred.reject(e);
-				}
-			});
+    protected Deferred<Message, Exception> createDeferred() {
+        return new CompletableDeferredObject<>();
+    }
 
-			return deferred.promise();
-		}
+    @Override
+    protected String generateName() {
+        return null;
+    }
 
-		throw new UnsupportedOperationException(
-				"Cannot make a call on non-rpc rabbitmq producer, use rpc=true in connector endpoint");
-	}
+    @Override
+    public boolean isCallSupported() {
+        return true;
+    }
 
-	protected byte[] buildRequestBody(Payload payload) {
-		return BArray.newFromSequence(payload.getId().orElse(null), payload.getHeaders(), payload.getBody()).toBytes();
-	}
+    private void onResponse(String consumerTag, Delivery delivery) {
+        var id = delivery.getProperties().getCorrelationId();
+        var deferred = this.correlationIdToDeferredMap.get(id);
+        if (deferred == null)
+            return;
+        getContext().getCallbackInvokerStrategy().execute(() -> {
+            try {
+                var result = Message.parse(delivery.getBody());
+                deferred.resolve(result);
+            } catch (Exception e) {
+                deferred.reject(e);
+            }
+        });
+    }
 
-	protected BasicProperties createBasicProperties(String correlationId) {
-		return new BasicProperties.Builder() //
-				.correlationId(correlationId) //
-				.replyTo(this.responseQueue) //
-				.build();
-	}
+    @Override
+    protected void onStart() {
+        this.channel = this.initChannel(connection);
+        if (this.getQueueConfig().isRpc()) {
+            this.responseQueue = this.initResponseQueue(this::onResponse);
+        }
+    }
 
-	protected Deferred<Message, Exception> createDeferred() {
-		return new CompletableDeferredObject<>();
-	}
+    @Override
+    protected void onStop() {
+        this.closeChannel();
+    }
 
-	@Override
-	public boolean isCallSupported() {
-		return true;
-	}
+    @Override
+    public final void send(@NonNull Message request) {
+        this._send(request, null);
+    }
+
+    @Override
+    public final Promise<Message, Exception> sendWithAck(@NonNull Message message) {
+        var deferred = new AsyncDeferredObject<Message, Exception>();
+        this._send(message, deferred);
+        return deferred.promise();
+    }
 }

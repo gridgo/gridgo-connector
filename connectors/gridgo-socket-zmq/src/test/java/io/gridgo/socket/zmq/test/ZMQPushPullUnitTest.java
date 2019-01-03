@@ -20,108 +20,106 @@ import io.gridgo.framework.support.Payload;
 
 public class ZMQPushPullUnitTest {
 
-	private final ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
+    private static final int port = 8080;
 
-	private static final int port = 8080;
-	private static final String host = "localhost";
-	private static final String address = host + ":" + port;
+    private static final String host = "localhost";
+    private static final String address = host + ":" + port;
+    private final ConnectorResolver RESOLVER = new ClasspathConnectorResolver("io.gridgo.connector");
 
-	@Test
-	public void testMonoplex() throws InterruptedException, PromiseException {
+    private void doAckSend(Consumer consumer, Producer producer) throws InterruptedException, PromiseException {
+        int numMessages = (int) 1e2;
+        CountDownLatch doneSignal = new CountDownLatch(numMessages);
 
-		String osName = System.getProperty("os.name");
-		if (osName != null && osName.contains("Windows"))
-			return;
+        consumer.subscribe((message) -> {
+            doneSignal.countDown();
+        });
 
-		System.out.println("Test tcp monoplex...");
-		String queryString = "batchingEnabled=true&maxBatchSize=2000&ringBufferSize=2048";
+        long start = System.nanoTime();
+        for (int i = 0; i < numMessages; i++) {
+            producer.sendWithAck(Message.of(Payload.of(BObject.ofSequence("index", i)))).get();
+        }
 
-		Connector connector1 = RESOLVER.resolve("zmq:pull:tcp://" + address);
-		Connector connector2 = RESOLVER.resolve("zmq:push:tcp://" + address + "?" + queryString);
+        if (doneSignal.await(1, TimeUnit.MINUTES)) {
+            double elapsed = Double.valueOf(System.nanoTime() - start);
+            DecimalFormat df = new DecimalFormat("###,###.##");
+            System.out.println("ACK TRANSMITION DONE (*** not improved), " + numMessages + " messages were transmited in " + df.format(elapsed / 1e6)
+                    + "ms -> pace: " + df.format(1e9 * numMessages / elapsed) + "msg/s");
 
-		try {
-			connector1.start();
-			assertTrue(connector1.getConsumer().isPresent());
-			Consumer consumer = connector1.getConsumer().get();
+            consumer.clearSubscribers();
+        } else {
+            consumer.clearSubscribers();
+            throw new RuntimeException("Test cannot be done after 1 min");
+        }
 
-			connector2.start();
-			assertTrue(connector2.getProducer().isPresent());
-			Producer producer = connector2.getProducer().get();
+    }
 
-			warmUp(consumer, producer);
+    private void doFnFSend(Consumer consumer, Producer producer) throws InterruptedException {
+        int numMessages = (int) 1e2;
+        CountDownLatch doneSignal = new CountDownLatch(numMessages);
 
-			this.doFnFSend(consumer, producer);
-			this.doAckSend(consumer, producer);
-		} finally {
-			connector1.stop();
-			connector2.stop();
-		}
-	}
+        consumer.subscribe((message) -> {
+            doneSignal.countDown();
+        });
+        long start = System.nanoTime();
+        for (int i = 0; i < numMessages; i++) {
+            producer.send(Message.of(Payload.of(BObject.ofSequence("index", i))));
+        }
 
-	private void warmUp(Consumer consumer, Producer producer) throws PromiseException, InterruptedException {
-		System.out.println("Started consumer and producer");
-		CountDownLatch doneSignal = new CountDownLatch(1);
-		consumer.subscribe((msg) -> {
-			System.out.println("Got message from source: " + msg.getMisc().get("source"));
-			doneSignal.countDown();
-		});
-		producer.send(Message.of(Payload.of(BObject.ofSequence("cmd", "start"))));
-		doneSignal.await();
-		System.out.println("Warmup done");
-		consumer.clearSubscribers();
-	}
+        if (doneSignal.await(1, TimeUnit.MINUTES)) {
+            double elapsed = Double.valueOf(System.nanoTime() - start);
+            DecimalFormat df = new DecimalFormat("###,###.##");
+            System.out.println("FnF TRANSMITION DONE (*** not improved), " + numMessages + " messages were transmited in " + df.format(elapsed / 1e6)
+                    + "ms -> pace: " + df.format(1e9 * numMessages / elapsed) + "msg/s");
+            consumer.clearSubscribers();
+        } else {
+            consumer.clearSubscribers();
+            throw new RuntimeException("Test cannot be done after 1 min");
+        }
 
-	private void doFnFSend(Consumer consumer, Producer producer) throws InterruptedException {
-		int numMessages = (int) 1e2;
-		CountDownLatch doneSignal = new CountDownLatch(numMessages);
+    }
 
-		consumer.subscribe((message) -> {
-			doneSignal.countDown();
-		});
-		long start = System.nanoTime();
-		for (int i = 0; i < numMessages; i++) {
-			producer.send(Message.of(Payload.of(BObject.ofSequence("index", i))));
-		}
+    @Test
+    public void testMonoplex() throws InterruptedException, PromiseException {
 
-		if (doneSignal.await(1, TimeUnit.MINUTES)) {
-			double elapsed = Double.valueOf(System.nanoTime() - start);
-			DecimalFormat df = new DecimalFormat("###,###.##");
-			System.out.println("FnF TRANSMITION DONE (*** not improved), " + numMessages
-					+ " messages were transmited in " + df.format(elapsed / 1e6) + "ms -> pace: "
-					+ df.format(1e9 * numMessages / elapsed) + "msg/s");
-			consumer.clearSubscribers();
-		} else {
-			consumer.clearSubscribers();
-			throw new RuntimeException("Test cannot be done after 1 min");
-		}
+        String osName = System.getProperty("os.name");
+        if (osName != null && osName.contains("Windows"))
+            return;
 
-	}
+        System.out.println("Test tcp monoplex...");
+        String queryString = "batchingEnabled=true&maxBatchSize=2000&ringBufferSize=2048";
 
-	private void doAckSend(Consumer consumer, Producer producer) throws InterruptedException, PromiseException {
-		int numMessages = (int) 1e2;
-		CountDownLatch doneSignal = new CountDownLatch(numMessages);
+        Connector connector1 = RESOLVER.resolve("zmq:pull:tcp://" + address);
+        Connector connector2 = RESOLVER.resolve("zmq:push:tcp://" + address + "?" + queryString);
 
-		consumer.subscribe((message) -> {
-			doneSignal.countDown();
-		});
+        try {
+            connector1.start();
+            assertTrue(connector1.getConsumer().isPresent());
+            Consumer consumer = connector1.getConsumer().get();
 
-		long start = System.nanoTime();
-		for (int i = 0; i < numMessages; i++) {
-			producer.sendWithAck(Message.of(Payload.of(BObject.ofSequence("index", i)))).get();
-		}
+            connector2.start();
+            assertTrue(connector2.getProducer().isPresent());
+            Producer producer = connector2.getProducer().get();
 
-		if (doneSignal.await(1, TimeUnit.MINUTES)) {
-			double elapsed = Double.valueOf(System.nanoTime() - start);
-			DecimalFormat df = new DecimalFormat("###,###.##");
-			System.out.println("ACK TRANSMITION DONE (*** not improved), " + numMessages
-					+ " messages were transmited in " + df.format(elapsed / 1e6) + "ms -> pace: "
-					+ df.format(1e9 * numMessages / elapsed) + "msg/s");
+            warmUp(consumer, producer);
 
-			consumer.clearSubscribers();
-		} else {
-			consumer.clearSubscribers();
-			throw new RuntimeException("Test cannot be done after 1 min");
-		}
+            this.doFnFSend(consumer, producer);
+            this.doAckSend(consumer, producer);
+        } finally {
+            connector1.stop();
+            connector2.stop();
+        }
+    }
 
-	}
+    private void warmUp(Consumer consumer, Producer producer) throws PromiseException, InterruptedException {
+        System.out.println("Started consumer and producer");
+        CountDownLatch doneSignal = new CountDownLatch(1);
+        consumer.subscribe((msg) -> {
+            System.out.println("Got message from source: " + msg.getMisc().get("source"));
+            doneSignal.countDown();
+        });
+        producer.send(Message.of(Payload.of(BObject.ofSequence("cmd", "start"))));
+        doneSignal.await();
+        System.out.println("Warmup done");
+        consumer.clearSubscribers();
+    }
 }

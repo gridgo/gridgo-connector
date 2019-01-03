@@ -7,9 +7,9 @@ import io.gridgo.socket.zmq.ZMQSocketFactory;
 @ConnectorEndpoint(scheme = "zmq", syntax = "{type}:{transport}:[{role}:]//[{interface};]{host}[:{port}]")
 public class ZMQConnector extends SocketConnector {
 
-	private static final ZMQSocketFactory FACTORY = new ZMQSocketFactory(1);
+    private static final ZMQSocketFactory FACTORY = new ZMQSocketFactory(1);
 
-	public ZMQConnector() {
-		super(FACTORY);
-	}
+    public ZMQConnector() {
+        super(FACTORY);
+    }
 }

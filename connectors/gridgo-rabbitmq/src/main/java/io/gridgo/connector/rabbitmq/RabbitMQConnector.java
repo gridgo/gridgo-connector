@@ -23,75 +23,71 @@ import io.gridgo.utils.support.HostAndPortSet;
 @ConnectorEndpoint(scheme = "rabbitmq", syntax = "//{address}[/{exchangeName}]")
 public class RabbitMQConnector extends AbstractConnector {
 
-	private static final int DEFAULT_PORT = 5672;
+    private static final int DEFAULT_PORT = 5672;
 
-	private List<Address> address;
+    private List<Address> address;
 
-	private final ConnectionFactory factory = new ConnectionFactory();
+    private final ConnectionFactory factory = new ConnectionFactory();
 
-	private RabbitMQQueueConfig queueConfig;
+    private RabbitMQQueueConfig queueConfig;
 
-	protected Connection newConnection() {
-		try {
-			return factory.newConnection(address);
-		} catch (IOException | TimeoutException e) {
-			throw new RuntimeException(e);
-		}
-	}
+    @Override
+    protected String generateName() {
+        String routingKey = this.queueConfig.getQueueName() == null ? "" : this.queueConfig.getQueueName();
+        if (routingKey.isBlank()) {
+            routingKey = this.queueConfig.getRoutingKeys().toString();
+        }
+        return super.generateName() + "." + this.queueConfig.getExchangeType() + "." + routingKey;
+    }
 
-	protected String getUniqueIdentifier() {
-		String routingKey = this.queueConfig.getQueueName() == null ? "" : this.queueConfig.getQueueName();
-		if (routingKey.isBlank()) {
-			routingKey = this.queueConfig.getRoutingKeys().toString();
-		}
-		return this.getConnectorConfig().getNonQueryEndpoint() + "." + this.queueConfig.getExchangeType() + "."
-				+ routingKey;
-	}
+    protected String getUniqueIdentifier() {
+        String routingKey = this.queueConfig.getQueueName() == null ? "" : this.queueConfig.getQueueName();
+        if (routingKey.isBlank()) {
+            routingKey = this.queueConfig.getRoutingKeys().toString();
+        }
+        return this.getConnectorConfig().getNonQueryEndpoint() + "." + this.queueConfig.getExchangeType() + "." + routingKey;
+    }
 
-	@Override
-	protected void onInit() {
-		ConnectorConfig config = this.getConnectorConfig();
-		HostAndPortSet hostAndPortSet = new HostAndPortSet(config.getPlaceholders().getProperty("address"));
-		if (hostAndPortSet.isEmpty()) {
-			throw new InvalidPlaceholderException("Broker address(es) must be provided");
-		}
+    protected Connection newConnection() {
+        try {
+            return factory.newConnection(address);
+        } catch (IOException | TimeoutException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-		this.address = hostAndPortSet.convert((entry) -> {
-			return new Address(entry.getHostOrDefault(LOCALHOST), entry.getPortOrDefault(DEFAULT_PORT));
-		});
+    @Override
+    protected void onInit() {
+        ConnectorConfig config = this.getConnectorConfig();
+        HostAndPortSet hostAndPortSet = new HostAndPortSet(config.getPlaceholders().getProperty("address"));
+        if (hostAndPortSet.isEmpty()) {
+            throw new InvalidPlaceholderException("Broker address(es) must be provided");
+        }
 
-		String username = (String) config.getParameters().getOrDefault("username", "");
-		if (!username.equals("")) {
-			String password = (String) config.getParameters().getOrDefault("password", "");
-			this.factory.setCredentialsProvider(new DefaultCredentialsProvider(username, password));
-		}
+        this.address = hostAndPortSet.convert((entry) -> {
+            return new Address(entry.getHostOrDefault(LOCALHOST), entry.getPortOrDefault(DEFAULT_PORT));
+        });
 
-		long autoRecoveryInterval = Long
-				.parseLong((String) config.getParameters().getOrDefault("autoRecoveryInterval", "1000"));
-		this.factory.setNetworkRecoveryInterval(autoRecoveryInterval);
+        String username = (String) config.getParameters().getOrDefault("username", "");
+        if (!username.equals("")) {
+            String password = (String) config.getParameters().getOrDefault("password", "");
+            this.factory.setCredentialsProvider(new DefaultCredentialsProvider(username, password));
+        }
 
-		String exchangeName = (String) this.getConnectorConfig().getPlaceholders().getOrDefault("exchangeName", "");
+        long autoRecoveryInterval = Long.parseLong((String) config.getParameters().getOrDefault("autoRecoveryInterval", "1000"));
+        this.factory.setNetworkRecoveryInterval(autoRecoveryInterval);
 
-		BObject configObject = BElement.fromAny(getConnectorConfig().getParameters());
-		configObject.setAny("exchangeName", exchangeName);
+        String exchangeName = (String) this.getConnectorConfig().getPlaceholders().getOrDefault("exchangeName", "");
 
-		queueConfig = new RabbitMQQueueConfig(configObject);
+        BObject configObject = BElement.ofAny(getConnectorConfig().getParameters());
+        configObject.setAny("exchangeName", exchangeName);
 
-		String uniqueIdentifier = this.getUniqueIdentifier();
+        queueConfig = new RabbitMQQueueConfig(configObject);
 
-		this.consumer = Optional.of(
-				new DefaultRabbitMQConsumer(getContext(), newConnection(), queueConfig.makeCopy(), uniqueIdentifier));
-		this.producer = Optional.of(
-				new DefaultRabbitMQProducer(getContext(), newConnection(), queueConfig.makeCopy(), uniqueIdentifier));
-	}
+        String uniqueIdentifier = this.getUniqueIdentifier();
 
-	@Override
-	protected String generateName() {
-		String routingKey = this.queueConfig.getQueueName() == null ? "" : this.queueConfig.getQueueName();
-		if (routingKey.isBlank()) {
-			routingKey = this.queueConfig.getRoutingKeys().toString();
-		}
-		return super.generateName() + "." + this.queueConfig.getExchangeType() + "." + routingKey;
-	}
+        this.consumer = Optional.of(new DefaultRabbitMQConsumer(getContext(), newConnection(), queueConfig.makeCopy(), uniqueIdentifier));
+        this.producer = Optional.of(new DefaultRabbitMQProducer(getContext(), newConnection(), queueConfig.makeCopy(), uniqueIdentifier));
+    }
 
 }

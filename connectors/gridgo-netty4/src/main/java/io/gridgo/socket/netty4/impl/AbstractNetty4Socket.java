@@ -21,134 +21,131 @@ import lombok.Setter;
 
 public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 
-	@Getter(AccessLevel.PROTECTED)
-	private final BObject configs = BObject.ofEmpty();
+    @Getter(AccessLevel.PROTECTED)
+    private final BObject configs = BObject.ofEmpty();
 
-	@Getter
-	@Setter(AccessLevel.PROTECTED)
-	private Netty4Transport transport = null;
+    @Getter
+    @Setter(AccessLevel.PROTECTED)
+    private Netty4Transport transport = null;
 
-	private final AtomicBoolean startFlag = new AtomicBoolean(false);
+    private final AtomicBoolean startFlag = new AtomicBoolean(false);
 
-	@Getter
-	private boolean running = false;
+    @Getter
+    private boolean running = false;
 
-	@Setter
-	private Consumer<Throwable> failureHandler;
+    @Setter
+    private Consumer<Throwable> failureHandler;
 
-	protected ChannelInboundHandler newChannelHandlerDelegater() {
-		return new SimpleChannelInboundHandler<Object>() {
+    @Override
+    public final void applyConfig(@NonNull String name, @NonNull Object value) {
+        this.configs.putAny(name, value);
+        this.onApplyConfig(name);
+    }
 
-			protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
-				AbstractNetty4Socket.this.onChannelRead(ctx, msg);
-			};
+    protected void onApplyConfig(String name) {
+        // do nothing
+    }
 
-			@Override
-			public void channelActive(ChannelHandlerContext ctx) throws Exception {
-				AbstractNetty4Socket.this.onChannelActive(ctx);
-				ctx.fireChannelActive();
-			}
+    @Override
+    public final void close() throws IOException {
+        if (this.isStarted() && this.startFlag.compareAndSet(true, false)) {
+            try {
+                this.onClose();
+            } catch (ClosedChannelException e) {
+                // channel already closed, just ignore
+            }
+            this.running = false;
+        }
+    }
 
-			@Override
-			public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-				AbstractNetty4Socket.this.onChannelInactive(ctx);
-				ctx.fireChannelInactive();
-			}
+    protected abstract BElement handleIncomingMessage(String channelId, Object msg) throws Exception;
 
-			@Override
-			public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
-				AbstractNetty4Socket.this.onHandlerAdded(ctx);
-			}
+    protected final boolean isInChangingState() {
+        return startFlag.get() != running;
+    }
 
-			@Override
-			public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-				AbstractNetty4Socket.this.onException(ctx, cause);
-			}
-		};
-	}
+    protected final boolean isOkToClose() {
+        return this.startFlag.get() && this.running;
+    }
 
-	@Override
-	public final boolean isStarted() {
-		ThreadUtils.busySpin(10, this::isInChangingState);
-		return this.running;
-	}
+    @Override
+    public final boolean isStarted() {
+        ThreadUtils.busySpin(10, this::isInChangingState);
+        return this.running;
+    }
 
-	protected final boolean isInChangingState() {
-		return startFlag.get() != running;
-	}
+    protected ChannelInboundHandler newChannelHandlerDelegater() {
+        return new SimpleChannelInboundHandler<Object>() {
 
-	protected final boolean isOkToClose() {
-		return this.startFlag.get() && this.running;
-	}
+            @Override
+            public void channelActive(ChannelHandlerContext ctx) throws Exception {
+                AbstractNetty4Socket.this.onChannelActive(ctx);
+                ctx.fireChannelActive();
+            };
 
-	protected final boolean tryStart(Runnable starter) {
-		if (!this.isStarted() && this.startFlag.compareAndSet(false, true)) {
-			try {
-				starter.run();
-			} catch (Exception e) {
-				this.startFlag.set(false);
-				throw e;
-			}
-			this.running = true;
-			return true;
-		}
-		return false;
-	}
+            @Override
+            public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+                AbstractNetty4Socket.this.onChannelInactive(ctx);
+                ctx.fireChannelInactive();
+            }
 
-	@Override
-	public void stop() {
-		try {
-			this.close();
-		} catch (IOException e) {
-			throw new RuntimeException("Error while close netty4 socket", e);
-		}
-	}
+            protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+                AbstractNetty4Socket.this.onChannelRead(ctx, msg);
+            }
 
-	@Override
-	public final void close() throws IOException {
-		if (this.isStarted() && this.startFlag.compareAndSet(true, false)) {
-			try {
-				this.onClose();
-			} catch (ClosedChannelException e) {
-				// channel already closed, just ignore
-			}
-			this.running = false;
-		}
-	}
+            @Override
+            public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+                AbstractNetty4Socket.this.onException(ctx, cause);
+            }
 
-	protected void onClose() throws IOException {
+            @Override
+            public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+                AbstractNetty4Socket.this.onHandlerAdded(ctx);
+            }
+        };
+    }
 
-	}
+    protected abstract void onChannelActive(ChannelHandlerContext ctx) throws Exception;
 
-	@Override
-	public final void applyConfig(@NonNull String name, @NonNull Object value) {
-		if (this.isStarted()) {
-			throw new IllegalStateException("Cannot apply config while this socket already stated");
-		}
-		this.configs.putAny(name, value);
-		this.onApplyConfig(name);
-	}
+    protected abstract void onChannelInactive(ChannelHandlerContext ctx) throws Exception;
 
-	protected void onApplyConfig(String name) {
-		// do nothing
-	}
+    protected abstract void onChannelRead(ChannelHandlerContext ctx, Object msg) throws Exception;
 
-	protected abstract BElement handleIncomingMessage(String channelId, Object msg) throws Exception;
+    protected void onClose() throws IOException {
 
-	protected abstract void onChannelActive(ChannelHandlerContext ctx) throws Exception;
+    }
 
-	protected abstract void onChannelInactive(ChannelHandlerContext ctx) throws Exception;
+    protected void onException(ChannelHandlerContext ctx, Throwable cause) {
+        if (this.failureHandler != null) {
+            this.failureHandler.accept(cause);
+        }
+        getLogger().error("Error while handling socket msg", cause);
+    }
 
-	protected abstract void onChannelRead(ChannelHandlerContext ctx, Object msg) throws Exception;
+    protected void onHandlerAdded(ChannelHandlerContext ctx) {
+        // do nothing...
+    }
 
-	protected void onHandlerAdded(ChannelHandlerContext ctx) {
-		// do nothing...
-	}
+    @Override
+    public void stop() {
+        try {
+            this.close();
+        } catch (IOException e) {
+            throw new RuntimeException("Error while close netty4 socket", e);
+        }
+    }
 
-	protected void onException(ChannelHandlerContext ctx, Throwable cause) {
-		if (this.failureHandler != null) {
-			this.failureHandler.accept(cause);
-		}
-		getLogger().error("Error while handling socket msg", cause);
-	}
+    protected final boolean tryStart(Runnable starter) {
+        if (!this.isStarted() && this.startFlag.compareAndSet(false, true)) {
+            try {
+                starter.run();
+            } catch (Exception e) {
+                this.startFlag.set(false);
+                throw e;
+            }
+            this.running = true;
+            return true;
+        }
+        return false;
+    }
 }

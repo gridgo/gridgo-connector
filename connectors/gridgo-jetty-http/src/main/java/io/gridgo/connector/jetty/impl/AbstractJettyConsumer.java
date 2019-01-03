@@ -23,90 +23,87 @@ import lombok.NonNull;
 
 public class AbstractJettyConsumer extends AbstractHasResponderConsumer implements JettyConsumer {
 
-	private final HostAndPort address;
-	private final String path;
+    private final HostAndPort address;
+    private final String path;
 
-	private JettyHttpServer httpServer;
-	private Function<Throwable, Message> failureHandler;
+    private JettyHttpServer httpServer;
+    private Function<Throwable, Message> failureHandler;
 
-	private final String uniqueIdentifier;
+    private final String uniqueIdentifier;
 
-	private final Set<JettyServletContextHandlerOption> options;
+    private final Set<JettyServletContextHandlerOption> options;
 
-	public AbstractJettyConsumer(ConnectorContext context, @NonNull HostAndPort address, boolean http2Enabled,
-			String path, Set<JettyServletContextHandlerOption> options) {
-		super(context);
+    public AbstractJettyConsumer(ConnectorContext context, @NonNull HostAndPort address, boolean http2Enabled, String path,
+            Set<JettyServletContextHandlerOption> options) {
+        super(context);
 
-		this.options = options;
+        this.options = options;
 
-		this.address = address;
+        this.address = address;
 
-		path = (path == null || path.isBlank()) ? "/*" : path.trim();
-		this.path = path.startsWith("/") ? path : ("/" + path);
+        path = (path == null || path.isBlank()) ? "/*" : path.trim();
+        this.path = path.startsWith("/") ? path : ("/" + path);
 
-		this.httpServer = JettyHttpServerManager.getInstance().getOrCreateJettyServer(this.address, http2Enabled,
-				this.options);
-		if (this.httpServer == null) {
-			throw new RuntimeException("Cannot create http server for address: " + this.address);
-		}
+        this.httpServer = JettyHttpServerManager.getInstance().getOrCreateJettyServer(this.address, http2Enabled, this.options);
+        if (this.httpServer == null) {
+            throw new RuntimeException("Cannot create http server for address: " + this.address);
+        }
 
-		this.uniqueIdentifier = address.toHostAndPort() + this.path;
-		this.setResponder(new DefaultJettyResponder(getContext(), this.uniqueIdentifier));
-	}
+        this.uniqueIdentifier = address.toHostAndPort() + this.path;
+        this.setResponder(new DefaultJettyResponder(getContext(), this.uniqueIdentifier));
+    }
 
-	@Override
-	protected String generateName() {
-		return "consumer.jetty.http-server." + this.uniqueIdentifier;
-	}
+    protected Deferred<Message, Exception> createDeferred() {
+        return new CompletableDeferredObject<>();
+    }
 
-	protected JettyResponder getJettyResponder() {
-		return (JettyResponder) this.getResponder();
-	}
+    @Override
+    protected String generateName() {
+        return "consumer.jetty.http-server." + this.uniqueIdentifier;
+    }
 
-	protected HttpRequestParser getHttpRequestParser() {
-		var parser = this.getContext().getRegistry().lookup("httpRequestParser");
-		return parser == null ? HttpRequestParser.DEFAULT : (HttpRequestParser) parser;
-	}
+    protected HttpRequestParser getHttpRequestParser() {
+        var parser = this.getContext().getRegistry().lookup("httpRequestParser");
+        return parser == null ? HttpRequestParser.DEFAULT : (HttpRequestParser) parser;
+    }
 
-	private void onHttpRequest(HttpServletRequest request, HttpServletResponse response) {
-		Message requestMessage = null;
-		try {
-			// parse http servlet request to message object
-			requestMessage = this.getHttpRequestParser().parse(request, this.options);
-		} catch (Exception e) {
-			getLogger().error("error while parsing http request", e);
-			Message responseMessage = this.failureHandler != null ? this.failureHandler.apply(e)
-					: this.getJettyResponder().generateFailureMessage(e);
-			((JettyResponder) this.getResponder()).writeResponse(response, responseMessage);
-		}
+    protected JettyResponder getJettyResponder() {
+        return (JettyResponder) this.getResponder();
+    }
 
-		if (requestMessage != null) {
-			var deferredAndRoutingId = ((JettyResponder) this.getResponder()).registerRequest(request);
-			this.publish(requestMessage.setRoutingIdFromAny(deferredAndRoutingId.getRoutingId()),
-					deferredAndRoutingId.getDeferred());
-		}
-	}
+    private void onHttpRequest(HttpServletRequest request, HttpServletResponse response) {
+        Message requestMessage = null;
+        try {
+            // parse http servlet request to message object
+            requestMessage = this.getHttpRequestParser().parse(request, this.options);
+        } catch (Exception e) {
+            getLogger().error("error while parsing http request", e);
+            Message responseMessage = this.failureHandler != null ? this.failureHandler.apply(e) : this.getJettyResponder().generateFailureMessage(e);
+            ((JettyResponder) this.getResponder()).writeResponse(response, responseMessage);
+        }
 
-	protected Deferred<Message, Exception> createDeferred() {
-		return new CompletableDeferredObject<>();
-	}
+        if (requestMessage != null) {
+            var deferredAndRoutingId = ((JettyResponder) this.getResponder()).registerRequest(request);
+            this.publish(requestMessage.setRoutingIdFromAny(deferredAndRoutingId.getRoutingId()), deferredAndRoutingId.getDeferred());
+        }
+    }
 
-	@Override
-	protected void onStart() {
-		this.httpServer.start();
-		this.httpServer.addPathHandler(this.path, this::onHttpRequest);
-	}
+    @Override
+    protected void onStart() {
+        this.httpServer.start();
+        this.httpServer.addPathHandler(this.path, this::onHttpRequest);
+    }
 
-	@Override
-	protected void onStop() {
-		this.httpServer.stop();
-	}
+    @Override
+    protected void onStop() {
+        this.httpServer.stop();
+    }
 
-	@Override
-	public JettyConsumer setFailureHandler(Function<Throwable, Message> failureHandler) {
-		this.failureHandler = failureHandler;
-		getJettyResponder().setFailureHandler(failureHandler);
-		return this;
-	}
+    @Override
+    public JettyConsumer setFailureHandler(Function<Throwable, Message> failureHandler) {
+        this.failureHandler = failureHandler;
+        getJettyResponder().setFailureHandler(failureHandler);
+        return this;
+    }
 
 }

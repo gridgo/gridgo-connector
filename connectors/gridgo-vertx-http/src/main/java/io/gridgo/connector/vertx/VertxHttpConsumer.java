@@ -13,6 +13,8 @@ import io.gridgo.connector.Consumer;
 import io.gridgo.connector.httpcommon.AbstractHttpConsumer;
 import io.gridgo.connector.support.ConnectionRef;
 import io.gridgo.connector.support.config.ConnectorContext;
+import io.gridgo.connector.support.exceptions.NoSubscriberException;
+import io.gridgo.connector.vertx.support.exceptions.HttpException;
 import io.gridgo.framework.support.Message;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
@@ -20,7 +22,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -30,232 +31,287 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer {
 
-	private static final Map<String, ConnectionRef<ServerRouterTuple>> SERVER_MAP = new HashMap<>();
+    class ServerRouterTuple {
 
-	private static final int DEFAULT_EXCEPTION_STATUS_CODE = 500;
+        private HttpServer server;
 
-	private Vertx vertx;
+        private Router router;
 
-	private VertxOptions vertxOptions;
+        private Vertx vertx;
 
-	private HttpServerOptions httpOptions;
+        public ServerRouterTuple(Vertx vertx, HttpServer server, Router router) {
+            this.vertx = vertx;
+            this.server = server;
+            this.router = router;
+        }
+    }
 
-	private String path;
+    private static final Map<String, ConnectionRef<ServerRouterTuple>> SERVER_MAP = new HashMap<>();
 
-	private String method;
+    private static final ThreadLocal<Map<String, ConnectionRef<ServerRouterTuple>>> LOCAL_SERVER_MAP //
+            = ThreadLocal.withInitial(HashMap::new);
 
-	private boolean parseCookie;
+    private static final int DEFAULT_EXCEPTION_STATUS_CODE = 500;
 
-	private Route route;
+    private Vertx vertx;
 
-	public VertxHttpConsumer(ConnectorContext context, Vertx vertx, VertxOptions vertxOptions,
-			HttpServerOptions options, String path, String method, String format, Map<String, Object> params) {
-		super(context, format);
-		this.vertx = vertx;
-		this.vertxOptions = vertxOptions;
-		this.httpOptions = options;
-		this.path = path;
-		this.method = method;
-		this.parseCookie = Boolean
-				.valueOf(params.getOrDefault(VertxHttpConstants.PARAM_PARSE_COOKIE, "false").toString());
-	}
+    private VertxOptions vertxOptions;
 
-	@Override
-	protected void onStart() {
-		ConnectionRef<ServerRouterTuple> connRef;
-		String connectionKey = buildConnectionKey();
-		synchronized (SERVER_MAP) {
-			if (SERVER_MAP.containsKey(connectionKey)) {
-				connRef = SERVER_MAP.get(connectionKey);
-			} else {
-				var latch = new CountDownLatch(1);
-				Vertx vertx;
-				boolean ownedVertx;
-				if (this.vertx != null) {
-					vertx = this.vertx;
-					ownedVertx = false;
-				} else {
-					vertx = Vertx.vertx(vertxOptions);
-					ownedVertx = true;
-				}
-				var server = vertx.createHttpServer(httpOptions);
-				var router = initializeRouter(vertx);
-				server.requestHandler(router::accept);
-				connRef = new ConnectionRef<>(new ServerRouterTuple(ownedVertx ? vertx : null, server, router));
-				SERVER_MAP.put(connectionKey, connRef);
-				server.listen(result -> latch.countDown());
-				try {
-					latch.await();
-				} catch (InterruptedException e) {
-					throw new RuntimeException(e);
-				}
-			}
-			connRef.ref();
-		}
+    private HttpServerOptions httpOptions;
 
-		configureRouter(connRef.getConnection().router);
-	}
+    private String path;
 
-	private Router initializeRouter(Vertx vertx) {
-		var router = Router.router(vertx);
-		if (!"GET".equals(method))
-		    router.route("/*").handler(BodyHandler.create());
-		return router;
-	}
+    private String method;
 
-	private String buildConnectionKey() {
-		return httpOptions.getHost() + ":" + httpOptions.getPort();
-	}
+    private boolean parseCookie;
 
-	private void configureRouter(Router router) {
-		if (method != null && !method.isEmpty()) {
-			if (path == null || path.isEmpty())
-				path = "/";
-			this.route = router.route(HttpMethod.valueOf(method), path).handler(this::handleRequest);
-		} else {
-			if (path == null || path.isEmpty())
-				this.route = router.route("/").handler(this::handleRequest);
-			else
-				this.route = router.route(path).handler(this::handleRequest);
-		}
-		this.route.failureHandler(this::handleException);
-	}
+    private Route route;
 
-	private void handleException(RoutingContext ctx) {
-	    log.error("Exception caught when handling request", ctx.failure());
-		var msg = buildFailureMessage(ctx.failure());
-		if (msg != null) {
-			msg.getPayload().getHeaders().putIfAbsent(VertxHttpConstants.HEADER_STATUS_CODE,
-					BValue.of(DEFAULT_EXCEPTION_STATUS_CODE));
-			sendResponse(ctx.response(), msg);
-		} else {
-			defaultHandleException(ctx);
-		}
-	}
+    public VertxHttpConsumer(ConnectorContext context, Vertx vertx, VertxOptions vertxOptions,
+            HttpServerOptions options, String path, String method, String format, Map<String, Object> params) {
+        super(context, format);
+        this.vertx = vertx;
+        this.vertxOptions = vertxOptions;
+        this.httpOptions = options;
+        this.path = path;
+        this.method = method;
+        this.parseCookie = Boolean.valueOf(
+                params.getOrDefault(VertxHttpConstants.PARAM_PARSE_COOKIE, "false").toString());
+    }
 
-	private void defaultHandleException(RoutingContext ctx) {
-		if (ctx.statusCode() != -1)
-			ctx.response().setStatusCode(ctx.statusCode());
-		else
-			ctx.response().setStatusCode(DEFAULT_EXCEPTION_STATUS_CODE);
+    private String buildConnectionKey() {
+        return httpOptions.getHost() + ":" + httpOptions.getPort();
+    }
 
-		if (ctx.failure() != null)
-			ctx.response().end(ctx.failure().getMessage() + "");
-		else
-			ctx.response().end();
-	}
+    private Message buildMessage(RoutingContext ctx) {
+        var headers = BObject.ofEmpty();
+        for (var entry : ctx.request().headers()) {
+            headers.put(entry.getKey(), BValue.of(entry.getValue()));
+        }
 
-	private void handleRequest(RoutingContext ctx) {
-		var request = buildMessage(ctx);
-		var deferred = new AsyncDeferredObject<Message, Exception>();
-		publish(request, deferred);
-		deferred.promise() //
-				.done(response -> sendResponse(ctx.response(), response)) //
-				.fail(ex -> sendException(ctx, ex));
-	}
+        populateCommonHeaders(ctx, headers);
 
-	private void sendException(RoutingContext ctx, Exception ex) {
-		ctx.fail(ex);
-	}
+        if (ctx.request().method() == HttpMethod.GET)
+            return createMessage(headers, null);
+        var body = ctx.getBody() != null ? deserialize(ctx.getBody().getBytes()) : null;
+        return createMessage(headers, body);
+    }
 
-	private void sendResponse(HttpServerResponse serverResponse, Message response) {
-		if (response == null || response.getPayload() == null) {
-			serverResponse.end();
-			return;
-		}
+    private void configureRouter(Router router) {
+        if (method != null && !method.isEmpty()) {
+            if (path == null || path.isEmpty())
+                path = "/";
+            this.route = router.route(HttpMethod.valueOf(method), path).handler(this::handleRequest);
+        } else {
+            if (path == null || path.isEmpty())
+                this.route = router.route("/").handler(this::handleRequest);
+            else
+                this.route = router.route(path).handler(this::handleRequest);
+        }
+        router.route().failureHandler(this::handleException);
+    }
 
-		String status = response.getPayload().getHeaders().getString(VertxHttpConstants.HEADER_STATUS, null);
-		if (status != null)
-			serverResponse.setStatusMessage(status);
-		int statusCode = response.getPayload().getHeaders().getInteger(VertxHttpConstants.HEADER_STATUS_CODE, -1);
-		if (statusCode != -1)
-			serverResponse.setStatusCode(statusCode);
+    private ConnectionRef<ServerRouterTuple> createOrGetConnection(boolean ownedVertx, String connectionKey,
+            Map<String, ConnectionRef<ServerRouterTuple>> theMap) {
+        ConnectionRef<ServerRouterTuple> connRef;
+        if (theMap.containsKey(connectionKey)) {
+            connRef = theMap.get(connectionKey);
+        } else {
+            var latch = new CountDownLatch(1);
+            var theVertx = this.vertx;
+            if (theVertx == null) {
+                theVertx = Vertx.vertx(vertxOptions);
+            }
+            var server = theVertx.createHttpServer(httpOptions);
+            var router = initializeRouter(theVertx);
+            server.requestHandler(router::accept);
+            connRef = new ConnectionRef<>(new ServerRouterTuple(ownedVertx ? theVertx : null, server, router));
+            theMap.put(connectionKey, connRef);
+            server.listen(result -> latch.countDown());
+            if (ownedVertx) {
+                try {
+                    latch.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        connRef.ref();
+        return connRef;
+    }
 
-		for (var entry : response.getPayload().getHeaders().entrySet()) {
-			if (entry.getValue().isValue())
-				serverResponse.headers().add(entry.getKey(), entry.getValue().toString());
-		}
-		if (response.getPayload().getBody() == null) {
-			serverResponse.end();
-			return;
-		}
-		var buffer = Buffer.buffer(serialize(response.getPayload().getBody()));
-		serverResponse.end(buffer);
-	}
+    private void defaultHandleException(RoutingContext ctx) {
+        if (ctx.statusCode() != -1)
+            ctx.response().setStatusCode(ctx.statusCode());
+        else
+            ctx.response().setStatusCode(DEFAULT_EXCEPTION_STATUS_CODE);
 
-	private Message buildMessage(RoutingContext ctx) {
-		var headers = BObject.ofEmpty();
-		for (var entry : ctx.request().headers()) {
-			headers.put(entry.getKey(), BValue.of(entry.getValue()));
-		}
+        if (ctx.failure() != null)
+            ctx.response().end(ctx.failure().getMessage() + "");
+        else
+            ctx.response().end();
+    }
 
-		populateCommonHeaders(ctx, headers);
+    @Override
+    protected String generateName() {
+        return "consumer.vertx:http." + method + "." + path;
+    }
 
-		if (ctx.request().method() == HttpMethod.GET)
-		    return createMessage(headers);
-		var body = deserialize(ctx.getBody().getBytes());
-		return createMessage(headers, body);
-	}
+    private String getContentType() {
+        var format = getFormat();
+        if ("raw".equals(format))
+            return "application/octet-stream; charset=utf-8";
+        if (format == null || "json".equals(format))
+            return "application/json; charset=utf-8";
+        if ("xml".equals(format))
+            return "application/xml; charset=utf-8";
+        return "text/plain; charset=utf-8";
+    }
 
-	private void populateCommonHeaders(RoutingContext ctx, BObject headers) {
-		var queryParams = BObject.ofEmpty();
-		for (var query : ctx.request().params()) {
-			queryParams.put(query.getKey(), BValue.of(query.getValue()));
-		}
-		headers.set(VertxHttpConstants.HEADER_QUERY_PARAMS, queryParams)
-				.setAny(VertxHttpConstants.HEADER_HTTP_METHOD, ctx.request().method().name())
-				.setAny(VertxHttpConstants.HEADER_PATH, ctx.request().path());
+    private void handleException(RoutingContext ctx) {
+        var ex = ctx.failure() != null ? ctx.failure() : new HttpException(ctx.statusCode());
+        if (ex instanceof HttpException)
+            log.warn("HTTP error {} when handling request {}", ctx.statusCode(), ctx.request().path());
+        else
+            log.error("Exception caught when handling request", ex);
+        var msg = buildFailureMessage(ex);
+        if (msg != null) {
+            var statusCode = ctx.statusCode() != -1 ? ctx.statusCode() : DEFAULT_EXCEPTION_STATUS_CODE;
+            msg.getPayload().getHeaders() //
+               .putIfAbsent(VertxHttpConstants.HEADER_STATUS_CODE, BValue.of(statusCode));
+            sendResponse(ctx, msg, true);
+        } else {
+            defaultHandleException(ctx);
+        }
+    }
 
-		if (parseCookie) {
-			var cookies = BArray.ofEmpty();
-			for (var cookie : ctx.cookies()) {
-				var cookieObj = BObject.ofEmpty() //
-						.setAny(VertxHttpConstants.COOKIE_NAME, cookie.getName())
-						.setAny(VertxHttpConstants.COOKIE_DOMAIN, cookie.getDomain())
-						.setAny(VertxHttpConstants.COOKIE_PATH, cookie.getPath())
-						.setAny(VertxHttpConstants.COOKIE_VALUE, cookie.getValue());
-				cookies.add(cookieObj);
-			}
-			headers.put(VertxHttpConstants.HEADER_COOKIE, cookies);
-		}
-	}
+    private void handleRequest(RoutingContext ctx) {
+        if (getSubscribers().isEmpty()) {
+            sendException(ctx, new NoSubscriberException());
+            return;
+        }
+        var request = buildMessage(ctx);
+        var deferred = new AsyncDeferredObject<Message, Exception>();
+        publish(request, deferred);
+        deferred.promise() //
+                .done(response -> sendResponse(ctx, response, false)) //
+                .fail(ex -> sendException(ctx, ex));
+    }
 
-	@Override
-	protected void onStop() {
-		String connectionKey = buildConnectionKey();
-		synchronized (SERVER_MAP) {
-			this.route.remove();
-			if (SERVER_MAP.containsKey(connectionKey)) {
-				var connRef = SERVER_MAP.get(connectionKey);
-				if (connRef.deref() == 0) {
-					SERVER_MAP.remove(connectionKey);
-					try {
-						connRef.getConnection().server.close();
-					} finally {
-						connRef.getConnection().vertx.close();
-					}
-				}
-			}
-		}
-	}
+    private Router initializeRouter(Vertx vertx) {
+        var router = Router.router(vertx);
+        router.route("/*").handler(BodyHandler.create());
+        router.route() //
+              .last() //
+              .handler(rc -> rc.fail(404)) //
+              .failureHandler(this::handleException);
+        return router;
+    }
 
-	class ServerRouterTuple {
+    @Override
+    protected void onStart() {
+        var ownedVertx = this.vertx == null;
+        ConnectionRef<ServerRouterTuple> connRef;
+        String connectionKey = buildConnectionKey();
+        if (ownedVertx) {
+            synchronized (SERVER_MAP) {
+                connRef = createOrGetConnection(true, connectionKey, SERVER_MAP);
+            }
+        } else {
+            connRef = createOrGetConnection(false, connectionKey, LOCAL_SERVER_MAP.get());
+        }
 
-		private HttpServer server;
+        configureRouter(connRef.getConnection().router);
+    }
 
-		private Router router;
+    @Override
+    protected void onStop() {
+        this.route.remove();
 
-		private Vertx vertx;
+        if (this.vertx != null)
+            return;
 
-		public ServerRouterTuple(Vertx vertx, HttpServer server, Router router) {
-			this.vertx = vertx;
-			this.server = server;
-			this.router = router;
-		}
-	}
+        String connectionKey = buildConnectionKey();
+        synchronized (SERVER_MAP) {
+            if (SERVER_MAP.containsKey(connectionKey)) {
+                var connRef = SERVER_MAP.get(connectionKey);
+                if (connRef.deref() == 0) {
+                    SERVER_MAP.remove(connectionKey);
+                    try {
+                        connRef.getConnection().server.close();
+                    } finally {
+                        connRef.getConnection().vertx.close();
+                    }
+                }
+            }
+        }
+    }
 
-	@Override
-	protected String generateName() {
-		return "consumer.vertx:http." + method + "." + path;
-	}
+    private void populateCommonHeaders(RoutingContext ctx, BObject headers) {
+        var queryParams = BObject.ofEmpty();
+        for (var query : ctx.request().params()) {
+            queryParams.put(query.getKey(), BValue.of(query.getValue()));
+        }
+        headers.set(VertxHttpConstants.HEADER_QUERY_PARAMS, queryParams)
+               .setAny(VertxHttpConstants.HEADER_HTTP_METHOD, ctx.request().method().name())
+               .setAny(VertxHttpConstants.HEADER_PATH, ctx.request().path());
+
+        if (parseCookie) {
+            var cookies = BArray.ofEmpty();
+            for (var cookie : ctx.cookies()) {
+                var cookieObj = BObject.ofEmpty() //
+                                       .setAny(VertxHttpConstants.COOKIE_NAME, cookie.getName())
+                                       .setAny(VertxHttpConstants.COOKIE_DOMAIN, cookie.getDomain())
+                                       .setAny(VertxHttpConstants.COOKIE_PATH, cookie.getPath())
+                                       .setAny(VertxHttpConstants.COOKIE_VALUE, cookie.getValue());
+                cookies.add(cookieObj);
+            }
+            headers.put(VertxHttpConstants.HEADER_COOKIE, cookies);
+        }
+    }
+
+    private void sendException(RoutingContext ctx, Exception ex) {
+        ctx.fail(ex);
+    }
+
+    private void sendResponse(RoutingContext ctx, Message response, boolean fromException) {
+        var serverResponse = ctx.response();
+        if (response == null || response.getPayload() == null) {
+            serverResponse.end();
+            return;
+        }
+
+        var status = response.getPayload().getHeaders().getString(VertxHttpConstants.HEADER_STATUS, null);
+        if (status != null)
+            serverResponse.setStatusMessage(status);
+        int statusCode = response.getPayload().getHeaders().getInteger(VertxHttpConstants.HEADER_STATUS_CODE, -1);
+        if (statusCode != -1)
+            serverResponse.setStatusCode(statusCode);
+
+        var headers = response.getPayload().getHeaders();
+
+        if (!headers.containsKey(VertxHttpConstants.HEADER_CONTENT_TYPE)) {
+            headers.setAny(VertxHttpConstants.HEADER_CONTENT_TYPE, getContentType());
+        }
+
+        for (var entry : headers.entrySet()) {
+            if (entry.getValue().isValue())
+                serverResponse.headers().add(entry.getKey(), entry.getValue().toString());
+        }
+        if (response.getPayload().getBody() == null) {
+            serverResponse.end();
+            return;
+        }
+        byte[] bytes;
+        try {
+            bytes = serialize(response.getPayload().getBody());
+        } catch (Exception ex) {
+            log.error("Exception caught while sending response", ex);
+            if (!fromException)
+                ctx.fail(ex);
+            return;
+        }
+        serverResponse.end(Buffer.buffer(bytes));
+    }
 }

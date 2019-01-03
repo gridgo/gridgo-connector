@@ -10,34 +10,34 @@ import io.gridgo.connector.Producer;
 
 public interface RabbitMQProducer extends Producer, RabbitMQChannelLifeCycle {
 
-	default void publish(byte[] body, BasicProperties props, String routingKey) {
-		if (body == null) {
-			throw new NullPointerException("Cannot send null body");
-		}
+    default String initResponseQueue(DeliverCallback callback) {
+        try {
+            DeclareOk ok = this.getChannel().queueDeclare();
+            final String responseQueueName = ok.getQueue();
+            this.getChannel().basicConsume(responseQueueName, false, callback, (String consumerTag) -> {
+                getLogger().debug("Response canceled: " + consumerTag);
+            });
+            return responseQueueName;
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot declare response queue", e);
+        }
+    }
 
-		routingKey = routingKey != null ? routingKey : "";
-		String exchangeName = this.getQueueConfig().getExchangeName();
-		if (exchangeName == null || exchangeName.isBlank()) {
-			routingKey = this.getQueueConfig().getQueueName();
-		}
+    default void publish(byte[] body, BasicProperties props, String routingKey) {
+        if (body == null) {
+            throw new NullPointerException("Cannot send null body");
+        }
 
-		try {
-			this.getChannel().basicPublish(exchangeName, routingKey, props, body);
-		} catch (IOException e) {
-			throw new RuntimeException("Publish message to channel error", e);
-		}
-	}
+        routingKey = routingKey != null ? routingKey : "";
+        String exchangeName = this.getQueueConfig().getExchangeName();
+        if (exchangeName == null || exchangeName.isBlank()) {
+            routingKey = this.getQueueConfig().getQueueName();
+        }
 
-	default String initResponseQueue(DeliverCallback callback) {
-		try {
-			DeclareOk ok = this.getChannel().queueDeclare();
-			final String responseQueueName = ok.getQueue();
-			this.getChannel().basicConsume(responseQueueName, false, callback, (String consumerTag) -> {
-				getLogger().debug("Response canceled: " + consumerTag);
-			});
-			return responseQueueName;
-		} catch (IOException e) {
-			throw new RuntimeException("Cannot declare response queue", e);
-		}
-	}
+        try {
+            this.getChannel().basicPublish(exchangeName, routingKey, props, body);
+        } catch (IOException e) {
+            throw new RuntimeException("Publish message to channel error", e);
+        }
+    }
 }

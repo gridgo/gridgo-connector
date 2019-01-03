@@ -10,47 +10,49 @@ import lombok.Getter;
 
 public class FileProducer extends AbstractProducer {
 
-	private String path;
+    private String path;
 
-	@Getter
-	private FileProducerEngine engine;
+    @Getter
+    private FileProducerEngine engine;
 
-	public FileProducer(ConnectorContext context, String path, FileProducerEngine engine) {
-		super(context);
-		this.engine = engine;
-		this.path = path;
-	}
+    public FileProducer(ConnectorContext context, String path, FileProducerEngine engine) {
+        super(context);
+        this.engine = engine;
+        this.path = path;
+    }
 
-	@Override
-	protected void onStart() {
-	}
+    @Override
+    public Promise<Message, Exception> call(Message request) {
+        throw new UnsupportedOperationException("File doesn't support call");
+    }
 
-	@Override
-	protected void onStop() {
-	}
+    @Override
+    protected String generateName() {
+        return "producer.file:" + engine.getName() + "." + path;
+    }
 
-	@Override
-	protected String generateName() {
-		return "producer.file:" + engine.getName() + "." + path;
-	}
+    @Override
+    public boolean isCallSupported() {
+        return false;
+    }
 
-	@Override
-	public Promise<Message, Exception> call(Message request) {
-		throw new UnsupportedOperationException("File doesn't support call");
-	}
+    @Override
+    protected void onStart() {
+        // Nothing to do here
+    }
 
-	@Override
-	public boolean isCallSupported() {
-		return false;
-	}
+    @Override
+    protected void onStop() {
+        // Nothing to do here
+    }
 
-	@Override
-	public void send(Message message) {
-		this.engine.send(message);
-	}
+    @Override
+    public void send(Message message) {
+        this.engine.send(message);
+    }
 
-	@Override
-	public Promise<Message, Exception> sendWithAck(Message message) {
-		return this.engine.sendWithAck(message);
-	}
+    @Override
+    public Promise<Message, Exception> sendWithAck(Message message) {
+        return this.engine.sendWithAck(message);
+    }
 }

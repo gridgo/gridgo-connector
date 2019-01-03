@@ -4,5 +4,5 @@ import java.util.function.Consumer;
 
 public interface ExceptionHandlerAware<T> {
 
-	public T setExceptionHandler(Consumer<Throwable> exceptionHandler);
+    public T setExceptionHandler(Consumer<Throwable> exceptionHandler);
 }

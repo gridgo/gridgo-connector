@@ -11,48 +11,48 @@ import io.gridgo.framework.support.Payload;
 
 public class TestProducer extends AbstractProducer {
 
-	protected TestProducer(ConnectorContext context) {
-		super(context);
-	}
+    protected TestProducer(ConnectorContext context) {
+        super(context);
+    }
 
-	@Override
-	public void send(Message message) {
+    @Override
+    public Promise<Message, Exception> call(Message request) {
+        var deferred = new CompletableDeferredObject<Message, Exception>();
+        int body = request.getPayload().getBody().asValue().getInteger();
+        var message = Message.of(Payload.of(BValue.of(body + 1)));
+        ack(deferred, message, null);
+        return deferred.promise();
+    }
 
-	}
+    @Override
+    protected String generateName() {
+        return "producer.test";
+    }
 
-	@Override
-	public Promise<Message, Exception> sendWithAck(Message message) {
-		var deferred = new CompletableDeferredObject<Message, Exception>();
-		ack(deferred, null, new RuntimeException("test exception"));
-		return deferred.promise();
-	}
+    @Override
+    public boolean isCallSupported() {
+        return true;
+    }
 
-	@Override
-	public Promise<Message, Exception> call(Message request) {
-		var deferred = new CompletableDeferredObject<Message, Exception>();
-		int body = request.getPayload().getBody().asValue().getInteger();
-		var message = Message.of(Payload.of(BValue.of(body + 1)));
-		ack(deferred, message, null);
-		return deferred.promise();
-	}
+    @Override
+    protected void onStart() {
 
-	@Override
-	protected void onStart() {
-		
-	}
+    }
 
-	@Override
-	protected void onStop() {
+    @Override
+    protected void onStop() {
 
-	}
+    }
 
-	@Override
-	protected String generateName() {
-		return "producer.test";
-	}
+    @Override
+    public void send(Message message) {
 
-	@Override
-	public boolean isCallSupported() {
-		return true;
-	}
+    }
+
+    @Override
+    public Promise<Message, Exception> sendWithAck(Message message) {
+        var deferred = new CompletableDeferredObject<Message, Exception>();
+        ack(deferred, null, new RuntimeException("test exception"));
+        return deferred.promise();
+    }
 }

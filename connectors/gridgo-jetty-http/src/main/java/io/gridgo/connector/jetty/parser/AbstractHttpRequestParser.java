@@ -32,114 +32,109 @@ import lombok.NonNull;
 
 public abstract class AbstractHttpRequestParser implements HttpRequestParser, Loggable {
 
-	protected static final Set<String> NO_BODY_METHODS = new HashSet<>(Arrays.asList("get", "delete", "options"));
+    protected static final Set<String> NO_BODY_METHODS = new HashSet<>(Arrays.asList("get", "delete", "options"));
 
-	@Override
-	public Message parse(@NonNull HttpServletRequest request, Set<JettyServletContextHandlerOption> options) {
-		BObject headers = extractHeaders(request);
-		BElement body;
-		try {
-			body = extractBody(request);
-			Message message = Message.of(Payload.of(headers, body)) //
-					.addMisc(HttpCommonConstants.COOKIES, request.getCookies()) //
+    protected BElement extractBody(HttpServletRequest request) throws Exception {
+        if (!NO_BODY_METHODS.contains(request.getMethod().toLowerCase().trim())) {
+            String contentType = request.getContentType();
+            if (contentType != null && contentType.trim().toLowerCase().contains(HttpContentType.MULTIPART_FORM_DATA.getMime())) {
+                return extractMultiPartBody(request.getParts());
+            } else {
+                try (InputStream is = request.getInputStream()) {
+                    return extractInputStreamBody(is);
+                } catch (IOException e) {
+                    throw new HttpRequestParsingException("Error while reading request's body as input stream", e);
+                }
+            }
+        }
+        return null;
+    }
 
-					.addMisc(HttpCommonConstants.LOCAL_NAME, request.getLocalName()) //
-					.addMisc(HttpCommonConstants.SERVER_NAME, request.getServerName()) //
-					.addMisc(HttpCommonConstants.SERVER_PORT, request.getServerPort()) //
+    protected BObject extractHeaders(HttpServletRequest request) {
+        BObject result = BObject.ofEmpty();
+        Enumeration<String> headerNames = request.getHeaderNames();
+        while (headerNames.hasMoreElements()) {
+            String headerName = headerNames.nextElement();
+            result.putAny(headerName, request.getHeader(headerName));
+        }
 
-					.addMisc(HttpCommonConstants.LOCALE, request.getLocale()) //
-					.addMisc(HttpCommonConstants.LOCALES, request.getLocales()) //
+        String queryString = request.getQueryString();
+        String encoding = request.getCharacterEncoding();
+        if (encoding == null || encoding.isBlank()) {
+            encoding = HttpCommonConstants.UTF_8;
+        }
 
-					.addMisc(HttpCommonConstants.USER_PRINCIPAL, request.getUserPrincipal()) //
-			;
-			if (options != null) {
-				if (options.contains(JettyServletContextHandlerOption.SESSIONS)) {
-					message.addMisc(HttpCommonConstants.SESSION, request.getSession());
-				}
-			}
-			return message;
-		} catch (Exception e) {
-			throw new RuntimeException("Error while parsing http servlet request", e);
-		}
+        result.putAny(HttpHeader.CHARSET.asString(), encoding);
+        result.putAny(HttpHeader.CONTENT_LENGTH.asString(), request.getContentLength());
 
-	}
+        // custom extract query string to prevent the request auto parse multipart data
+        result.putAny(HttpHeader.QUERY_PARAMS.asString(), BObject.of(extractQueryString(queryString, Charset.forName(encoding))));
 
-	protected BObject extractHeaders(HttpServletRequest request) {
-		BObject result = BObject.ofEmpty();
-		Enumeration<String> headerNames = request.getHeaderNames();
-		while (headerNames.hasMoreElements()) {
-			String headerName = headerNames.nextElement();
-			result.putAny(headerName, request.getHeader(headerName));
-		}
+        result.putAny(HttpHeader.SCHEME.asString(), request.getScheme());
+        result.putAny(HttpHeader.HTTP_METHOD.asString(), request.getMethod());
 
-		String queryString = request.getQueryString();
-		String encoding = request.getCharacterEncoding();
-		if (encoding == null || encoding.isBlank()) {
-			encoding = HttpCommonConstants.UTF_8;
-		}
+        result.putAny(HttpHeader.CONTEXT_PATH.asString(), request.getContextPath());
+        result.putAny(HttpHeader.PATH_INFO.asString(), request.getPathInfo());
 
-		result.putAny(HttpHeader.CHARSET.asString(), encoding);
-		result.putAny(HttpHeader.CONTENT_LENGTH.asString(), request.getContentLength());
+        result.putAny(HttpHeader.LOCAL_ADDR.asString(), request.getLocalAddr());
+        result.putAny(HttpHeader.REMOTE_ADDR.asString(), request.getRemoteAddr());
 
-		// custom extract query string to prevent the request auto parse multipart data
-		result.putAny(HttpHeader.QUERY_PARAMS.asString(),
-				BObject.of(extractQueryString(queryString, Charset.forName(encoding))));
+        return result;
+    }
 
-		result.putAny(HttpHeader.SCHEME.asString(), request.getScheme());
-		result.putAny(HttpHeader.HTTP_METHOD.asString(), request.getMethod());
+    protected abstract BElement extractInputStreamBody(InputStream inputStream);
 
-		result.putAny(HttpHeader.CONTEXT_PATH.asString(), request.getContextPath());
-		result.putAny(HttpHeader.PATH_INFO.asString(), request.getPathInfo());
+    protected BArray extractMultiPartBody(Collection<Part> parts) throws Exception {
+        return parseAsMultiPart(parts);
+    }
 
-		result.putAny(HttpHeader.LOCAL_ADDR.asString(), request.getLocalAddr());
-		result.putAny(HttpHeader.REMOTE_ADDR.asString(), request.getRemoteAddr());
+    protected Map<String, String> extractQueryString(String query, Charset charset) {
+        Map<String, String> queryPairs = new LinkedHashMap<>();
+        if (query != null && !query.isBlank()) {
+            String[] pairs = query.split("&");
+            for (String pair : pairs) {
+                if (pair.isBlank()) {
+                    continue;
+                }
 
-		return result;
-	}
+                int idx = pair.indexOf('=');
+                if (idx < 0) {
+                    queryPairs.put(pair, "");
+                } else if (idx == 0) {
+                    queryPairs.put("", URLDecoder.decode(pair.substring(idx + 1), charset));
+                } else {
+                    queryPairs.put(URLDecoder.decode(pair.substring(0, idx), charset), URLDecoder.decode(pair.substring(idx + 1), charset));
+                }
+            }
+        }
+        return queryPairs;
+    }
 
-	protected Map<String, String> extractQueryString(String query, Charset charset) {
-		Map<String, String> queryPairs = new LinkedHashMap<>();
-		if (query != null && !query.isBlank()) {
-			String[] pairs = query.split("&");
-			for (String pair : pairs) {
-				if (pair.isBlank()) {
-					continue;
-				}
+    @Override
+    public Message parse(@NonNull HttpServletRequest request, Set<JettyServletContextHandlerOption> options) {
+        BObject headers = extractHeaders(request);
+        BElement body;
+        try {
+            body = extractBody(request);
+            var message = Message.of(Payload.of(headers, body)) //
+                                 .addMisc(HttpCommonConstants.COOKIES, request.getCookies()) //
 
-				int idx = pair.indexOf("=");
-				if (idx < 0) {
-					queryPairs.put(pair, "");
-				} else if (idx == 0) {
-					queryPairs.put("", URLDecoder.decode(pair.substring(idx + 1), charset));
-				} else {
-					queryPairs.put(URLDecoder.decode(pair.substring(0, idx), charset),
-							URLDecoder.decode(pair.substring(idx + 1), charset));
-				}
-			}
-		}
-		return queryPairs;
-	}
+                                 .addMisc(HttpCommonConstants.LOCAL_NAME, request.getLocalName()) //
+                                 .addMisc(HttpCommonConstants.SERVER_NAME, request.getServerName()) //
+                                 .addMisc(HttpCommonConstants.SERVER_PORT, request.getServerPort()) //
 
-	protected BElement extractBody(HttpServletRequest request) throws Exception {
-		if (!NO_BODY_METHODS.contains(request.getMethod().toLowerCase().trim())) {
-			String contentType = request.getContentType();
-			if (contentType != null
-					&& contentType.trim().toLowerCase().contains(HttpContentType.MULTIPART_FORM_DATA.getMime())) {
-				return extractMultiPartBody(request.getParts());
-			} else {
-				try (InputStream is = request.getInputStream()) {
-					return extractInputStreamBody(is);
-				} catch (IOException e) {
-					throw new HttpRequestParsingException("Error while reading request's body as input stream", e);
-				}
-			}
-		}
-		return null;
-	}
+                                 .addMisc(HttpCommonConstants.LOCALE, request.getLocale()) //
+                                 .addMisc(HttpCommonConstants.LOCALES, request.getLocales()) //
 
-	protected abstract BElement extractInputStreamBody(InputStream inputStream);
+                                 .addMisc(HttpCommonConstants.USER_PRINCIPAL, request.getUserPrincipal()) //
+            ;
+            if (options != null && options.contains(JettyServletContextHandlerOption.SESSIONS)) {
+                message.addMisc(HttpCommonConstants.SESSION, request.getSession());
+            }
+            return message;
+        } catch (Exception e) {
+            throw new HttpRequestParsingException("Error while parsing http servlet request", e);
+        }
 
-	protected BArray extractMultiPartBody(Collection<Part> parts) throws Exception {
-		return parseAsMultiPart(parts);
-	}
+    }
 }

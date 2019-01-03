@@ -17,132 +17,133 @@ import lombok.Getter;
 
 public class DefaultSocketConsumer extends AbstractHasResponderConsumer implements SocketConsumer {
 
-	@Getter
-	private long totalRecvBytes;
+    @Getter
+    private long totalRecvBytes;
 
-	@Getter
-	private long totalRecvMessages;
+    @Getter
+    private long totalRecvMessages;
 
-	private Thread poller;
+    private Thread poller;
 
-	private final int bufferSize;
+    private final int bufferSize;
 
-	private final SocketFactory factory;
-	private final SocketOptions options;
-	private final String address;
+    private final SocketFactory factory;
 
-	private CountDownLatch stopDoneTrigger;
+    private final SocketOptions options;
 
-	private boolean autoSkipTopicHeader = false;
+    private final String address;
 
-	public DefaultSocketConsumer(ConnectorContext context, SocketFactory factory, SocketOptions options, String address,
-			int bufferSize) {
-		super(context);
-		this.factory = factory;
-		this.options = options;
-		this.address = address;
-		this.bufferSize = bufferSize;
-	}
+    private CountDownLatch stopDoneTrigger;
 
-	@Override
-	protected final void onStop() {
-		if (this.poller != null && !this.poller.isInterrupted()) {
-			this.poller.interrupt();
-			this.poller = null;
-			try {
-				this.stopDoneTrigger.await();
-				this.stopDoneTrigger = null;
-			} catch (InterruptedException e) {
-				throw new RuntimeException("error while waiting for stopped", e);
-			}
-		}
-	}
+    private boolean autoSkipTopicHeader = false;
 
-	private void poll(Socket socket, Consumer<CountDownLatch> stopDoneTriggerOutput) {
-		final ByteBuffer buffer = ByteBuffer.allocateDirect(this.bufferSize);
-		Thread.currentThread().setName("[POLLER] " + this.getName());
-		SocketUtils.startPolling(socket, buffer, this.autoSkipTopicHeader, (message) -> {
-			ensurePayloadId(message);
-			publish(message, null);
-		}, (recvBytes) -> {
-			totalRecvBytes += recvBytes;
-		}, (recvMsgs) -> {
-			totalRecvMessages += recvMsgs;
-		}, this.getContext().getExceptionHandler(), stopDoneTriggerOutput);
+    public DefaultSocketConsumer(ConnectorContext context, SocketFactory factory, SocketOptions options, String address, int bufferSize) {
+        super(context);
+        this.factory = factory;
+        this.options = options;
+        this.address = address;
+        this.bufferSize = bufferSize;
+    }
 
-		socket.close();
-		this.poller = null;
-	}
+    @Override
+    protected String generateName() {
+        return "consumer." + this.getUniqueIdentifier();
+    }
 
-	private Socket initSocket() {
-		Socket socket = this.factory.createSocket(options);
-		if (!options.getConfig().containsKey("receiveTimeout")) {
-			socket.applyConfig("receiveTimeout", DEFAULT_RECV_TIMEOUT);
-		}
+    private String getUniqueIdentifier() {
+        return new StringBuilder() //
+                                  .append(this.factory.getType()) //
+                                  .append(".") //
+                                  .append(this.options.getType()) //
+                                  .append(".") //
+                                  .append(this.address) //
+                                  .toString();
+    }
 
-		switch (options.getType().toLowerCase()) {
-		case "pull":
-			socket.bind(address);
-			break;
-		case "sub":
-			socket.connect(address);
-			String topic = (String) options.getConfig().getOrDefault("topic", "");
-			socket.subscribe(topic);
-			this.autoSkipTopicHeader = true;
-			break;
-		case "pair":
-			socket.bind(address);
-			int maxBatchSize = 0;
-			boolean batchingEnabled = Boolean.parseBoolean((String) this.options.getConfig().get("batchingEnabled"));
-			if (batchingEnabled) {
-				maxBatchSize = Integer.valueOf((String) this.options.getConfig().getOrDefault("maxBatchingSize",
-						SocketConnector.DEFAULT_MAX_BATCH_SIZE));
-			}
-			this.setResponder(new DefaultSocketResponder(getContext(), socket, bufferSize, 1024, batchingEnabled,
-					maxBatchSize, this.getUniqueIdentifier()));
-			break;
-		}
-		return socket;
-	}
+    private Socket initSocket() {
+        Socket socket = this.factory.createSocket(options);
+        if (!options.getConfig().containsKey("receiveTimeout")) {
+            socket.applyConfig("receiveTimeout", DEFAULT_RECV_TIMEOUT);
+        }
 
-	@Override
-	protected void onStart() {
+        switch (options.getType().toLowerCase()) {
+        case "pull":
+            socket.bind(address);
+            break;
+        case "sub":
+            socket.connect(address);
+            String topic = (String) options.getConfig().getOrDefault("topic", "");
+            socket.subscribe(topic);
+            this.autoSkipTopicHeader = true;
+            break;
+        case "pair":
+            socket.bind(address);
+            int maxBatchSize = 0;
+            boolean batchingEnabled = Boolean.parseBoolean((String) this.options.getConfig().get("batchingEnabled"));
+            if (batchingEnabled) {
+                maxBatchSize = Integer.valueOf((String) this.options.getConfig().getOrDefault("maxBatchingSize", SocketConnector.DEFAULT_MAX_BATCH_SIZE));
+            }
+            this.setResponder(new DefaultSocketResponder(getContext(), socket, bufferSize, 1024, batchingEnabled, maxBatchSize, this.getUniqueIdentifier()));
+            break;
+        default:
+        }
+        return socket;
+    }
 
-		final Socket socket = initSocket();
+    @Override
+    protected void onStart() {
 
-		final AtomicReference<CountDownLatch> doneSignalRef = new AtomicReference<CountDownLatch>();
-		this.poller = new Thread(() -> {
-			this.poll(socket, (doneSignal) -> {
-				doneSignalRef.set(doneSignal);
-			});
-		});
+        final Socket socket = initSocket();
 
-		this.totalRecvBytes = 0;
-		this.totalRecvMessages = 0;
+        final AtomicReference<CountDownLatch> doneSignalRef = new AtomicReference<CountDownLatch>();
+        this.poller = new Thread(() -> {
+            this.poll(socket, (doneSignal) -> {
+                doneSignalRef.set(doneSignal);
+            });
+        });
 
-		this.poller.start();
+        this.totalRecvBytes = 0;
+        this.totalRecvMessages = 0;
 
-		ThreadUtils.sleep(100);
+        this.poller.start();
 
-		ThreadUtils.busySpin(10, () -> {
-			return doneSignalRef.get() == null;
-		});
+        ThreadUtils.sleep(100);
 
-		this.stopDoneTrigger = doneSignalRef.get();
-	}
+        ThreadUtils.busySpin(10, () -> {
+            return doneSignalRef.get() == null;
+        });
 
-	@Override
-	protected String generateName() {
-		return "consumer." + this.getUniqueIdentifier();
-	}
+        this.stopDoneTrigger = doneSignalRef.get();
+    }
 
-	private String getUniqueIdentifier() {
-		return new StringBuilder() //
-				.append(this.factory.getType()) //
-				.append(".") //
-				.append(this.options.getType()) //
-				.append(".") //
-				.append(this.address) //
-				.toString();
-	}
+    @Override
+    protected final void onStop() {
+        if (this.poller != null && !this.poller.isInterrupted()) {
+            this.poller.interrupt();
+            this.poller = null;
+            try {
+                this.stopDoneTrigger.await();
+                this.stopDoneTrigger = null;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("error while waiting for stopped", e);
+            }
+        }
+    }
+
+    private void poll(Socket socket, Consumer<CountDownLatch> stopDoneTriggerOutput) {
+        final ByteBuffer buffer = ByteBuffer.allocateDirect(this.bufferSize);
+        Thread.currentThread().setName("[POLLER] " + this.getName());
+        SocketUtils.startPolling(socket, buffer, this.autoSkipTopicHeader, (message) -> {
+            ensurePayloadId(message);
+            publish(message, null);
+        }, (recvBytes) -> {
+            totalRecvBytes += recvBytes;
+        }, (recvMsgs) -> {
+            totalRecvMessages += recvMsgs;
+        }, this.getContext().getExceptionHandler(), stopDoneTriggerOutput);
+
+        socket.close();
+        this.poller = null;
+    }
 }

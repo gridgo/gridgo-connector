@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>io.gridgo</groupId>
 		<artifactId>gridgo-connector-base</artifactId>
-		<version>0.2.0</version>
+		<version>0.3.0</version>
 	</parent>
 
 	<dependencies>
@@ -14,6 +14,13 @@
 			<groupId>io.gridgo</groupId>
 			<artifactId>gridgo-socket</artifactId>
 			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.nanomsg</groupId>
+			<artifactId>nanomsg</artifactId>
+			<version>1.0.0</version>
+			<systemPath>${project.basedir}/lib/org.nanomsg.jar</systemPath>
+			<scope>system</scope>
 		</dependency>
 	</dependencies>
 </project>

@@ -9,44 +9,44 @@ import io.gridgo.utils.helper.Assert;
 
 public interface Socket extends Configurable {
 
-	boolean isAlive();
+    default void applyConfig(Map<String, Object> options) {
+        Assert.notNull(options, "Options");
+        for (Entry<String, Object> entry : options.entrySet()) {
+            this.applyConfig(entry.getKey(), entry.getValue());
+        }
+    }
 
-	void close();
+    void applyConfig(String name, Object value);
 
-	int send(ByteBuffer message, boolean block);
+    void bind(String address);
 
-	default int send(ByteBuffer message) {
-		return this.send(message, true);
-	}
+    void close();
 
-	default int send(byte[] bytes) {
-		return this.send(bytes, true);
-	}
+    void connect(String address);
 
-	default int send(byte[] bytes, boolean block) {
-		return this.send(ByteBuffer.wrap(bytes).flip(), block);
-	}
+    Endpoint getEndpoint();
 
-	default int receive(ByteBuffer buffer) {
-		return this.receive(buffer, true);
-	}
+    boolean isAlive();
 
-	int receive(ByteBuffer buffer, boolean block);
+    default int receive(ByteBuffer buffer) {
+        return this.receive(buffer, true);
+    }
 
-	void connect(String address);
+    int receive(ByteBuffer buffer, boolean block);
 
-	void bind(String address);
+    default int send(byte[] bytes) {
+        return this.send(bytes, true);
+    }
 
-	void subscribe(String topic);
+    default int send(byte[] bytes, boolean block) {
+        return this.send(ByteBuffer.wrap(bytes).flip(), block);
+    }
 
-	Endpoint getEndpoint();
+    default int send(ByteBuffer message) {
+        return this.send(message, true);
+    }
 
-	void applyConfig(String name, Object value);
+    int send(ByteBuffer message, boolean block);
 
-	default void applyConfig(Map<String, Object> options) {
-		Assert.notNull(options, "Options");
-		for (Entry<String, Object> entry : options.entrySet()) {
-			this.applyConfig(entry.getKey(), entry.getValue());
-		}
-	}
+    void subscribe(String topic);
 }

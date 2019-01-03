@@ -13,59 +13,59 @@ import lombok.NonNull;
 
 public class DefaultConnectorFactory implements ConnectorFactory {
 
-	private static final ConnectorResolver DEFAULT_CONNECTOR_RESOLVER = new ClasspathConnectorResolver();
+    private static final ConnectorResolver DEFAULT_CONNECTOR_RESOLVER = new ClasspathConnectorResolver();
 
-	private final ConnectorResolver resolver;
+    private final ConnectorResolver resolver;
 
-	private final ConnectorContextBuilder builder;
+    private final ConnectorContextBuilder builder;
 
-	@Getter
-	private Registry registry;
+    @Getter
+    private Registry registry;
 
-	private boolean ownedBuilder = true;
+    private boolean ownedBuilder = true;
 
-	public DefaultConnectorFactory() {
-		this.resolver = DEFAULT_CONNECTOR_RESOLVER;
-		this.builder = new DefaultConnectorContextBuilder();
-	}
+    public DefaultConnectorFactory() {
+        this.resolver = DEFAULT_CONNECTOR_RESOLVER;
+        this.builder = new DefaultConnectorContextBuilder();
+    }
 
-	public DefaultConnectorFactory(final @NonNull ConnectorResolver resolver) {
-		this.resolver = resolver;
-		this.builder = new DefaultConnectorContextBuilder();
-	}
+    public DefaultConnectorFactory(final @NonNull ConnectorResolver resolver) {
+        this.resolver = resolver;
+        this.builder = new DefaultConnectorContextBuilder();
+    }
 
-	public DefaultConnectorFactory(final @NonNull ConnectorResolver resolver, ConnectorContextBuilder builder) {
-		this.resolver = resolver;
-		this.builder = builder;
-		ownedBuilder = false;
-	}
+    public DefaultConnectorFactory(final @NonNull ConnectorResolver resolver, ConnectorContextBuilder builder) {
+        this.resolver = resolver;
+        this.builder = builder;
+        ownedBuilder = false;
+    }
 
-	@Override
-	public Connector createConnector(String endpoint) {
-		return createConnector(endpoint, resolver);
-	}
+    @Override
+    public Connector createConnector(String endpoint) {
+        return createConnector(endpoint, resolver);
+    }
 
-	@Override
-	public Connector createConnector(String endpoint, ConnectorResolver resolver) {
-		return createConnector(endpoint, resolver, builder.build());
-	}
+    @Override
+    public Connector createConnector(String endpoint, ConnectorContext context) {
+        return createConnector(endpoint, resolver, context);
+    }
 
-	@Override
-	public Connector createConnector(String endpoint, ConnectorContext context) {
-		return createConnector(endpoint, resolver, context);
-	}
+    @Override
+    public Connector createConnector(String endpoint, ConnectorResolver resolver) {
+        return createConnector(endpoint, resolver, builder.build());
+    }
 
-	@Override
-	public Connector createConnector(String endpoint, ConnectorResolver resolver, ConnectorContext context) {
-		if (context.getRegistry() == null)
-			context.setRegistry(registry);
-		return resolver.resolve(endpoint, context);
-	}
+    @Override
+    public Connector createConnector(String endpoint, ConnectorResolver resolver, ConnectorContext context) {
+        if (context.getRegistry() == null)
+            context.setRegistry(registry);
+        return resolver.resolve(endpoint, context);
+    }
 
-	@Override
-	public void setRegistry(Registry registry) {
-		this.registry = registry;
-		if (ownedBuilder)
-			builder.setRegistry(registry);
-	}
+    @Override
+    public void setRegistry(Registry registry) {
+        this.registry = registry;
+        if (ownedBuilder)
+            builder.setRegistry(registry);
+    }
 }

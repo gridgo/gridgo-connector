@@ -16,98 +16,98 @@ import io.gridgo.utils.ThreadUtils;
 import lombok.AccessLevel;
 import lombok.Getter;
 
-public class DefaultSocketReceiver extends AbstractConsumer
-		implements Receiver, FailureHandlerAware<DefaultSocketReceiver> {
+public class DefaultSocketReceiver extends AbstractConsumer implements Receiver, FailureHandlerAware<DefaultSocketReceiver> {
 
-	@Getter
-	private long totalRecvBytes;
+    @Getter
+    private long totalRecvBytes;
 
-	@Getter
-	private long totalRecvMessages;
+    @Getter
+    private long totalRecvMessages;
 
-	@Getter(AccessLevel.PROTECTED)
-	private Function<Throwable, Message> failureHandler;
+    @Getter(AccessLevel.PROTECTED)
+    private Function<Throwable, Message> failureHandler;
 
-	private final String uniqueIdentifier;
+    private final String uniqueIdentifier;
 
-	private Thread poller;
+    private Thread poller;
 
-	private final Socket socket;
+    private final Socket socket;
 
-	private final int bufferSize;
+    private final int bufferSize;
 
-	private CountDownLatch stopDoneTrigger;
+    private CountDownLatch stopDoneTrigger;
 
-	public DefaultSocketReceiver(ConnectorContext context, Socket socket, int bufferSize, String uniqueIdentifier) {
-		super(context);
-		this.socket = socket;
-		this.bufferSize = bufferSize;
-		this.uniqueIdentifier = uniqueIdentifier;
-		this.setFailureHandler(context.getExceptionHandler());
-	}
+    public DefaultSocketReceiver(ConnectorContext context, Socket socket, int bufferSize, String uniqueIdentifier) {
+        super(context);
+        this.socket = socket;
+        this.bufferSize = bufferSize;
+        this.uniqueIdentifier = uniqueIdentifier;
+        this.setFailureHandler(context.getExceptionHandler());
+    }
 
-	@Override
-	public DefaultSocketReceiver setFailureHandler(Function<Throwable, Message> failureHandler) {
-		this.failureHandler = failureHandler;
-		return this;
-	}
+    @Override
+    protected String generateName() {
+        return "receiver." + this.uniqueIdentifier;
+    }
 
-	@Override
-	protected String generateName() {
-		return "receiver." + this.uniqueIdentifier;
-	}
+    @Override
+    protected void onStart() {
+        final AtomicReference<CountDownLatch> doneSignalRef = new AtomicReference<CountDownLatch>();
 
-	private void poll(Socket socket, Consumer<CountDownLatch> doneSignalOutput) {
-		final ByteBuffer buffer = ByteBuffer.allocateDirect(this.bufferSize);
-		Thread.currentThread().setName("[POLLER] " + socket.getEndpoint().getAddress());
+        this.poller = new Thread(() -> {
+            this.poll(this.socket, (doneSignal) -> {
+                doneSignalRef.set(doneSignal);
+            });
+        });
 
-		SocketUtils.startPolling(socket, buffer, false, (message) -> {
-			ensurePayloadId(message);
-			publish(message, null);
-		}, (recvBytes) -> {
-			totalRecvBytes += recvBytes;
-		}, (recvMsgs) -> {
-			totalRecvMessages += recvMsgs;
-		}, this.getContext().getExceptionHandler(), doneSignalOutput);
+        this.totalRecvBytes = 0;
+        this.totalRecvMessages = 0;
 
-		socket.close();
-		this.poller = null;
-	}
+        this.poller.start();
 
-	@Override
-	protected void onStart() {
-		final AtomicReference<CountDownLatch> doneSignalRef = new AtomicReference<CountDownLatch>();
+        ThreadUtils.sleep(100);
 
-		this.poller = new Thread(() -> {
-			this.poll(this.socket, (doneSignal) -> {
-				doneSignalRef.set(doneSignal);
-			});
-		});
+        ThreadUtils.busySpin(10, () -> {
+            return doneSignalRef.get() == null;
+        });
 
-		this.totalRecvBytes = 0;
-		this.totalRecvMessages = 0;
+        this.stopDoneTrigger = doneSignalRef.get();
+    }
 
-		this.poller.start();
+    @Override
+    protected void onStop() {
+        this.poller.interrupt();
+        this.poller = null;
+        try {
+            this.stopDoneTrigger.await();
+            this.stopDoneTrigger = null;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Await for stopped error", e);
+        }
+    }
 
-		ThreadUtils.sleep(100);
+    private void poll(Socket socket, Consumer<CountDownLatch> doneSignalOutput) {
+        final ByteBuffer buffer = ByteBuffer.allocateDirect(this.bufferSize);
+        Thread.currentThread().setName("[POLLER] " + socket.getEndpoint().getAddress());
 
-		ThreadUtils.busySpin(10, () -> {
-			return doneSignalRef.get() == null;
-		});
+        SocketUtils.startPolling(socket, buffer, false, (message) -> {
+            ensurePayloadId(message);
+            publish(message, null);
+        }, (recvBytes) -> {
+            totalRecvBytes += recvBytes;
+        }, (recvMsgs) -> {
+            totalRecvMessages += recvMsgs;
+        }, this.getContext().getExceptionHandler(), doneSignalOutput);
 
-		this.stopDoneTrigger = doneSignalRef.get();
-	}
+        socket.close();
+        this.poller = null;
+    }
 
-	@Override
-	protected void onStop() {
-		this.poller.interrupt();
-		this.poller = null;
-		try {
-			this.stopDoneTrigger.await();
-			this.stopDoneTrigger = null;
-		} catch (InterruptedException e) {
-			throw new RuntimeException("Await for stopped error", e);
-		}
-	}
+    @Override
+    public DefaultSocketReceiver setFailureHandler(Function<Throwable, Message> failureHandler) {
+        this.failureHandler = failureHandler;
+        return this;
+    }
 
 }

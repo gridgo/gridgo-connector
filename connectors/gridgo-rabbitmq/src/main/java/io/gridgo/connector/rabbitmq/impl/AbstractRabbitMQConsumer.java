@@ -27,125 +27,123 @@ import lombok.NonNull;
 
 public abstract class AbstractRabbitMQConsumer extends AbstractConsumer implements RabbitMQConsumer {
 
-	private final Connection connection;
+    private final Connection connection;
 
-	@Getter
-	private final RabbitMQQueueConfig queueConfig;
+    @Getter
+    private final RabbitMQQueueConfig queueConfig;
 
-	@Getter
-	private Channel channel;
+    @Getter
+    private Channel channel;
 
-	@Getter(AccessLevel.PROTECTED)
-	private final String uniqueIdentifier;
+    @Getter(AccessLevel.PROTECTED)
+    private final String uniqueIdentifier;
 
-	protected AbstractRabbitMQConsumer(ConnectorContext context, @NonNull Connection connection,
-			@NonNull RabbitMQQueueConfig queueConfig, @NonNull String uniqueIdentifier) {
-		super(context);
-		this.connection = connection;
-		this.queueConfig = queueConfig;
-		this.uniqueIdentifier = uniqueIdentifier;
-	}
+    protected AbstractRabbitMQConsumer(ConnectorContext context, @NonNull Connection connection, @NonNull RabbitMQQueueConfig queueConfig,
+            @NonNull String uniqueIdentifier) {
+        super(context);
+        this.connection = connection;
+        this.queueConfig = queueConfig;
+        this.uniqueIdentifier = uniqueIdentifier;
+    }
 
-	@Override
-	protected String generateName() {
-		return "consumer." + this.getUniqueIdentifier();
-	}
+    protected Deferred<Message, Exception> createDeferred() {
+        return new CompletableDeferredObject<>();
+    }
 
-	@Override
-	protected void onStart() {
-		this.channel = this.initChannel(connection);
-		this.subscibe(this::onDelivery, this::onCancel);
-	}
+    @Override
+    protected String generateName() {
+        return "consumer." + this.getUniqueIdentifier();
+    }
 
-	@Override
-	protected void onStop() {
-		this.closeChannel();
-		this.channel = null;
-	}
+    private void onCancel(String consumerTag) {
+        getLogger().info("Cancelled " + consumerTag);
+    }
 
-	private void onCancel(String consumerTag) {
-		getLogger().info("Cancelled " + consumerTag);
-	}
+    private void onDelivery(String consumerTag, @NonNull Delivery delivery) {
+        final BasicProperties props = delivery.getProperties();
+        final long deliveryTag = delivery.getEnvelope().getDeliveryTag();
 
-	private void sendResponse(Exception ex, BasicProperties props) {
-		BObject headers = BObject.ofEmpty();
-		headers.setAny("status", 500);
-		BValue body = BValue
-				.of("Internal server error: " + ex.getMessage() == null ? "unknown message" : ex.getMessage());
-		this.sendResponse(createMessage(headers, body), props);
-	}
+        final Message message;
 
-	private void sendResponse(Message response, BasicProperties props) {
-		final Payload payload = response.getPayload();
+        try {
+            message = this.parseMessage(delivery.getBody());
+        } catch (Exception e) {
+            getLogger().error("Error while parse delivery body into message (ack will be sent automatically)", e);
+            sendAck(deliveryTag);
+            sendResponse(e, props);
+            return;
+        }
 
-		final BValue id = payload.getId().orElse(null);
-		final BObject headers = payload.getHeaders();
-		final BElement body = payload.getBody();
+        final String correlationId = props == null ? null : props.getCorrelationId();
+        final Deferred<Message, Exception> deferred;
 
-		final String responseQueue = props.getReplyTo();
-		final byte[] bytes = BArray.newFromSequence(id, headers, body).toBytes();
+        if (correlationId != null || !getQueueConfig().isAutoAck()) {
+            deferred = createDeferred();
 
-		try {
-			this.getChannel().basicPublish("", responseQueue, props, bytes);
-		} catch (IOException e) {
-			getLogger().error("Cannot send response to caller: " + response, e);
-		}
-	}
+            if (!queueConfig.isAutoAck()) {
+                final boolean ackOnFail = getQueueConfig().isAckOnFail();
+                deferred.promise().always((status, response, exception) -> {
+                    if (status == DeferredStatus.RESOLVED || ackOnFail) {
+                        this.sendAck(deliveryTag);
+                    }
+                });
+            }
 
-	protected Deferred<Message, Exception> createDeferred() {
-		return new CompletableDeferredObject<>();
-	}
+            if (correlationId != null) {
+                deferred.promise().done((response) -> {
+                    sendResponse(response, props);
+                }).fail((exception) -> {
+                    sendResponse(exception, props);
+                });
+            }
+        } else {
+            deferred = null;
+        }
 
-	private void onDelivery(String consumerTag, @NonNull Delivery delivery) {
-		final BasicProperties props = delivery.getProperties();
-		final long deliveryTag = delivery.getEnvelope().getDeliveryTag();
+        this.publish(message, deferred);
+    }
 
-		final Message message;
+    @Override
+    protected void onStart() {
+        this.channel = this.initChannel(connection);
+        this.subscibe(this::onDelivery, this::onCancel);
+    }
 
-		try {
-			message = this.parseMessage(delivery.getBody());
-		} catch (Exception e) {
-			getLogger().error("Error while parse delivery body into message (ack will be sent automatically)", e);
-			sendAck(deliveryTag);
-			sendResponse(e, props);
-			return;
-		}
+    @Override
+    protected void onStop() {
+        this.closeChannel();
+        this.channel = null;
+    }
 
-		final String correlationId = props == null ? null : props.getCorrelationId();
-		final Deferred<Message, Exception> deferred;
+    private void sendAck(long deliveryTag) {
+        try {
+            this.getChannel().basicAck(deliveryTag, getQueueConfig().isMultipleAck());
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot send ack for delivery tag: " + deliveryTag, e);
+        }
+    }
 
-		if (correlationId != null || !getQueueConfig().isAutoAck()) {
-			deferred = createDeferred();
+    private void sendResponse(Exception ex, BasicProperties props) {
+        var headers = BObject.of("status", 500);
+        var body = BValue.of("Internal server error: " + (ex.getMessage() == null ? "unknown message" : ex.getMessage()));
+        this.sendResponse(createMessage(headers, body), props);
+    }
 
-			if (!queueConfig.isAutoAck()) {
-				final boolean ackOnFail = getQueueConfig().isAckOnFail();
-				deferred.promise().always((status, response, exception) -> {
-					if (status == DeferredStatus.RESOLVED || ackOnFail) {
-						this.sendAck(deliveryTag);
-					}
-				});
-			}
+    private void sendResponse(Message response, BasicProperties props) {
+        final Payload payload = response.getPayload();
 
-			if (correlationId != null) {
-				deferred.promise().done((response) -> {
-					sendResponse(response, props);
-				}).fail((exception) -> {
-					sendResponse(exception, props);
-				});
-			}
-		} else {
-			deferred = null;
-		}
+        final BValue id = payload.getId().orElse(null);
+        final BObject headers = payload.getHeaders();
+        final BElement body = payload.getBody();
 
-		this.publish(message, deferred);
-	}
+        final String responseQueue = props.getReplyTo();
+        final byte[] bytes = BArray.ofSequence(id, headers, body).toBytes();
 
-	private void sendAck(long deliveryTag) {
-		try {
-			this.getChannel().basicAck(deliveryTag, getQueueConfig().isMultipleAck());
-		} catch (IOException e) {
-			throw new RuntimeException("Cannot send ack for delivery tag: " + deliveryTag, e);
-		}
-	}
+        try {
+            this.getChannel().basicPublish("", responseQueue, props, bytes);
+        } catch (IOException e) {
+            getLogger().error("Cannot send response to caller: " + response, e);
+        }
+    }
 
 }

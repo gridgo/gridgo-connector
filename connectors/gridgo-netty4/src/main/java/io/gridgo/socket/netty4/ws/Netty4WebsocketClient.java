@@ -28,114 +28,125 @@ import io.netty.handler.codec.http.websocketx.WebSocketVersion;
 import io.netty.util.CharsetUtil;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 
 public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements Netty4Websocket {
 
-	@Setter
-	@Getter(AccessLevel.PROTECTED)
-	private String path;
+    private boolean autoParse = true;
 
-	@Setter
-	@Getter(AccessLevel.PROTECTED)
-	private String proxy;
+    @Setter
+    @Getter(AccessLevel.PROTECTED)
+    private String path;
 
-	@Getter
-	private Netty4WebsocketFrameType frameType = Netty4WebsocketFrameType.TEXT;
+    @Setter
+    @Getter(AccessLevel.PROTECTED)
+    private String proxy;
 
-	protected URI getWsUri(HostAndPort host) {
-		int port = host.getPortOrDefault(80);
-		String wsUri = "ws://" + host.getHostOrDefault("localhost") + (port == 80 ? "" : (":" + port))
-				+ (getPath().startsWith("/") ? "" : "/") + this.getPath();
-		try {
-			return new URI(wsUri);
-		} catch (URISyntaxException e) {
-			throw new RuntimeException("Invalid host info" + host);
-		}
-	}
+    @Getter
+    private Netty4WebsocketFrameType frameType = Netty4WebsocketFrameType.TEXT;
 
-	private WebSocketClientHandshaker handshaker;
+    private WebSocketClientHandshaker handshaker;
 
-	private ChannelPromise handshakeFuture;
+    private ChannelPromise handshakeFuture;
 
-	@Override
-	protected void onBeforeConnect(HostAndPort host) {
-		URI wsUri = getWsUri(host);
-		this.handshaker = WebSocketClientHandshakerFactory.newHandshaker(wsUri, WebSocketVersion.V13, null, false,
-				EmptyHttpHeaders.INSTANCE, 1280000);
+    protected URI getWsUri(HostAndPort host) {
+        int port = host.getPortOrDefault(80);
+        String wsUri = "ws://" + host.getHostOrDefault("localhost") + (port == 80 ? "" : (":" + port)) + (getPath().startsWith("/") ? "" : "/")
+                + this.getPath();
+        try {
+            return new URI(wsUri);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Invalid host info" + host);
+        }
+    }
 
-		String configFrameType = this.getConfigs().getString("frameType", "text");
-		this.frameType = Netty4WebsocketFrameType.fromNameOrDefault(configFrameType, Netty4WebsocketFrameType.TEXT);
-	}
+    @Override
+    protected void onApplyConfig(@NonNull String name) {
+        super.onApplyConfig(name);
+        if (name.trim().equalsIgnoreCase("autoParse")) {
+            this.autoParse = this.getConfigs().getBoolean("autoParse", true);
+        }
+    }
 
-	@Override
-	protected void onAfterConnect() {
-		try {
-			this.handshakeFuture.sync();
-			if (this.getChannelOpenCallback() != null) {
-				this.getChannelOpenCallback().run();
-			}
-		} catch (InterruptedException e) {
-			throw new RuntimeException("Waiting for handshake error", e);
-		}
-	}
+    @Override
+    protected BElement handleIncomingMessage(Object msg) throws Exception {
+        return Netty4WebsocketUtils.parseWebsocketFrame((WebSocketFrame) msg, autoParse);
+    }
 
-	@Override
-	protected void onInitChannel(SocketChannel ch) {
-		ChannelPipeline pipeline = ch.pipeline();
-		pipeline.addLast("http-codec", new HttpClientCodec());
-		pipeline.addLast("aggregator", new HttpObjectAggregator(65536));
-	}
+    @Override
+    protected void onAfterConnect() {
+        try {
+            this.handshakeFuture.sync();
+            if (this.getChannelOpenCallback() != null) {
+                this.getChannelOpenCallback().run();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Waiting for handshake error", e);
+        }
+    }
 
-	@Override
-	protected void onHandlerAdded(ChannelHandlerContext ctx) {
-		this.handshakeFuture = ctx.newPromise();
-	}
+    @Override
+    protected void onBeforeConnect(HostAndPort host) {
+        URI wsUri = getWsUri(host);
+        this.handshaker = WebSocketClientHandshakerFactory.newHandshaker(wsUri, WebSocketVersion.V13, null, false, EmptyHttpHeaders.INSTANCE, 1280000);
 
-	@Override
-	protected void onClose() throws IOException {
+        String configFrameType = this.getConfigs().getString("frameType", "text");
+        this.frameType = Netty4WebsocketFrameType.fromNameOrDefault(configFrameType, Netty4WebsocketFrameType.TEXT);
+    }
+
+    @Override
+    protected void onChannelActive(ChannelHandlerContext ctx) throws Exception {
+        handshaker.handshake(ctx.channel());
+    }
+
+    @Override
+    protected void onChannelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        Channel channel = ctx.channel();
+
+        if (!handshaker.isHandshakeComplete()) {
+            // web socket client connected
+            handshaker.finishHandshake(channel, (FullHttpResponse) msg);
+            handshakeFuture.setSuccess();
+            return;
+        }
+
+        if (msg instanceof CloseWebSocketFrame) {
+            this.close();
+        } else if (msg instanceof FullHttpResponse) {
+            final FullHttpResponse response = (FullHttpResponse) msg;
+            throw new Exception(
+                    "Unexpected FullHttpResponse (getStatus=" + response.status() + ", content=" + response.content().toString(CharsetUtil.UTF_8) + ')');
+        } else if (msg instanceof TextWebSocketFrame || msg instanceof BinaryWebSocketFrame) {
+            super.onChannelRead(ctx, msg);
+        }
+    }
+
+    @Override
+    protected void onClose() throws IOException {
 //		System.out.println("[ws client] - send close websocket frame and wait for done");
-		this.getChannel().writeAndFlush(new CloseWebSocketFrame()) //
-				.addListener(ChannelFutureListener.CLOSE) //
-				.addListener(ChannelFutureListener.CLOSE_ON_FAILURE) //
-				.syncUninterruptibly();
+        this.getChannel().writeAndFlush(new CloseWebSocketFrame()) //
+            .addListener(ChannelFutureListener.CLOSE) //
+            .addListener(ChannelFutureListener.CLOSE_ON_FAILURE) //
+            .syncUninterruptibly();
 //		System.out.println("[ws client] - close frame sent, waiting for channel inactive event...");
-	}
+    }
 
-	@Override
-	protected void onChannelActive(ChannelHandlerContext ctx) throws Exception {
-		handshaker.handshake(ctx.channel());
-	}
+    @Override
+    protected void onHandlerAdded(ChannelHandlerContext ctx) {
+        this.handshakeFuture = ctx.newPromise();
+    }
 
-	@Override
-	protected void onChannelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-		Channel channel = ctx.channel();
+    @Override
+    protected void onInitChannel(SocketChannel ch) {
+        ChannelPipeline pipeline = ch.pipeline();
+        pipeline.addLast("http-codec", new HttpClientCodec());
+        pipeline.addLast("aggregator", new HttpObjectAggregator(65536));
+    }
 
-		if (!handshaker.isHandshakeComplete()) {
-			// web socket client connected
-			handshaker.finishHandshake(channel, (FullHttpResponse) msg);
-			handshakeFuture.setSuccess();
-			return;
-		}
-
-		if (msg instanceof CloseWebSocketFrame) {
-			this.close();
-		} else if (msg instanceof FullHttpResponse) {
-			final FullHttpResponse response = (FullHttpResponse) msg;
-			throw new Exception("Unexpected FullHttpResponse (getStatus=" + response.status() + ", content="
-					+ response.content().toString(CharsetUtil.UTF_8) + ')');
-		} else if (msg instanceof TextWebSocketFrame || msg instanceof BinaryWebSocketFrame) {
-			super.onChannelRead(ctx, msg);
-		}
-	}
-
-	@Override
-	protected BElement handleIncomingMessage(Object msg) throws Exception {
-		return Netty4WebsocketUtils.parseWebsocketFrame((WebSocketFrame) msg);
-	}
-
-	@Override
-	public ChannelFuture send(BElement data) {
-		return Netty4WebsocketUtils.send(getChannel(), data, getFrameType());
-	}
+    @Override
+    public ChannelFuture send(BElement data) {
+        return Netty4WebsocketUtils.send(getChannel(), data, getFrameType());
+    }
 }

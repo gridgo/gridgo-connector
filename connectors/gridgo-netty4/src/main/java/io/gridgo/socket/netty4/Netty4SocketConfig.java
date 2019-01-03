@@ -9,9 +9,9 @@ import lombok.Getter;
 @Builder
 public class Netty4SocketConfig {
 
-	private Netty4Transport transport;
-	private HostAndPort host;
-	private String path;
+    private Netty4Transport transport;
+    private HostAndPort host;
+    private String path;
 
-	private BObject options;
+    private BObject options;
 }

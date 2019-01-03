@@ -5,13 +5,13 @@ import java.nio.channels.FileChannel;
 
 public interface FileLimitStrategy {
 
-	public void start() throws IOException;
+    public FileChannel getFileChannel();
 
-	public void stop() throws IOException;
+    public void putBytes(long bytes) throws IOException;
 
-	public void putBytes(long bytes) throws IOException;
+    public void readWith(RandomAccessFileHandler consumer) throws IOException;
 
-	public void readWith(RandomAccessFileHandler consumer) throws IOException;
+    public void start() throws IOException;
 
-	public FileChannel getFileChannel();
+    public void stop() throws IOException;
 }

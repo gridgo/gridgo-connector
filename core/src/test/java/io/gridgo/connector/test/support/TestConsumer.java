@@ -6,26 +6,26 @@ import io.gridgo.connector.support.config.ConnectorContext;
 
 public class TestConsumer extends AbstractConsumer {
 
-	public TestConsumer(ConnectorContext context) {
-		super(context);
-	}
+    public TestConsumer(ConnectorContext context) {
+        super(context);
+    }
 
-	@Override
-	protected void onStart() {
-		
-	}
+    @Override
+    protected String generateName() {
+        return "consumer.test";
+    }
 
-	@Override
-	protected void onStop() {
+    @Override
+    protected void onStart() {
 
-	}
+    }
 
-	public void testPublish() {
-		publish(createMessage(BObject.ofEmpty().setAny("test-header", 1), null), null);
-	}
+    @Override
+    protected void onStop() {
 
-	@Override
-	protected String generateName() {
-		return "consumer.test";
-	}
+    }
+
+    public void testPublish() {
+        publish(createMessage(BObject.ofEmpty().setAny("test-header", 1), null), null);
+    }
 }

@@ -43,188 +43,185 @@ import io.gridgo.framework.support.Payload;
 
 public class TestJettyResponseContentType {
 
-	private static final String TEST_TEXT = "this is test text";
+    private static final String TEST_TEXT = "this is test text";
 
-	private static final String URI = "http://localhost:8888/";
-	private static final String SERVER_ENDPOINT = "jetty:" + URI;
+    private static final String URI = "http://localhost:8888/";
+    private static final String SERVER_ENDPOINT = "jetty:" + URI;
 
-	private final HttpClient httpClient = HttpClientBuilder.create().build();
+    private final HttpClient httpClient = HttpClientBuilder.create().build();
 
-	private final ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.connector");
-	private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final ConnectorResolver resolver = new ClasspathConnectorResolver("io.gridgo.connector");
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
-	{
-		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			executor.shutdown();
-		}));
-	}
+    {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            executor.shutdown();
+        }));
+    }
 
-	private Connector createConnector(String endpoint) {
-		ConnectorContext connectorContext = new DefaultConnectorContextBuilder() //
-				.setCallbackInvokerStrategy(new ExecutorExecutionStrategy(executor)) //
-				.setExceptionHandler((ex) -> {
-					ex.printStackTrace();
-				}) //
-				.build();
+    private Connector createConnector(String endpoint) {
+        ConnectorContext connectorContext = new DefaultConnectorContextBuilder() //
+                                                                                .setCallbackInvokerStrategy(new ExecutorExecutionStrategy(executor)) //
+                                                                                .setExceptionHandler((ex) -> {
+                                                                                    ex.printStackTrace();
+                                                                                }) //
+                                                                                .build();
 
-		Connector connector = resolver.resolve(endpoint, connectorContext);
+        Connector connector = resolver.resolve(endpoint, connectorContext);
 
-		assertNotNull(connector);
-		assertTrue(connector instanceof JettyConnector);
+        assertNotNull(connector);
+        assertTrue(connector instanceof JettyConnector);
 
-		assertTrue(connector.getConsumer().isPresent());
-		assertTrue(connector.getProducer().isPresent());
+        assertTrue(connector.getConsumer().isPresent());
+        assertTrue(connector.getProducer().isPresent());
 
-		assertTrue(connector.getConsumer().get() instanceof JettyConsumer);
-		assertTrue(connector.getProducer().get() instanceof JettyResponder);
+        assertTrue(connector.getConsumer().get() instanceof JettyConsumer);
+        assertTrue(connector.getProducer().get() instanceof JettyResponder);
 
-		return connector;
-	}
+        return connector;
+    }
 
-	@Test
-	public void testResponseJson() throws URISyntaxException, IOException, InterruptedException {
+    @Test
+    public void testResponseBinary() throws URISyntaxException, IOException, InterruptedException {
 
-		System.out.println("Test response content type application/json");
+        System.out.println("Test response content type application/octet-stream");
 
-		Connector connector = createConnector(SERVER_ENDPOINT);
-		connector.start();
+        Connector connector = createConnector(SERVER_ENDPOINT);
+        connector.start();
 
-		try {
-			Consumer consumer = connector.getConsumer().get();
-			Producer responder = connector.getProducer().get();
+        try {
+            Consumer consumer = connector.getConsumer().get();
+            Producer responder = connector.getProducer().get();
 
-			consumer.subscribe(msg -> {
-				Payload payload = Payload.of(BObject.ofSequence("testText", TEST_TEXT));
-				payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.APPLICATION_JSON.getMime());
-				Message message = Message.of(payload).setRoutingId(msg.getRoutingId().get());
-				responder.send(message);
-			});
+            consumer.subscribe(msg -> {
+                Payload payload = Payload.of(BReference.of(getClass().getClassLoader().getResourceAsStream("test.txt")));
 
-			var request = RequestBuilder.get(URI).build();
-			var response = httpClient.execute(request);
-			Header[] contentType = response.getHeaders(HttpCommonConstants.CONTENT_TYPE);
-			assertNotNull(contentType);
-			assertTrue(contentType.length > 0);
-			assertThat(contentType[0].getValue(), Matchers.startsWith(HttpContentType.APPLICATION_JSON.getMime()));
+                payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.APPLICATION_OCTET_STREAM.getMime());
+                Message message = Message.of(payload).setRoutingId(msg.getRoutingId().get());
+                responder.send(message);
+            });
 
-			BElement responseData = BElement.fromJson(EntityUtils.toString(response.getEntity()));
-			assertNotNull(responseData);
-			assertTrue(responseData.isObject());
-			assertEquals(TEST_TEXT, responseData.asObject().getString("testText"));
-		} finally {
-			connector.stop();
-		}
-	}
+            var request = RequestBuilder.get(URI).build();
+            var response = httpClient.execute(request);
 
-	@Test
-	public void testResponseTextPlain() throws URISyntaxException, IOException, InterruptedException {
+            String contentType = response.getEntity().getContentType().getValue();
+            assertThat(contentType, Matchers.startsWith(HttpContentType.APPLICATION_OCTET_STREAM.getMime()));
 
-		System.out.println("Test response content type text/plain");
+            String content = HttpEntityHelper.parseAsString(response.getEntity().getContent());
+            String fileContent = HttpEntityHelper.parseAsString(getClass().getClassLoader().getResourceAsStream("test.txt"));
 
-		Connector connector = createConnector(SERVER_ENDPOINT);
-		connector.start();
+            assertEquals(fileContent, content);
+        } finally {
+            connector.stop();
+        }
+    }
 
-		try {
-			Consumer consumer = connector.getConsumer().get();
-			Producer responder = connector.getProducer().get();
+    @Test
+    public void testResponseJson() throws URISyntaxException, IOException, InterruptedException {
 
-			consumer.subscribe(msg -> {
-				Payload payload = Payload.of(BValue.of(TEST_TEXT));
-				payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.TEXT_PLAIN.getMime());
-				Message message = Message.of(payload).setRoutingId(msg.getRoutingId().get());
-				responder.send(message);
-			});
-			var request = RequestBuilder.get(URI).build();
-			var response = httpClient.execute(request);
-			Header[] contentType = response.getHeaders(HttpCommonConstants.CONTENT_TYPE);
-			assertNotNull(contentType);
-			assertTrue(contentType.length > 0);
-			assertThat(contentType[0].getValue(), Matchers.startsWith(HttpContentType.TEXT_PLAIN.getMime()));
+        System.out.println("Test response content type application/json");
 
-			BElement responseData = BElement.fromJson(EntityUtils.toString(response.getEntity()));
-			assertNotNull(responseData);
-			assertTrue(responseData.isValue());
-			assertEquals(TEST_TEXT, responseData.asValue().getString());
-		} finally {
-			connector.stop();
-		}
-	}
+        Connector connector = createConnector(SERVER_ENDPOINT);
+        connector.start();
 
-	@Test
-	public void testResponseMultiPart() throws URISyntaxException, IOException, InterruptedException {
+        try {
+            Consumer consumer = connector.getConsumer().get();
+            Producer responder = connector.getProducer().get();
 
-		System.out.println("Test response content type multipart/form-data");
+            consumer.subscribe(msg -> {
+                Payload payload = Payload.of(BObject.ofSequence("testText", TEST_TEXT));
+                payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.APPLICATION_JSON.getMime());
+                Message message = Message.of(payload).setRoutingId(msg.getRoutingId().get());
+                responder.send(message);
+            });
 
-		Connector connector = createConnector(SERVER_ENDPOINT);
-		connector.start();
+            var request = RequestBuilder.get(URI).build();
+            var response = httpClient.execute(request);
+            Header[] contentType = response.getHeaders(HttpCommonConstants.CONTENT_TYPE);
+            assertNotNull(contentType);
+            assertTrue(contentType.length > 0);
+            assertThat(contentType[0].getValue(), Matchers.startsWith(HttpContentType.APPLICATION_JSON.getMime()));
 
-		try {
-			Consumer consumer = connector.getConsumer().get();
-			Producer responder = connector.getProducer().get();
+            BElement responseData = BElement.ofJson(EntityUtils.toString(response.getEntity()));
+            assertNotNull(responseData);
+            assertTrue(responseData.isObject());
+            assertEquals(TEST_TEXT, responseData.asObject().getString("testText"));
+        } finally {
+            connector.stop();
+        }
+    }
 
-			consumer.subscribe(msg -> {
-				Payload payload = Payload.of( //
-						BObject.ofEmpty() //
-								.setAny("testText", TEST_TEXT) //
-								.setAny("testFile", getClass().getClassLoader().getResourceAsStream("test.txt")) //
-								.setAny("testJsonObject",
-										BObject.ofSequence("keyString", "valueString", "keyNumber", 100)) //
-								.setAny("testJsonArray", BArray.newFromSequence("string", 100, true)) //
-				);
+    @Test
+    public void testResponseMultiPart() throws URISyntaxException, IOException, InterruptedException {
 
-				payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.MULTIPART_FORM_DATA.getMime());
-				Message message = Message.of(payload).setRoutingId(msg.getRoutingId().get());
-				responder.send(message);
-			});
+        System.out.println("Test response content type multipart/form-data");
 
-			var request = RequestBuilder.get(URI).build();
-			var response = httpClient.execute(request);
+        Connector connector = createConnector(SERVER_ENDPOINT);
+        connector.start();
 
-			String contentType = response.getEntity().getContentType().getValue();
-			assertThat(contentType, Matchers.startsWith(HttpContentType.MULTIPART_FORM_DATA.getMime()));
+        try {
+            Consumer consumer = connector.getConsumer().get();
+            Producer responder = connector.getProducer().get();
 
-			BArray responseMultiPart = parseAsMultiPart(response.getEntity());
-			assertEquals(4, responseMultiPart.size());
+            consumer.subscribe(msg -> {
+                Payload payload = Payload.of( //
+                        BObject.ofEmpty() //
+                               .setAny("testText", TEST_TEXT) //
+                               .setAny("testFile", getClass().getClassLoader().getResourceAsStream("test.txt")) //
+                               .setAny("testJsonObject", BObject.ofSequence("keyString", "valueString", "keyNumber", 100)) //
+                               .setAny("testJsonArray", BArray.ofSequence("string", 100, true)) //
+                );
 
-		} finally {
-			connector.stop();
-		}
-	}
+                payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.MULTIPART_FORM_DATA.getMime());
+                Message message = Message.of(payload).setRoutingId(msg.getRoutingId().get());
+                responder.send(message);
+            });
 
-	@Test
-	public void testResponseBinary() throws URISyntaxException, IOException, InterruptedException {
+            var request = RequestBuilder.get(URI).build();
+            var response = httpClient.execute(request);
 
-		System.out.println("Test response content type application/octet-stream");
+            String contentType = response.getEntity().getContentType().getValue();
+            assertThat(contentType, Matchers.startsWith(HttpContentType.MULTIPART_FORM_DATA.getMime()));
 
-		Connector connector = createConnector(SERVER_ENDPOINT);
-		connector.start();
+            BArray responseMultiPart = parseAsMultiPart(response.getEntity());
+            assertEquals(4, responseMultiPart.size());
 
-		try {
-			Consumer consumer = connector.getConsumer().get();
-			Producer responder = connector.getProducer().get();
+        } finally {
+            connector.stop();
+        }
+    }
 
-			consumer.subscribe(msg -> {
-				Payload payload = Payload
-						.of(BReference.of(getClass().getClassLoader().getResourceAsStream("test.txt")));
+    @Test
+    public void testResponseTextPlain() throws URISyntaxException, IOException, InterruptedException {
 
-				payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.APPLICATION_OCTET_STREAM.getMime());
-				Message message = Message.of(payload).setRoutingId(msg.getRoutingId().get());
-				responder.send(message);
-			});
+        System.out.println("Test response content type text/plain");
 
-			var request = RequestBuilder.get(URI).build();
-			var response = httpClient.execute(request);
+        Connector connector = createConnector(SERVER_ENDPOINT);
+        connector.start();
 
-			String contentType = response.getEntity().getContentType().getValue();
-			assertThat(contentType, Matchers.startsWith(HttpContentType.APPLICATION_OCTET_STREAM.getMime()));
+        try {
+            Consumer consumer = connector.getConsumer().get();
+            Producer responder = connector.getProducer().get();
 
-			String content = HttpEntityHelper.parseAsString(response.getEntity().getContent());
-			String fileContent = HttpEntityHelper
-					.parseAsString(getClass().getClassLoader().getResourceAsStream("test.txt"));
+            consumer.subscribe(msg -> {
+                Payload payload = Payload.of(BValue.of(TEST_TEXT));
+                payload.addHeader(HttpCommonConstants.CONTENT_TYPE, HttpContentType.TEXT_PLAIN.getMime());
+                Message message = Message.of(payload).setRoutingId(msg.getRoutingId().get());
+                responder.send(message);
+            });
+            var request = RequestBuilder.get(URI).build();
+            var response = httpClient.execute(request);
+            Header[] contentType = response.getHeaders(HttpCommonConstants.CONTENT_TYPE);
+            assertNotNull(contentType);
+            assertTrue(contentType.length > 0);
+            assertThat(contentType[0].getValue(), Matchers.startsWith(HttpContentType.TEXT_PLAIN.getMime()));
 
-			assertEquals(fileContent, content);
-		} finally {
-			connector.stop();
-		}
-	}
+            BElement responseData = BElement.ofJson(EntityUtils.toString(response.getEntity()));
+            assertNotNull(responseData);
+            assertTrue(responseData.isValue());
+            assertEquals(TEST_TEXT, responseData.asValue().getString());
+        } finally {
+            connector.stop();
+        }
+    }
 }

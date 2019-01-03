@@ -24,92 +24,90 @@ import lombok.NonNull;
 
 public class JettyHttpServer extends NonameComponentLifecycle {
 
-	private Server server;
+    private Server server;
 
-	@Getter
-	private final HostAndPort address;
+    @Getter
+    private final HostAndPort address;
 
-	private ServletContextHandler handler;
+    private ServletContextHandler handler;
 
-	private final Consumer<HostAndPort> onStopCallback;
+    private final Consumer<HostAndPort> onStopCallback;
 
-	private final Set<JettyServletContextHandlerOption> options;
+    private final Set<JettyServletContextHandlerOption> options;
 
-	private final boolean http2Enabled;
+    private final boolean http2Enabled;
 
-	JettyHttpServer(@NonNull HostAndPort address, boolean http2Enabled, Set<JettyServletContextHandlerOption> options,
-			Consumer<HostAndPort> onStopCallback) {
-		this.address = address;
-		this.onStopCallback = onStopCallback;
-		this.options = options;
-		this.http2Enabled = http2Enabled;
-	}
+    JettyHttpServer(@NonNull HostAndPort address, boolean http2Enabled, Set<JettyServletContextHandlerOption> options, Consumer<HostAndPort> onStopCallback) {
+        this.address = address;
+        this.onStopCallback = onStopCallback;
+        this.options = options;
+        this.http2Enabled = http2Enabled;
+    }
 
-	public JettyHttpServer addPathHandler(@NonNull String path,
-			@NonNull BiConsumer<HttpServletRequest, HttpServletResponse> handler) {
-		ServletHolder servletHolder = new ServletHolder(new DelegateServlet(handler));
-		servletHolder.getRegistration().setMultipartConfig(new MultipartConfigElement(path));
-		this.handler.addServlet(servletHolder, path);
-		return this;
-	}
+    public JettyHttpServer addPathHandler(@NonNull String path, @NonNull BiConsumer<HttpServletRequest, HttpServletResponse> handler) {
+        ServletHolder servletHolder = new ServletHolder(new DelegateServlet(handler));
+        servletHolder.getRegistration().setMultipartConfig(new MultipartConfigElement(path));
+        this.handler.addServlet(servletHolder, path);
+        return this;
+    }
 
-	@Override
-	protected void onStart() {
-		server = new Server();
-		ServerConnector connector;
+    private ServletContextHandler createServletContextHandler() {
+        if (this.options == null || this.options.size() == 0) {
+            return new ServletContextHandler();
+        } else {
+            int options = 0;
+            for (JettyServletContextHandlerOption option : this.options) {
+                options = options | option.getCode();
+            }
+            return new ServletContextHandler(options);
+        }
+    }
 
-		HttpConfiguration config = new HttpConfiguration();
-		HttpConnectionFactory http1 = new HttpConnectionFactory(config);
+    @Override
+    protected void onStart() {
+        server = new Server();
+        ServerConnector connector;
 
-		if (http2Enabled) {
-			HTTP2CServerConnectionFactory http2c = new HTTP2CServerConnectionFactory(config);
-			connector = new ServerConnector(server, http1, http2c);
-		} else {
-			connector = new ServerConnector(server, http1);
-		}
+        HttpConfiguration config = new HttpConfiguration();
+        HttpConnectionFactory http1 = new HttpConnectionFactory(config);
 
-		connector.setHost(address.getResolvedIp());
-		connector.setPort(address.getPort());
+        if (http2Enabled) {
+            HTTP2CServerConnectionFactory http2c = new HTTP2CServerConnectionFactory(config);
+            connector = new ServerConnector(server, http1, http2c);
+        } else {
+            connector = new ServerConnector(server, http1);
+        }
 
-		server.addConnector(connector);
+        connector.setHost(address.getResolvedIp());
+        connector.setPort(address.getPort());
 
-		handler = createServletContextHandler();
-		server.setHandler(handler);
+        server.addConnector(connector);
 
-		((QueuedThreadPool) server.getThreadPool()).setName(this.getName());
+        handler = createServletContextHandler();
+        server.setHandler(handler);
 
-		try {
-			server.start();
-		} catch (Exception e) {
-			throw new RuntimeException("Cannot start server connector for host: " + address, e);
-		}
-	}
+        ((QueuedThreadPool) server.getThreadPool()).setName(this.getName());
 
-	private ServletContextHandler createServletContextHandler() {
-		if (this.options == null || this.options.size() == 0) {
-			return new ServletContextHandler();
-		} else {
-			int options = 0;
-			for (JettyServletContextHandlerOption option : this.options) {
-				options = options | option.getCode();
-			}
-			return new ServletContextHandler(options);
-		}
-	}
+        try {
+            server.start();
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot start server connector for host: " + address, e);
+        }
+    }
 
-	@Override
-	protected void onStop() {
-		try {
-			this.server.stop();
-		} catch (Exception e) {
-			getLogger().error("Error while stop jetty server", e);
-		} finally {
-			if (this.onStopCallback != null) {
-				this.onStopCallback.accept(this.address);
-			}
-			this.server = null;
-			this.handler = null;
-		}
-	}
+    @Override
+    protected void onStop() {
+        try {
+            this.server.stop();
+        } catch (Exception e) {
+            getLogger().error("Error while stop jetty server", e);
+        } finally {
+            if (this.onStopCallback != null) {
+                this.onStopCallback.accept(this.address);
+            }
+            this.server = null;
+            this.handler = null;
+        }
+    }
 
 }

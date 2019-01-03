@@ -9,24 +9,24 @@ import lombok.Setter;
 @Builder
 public class Endpoint {
 
-	private String address;
+    private String address;
 
-	private String protocol;
+    private String protocol;
 
-	private String host;
+    private String host;
 
-	private String nic;
+    private String nic;
 
-	@Builder.Default
-	private int port = -1;
+    @Builder.Default
+    private int port = -1;
 
-	public String getResolvedAddress() {
-		String nicStr = (this.nic == null || this.nic.isBlank()) ? "" : (this.nic + ";");
-		return this.getProtocol() + "://" + nicStr + host + (port <= 0 ? "" : (":" + port));
-	}
+    public String getResolvedAddress() {
+        String nicStr = (this.nic == null || this.nic.isBlank()) ? "" : (this.nic + ";");
+        return this.getProtocol() + "://" + nicStr + host + (port <= 0 ? "" : (":" + port));
+    }
 
-	@Override
-	public String toString() {
-		return this.getAddress();
-	}
+    @Override
+    public String toString() {
+        return this.getAddress();
+    }
 }

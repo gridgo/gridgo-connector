@@ -24,200 +24,199 @@ import io.gridgo.framework.support.Payload;
 
 public class KafkaIntegratedUnitTest {
 
-	private static final short REPLICATION_FACTOR = (short) 1;
+    private static final short REPLICATION_FACTOR = (short) 1;
 
-	private static final int NUM_PARTITIONS = 1;
+    private static final int NUM_PARTITIONS = 1;
 
-	private static final int NUM_MESSAGES = 1000;
+    private static final int NUM_MESSAGES = 1000;
 
-	@ClassRule
-	public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(1)
-			.withBrokerProperty("auto.create.topics.enable", "false");
+    @ClassRule
+    public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(1).withBrokerProperty(
+            "auto.create.topics.enable", "false");
 
-	@Test
-	public void testConsumerAndProducer() {
+    private Connector createKafkaConnector(String connectString) {
+        var connector = new DefaultConnectorFactory().createConnector(connectString);
 
-		String extraQuery = "&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest";
+        Assert.assertNotNull(connector);
+        Assert.assertTrue(connector instanceof KafkaConnector);
+        return connector;
+    }
 
-		doTestConsumerAndProducer(extraQuery);
-	}
+    private String createTopic() {
+        String topicName = UUID.randomUUID().toString();
 
-	@Test
-	public void testConsumerAndProducerWithObject() {
+        var kafkaTestUtils = sharedKafkaTestResource.getKafkaTestUtils();
+        kafkaTestUtils.createTopic(topicName, NUM_PARTITIONS, REPLICATION_FACTOR);
+        return topicName;
+    }
 
-		String extraQuery = "&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest&serializerClass=org.apache.kafka.common.serialization.ByteArraySerializer&valueDeserializer=org.apache.kafka.common.serialization.ByteArrayDeserializer";
+    private void doTestConsumerAndProducer(String extraQuery) {
+        String topicName = createTopic();
 
-		String topicName = createTopic();
+        String brokers = sharedKafkaTestResource.getKafkaConnectString();
 
-		String brokers = sharedKafkaTestResource.getKafkaConnectString();
+        var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
+        var connector = createKafkaConnector(connectString);
 
-		var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
-		var connector = createKafkaConnector(connectString);
+        var consumer = connector.getConsumer().orElseThrow();
 
-		var consumer = connector.getConsumer().orElseThrow();
+        System.out.println("Warming up...");
+        var warmUpLatch = new CountDownLatch(1);
 
-		System.out.println("Warming up...");
-		var warmUpLatch = new CountDownLatch(1);
+        connector.start();
 
-		connector.start();
+        consumer.clearSubscribers();
+        consumer.subscribe((msg, deferred) -> {
+            warmUpLatch.countDown();
+            deferred.resolve(null);
+        });
 
-		consumer.clearSubscribers();
-		consumer.subscribe((msg, deferred) -> {
-			warmUpLatch.countDown();
-			deferred.resolve(null);
-		});
+        var producer = connector.getProducer().orElseThrow();
 
-		var producer = connector.getProducer().orElseThrow();
+        sendTestRecords(topicName, producer, 1);
 
-		sendTestObjectRecords(topicName, producer, 1);
+        try {
+            warmUpLatch.await();
+        } catch (InterruptedException e) {
+            Assert.fail(e.getMessage());
+        }
 
-		try {
-			warmUpLatch.await();
-		} catch (InterruptedException e) {
-			Assert.fail(e.getMessage());
-		}
+        System.out.println("Warm up done");
 
-		System.out.println("Warm up done");
+        var latch = new AtomicInteger(NUM_MESSAGES);
 
-		var latch = new AtomicInteger(NUM_MESSAGES);
+        consumer.clearSubscribers();
+        consumer.subscribe((msg, deferred) -> {
+            int size = msg.getPayload().getHeaders().getInteger(KafkaConstants.BATCH_SIZE, 1);
+            latch.addAndGet(-size);
+            deferred.resolve(null);
+        });
 
-		consumer.clearSubscribers();
-		consumer.subscribe((msg, deferred) -> {
-			if (msg.getPayload().getBody().isObject()
-					&& msg.getPayload().getBody().asObject().getInteger("test") == 1) {
-				int size = msg.getPayload().getHeaders().getInteger(KafkaConstants.BATCH_SIZE, 1);
-				latch.addAndGet(-size);
-				deferred.resolve(null);
-			}
-		});
+        long started = System.nanoTime();
 
-		long started = System.nanoTime();
+        sendTestRecords(topicName, producer, NUM_MESSAGES);
 
-		sendTestObjectRecords(topicName, producer, NUM_MESSAGES);
+        while (latch.get() != 0) {
+            // Thread.onSpinWait();
+            LockSupport.parkNanos(0);
+        }
+        long elapsed = System.nanoTime() - started;
+        printPace("KafkaConsumer", NUM_MESSAGES, elapsed);
 
-		while (latch.get() != 0) {
-			// Thread.onSpinWait();
-			LockSupport.parkNanos(0);
-		}
-		long elapsed = System.nanoTime() - started;
-		printPace("KafkaConsumer", NUM_MESSAGES, elapsed);
+        connector.stop();
 
-		connector.stop();
+        System.out.println("Connector stop");
+    }
 
-		System.out.println("Connector stop");
-	}
+    private void printPace(String name, int numMessages, long elapsed) {
+        DecimalFormat df = new DecimalFormat("###,###.##");
+        System.out.println(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6) + "ms -> pace: "
+                + df.format(1e9 * numMessages / elapsed) + "ops/s");
+    }
 
-	@Test
-	public void testBatchConsumerAndProducer() {
+    private void sendTestObjectRecords(String topicName, Producer producer, int numMessages) {
+        System.out.println("Sending records...");
 
-		String extraQuery = "&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest&batchEnabled=true";
+        long started = System.nanoTime();
+        // Produce it & wait for it to complete.
+        for (int i = 0; i < numMessages; i++) {
+            Message msg = Message.of(Payload.of(BObject.ofEmpty().setAny("test", 1)));
+            producer.send(msg);
+        }
+        long elapsed = System.nanoTime() - started;
+        printPace("KafkaProducer", numMessages, elapsed);
+    }
 
-		doTestConsumerAndProducer(extraQuery);
-	}
+    private void sendTestRecords(String topicName, Producer producer, int numMessages) {
+        System.out.println("Sending records...");
 
-	private void doTestConsumerAndProducer(String extraQuery) {
-		String topicName = createTopic();
+        long started = System.nanoTime();
+        // Produce it & wait for it to complete.
+        for (int i = 0; i < numMessages; i++) {
+            Message msg = Message.of(Payload.of(BValue.of(i + "")));
+            producer.send(msg);
+        }
+        long elapsed = System.nanoTime() - started;
+        printPace("KafkaProducer", numMessages, elapsed);
+    }
 
-		String brokers = sharedKafkaTestResource.getKafkaConnectString();
+    @Test
+    public void testBatchConsumerAndProducer() {
 
-		var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
-		var connector = createKafkaConnector(connectString);
+        String extraQuery = "&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest&batchEnabled=true";
 
-		var consumer = connector.getConsumer().orElseThrow();
+        doTestConsumerAndProducer(extraQuery);
+    }
 
-		System.out.println("Warming up...");
-		var warmUpLatch = new CountDownLatch(1);
+    @Test
+    public void testConsumerAndProducer() {
 
-		connector.start();
+        String extraQuery = "&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest";
 
-		consumer.clearSubscribers();
-		consumer.subscribe((msg, deferred) -> {
-			warmUpLatch.countDown();
-			deferred.resolve(null);
-		});
+        doTestConsumerAndProducer(extraQuery);
+    }
 
-		var producer = connector.getProducer().orElseThrow();
+    @Test
+    public void testConsumerAndProducerWithObject() {
 
-		sendTestRecords(topicName, producer, 1);
+        String extraQuery = "&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest&serializerClass=org.apache.kafka.common.serialization.ByteArraySerializer&valueDeserializer=org.apache.kafka.common.serialization.ByteArrayDeserializer";
 
-		try {
-			warmUpLatch.await();
-		} catch (InterruptedException e) {
-			Assert.fail(e.getMessage());
-		}
+        String topicName = createTopic();
 
-		System.out.println("Warm up done");
+        String brokers = sharedKafkaTestResource.getKafkaConnectString();
 
-		var latch = new AtomicInteger(NUM_MESSAGES);
+        var connectString = "kafka:" + topicName + "?brokers=" + brokers + extraQuery;
+        var connector = createKafkaConnector(connectString);
 
-		consumer.clearSubscribers();
-		consumer.subscribe((msg, deferred) -> {
-			int size = msg.getPayload().getHeaders().getInteger(KafkaConstants.BATCH_SIZE, 1);
-			latch.addAndGet(-size);
-			deferred.resolve(null);
-		});
+        var consumer = connector.getConsumer().orElseThrow();
 
-		long started = System.nanoTime();
+        System.out.println("Warming up...");
+        var warmUpLatch = new CountDownLatch(1);
 
-		sendTestRecords(topicName, producer, NUM_MESSAGES);
+        connector.start();
 
-		while (latch.get() != 0) {
-			// Thread.onSpinWait();
-			LockSupport.parkNanos(0);
-		}
-		long elapsed = System.nanoTime() - started;
-		printPace("KafkaConsumer", NUM_MESSAGES, elapsed);
+        consumer.clearSubscribers();
+        consumer.subscribe((msg, deferred) -> {
+            warmUpLatch.countDown();
+            deferred.resolve(null);
+        });
 
-		connector.stop();
+        var producer = connector.getProducer().orElseThrow();
 
-		System.out.println("Connector stop");
-	}
+        sendTestObjectRecords(topicName, producer, 1);
 
-	private String createTopic() {
-		String topicName = UUID.randomUUID().toString();
+        try {
+            warmUpLatch.await();
+        } catch (InterruptedException e) {
+            Assert.fail(e.getMessage());
+        }
 
-		var kafkaTestUtils = sharedKafkaTestResource.getKafkaTestUtils();
-		kafkaTestUtils.createTopic(topicName, NUM_PARTITIONS, REPLICATION_FACTOR);
-		return topicName;
-	}
+        System.out.println("Warm up done");
 
-	private Connector createKafkaConnector(String connectString) {
-		var connector = new DefaultConnectorFactory().createConnector(connectString);
+        var latch = new AtomicInteger(NUM_MESSAGES);
 
-		Assert.assertNotNull(connector);
-		Assert.assertTrue(connector instanceof KafkaConnector);
-		return connector;
-	}
+        consumer.clearSubscribers();
+        consumer.subscribe((msg, deferred) -> {
+            if (msg.getPayload().getBody().isObject() && msg.getPayload().getBody().asObject().getInteger("test") == 1) {
+                int size = msg.getPayload().getHeaders().getInteger(KafkaConstants.BATCH_SIZE, 1);
+                latch.addAndGet(-size);
+                deferred.resolve(null);
+            }
+        });
 
-	private void sendTestObjectRecords(String topicName, Producer producer, int numMessages) {
-		System.out.println("Sending records...");
+        long started = System.nanoTime();
 
-		long started = System.nanoTime();
-		// Produce it & wait for it to complete.
-		for (int i = 0; i < numMessages; i++) {
-			Message msg = Message.of(Payload.of(BObject.ofEmpty().setAny("test", 1)));
-			producer.send(msg);
-		}
-		long elapsed = System.nanoTime() - started;
-		printPace("KafkaProducer", numMessages, elapsed);
-	}
+        sendTestObjectRecords(topicName, producer, NUM_MESSAGES);
 
-	private void sendTestRecords(String topicName, Producer producer, int numMessages) {
-		System.out.println("Sending records...");
+        while (latch.get() != 0) {
+            // Thread.onSpinWait();
+            LockSupport.parkNanos(0);
+        }
+        long elapsed = System.nanoTime() - started;
+        printPace("KafkaConsumer", NUM_MESSAGES, elapsed);
 
-		long started = System.nanoTime();
-		// Produce it & wait for it to complete.
-		for (int i = 0; i < numMessages; i++) {
-			Message msg = Message.of(Payload.of(BValue.of(i + "")));
-			producer.send(msg);
-		}
-		long elapsed = System.nanoTime() - started;
-		printPace("KafkaProducer", numMessages, elapsed);
-	}
+        connector.stop();
 
-	private void printPace(String name, int numMessages, long elapsed) {
-		DecimalFormat df = new DecimalFormat("###,###.##");
-		System.out.println(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6)
-				+ "ms -> pace: " + df.format(1e9 * numMessages / elapsed) + "ops/s");
-	}
+        System.out.println("Connector stop");
+    }
 }

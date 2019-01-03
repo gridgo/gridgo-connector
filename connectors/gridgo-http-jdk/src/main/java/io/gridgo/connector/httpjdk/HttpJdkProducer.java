@@ -22,119 +22,121 @@ import io.gridgo.framework.support.Message;
 
 public class HttpJdkProducer extends AbstractHttpProducer {
 
-	private static final String DEFAULT_METHOD = "GET";
+    private static final String DEFAULT_METHOD = "GET";
 
-	private String endpointUri;
+    private String endpointUri;
 
-	private String defaultMethod;
+    private String defaultMethod;
 
-	private HttpClient httpClient;
+    private HttpClient httpClient;
 
-	private Builder builder;
+    private Builder builder;
 
-	public HttpJdkProducer(ConnectorContext context, HttpClient.Builder builder, String endpointUri, String format,
-			String defaultMethod) {
-		super(context, format);
-		this.builder = builder;
-		this.endpointUri = endpointUri;
-		this.defaultMethod = defaultMethod != null ? defaultMethod : DEFAULT_METHOD;
-	}
+    public HttpJdkProducer(ConnectorContext context, HttpClient.Builder builder, String endpointUri, String format,
+            String defaultMethod) {
+        super(context, format);
+        this.builder = builder;
+        this.endpointUri = endpointUri;
+        this.defaultMethod = defaultMethod != null ? defaultMethod : DEFAULT_METHOD;
+    }
 
-	@Override
-	public void send(Message message) {
-		var request = buildRequest(message);
-		this.httpClient.sendAsync(request, BodyHandlers.discarding());
-	}
+    @Override
+    public void send(Message message) {
+        var request = buildRequest(message);
+        this.httpClient.sendAsync(request, BodyHandlers.discarding());
+    }
 
-	@Override
-	public Promise<Message, Exception> sendWithAck(Message message) {
-		var deferred = new CompletableDeferredObject<Message, Exception>();
-		var request = buildRequest(message);
-		this.httpClient.sendAsync(request, BodyHandlers.discarding()) //
-				.whenComplete((response, ex) -> {
-					if (ex != null)
-						ack(deferred, new ConnectionException(ex));
-					else
-						ack(deferred);
-				});
-		return deferred.promise();
-	}
+    @Override
+    public Promise<Message, Exception> sendWithAck(Message message) {
+        var deferred = new CompletableDeferredObject<Message, Exception>();
+        var request = buildRequest(message);
+        this.httpClient.sendAsync(request, BodyHandlers.discarding()) //
+                       .whenComplete((response, ex) -> {
+                           if (ex != null)
+                               ack(deferred, new ConnectionException(ex));
+                           else
+                               ack(deferred);
+                       });
+        return deferred.promise();
+    }
 
-	@Override
-	public Promise<Message, Exception> call(Message message) {
-		var deferred = new CompletableDeferredObject<Message, Exception>();
-		var request = buildRequest(message);
-		this.httpClient.sendAsync(request, BodyHandlers.ofByteArray()) //
-				.whenComplete((response, ex) -> {
-					if (ex != null)
-						ack(deferred, new ConnectionException(ex));
-					else
-						ack(deferred, buildMessage(response));
-				});
-		return deferred.promise();
-	}
+    @Override
+    public Promise<Message, Exception> call(Message message) {
+        var deferred = new CompletableDeferredObject<Message, Exception>();
+        var request = buildRequest(message);
+        this.httpClient.sendAsync(request, BodyHandlers.ofByteArray()) //
+                       .whenComplete((response, ex) -> {
+                           if (ex != null)
+                               ack(deferred, new ConnectionException(ex));
+                           else
+                               ack(deferred, buildMessage(response));
+                       });
+        return deferred.promise();
+    }
 
-	private Message buildMessage(HttpResponse<byte[]> response) {
-		var headers = buildHeaders(response.headers()) //
-				.setAny(HttpJdkConstants.HEADER_STATUS_CODE, response.statusCode());
-		var body = deserialize(response.body());
-		return createMessage(headers, body);
-	}
+    private Message buildMessage(HttpResponse<byte[]> response) {
+        var headers = buildHeaders(response.headers()) //
+                                                      .setAny(HttpJdkConstants.HEADER_STATUS_CODE,
+                                                              response.statusCode());
+        var body = deserialize(response.body());
+        return createMessage(headers, body);
+    }
 
-	private BObject buildHeaders(HttpHeaders headers) {
-		if (headers == null)
-			return BObject.ofEmpty();
-		var map = headers.map();
-		if (map == null)
-			return BObject.ofEmpty();
-		return BObject.of(map);
-	}
+    private BObject buildHeaders(HttpHeaders headers) {
+        if (headers == null)
+            return BObject.ofEmpty();
+        var map = headers.map();
+        if (map == null)
+            return BObject.ofEmpty();
+        return BObject.of(map);
+    }
 
-	private HttpRequest buildRequest(Message message) {
-		var endpoint = endpointUri;
-		var bodyPublisher = BodyPublishers.noBody();
-		var method = defaultMethod;
+    private HttpRequest buildRequest(Message message) {
+        var endpoint = endpointUri;
+        var bodyPublisher = BodyPublishers.noBody();
+        var method = defaultMethod;
 
-		if (message != null && message.getPayload() != null) {
-			var body = message.getPayload().getBody();
-			bodyPublisher = body != null ? BodyPublishers.ofByteArray(serialize(body)) : BodyPublishers.noBody();
-			endpoint = endpointUri + parseParams(getQueryParams(message));
-			method = getMethod(message, defaultMethod);
-		}
+        if (message != null && message.getPayload() != null) {
+            var body = message.getPayload().getBody();
+            bodyPublisher = body != null ? BodyPublishers.ofByteArray(serialize(body)) : BodyPublishers.noBody();
+            endpoint = endpointUri + parseParams(getQueryParams(message));
+            method = getMethod(message, defaultMethod);
+        }
 
-		return HttpRequest.newBuilder() //
-				.uri(URI.create(endpoint)) //
-				.method(method, bodyPublisher) //
-				.build();
-	}
+        return HttpRequest.newBuilder() //
+                          .uri(URI.create(endpoint)) //
+                          .method(method, bodyPublisher) //
+                          .build();
+    }
 
-	private String parseParams(BObject queryParams) {
-		var sb = new StringBuilder();
-		var first = true;
-		for (var entry : queryParams.entrySet()) {
-			if (entry.getValue().isValue()) {
-				if (!first)
-					sb.append("&");
-				var encodedValue = URLEncoder.encode(entry.getValue().asValue().getString(), Charset.forName("utf-8"));
-				sb.append(entry.getKey() + "=" + encodedValue);
-				first = false;
-			}
-		}
-		var s = sb.toString();
-		return s.isEmpty() ? "" : "?" + s;
-	}
+    private String parseParams(BObject queryParams) {
+        var sb = new StringBuilder();
+        var first = true;
+        for (var entry : queryParams.entrySet()) {
+            if (entry.getValue().isValue()) {
+                if (!first)
+                    sb.append("&");
+                var encodedValue = URLEncoder.encode(entry.getValue().asValue().getString(), Charset.forName("utf-8"));
+                sb.append(entry.getKey() + "=" + encodedValue);
+                first = false;
+            }
+        }
+        var s = sb.toString();
+        return s.isEmpty() ? "" : "?" + s;
+    }
 
-	@Override
-	protected void onStart() {
-		this.httpClient = builder.build();
-	}
+    @Override
+    protected void onStart() {
+        this.httpClient = builder.build();
+    }
 
-	@Override
-	protected void onStop() {
-	}
+    @Override
+    protected void onStop() {
+        // Nothing to do here
+    }
 
-	@Override
-	protected String generateName() {
-		return "producer.httpjdk." + endpointUri;
-	}
+    @Override
+    protected String generateName() {
+        return "producer.httpjdk." + endpointUri;
+    }
 }

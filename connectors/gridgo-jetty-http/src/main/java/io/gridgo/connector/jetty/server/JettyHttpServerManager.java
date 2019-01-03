@@ -1,7 +1,5 @@
 package io.gridgo.connector.jetty.server;
 
-import java.util.Collection;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
@@ -11,76 +9,69 @@ import io.gridgo.utils.ThreadUtils;
 import io.gridgo.utils.support.HostAndPort;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class JettyHttpServerManager {
 
-	@Getter
-	private static final JettyHttpServerManager instance = new JettyHttpServerManager();
+    @Getter
+    private static final JettyHttpServerManager instance = new JettyHttpServerManager();
 
-	private static final String ALL_INTERFACE_HOST = "0.0.0.0";
+    private static final String ALL_INTERFACE_HOST = "0.0.0.0";
 
-	private final Map<HostAndPort, JettyHttpServer> servers = new NonBlockingHashMap<>();
+    private final Map<HostAndPort, JettyHttpServer> servers = new NonBlockingHashMap<>();
 
-	private JettyHttpServerManager() {
-		ThreadUtils.registerShutdownTask(this::onShutdown);
-	}
+    private JettyHttpServerManager() {
+        ThreadUtils.registerShutdownTask(this::onShutdown);
+    }
 
-	private void onShutdown() {
-		Collection<JettyHttpServer> runningServers = new LinkedList<>(servers.values());
-		for (JettyHttpServer server : runningServers) {
-			try {
-				server.stop();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
+    public JettyHttpServer getOrCreateJettyServer(@NonNull HostAndPort originAddress, boolean http2Enabled) {
+        return getOrCreateJettyServer(originAddress, http2Enabled, null);
+    }
 
-	private void onServerStop(HostAndPort address) {
-		this.servers.remove(address);
-	}
+    public JettyHttpServer getOrCreateJettyServer(@NonNull HostAndPort originAddress, boolean http2Enabled, Set<JettyServletContextHandlerOption> options) {
+        var address = originAddress.makeCopy();
+        if (!address.isResolvable()) {
+            throw new RuntimeException("Host '" + originAddress.getHost() + "' cannot be resolved");
+        }
 
-	public JettyHttpServer getOrCreateJettyServer(String address, boolean http2Enabled,
-			Set<JettyServletContextHandlerOption> options) {
-		return this.getOrCreateJettyServer(HostAndPort.fromString(address), http2Enabled, options);
-	}
+        if (address.getPort() <= 0) {
+            address.setPort(80);
+        }
 
-	public JettyHttpServer getOrCreateJettyServer(String address, boolean http2Enabled) {
-		return this.getOrCreateJettyServer(HostAndPort.fromString(address), http2Enabled, null);
-	}
+        if (address.getHost() == null) {
+            address.setHost("localhost");
+        }
 
-	public JettyHttpServer getOrCreateJettyServer(@NonNull HostAndPort originAddress, boolean http2Enabled) {
-		return getOrCreateJettyServer(originAddress, http2Enabled, null);
-	}
+        var jettyHttpServer = servers.get(address);
+        if (jettyHttpServer != null)
+            return jettyHttpServer;
+        var allInterface = HostAndPort.newInstance(ALL_INTERFACE_HOST, address.getPort());
+        jettyHttpServer = servers.get(allInterface);
+        if (jettyHttpServer != null)
+            return jettyHttpServer;
+        return this.servers.computeIfAbsent(address, key -> new JettyHttpServer(address, http2Enabled, options, this::onServerStop));
+    }
 
-	public JettyHttpServer getOrCreateJettyServer(@NonNull HostAndPort originAddress, boolean http2Enabled,
-			Set<JettyServletContextHandlerOption> options) {
-		HostAndPort address = originAddress.makeCopy();
-		if (!address.isResolvable()) {
-			throw new RuntimeException("Host '" + originAddress.getHost() + "' cannot be resolved");
-		}
+    public JettyHttpServer getOrCreateJettyServer(String address, boolean http2Enabled) {
+        return this.getOrCreateJettyServer(HostAndPort.fromString(address), http2Enabled, null);
+    }
 
-		if (address.getPort() <= 0) {
-			address.setPort(80);
-		}
+    public JettyHttpServer getOrCreateJettyServer(String address, boolean http2Enabled, Set<JettyServletContextHandlerOption> options) {
+        return this.getOrCreateJettyServer(HostAndPort.fromString(address), http2Enabled, options);
+    }
 
-		if (address.getHost() == null) {
-			address.setHost("localhost");
-		}
+    private void onServerStop(HostAndPort address) {
+        this.servers.remove(address);
+    }
 
-		JettyHttpServer jettyHttpServer = servers.get(address);
-		if (jettyHttpServer == null) {
-			HostAndPort allInterface = HostAndPort.newInstance(ALL_INTERFACE_HOST, address.getPort());
-			jettyHttpServer = servers.get(allInterface);
-			if (jettyHttpServer == null) {
-				synchronized (this.servers) {
-					if (!this.servers.containsKey(address) && !this.servers.containsKey(allInterface)) {
-						jettyHttpServer = new JettyHttpServer(address, http2Enabled, options, this::onServerStop);
-						this.servers.put(address, jettyHttpServer);
-					}
-				}
-			}
-		}
-		return jettyHttpServer;
-	}
+    private void onShutdown() {
+        for (JettyHttpServer server : servers.values()) {
+            try {
+                server.stop();
+            } catch (Exception e) {
+                log.error("Exception caught while shutting down Jetty HTTP server", e);
+            }
+        }
+    }
 }
