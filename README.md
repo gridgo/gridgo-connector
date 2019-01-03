@@ -18,7 +18,7 @@ View [build status](https://github.com/gridgo/gridgo-connector/wiki/build-status
 <dependency>
     <groupId>io.gridgo</groupId>
     <artifactId>gridgo-connector-core</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0-SNAPSHOT</version>
 </dependency>
 ```
 
