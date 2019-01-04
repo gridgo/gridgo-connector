@@ -33,6 +33,16 @@ public abstract class AbstractMessageComponent extends AbstractComponentLifecycl
     }
 
     /**
+     * create a message with empty payload's header, auto id generated
+     * 
+     * @param body the body
+     * @return the message
+     */
+    protected Message createMessage(Object body) {
+        return attachSource(createMessage(BObject.ofEmpty(), BElement.ofAny(body)));
+    }
+
+    /**
      * create a message with payload which contains the headers and body, auto id
      * generated
      * 
