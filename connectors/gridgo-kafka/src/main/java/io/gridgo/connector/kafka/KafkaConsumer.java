@@ -80,7 +80,7 @@ public class KafkaConsumer extends AbstractConsumer {
             var messages = records.stream().map(this::buildMessage).toArray(size -> new Message[size]);
             var multiPart = new MultipartMessage(messages);
 
-            var headers = multiPart.getPayload().getHeaders();
+            var headers = multiPart.headers();
 
             var lastRecord = records.get(records.size() - 1);
 

@@ -110,11 +110,11 @@ public class TestMultiPart {
 
             consumer.subscribe((msg) -> {
                 BObject response = BObject.ofEmpty();
-                response.put("query", msg.getPayload().getHeaders().get(HttpHeader.QUERY_PARAMS.asString()));
+                response.put("query", msg.headers().get(HttpHeader.QUERY_PARAMS.asString()));
 
                 // rebuild body from multipart array to object
                 BObject body = BObject.ofEmpty();
-                for (BElement element : msg.getPayload().getBody().asArray()) {
+                for (BElement element : msg.body().asArray()) {
                     BObject part = element.asObject();
                     BElement partBody = part.get(HttpCommonConstants.BODY);
                     if (partBody instanceof BReference) {

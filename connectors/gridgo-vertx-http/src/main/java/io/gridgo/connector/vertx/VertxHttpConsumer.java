@@ -178,7 +178,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         var msg = buildFailureMessage(ex);
         if (msg != null) {
             var statusCode = ctx.statusCode() != -1 ? ctx.statusCode() : DEFAULT_EXCEPTION_STATUS_CODE;
-            msg.getPayload().getHeaders() //
+            msg.headers() //
                .putIfAbsent(VertxHttpConstants.HEADER_STATUS_CODE, BValue.of(statusCode));
             sendResponse(ctx, msg, true);
         } else {
@@ -282,14 +282,14 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
             return;
         }
 
-        var status = response.getPayload().getHeaders().getString(VertxHttpConstants.HEADER_STATUS, null);
+        var status = response.headers().getString(VertxHttpConstants.HEADER_STATUS, null);
         if (status != null)
             serverResponse.setStatusMessage(status);
-        int statusCode = response.getPayload().getHeaders().getInteger(VertxHttpConstants.HEADER_STATUS_CODE, -1);
+        int statusCode = response.headers().getInteger(VertxHttpConstants.HEADER_STATUS_CODE, -1);
         if (statusCode != -1)
             serverResponse.setStatusCode(statusCode);
 
-        var headers = response.getPayload().getHeaders();
+        var headers = response.headers();
 
         if (!headers.containsKey(VertxHttpConstants.HEADER_CONTENT_TYPE)) {
             headers.setAny(VertxHttpConstants.HEADER_CONTENT_TYPE, getContentType());
@@ -299,13 +299,13 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
             if (entry.getValue().isValue())
                 serverResponse.headers().add(entry.getKey(), entry.getValue().toString());
         }
-        if (response.getPayload().getBody() == null) {
+        if (response.body() == null) {
             serverResponse.end();
             return;
         }
         byte[] bytes;
         try {
-            bytes = serialize(response.getPayload().getBody());
+            bytes = serialize(response.body());
         } catch (Exception ex) {
             log.error("Exception caught while sending response", ex);
             if (!fromException)

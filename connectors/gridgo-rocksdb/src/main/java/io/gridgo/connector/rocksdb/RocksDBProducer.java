@@ -79,7 +79,7 @@ public class RocksDBProducer extends AbstractProducer {
 
     private Promise<Message, Exception> _call(Message message, boolean deferredRequired, boolean isRPC) {
         // get the operation and associated handler
-        var operation = message.getPayload().getHeaders().getString(OPERATION);
+        var operation = message.headers().getString(OPERATION);
         var handler = operations.get(operation);
         if (handler == null) {
             return new SimpleFailurePromise<>(
@@ -104,7 +104,7 @@ public class RocksDBProducer extends AbstractProducer {
     private void putValue(Message message, Deferred<Message, Exception> deferred, boolean isRPC)
             throws RocksDBException {
         // TODO check if we should only flush after batch writes
-        var body = message.getPayload().getBody().asObject();
+        var body = message.body().asObject();
         for (var entry : body.entrySet()) {
             var value = entry.getValue();
             if (value.isValue() && value.asValue().isNull())
@@ -121,7 +121,7 @@ public class RocksDBProducer extends AbstractProducer {
             ack(deferred, (Message) null);
             return;
         }
-        var key = message.getPayload().getBody().asValue().getString().getBytes();
+        var key = message.body().asValue().getString().getBytes();
         var bytes = db.get(key);
         ack(deferred, Message.ofAny(BElement.ofBytes(bytes)));
     }

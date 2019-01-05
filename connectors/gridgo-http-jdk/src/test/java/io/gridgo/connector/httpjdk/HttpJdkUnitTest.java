@@ -88,7 +88,7 @@ public class HttpJdkUnitTest {
         for (int i = 0; i < NUM_MESSAGES; i++) {
             producer.call(null) //
                     .done(response -> {
-                        var body = response.getPayload().getBody().toString();
+                        var body = response.body().toString();
                         if (!"hello".equals(body)) {
                             atomic.incrementAndGet();
                         }

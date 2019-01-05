@@ -335,7 +335,7 @@ public abstract class AbstractNetty4UnitTest {
                         "[" + transport + " server] - socket closed, routing id: " + msg.getRoutingId().get());
                 break;
             case "message":
-                String received = msg.getPayload().getBody().asValue().getString();
+                String received = msg.body().asValue().getString();
                 throw new RuntimeException(received);
             }
         });
@@ -420,7 +420,7 @@ public abstract class AbstractNetty4UnitTest {
             default:
                 System.out.println("[" + transport + " client] - got msg from source: " + msg.getMisc().get("source")
                         + " -> payload: " + msg.getPayload().toBArray());
-                receivedText.set(msg.getPayload().getBody().asValue().getString());
+                receivedText.set(msg.body().asValue().getString());
                 doneSignal.countDown();
             }
         });

@@ -60,7 +60,7 @@ public class MongoDBProducer extends AbstractProducer {
     }
 
     private Promise<Message, Exception> _call(Message request, CompletableDeferredObject<Message, Exception> deferred, boolean isRPC) {
-        var operation = request.getPayload().getHeaders().getString(MongoDBConstants.OPERATION);
+        var operation = request.headers().getString(MongoDBConstants.OPERATION);
         var handler = operations.get(operation);
         if (handler == null) {
             return new SimpleFailurePromise<>(new IllegalArgumentException("Operation " + operation + " is not supported"));
@@ -88,7 +88,7 @@ public class MongoDBProducer extends AbstractProducer {
     }
 
     private void applyProjection(Message msg, FindIterable<Document> filterable) {
-        var headers = msg.getPayload().getHeaders();
+        var headers = msg.headers();
         var project = getHeaderAs(msg, MongoDBConstants.PROJECT, Bson.class);
         var projectInclude = headers.getArray(MongoDBConstants.PROJECT_INCLUDE, null);
         var projectExclude = headers.getArray(MongoDBConstants.PROJECT_EXCLUDE, null);
@@ -167,7 +167,7 @@ public class MongoDBProducer extends AbstractProducer {
     public void findAllDocuments(Message msg, Deferred<Message, Exception> deferred, boolean isRPC) {
         var filter = getHeaderAs(msg, MongoDBConstants.FILTER, Bson.class);
 
-        var headers = msg.getPayload().getHeaders();
+        var headers = msg.headers();
         int batchSize = headers.getInteger(MongoDBConstants.BATCH_SIZE, -1);
         int numToSkip = headers.getInteger(MongoDBConstants.NUM_TO_SKIP, -1);
         int limit = headers.getInteger(MongoDBConstants.LIMIT, -1);
@@ -189,9 +189,9 @@ public class MongoDBProducer extends AbstractProducer {
     }
 
     public void findById(Message msg, Deferred<Message, Exception> deferred, boolean isRPC) {
-        var headers = msg.getPayload().getHeaders();
+        var headers = msg.headers();
         String idField = headers.getString(MongoDBConstants.ID_FIELD);
-        Object id = msg.getPayload().getBody().asValue().getData();
+        Object id = msg.body().asValue().getData();
 
         var filterable = collection.find(Filters.eq(idField, id));
         applyProjection(msg, filterable);
@@ -204,14 +204,14 @@ public class MongoDBProducer extends AbstractProducer {
     }
 
     private <T> T getHeaderAs(Message msg, String name, Class<T> clazz) {
-        var options = msg.getPayload().getHeaders().get(name);
+        var options = msg.headers().get(name);
         if (options == null)
             return null;
         return clazz.cast(options.asReference().getReference());
     }
 
     public void insertDocument(Message msg, Deferred<Message, Exception> deferred, boolean isRPC) {
-        var body = msg.getPayload().getBody();
+        var body = msg.body();
         if (body.isReference()) {
             var doc = convertToDocument(body.asReference());
             collection.insertOne(doc, (ignore, throwable) -> ack(deferred, null, throwable));
@@ -265,7 +265,7 @@ public class MongoDBProducer extends AbstractProducer {
     public void updateDocument(Message msg, Deferred<Message, Exception> deferred, boolean isRPC) {
         var filter = getHeaderAs(msg, MongoDBConstants.FILTER, Bson.class);
 
-        var body = msg.getPayload().getBody();
+        var body = msg.body();
         var doc = convertToDocument(body.asReference());
         collection.updateOne(filter, doc, (result, throwable) -> ack(deferred, isRPC ? result.getModifiedCount() : null, throwable));
     }
@@ -273,7 +273,7 @@ public class MongoDBProducer extends AbstractProducer {
     public void updateManyDocuments(Message msg, Deferred<Message, Exception> deferred, boolean isRPC) {
         var filter = getHeaderAs(msg, MongoDBConstants.FILTER, Bson.class);
 
-        var body = msg.getPayload().getBody();
+        var body = msg.body();
         var doc = convertToDocument(body.asReference());
         collection.updateMany(filter, doc, (result, throwable) -> ack(deferred, isRPC ? result.getModifiedCount() : null, throwable));
     }
