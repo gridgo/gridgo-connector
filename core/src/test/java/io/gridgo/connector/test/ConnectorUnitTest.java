@@ -29,7 +29,7 @@ public class ConnectorUnitTest {
         connector.start();
         var latch = new CountDownLatch(1);
         consumer.subscribe(msg -> {
-            if (msg.getPayload().getHeaders().getInteger("test-header") == 1)
+            if (msg.headers().getInteger("test-header") == 1)
                 latch.countDown();
         });
         consumer.testPublish();
@@ -73,7 +73,7 @@ public class ConnectorUnitTest {
 
         var callLatch = new CountDownLatch(1);
         producer.call(Message.of(Payload.of(BValue.of(1)))).done(response -> {
-            if (response.getPayload().getBody().asValue().getInteger() == 2)
+            if (response.body().asValue().getInteger() == 2)
                 callLatch.countDown();
         });
         try {

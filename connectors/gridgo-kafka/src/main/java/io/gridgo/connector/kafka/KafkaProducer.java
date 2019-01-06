@@ -48,7 +48,7 @@ public class KafkaProducer extends AbstractProducer {
     }
 
     private ProducerRecord<Object, Object> buildProducerRecord(String topic, Message message) {
-        var headers = message.getPayload().getHeaders();
+        var headers = message.headers();
 
         var partitionValue = headers.getValue(KafkaConstants.PARTITION);
         Integer partition = partitionValue != null ? partitionValue.getInteger() : null;
@@ -56,7 +56,7 @@ public class KafkaProducer extends AbstractProducer {
         Long timestamp = timestampValue != null ? timestampValue.getLong() : null;
         var keyValue = headers.getValue(KafkaConstants.KEY);
         Object key = keyValue != null ? keyValue.getData() : null;
-        var body = message.getPayload().getBody();
+        var body = message.body();
         var record = new ProducerRecord<Object, Object>(topic, partition, timestamp, key, convert(body));
         if (body != null && !body.isValue()) {
             record.headers().add(KafkaConstants.RAW, new byte[] { 1 });

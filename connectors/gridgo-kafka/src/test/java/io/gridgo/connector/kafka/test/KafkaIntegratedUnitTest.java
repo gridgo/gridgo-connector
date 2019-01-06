@@ -87,7 +87,7 @@ public class KafkaIntegratedUnitTest {
 
         consumer.clearSubscribers();
         consumer.subscribe((msg, deferred) -> {
-            int size = msg.getPayload().getHeaders().getInteger(KafkaConstants.BATCH_SIZE, 1);
+            int size = msg.headers().getInteger(KafkaConstants.BATCH_SIZE, 1);
             latch.addAndGet(-size);
             deferred.resolve(null);
         });
@@ -197,8 +197,8 @@ public class KafkaIntegratedUnitTest {
 
         consumer.clearSubscribers();
         consumer.subscribe((msg, deferred) -> {
-            if (msg.getPayload().getBody().isObject() && msg.getPayload().getBody().asObject().getInteger("test") == 1) {
-                int size = msg.getPayload().getHeaders().getInteger(KafkaConstants.BATCH_SIZE, 1);
+            if (msg.body().isObject() && msg.body().asObject().getInteger("test") == 1) {
+                int size = msg.headers().getInteger(KafkaConstants.BATCH_SIZE, 1);
                 latch.addAndGet(-size);
                 deferred.resolve(null);
             }

@@ -111,7 +111,7 @@ public class HttpProducer extends AbstractHttpProducer {
             return new RequestBuilder().setUrl(endpointUri);
         var method = getMethod(message, defaultMethod);
         var params = buildParams(getQueryParams(message));
-        var body = serialize(message.getPayload().getBody());
+        var body = serialize(message.body());
         return new RequestBuilder(method) //
                                          .setUrl(endpointUri) //
                                          .setBody(body) //
