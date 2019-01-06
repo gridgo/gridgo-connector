@@ -16,8 +16,6 @@ import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.header.Header;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.AsyncDeferredObject;
-import org.joo.promise4j.impl.SimpleDonePromise;
-import org.joo.promise4j.impl.SimpleFailurePromise;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
@@ -80,7 +78,7 @@ public class KafkaConsumer extends AbstractConsumer {
             var messages = records.stream().map(this::buildMessage).toArray(size -> new Message[size]);
             var multiPart = new MultipartMessage(messages);
 
-            var headers = multiPart.getPayload().getHeaders();
+            var headers = multiPart.headers();
 
             var lastRecord = records.get(records.size() - 1);
 
@@ -108,7 +106,8 @@ public class KafkaConsumer extends AbstractConsumer {
         protected void doInit() {
             ClassLoader threadClassLoader = Thread.currentThread().getContextClassLoader();
             try {
-                Thread.currentThread().setContextClassLoader(org.apache.kafka.clients.consumer.KafkaConsumer.class.getClassLoader());
+                Thread.currentThread()
+                      .setContextClassLoader(org.apache.kafka.clients.consumer.KafkaConsumer.class.getClassLoader());
                 this.consumer = new org.apache.kafka.clients.consumer.KafkaConsumer<>(kafkaProps);
             } finally {
                 Thread.currentThread().setContextClassLoader(threadClassLoader);
@@ -134,13 +133,7 @@ public class KafkaConsumer extends AbstractConsumer {
                 }
 
                 if (!reConnect) {
-                    if (configuration.isAutoCommitEnable()) {
-                        if ("async".equals(configuration.getAutoCommitOnStop())) {
-                            consumer.commitAsync();
-                        } else if ("sync".equals(configuration.getAutoCommitOnStop())) {
-                            consumer.commitSync();
-                        }
-                    }
+                    commitFinal();
                 }
             } catch (WakeupException e) {
                 log.debug("WakeupException caught on consumer thread", e);
@@ -155,6 +148,16 @@ public class KafkaConsumer extends AbstractConsumer {
             }
 
             return reConnect;
+        }
+
+        private void commitFinal() {
+            if (!configuration.isAutoCommitEnable())
+                return;
+            if ("async".equals(configuration.getAutoCommitOnStop())) {
+                consumer.commitAsync();
+            } else if ("sync".equals(configuration.getAutoCommitOnStop())) {
+                consumer.commitSync();
+            }
         }
 
         private boolean fetchAndProcess(boolean reConnect, Duration pollDuration, boolean batchProcessing) {
@@ -203,7 +206,8 @@ public class KafkaConsumer extends AbstractConsumer {
             return deferred.promise().filterDone(result -> partitionLastOffset);
         }
 
-        private Promise<Long, Exception> processSingleRecord(TopicPartition partition, List<ConsumerRecord<Object, Object>> records) {
+        private Promise<Long, Exception> processSingleRecord(TopicPartition partition,
+                List<ConsumerRecord<Object, Object>> records) {
             boolean breakOnFirstError = configuration.isBreakOnFirstError();
 
             long lastRecord = -1;
@@ -218,11 +222,11 @@ public class KafkaConsumer extends AbstractConsumer {
                     log.error("Exception caught while processing ConsumerRecord", ex);
                     if (breakOnFirstError) {
                         commitOffset(lastRecord, partition);
-                        return new SimpleFailurePromise<>(ex);
+                        return Promise.ofCause(ex);
                     }
                 }
             }
-            return new SimpleDonePromise<>(lastRecord);
+            return Promise.of(lastRecord);
         }
 
         @Override
@@ -258,18 +262,18 @@ public class KafkaConsumer extends AbstractConsumer {
         }
 
         private void seekOffset(Duration pollDuration) {
-            if (configuration.getSeekTo() != null) {
-                if (configuration.getSeekTo().equals("beginning")) {
-                    // This poll to ensures we have an assigned partition otherwise seek won't work
-                    consumer.poll(pollDuration);
-                    consumer.seekToBeginning(consumer.assignment());
-                } else if (configuration.getSeekTo().equals("end")) {
-                    // This poll to ensures we have an assigned partition otherwise seek won't work
-                    consumer.poll(pollDuration);
-                    consumer.seekToEnd(consumer.assignment());
-                } else {
-                    throw new IllegalArgumentException("Invalid seekTo option: " + configuration.getSeekTo());
-                }
+            if (configuration.getSeekTo() == null)
+                return;
+            if (configuration.getSeekTo().equals("beginning")) {
+                // This poll to ensures we have an assigned partition otherwise seek won't work
+                consumer.poll(pollDuration);
+                consumer.seekToBeginning(consumer.assignment());
+            } else if (configuration.getSeekTo().equals("end")) {
+                // This poll to ensures we have an assigned partition otherwise seek won't work
+                consumer.poll(pollDuration);
+                consumer.seekToEnd(consumer.assignment());
+            } else {
+                throw new IllegalArgumentException("Invalid seekTo option: " + configuration.getSeekTo());
             }
         }
 

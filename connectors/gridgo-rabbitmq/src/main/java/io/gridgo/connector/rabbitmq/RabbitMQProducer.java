@@ -2,9 +2,9 @@ package io.gridgo.connector.rabbitmq;
 
 import java.io.IOException;
 
-import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.AMQP.Queue.DeclareOk;
+import com.rabbitmq.client.DeliverCallback;
 
 import io.gridgo.connector.Producer;
 

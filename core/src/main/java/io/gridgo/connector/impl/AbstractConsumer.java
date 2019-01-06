@@ -3,23 +3,22 @@ package io.gridgo.connector.impl;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 
 import org.joo.promise4j.Deferred;
 
 import io.gridgo.bean.BElement;
-import io.gridgo.bean.BObject;
+import io.gridgo.bean.BValue;
 import io.gridgo.connector.Consumer;
 import io.gridgo.connector.support.config.ConnectorContext;
-import io.gridgo.framework.AbstractComponentLifecycle;
 import io.gridgo.framework.support.Message;
-import io.gridgo.framework.support.Payload;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 
-public abstract class AbstractConsumer extends AbstractComponentLifecycle implements Consumer {
+public abstract class AbstractConsumer extends AbstractMessageComponent implements Consumer {
 
     @Getter(AccessLevel.PROTECTED)
     private final Collection<BiConsumer<Message, Deferred<Message, Exception>>> subscribers = new CopyOnWriteArrayList<>();
@@ -30,90 +29,7 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
     public AbstractConsumer(ConnectorContext context) {
         this.context = context;
     }
-
-    @Override
-    public void clearSubscribers() {
-        this.subscribers.clear();
-    }
-
-    /**
-     * create a message without payload (message.getPayload() == null) auto id
-     * generated
-     * 
-     * @return the message
-     */
-    protected Message createMessage() {
-        return Message.of(null);
-    }
-
-    /**
-     * create a message with empty payload's header, auto id generated
-     * 
-     * @param body the body
-     * @return the message
-     */
-    protected Message createMessage(BElement body) {
-        return createMessage(BObject.ofEmpty(), body);
-    }
-
-    /**
-     * create a message with payload which contains the headers and body, auto id
-     * generated
-     * 
-     * @param headers payload's headers
-     * @param body    payload's body
-     * @return the message
-     */
-    protected Message createMessage(@NonNull BObject headers, BElement body) {
-        Payload payload = Payload.of(headers, body);
-        this.ensurePayloadId(payload);
-        return Message.of(payload);
-    }
-
-    /**
-     * check if message not null, message's payload not null, message's payload id
-     * is empty, then set message's payload id by value generated from idGenerator
-     * if presented
-     * 
-     * @param message the message where to take payload
-     */
-    protected void ensurePayloadId(Message message) {
-        if (message != null) {
-            ensurePayloadId(message.getPayload());
-        }
-    }
-
-    /**
-     * check if payload not null, payload's id is empty, then set payload's id by
-     * value generated from idGenerator if presented
-     * 
-     * @param payload the payload
-     */
-    protected void ensurePayloadId(Payload payload) {
-        if (payload != null && payload.getId().isEmpty()) {
-            payload.setId(context.getIdGenerator().generateId());
-        }
-    }
-
-    private void notifyErrors(Deferred<Message, Exception> deferred, Exception ex) {
-        try {
-            getLogger().error("Exception caught while publishing message", ex);
-            if (deferred != null)
-                deferred.reject(ex);
-            getContext().getExceptionHandler().accept(ex);
-        } catch (Exception e2) {
-            getLogger().error("Exception caught while trying to handle exception :(", e2);
-        }
-    }
-
-    private void notifySubscriber(Message message, Deferred<Message, Exception> deferred, BiConsumer<Message, Deferred<Message, Exception>> subscriber) {
-        try {
-            subscriber.accept(message, deferred);
-        } catch (Exception ex) {
-            notifyErrors(deferred, ex);
-        }
-    }
-
+    
     protected Message parseMessage(BElement data) {
         Message msg = Message.parse(data);
         ensurePayloadId(msg);
@@ -138,6 +54,31 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
         return msg;
     }
 
+    @Override
+    public void clearSubscribers() {
+        this.subscribers.clear();
+    }
+
+    private void notifyErrors(Deferred<Message, Exception> deferred, Exception ex) {
+        try {
+            getLogger().error("Exception caught while publishing message", ex);
+            if (deferred != null)
+                deferred.reject(ex);
+            getContext().getExceptionHandler().accept(ex);
+        } catch (Exception e2) {
+            getLogger().error("Exception caught while trying to handle exception :(", e2);
+        }
+    }
+
+    private void notifySubscriber(Message message, Deferred<Message, Exception> deferred,
+            BiConsumer<Message, Deferred<Message, Exception>> subscriber) {
+        try {
+            subscriber.accept(message, deferred);
+        } catch (Exception ex) {
+            notifyErrors(deferred, ex);
+        }
+    }
+
     protected void publish(@NonNull Message message, Deferred<Message, Exception> deferred) {
         message.attachSource(getName());
         for (var subscriber : this.subscribers) {
@@ -156,5 +97,10 @@ public abstract class AbstractConsumer extends AbstractComponentLifecycle implem
             this.subscribers.add(subscriber);
         }
         return this;
+    }
+    
+    @Override
+    public Optional<BValue> generateId() {
+        return context.getIdGenerator().generateId();
     }
 }

@@ -9,18 +9,15 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongConsumer;
 
-import javax.servlet.AsyncContext;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.StringBody;
@@ -72,7 +69,7 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         if (obj instanceof byte[])
             return new ByteArrayInputStream((byte[]) obj);
         if (obj instanceof File || obj instanceof Path) {
-            File file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
+            var file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
             try {
                 return new FileInputStream(file);
             } catch (FileNotFoundException e) {
@@ -87,8 +84,8 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         // print exception anyway
         getLogger().error("Error while handling request", ex);
 
-        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR_500;
-        BElement body = BValue.of(status.getDefaultMessage());
+        var status = HttpStatus.INTERNAL_SERVER_ERROR_500;
+        var body = BValue.of(status.getDefaultMessage());
 
         Payload payload = Payload.of(body).addHeader(HttpCommonConstants.HEADER_STATUS, status.getCode());
         return Message.of(payload);
@@ -119,7 +116,7 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
     }
 
     protected String lookUpResponseHeader(@NonNull String headerName) {
-        HttpHeader httpHeader = HttpHeader.lookUp(headerName.toLowerCase());
+        var httpHeader = HttpHeader.lookUp(headerName.toLowerCase());
         if (httpHeader != null && httpHeader.isForResponse() && !httpHeader.isCustom()) {
             return httpHeader.asString();
         }
@@ -148,14 +145,14 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
 
     @Override
     public DeferredAndRoutingId registerRequest(@NonNull HttpServletRequest request) {
-        final Deferred<Message, Exception> deferredResponse = new CompletableDeferredObject<>();
-        final AsyncContext asyncContext = request.startAsync();
-        final long routingId = ID_SEED.getAndIncrement();
+        var deferredResponse = new CompletableDeferredObject<Message, Exception>();
+        var asyncContext = request.startAsync();
+        var routingId = ID_SEED.getAndIncrement();
         this.deferredResponses.put(routingId, deferredResponse);
         deferredResponse.promise().always((stt, resp, ex) -> {
             try {
-                HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();
-                Message responseMessage = stt == DeferredStatus.RESOLVED ? resp : this.failureHandler.apply(ex);
+                var response = (HttpServletResponse) asyncContext.getResponse();
+                var responseMessage = stt == DeferredStatus.RESOLVED ? resp : this.failureHandler.apply(ex);
                 writeResponse(response, responseMessage);
             } catch (Exception e) {
                 handleException(e);
@@ -273,14 +270,14 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
     }
 
     protected void writeBodyMultipart(@NonNull BElement body, @NonNull HttpServletResponse response, @NonNull Consumer<String> contentTypeConsumer) {
-        final MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+        var builder = MultipartEntityBuilder.create();
         if (body instanceof BObject) {
-            for (Entry<String, BElement> entry : body.asObject().entrySet()) {
+            for (var entry : body.asObject().entrySet()) {
                 String name = entry.getKey();
                 writePart(name, entry.getValue(), builder);
             }
         } else if (body instanceof BArray) {
-            for (BElement entry : body.asArray()) {
+            for (var entry : body.asArray()) {
                 writePart(null, entry, builder);
             }
         } else {
@@ -289,7 +286,7 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
 
         takeOutputStream(response, outstream -> {
             try {
-                HttpEntity entity = builder.build();
+                var entity = builder.build();
                 contentTypeConsumer.accept(entity.getContentType().getValue());
                 entity.writeTo(outstream);
             } catch (IOException e) {
@@ -352,8 +349,8 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         /**
          * process header
          */
-        BObject headers = message.getPayload().getHeaders();
-        BElement body = message.getPayload().getBody();
+        var headers = message.headers();
+        var body = message.body();
 
         var headerSetContentType = headers.getString(HttpCommonConstants.CONTENT_TYPE, null);
         var contentType = parseContentType(body, headerSetContentType);

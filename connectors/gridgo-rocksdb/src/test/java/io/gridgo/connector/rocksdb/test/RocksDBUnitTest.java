@@ -46,7 +46,7 @@ public class RocksDBUnitTest {
             var idx = i;
             producer.call(msg).done(result -> {
                 try {
-                    var body = result.getPayload().getBody();
+                    var body = result.body();
                     Assert.assertEquals((Integer) idx, body.asValue().getInteger());
                 } catch (Exception ex) {
                     atomicRef.set(ex);
