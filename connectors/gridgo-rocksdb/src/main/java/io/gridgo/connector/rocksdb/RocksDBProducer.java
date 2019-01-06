@@ -18,7 +18,6 @@ import java.util.Map;
 import org.joo.promise4j.Deferred;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.CompletableDeferredObject;
-import org.joo.promise4j.impl.SimpleFailurePromise;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -83,7 +82,7 @@ public class RocksDBProducer extends AbstractProducer {
         var operation = message.headers().getString(OPERATION);
         var handler = operations.get(operation);
         if (handler == null) {
-            return new SimpleFailurePromise<>(
+            return Promise.ofCause(
                     new IllegalArgumentException("Operation " + operation + " is not supported"));
         }
 

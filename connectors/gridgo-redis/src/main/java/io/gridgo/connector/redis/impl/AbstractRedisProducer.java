@@ -1,7 +1,6 @@
 package io.gridgo.connector.redis.impl;
 
 import org.joo.promise4j.Promise;
-import org.joo.promise4j.impl.SimpleFailurePromise;
 
 import io.gridgo.connector.impl.AbstractProducer;
 import io.gridgo.connector.redis.RedisProducer;
@@ -29,7 +28,7 @@ public class AbstractRedisProducer extends AbstractProducer implements RedisProd
         var handler = RedisCommands.getHandler(command);
 
         if (handler == null)
-            return new SimpleFailurePromise<>(
+            return Promise.ofCause(
                     new CommandHandlerNotRegisteredException("Handler doesn't registered for command: " + command));
 
         return handler.execute(redisClient, headers, request.body()) //

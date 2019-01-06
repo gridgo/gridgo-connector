@@ -16,7 +16,6 @@ import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.header.Header;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.AsyncDeferredObject;
-import org.joo.promise4j.impl.SimpleFailurePromise;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
@@ -217,7 +216,7 @@ public class KafkaConsumer extends AbstractConsumer {
                     log.error("Exception caught while processing ConsumerRecord", ex);
                     if (breakOnFirstError) {
                         commitOffset(lastRecord, partition);
-                        return new SimpleFailurePromise<>(ex);
+                        return Promise.ofCause(ex);
                     }
                 }
             }

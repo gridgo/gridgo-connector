@@ -12,7 +12,6 @@ import org.bson.conversions.Bson;
 import org.joo.promise4j.Deferred;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.CompletableDeferredObject;
-import org.joo.promise4j.impl.SimpleFailurePromise;
 
 import com.mongodb.async.client.FindIterable;
 import com.mongodb.async.client.MongoClient;
@@ -63,13 +62,13 @@ public class MongoDBProducer extends AbstractProducer {
         var operation = request.headers().getString(MongoDBConstants.OPERATION);
         var handler = operations.get(operation);
         if (handler == null) {
-            return new SimpleFailurePromise<>(new IllegalArgumentException("Operation " + operation + " is not supported"));
+            return Promise.ofCause(new IllegalArgumentException("Operation " + operation + " is not supported"));
         }
         try {
             handler.handle(request, deferred, isRPC);
         } catch (Exception ex) {
             log.error("Error while processing MongoDB request", ex);
-            return new SimpleFailurePromise<>(ex);
+            return Promise.ofCause(ex);
         }
         return deferred != null ? deferred.promise() : null;
     }
