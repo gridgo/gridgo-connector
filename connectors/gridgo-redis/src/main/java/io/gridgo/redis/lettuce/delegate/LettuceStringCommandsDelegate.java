@@ -26,11 +26,6 @@ public interface LettuceStringCommandsDelegate extends LettuceCommandsDelegate, 
     }
 
     @Override
-    default Promise<BElement, Exception> bitcount(byte[] key) {
-        return toPromise(getStringCommands().bitcount(key));
-    }
-
-    @Override
     default Promise<BElement, Exception> bitcount(byte[] key, long start, long end) {
         return toPromise(getStringCommands().bitcount(key, start, end));
     }
