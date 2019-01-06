@@ -1,5 +1,18 @@
 package io.gridgo.connector.vertx;
 
+import static io.gridgo.connector.httpcommon.HttpCommonConstants.HEADER_HTTP_METHOD;
+import static io.gridgo.connector.httpcommon.HttpCommonConstants.HEADER_QUERY_PARAMS;
+import static io.gridgo.connector.httpcommon.HttpCommonConstants.HEADER_STATUS;
+import static io.gridgo.connector.httpcommon.HttpCommonConstants.HEADER_STATUS_CODE;
+import static io.gridgo.connector.httpcommon.HttpCommonConsumerConstants.HEADER_PATH;
+import static io.gridgo.connector.vertx.VertxHttpConstants.COOKIE_DOMAIN;
+import static io.gridgo.connector.vertx.VertxHttpConstants.COOKIE_NAME;
+import static io.gridgo.connector.vertx.VertxHttpConstants.COOKIE_PATH;
+import static io.gridgo.connector.vertx.VertxHttpConstants.COOKIE_VALUE;
+import static io.gridgo.connector.vertx.VertxHttpConstants.HEADER_CONTENT_TYPE;
+import static io.gridgo.connector.vertx.VertxHttpConstants.HEADER_COOKIE;
+import static io.gridgo.connector.vertx.VertxHttpConstants.PARAM_PARSE_COOKIE;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -75,8 +88,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         this.httpOptions = options;
         this.path = path;
         this.method = method;
-        this.parseCookie = Boolean.valueOf(
-                params.getOrDefault(VertxHttpConstants.PARAM_PARSE_COOKIE, "false").toString());
+        this.parseCookie = Boolean.valueOf(params.getOrDefault(PARAM_PARSE_COOKIE, "false").toString());
     }
 
     private String buildConnectionKey() {
@@ -98,17 +110,20 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
     }
 
     private void configureRouter(Router router) {
+        var route = parseRoute(router);
+        this.route = route.handler(this::handleRequest);
+        router.route().failureHandler(this::handleException);
+    }
+
+    private Route parseRoute(Router router) {
         if (method != null && !method.isEmpty()) {
             if (path == null || path.isEmpty())
                 path = "/";
-            this.route = router.route(HttpMethod.valueOf(method), path).handler(this::handleRequest);
-        } else {
-            if (path == null || path.isEmpty())
-                this.route = router.route("/").handler(this::handleRequest);
-            else
-                this.route = router.route(path).handler(this::handleRequest);
+            return router.route(HttpMethod.valueOf(method), path);
         }
-        router.route().failureHandler(this::handleException);
+        if (path == null || path.isEmpty())
+            return router.route("/");
+        return router.route(path);
     }
 
     private ConnectionRef<ServerRouterTuple> createOrGetConnection(boolean ownedVertx, String connectionKey,
@@ -117,38 +132,43 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         if (theMap.containsKey(connectionKey)) {
             connRef = theMap.get(connectionKey);
         } else {
-            var latch = new CountDownLatch(1);
-            var theVertx = this.vertx;
-            if (theVertx == null) {
-                theVertx = Vertx.vertx(vertxOptions);
-            }
-            var server = theVertx.createHttpServer(httpOptions);
-            var router = initializeRouter(theVertx);
-            server.requestHandler(router::accept);
-            connRef = new ConnectionRef<>(new ServerRouterTuple(ownedVertx ? theVertx : null, server, router));
-            theMap.put(connectionKey, connRef);
-            server.listen(result -> latch.countDown());
-            if (ownedVertx) {
-                try {
-                    latch.await();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new RuntimeException(e);
-                }
-            }
+            connRef = createConnection(ownedVertx, connectionKey, theMap);
         }
         connRef.ref();
         return connRef;
     }
 
+    private ConnectionRef<ServerRouterTuple> createConnection(boolean ownedVertx, String connectionKey,
+            Map<String, ConnectionRef<ServerRouterTuple>> theMap) {
+        ConnectionRef<ServerRouterTuple> connRef;
+        var latch = new CountDownLatch(1);
+        var theVertx = this.vertx;
+        if (theVertx == null) {
+            theVertx = Vertx.vertx(vertxOptions);
+        }
+        var server = theVertx.createHttpServer(httpOptions);
+        var router = initializeRouter(theVertx);
+        server.requestHandler(router::accept);
+        connRef = new ConnectionRef<>(new ServerRouterTuple(ownedVertx ? theVertx : null, server, router));
+        theMap.put(connectionKey, connRef);
+        server.listen(result -> latch.countDown());
+        if (ownedVertx) {
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            }
+        }
+        return connRef;
+    }
+
     private void defaultHandleException(RoutingContext ctx) {
-        if (ctx.statusCode() != -1)
-            ctx.response().setStatusCode(ctx.statusCode());
-        else
-            ctx.response().setStatusCode(DEFAULT_EXCEPTION_STATUS_CODE);
+        var statusCode = ctx.statusCode() != -1 ? ctx.statusCode() : DEFAULT_EXCEPTION_STATUS_CODE;
+        ctx.response().setStatusCode(statusCode);
 
         if (ctx.failure() != null)
-            ctx.response().end(ctx.failure().getMessage() + "");
+            ctx.response().end(ctx.failure().getMessage());
         else
             ctx.response().end();
     }
@@ -176,14 +196,13 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         else
             log.error("Exception caught when handling request", ex);
         var msg = buildFailureMessage(ex);
-        if (msg != null) {
-            var statusCode = ctx.statusCode() != -1 ? ctx.statusCode() : DEFAULT_EXCEPTION_STATUS_CODE;
-            msg.headers() //
-               .putIfAbsent(VertxHttpConstants.HEADER_STATUS_CODE, BValue.of(statusCode));
-            sendResponse(ctx, msg, true);
-        } else {
+        if (msg == null) {
             defaultHandleException(ctx);
+            return;
         }
+        var statusCode = ctx.statusCode() != -1 ? ctx.statusCode() : DEFAULT_EXCEPTION_STATUS_CODE;
+        msg.headers().putIfAbsent(HEADER_STATUS_CODE, BValue.of(statusCode));
+        sendResponse(ctx, msg, true);
     }
 
     private void handleRequest(RoutingContext ctx) {
@@ -235,15 +254,19 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         String connectionKey = buildConnectionKey();
         synchronized (SERVER_MAP) {
             if (SERVER_MAP.containsKey(connectionKey)) {
-                var connRef = SERVER_MAP.get(connectionKey);
-                if (connRef.deref() == 0) {
-                    SERVER_MAP.remove(connectionKey);
-                    try {
-                        connRef.getConnection().server.close();
-                    } finally {
-                        connRef.getConnection().vertx.close();
-                    }
-                }
+                removeConnection(connectionKey);
+            }
+        }
+    }
+
+    private void removeConnection(String connectionKey) {
+        var connRef = SERVER_MAP.get(connectionKey);
+        if (connRef.deref() == 0) {
+            SERVER_MAP.remove(connectionKey);
+            try {
+                connRef.getConnection().server.close();
+            } finally {
+                connRef.getConnection().vertx.close();
             }
         }
     }
@@ -253,21 +276,18 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         for (var query : ctx.request().params()) {
             queryParams.put(query.getKey(), BValue.of(query.getValue()));
         }
-        headers.set(VertxHttpConstants.HEADER_QUERY_PARAMS, queryParams)
-               .setAny(VertxHttpConstants.HEADER_HTTP_METHOD, ctx.request().method().name())
-               .setAny(VertxHttpConstants.HEADER_PATH, ctx.request().path());
+        headers.set(HEADER_QUERY_PARAMS, queryParams).setAny(HEADER_HTTP_METHOD, ctx.request().method().name())
+               .setAny(HEADER_PATH, ctx.request().path());
 
         if (parseCookie) {
             var cookies = BArray.ofEmpty();
             for (var cookie : ctx.cookies()) {
                 var cookieObj = BObject.ofEmpty() //
-                                       .setAny(VertxHttpConstants.COOKIE_NAME, cookie.getName())
-                                       .setAny(VertxHttpConstants.COOKIE_DOMAIN, cookie.getDomain())
-                                       .setAny(VertxHttpConstants.COOKIE_PATH, cookie.getPath())
-                                       .setAny(VertxHttpConstants.COOKIE_VALUE, cookie.getValue());
+                                       .setAny(COOKIE_NAME, cookie.getName()).setAny(COOKIE_DOMAIN, cookie.getDomain())
+                                       .setAny(COOKIE_PATH, cookie.getPath()).setAny(COOKIE_VALUE, cookie.getValue());
                 cookies.add(cookieObj);
             }
-            headers.put(VertxHttpConstants.HEADER_COOKIE, cookies);
+            headers.put(HEADER_COOKIE, cookies);
         }
     }
 
@@ -282,17 +302,17 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
             return;
         }
 
-        var status = response.headers().getString(VertxHttpConstants.HEADER_STATUS, null);
+        var status = response.headers().getString(HEADER_STATUS, null);
         if (status != null)
             serverResponse.setStatusMessage(status);
-        int statusCode = response.headers().getInteger(VertxHttpConstants.HEADER_STATUS_CODE, -1);
+        int statusCode = response.headers().getInteger(HEADER_STATUS_CODE, -1);
         if (statusCode != -1)
             serverResponse.setStatusCode(statusCode);
 
         var headers = response.headers();
 
-        if (!headers.containsKey(VertxHttpConstants.HEADER_CONTENT_TYPE)) {
-            headers.setAny(VertxHttpConstants.HEADER_CONTENT_TYPE, getContentType());
+        if (!headers.containsKey(HEADER_CONTENT_TYPE)) {
+            headers.setAny(HEADER_CONTENT_TYPE, getContentType());
         }
 
         for (var entry : headers.entrySet()) {
