@@ -23,6 +23,7 @@ import com.mongodb.client.model.InsertManyOptions;
 import com.mongodb.client.model.Projections;
 
 import io.gridgo.bean.BArray;
+import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BReference;
 import io.gridgo.bean.BValue;
@@ -58,7 +59,8 @@ public class MongoDBProducer extends AbstractProducer {
         bindHandlers();
     }
 
-    private Promise<Message, Exception> _call(Message request, CompletableDeferredObject<Message, Exception> deferred, boolean isRPC) {
+    private Promise<Message, Exception> _call(Message request, CompletableDeferredObject<Message, Exception> deferred,
+            boolean isRPC) {
         var operation = request.headers().getString(MongoDBConstants.OPERATION);
         var handler = operations.get(operation);
         if (handler == null) {
@@ -74,16 +76,17 @@ public class MongoDBProducer extends AbstractProducer {
     }
 
     private void ack(Deferred<Message, Exception> deferred, Object result, Throwable throwable) {
-        if (deferred == null)
-            return;
         if (throwable != null) {
-            if (throwable instanceof Exception)
-                deferred.reject((Exception) throwable);
-            else
-                deferred.reject(new MongoOperationException(throwable));
+            ack(deferred, convertToException(throwable));
         } else {
-            deferred.resolve(convertToMessage(result));
+            ack(deferred, convertToMessage(result));
         }
+    }
+
+    private Exception convertToException(Throwable throwable) {
+        if (throwable instanceof Exception)
+            return (Exception) throwable;
+        return new MongoOperationException(throwable);
     }
 
     private void applyProjection(Message msg, FindIterable<Document> filterable) {
@@ -92,12 +95,17 @@ public class MongoDBProducer extends AbstractProducer {
         var projectInclude = headers.getArray(MongoDBConstants.PROJECT_INCLUDE, null);
         var projectExclude = headers.getArray(MongoDBConstants.PROJECT_EXCLUDE, null);
         if (project != null || projectInclude != null || projectExclude != null) {
-            if (projectInclude != null)
-                project = Projections.include(toStringArray(projectInclude));
-            else if (projectExclude != null)
-                project = Projections.exclude(toStringArray(projectExclude));
+            project = getProject(project, projectInclude, projectExclude);
             filterable.projection(project);
         }
+    }
+
+    private Bson getProject(Bson project, BArray projectInclude, BArray projectExclude) {
+        if (projectInclude != null)
+            return Projections.include(toStringArray(projectInclude));
+        if (projectExclude != null)
+            return Projections.exclude(toStringArray(projectExclude));
+        return project;
     }
 
     public void bind(String name, ProducerHandler handler) {
@@ -126,7 +134,8 @@ public class MongoDBProducer extends AbstractProducer {
     }
 
     private List<Document> convertToDocuments(BArray body) {
-        return StreamSupport.stream(body.spliterator(), false).map(e -> convertToDocument(e.asReference())).collect(Collectors.toList());
+        return StreamSupport.stream(body.spliterator(), false).map(e -> convertToDocument(e.asReference()))
+                            .collect(Collectors.toList());
     }
 
     @SuppressWarnings({ "unchecked" })
@@ -138,7 +147,8 @@ public class MongoDBProducer extends AbstractProducer {
         if (result instanceof Document)
             return createMessage(BObject.ofEmpty(), toReference((Document) result));
         if (result instanceof List<?>) {
-            var cloned = StreamSupport.stream(((List<Document>) result).spliterator(), false).map(this::toReference).collect(Collectors.toList());
+            var cloned = StreamSupport.stream(((List<Document>) result).spliterator(), false).map(this::toReference)
+                                      .collect(Collectors.toList());
             return createMessage(BObject.ofEmpty(), BArray.of(cloned));
         }
         return null;
@@ -148,19 +158,22 @@ public class MongoDBProducer extends AbstractProducer {
         var filter = getHeaderAs(msg, MongoDBConstants.FILTER, Bson.class);
         var options = getHeaderAs(msg, MongoDBConstants.COUNT_OPTIONS, CountOptions.class);
         if (options != null)
-            collection.countDocuments(filter, options, (result, throwable) -> ack(deferred, isRPC ? result : null, throwable));
+            collection.countDocuments(filter, options,
+                    (result, throwable) -> ack(deferred, isRPC ? result : null, throwable));
         else
             collection.countDocuments(filter, (result, throwable) -> ack(deferred, isRPC ? result : null, throwable));
     }
 
     public void deleteDocument(Message msg, Deferred<Message, Exception> deferred, boolean isRPC) {
         var filter = getHeaderAs(msg, MongoDBConstants.FILTER, Bson.class);
-        collection.deleteOne(filter, (result, throwable) -> ack(deferred, isRPC ? result.getDeletedCount() : null, throwable));
+        collection.deleteOne(filter,
+                (result, throwable) -> ack(deferred, isRPC ? result.getDeletedCount() : null, throwable));
     }
 
     public void deleteManyDocuments(Message msg, Deferred<Message, Exception> deferred, boolean isRPC) {
         var filter = getHeaderAs(msg, MongoDBConstants.FILTER, Bson.class);
-        collection.deleteMany(filter, (result, throwable) -> ack(deferred, isRPC ? result.getDeletedCount() : null, throwable));
+        collection.deleteMany(filter,
+                (result, throwable) -> ack(deferred, isRPC ? result.getDeletedCount() : null, throwable));
     }
 
     public void findAllDocuments(Message msg, Deferred<Message, Exception> deferred, boolean isRPC) {
@@ -212,16 +225,24 @@ public class MongoDBProducer extends AbstractProducer {
     public void insertDocument(Message msg, Deferred<Message, Exception> deferred, boolean isRPC) {
         var body = msg.body();
         if (body.isReference()) {
-            var doc = convertToDocument(body.asReference());
-            collection.insertOne(doc, (ignore, throwable) -> ack(deferred, null, throwable));
+            insertSingleDocument(deferred, body);
         } else {
-            var docs = convertToDocuments(body.asArray());
-            var options = getHeaderAs(msg, MongoDBConstants.INSERT_MANY_OPTIONS, InsertManyOptions.class);
-            if (options != null)
-                collection.insertMany(docs, options, (ignore, throwable) -> ack(deferred, null, throwable));
-            else
-                collection.insertMany(docs, (ignore, throwable) -> ack(deferred, null, throwable));
+            insertManyDocuments(msg, deferred, body);
         }
+    }
+
+    private void insertManyDocuments(Message msg, Deferred<Message, Exception> deferred, BElement body) {
+        var docs = convertToDocuments(body.asArray());
+        var options = getHeaderAs(msg, MongoDBConstants.INSERT_MANY_OPTIONS, InsertManyOptions.class);
+        if (options != null)
+            collection.insertMany(docs, options, (ignore, throwable) -> ack(deferred, null, throwable));
+        else
+            collection.insertMany(docs, (ignore, throwable) -> ack(deferred, null, throwable));
+    }
+
+    private void insertSingleDocument(Deferred<Message, Exception> deferred, BElement body) {
+        var doc = convertToDocument(body.asReference());
+        collection.insertOne(doc, (ignore, throwable) -> ack(deferred, null, throwable));
     }
 
     @Override
@@ -266,7 +287,8 @@ public class MongoDBProducer extends AbstractProducer {
 
         var body = msg.body();
         var doc = convertToDocument(body.asReference());
-        collection.updateOne(filter, doc, (result, throwable) -> ack(deferred, isRPC ? result.getModifiedCount() : null, throwable));
+        collection.updateOne(filter, doc,
+                (result, throwable) -> ack(deferred, isRPC ? result.getModifiedCount() : null, throwable));
     }
 
     public void updateManyDocuments(Message msg, Deferred<Message, Exception> deferred, boolean isRPC) {
@@ -274,6 +296,7 @@ public class MongoDBProducer extends AbstractProducer {
 
         var body = msg.body();
         var doc = convertToDocument(body.asReference());
-        collection.updateMany(filter, doc, (result, throwable) -> ack(deferred, isRPC ? result.getModifiedCount() : null, throwable));
+        collection.updateMany(filter, doc,
+                (result, throwable) -> ack(deferred, isRPC ? result.getModifiedCount() : null, throwable));
     }
 }
