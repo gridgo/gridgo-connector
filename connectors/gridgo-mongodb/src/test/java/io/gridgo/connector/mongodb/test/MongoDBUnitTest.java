@@ -8,7 +8,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.bson.Document;
 import org.joo.promise4j.Promise;
-import org.joo.promise4j.impl.SimpleDonePromise;
 import org.joo.promise4j.impl.SimpleFailurePromise;
 import org.junit.Assert;
 import org.junit.Test;
@@ -189,7 +188,7 @@ public class MongoDBUnitTest {
         System.out.println("check find all");
         var doc = msg.body().asArray();
         if (doc != null && doc.size() == expected)
-            return new SimpleDonePromise<>(msg);
+            return Promise.of(msg);
         return new SimpleFailurePromise<>(new RuntimeException());
     }
 
@@ -197,7 +196,7 @@ public class MongoDBUnitTest {
         System.out.println("check find by id");
         var doc = msg.body().asObject();
         if (doc != null)
-            return new SimpleDonePromise<>(msg);
+            return Promise.of(msg);
         return new SimpleFailurePromise<>(new RuntimeException());
     }
 
@@ -205,7 +204,7 @@ public class MongoDBUnitTest {
         System.out.println("check count");
         long count = msg.body().asValue().getLong();
         if (count == expected)
-            return new SimpleDonePromise<>(msg);
+            return Promise.of(msg);
         return new SimpleFailurePromise<>(new RuntimeException());
     }
 }

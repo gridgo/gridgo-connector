@@ -16,7 +16,6 @@ import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.header.Header;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.AsyncDeferredObject;
-import org.joo.promise4j.impl.SimpleDonePromise;
 import org.joo.promise4j.impl.SimpleFailurePromise;
 
 import io.gridgo.bean.BElement;
@@ -222,7 +221,7 @@ public class KafkaConsumer extends AbstractConsumer {
                     }
                 }
             }
-            return new SimpleDonePromise<>(lastRecord);
+            return Promise.of(lastRecord);
         }
 
         @Override
