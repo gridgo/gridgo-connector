@@ -1,6 +1,5 @@
 package io.gridgo.connector.rocksdb;
 
-import static io.gridgo.connector.rocksdb.RocksDBConstants.*;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION_GET;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION_GET_ALL;
@@ -9,6 +8,8 @@ import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_ALLOW_2_PHASE_C
 import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_ALLOW_MMAP_READS;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_ALLOW_MMAP_WRITES;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_CREATE_IF_MISSING;
+import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_MAX_WRITE_BUFFER_NUMBER;
+import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_MIN_WRITE_BUFFER_TO_MERGE;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_WRITE_BUFFER_SIZE;
 
 import java.util.HashMap;
