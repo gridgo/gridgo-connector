@@ -1,0 +1,60 @@
+[[scheduler-connector]]
+== gridgo-scheduler
+
+*Available as of version 0.2.0*
+
+Allows scheduling message
+
+=== install
+
+[source,xml]
+------------------------------------------------------------
+<dependency>
+    <groupId>io.gridgo</groupId>
+    <artifactId>gridgo-scheduler</artifactId>
+    <version>x.x.x</version>
+    <!-- use the same version as gridgo-connector-core version -->
+</dependency>
+------------------------------------------------------------
+
+=== uri format
+
+[source,java]
+---------------------------
+scheduler:name[?options]
+
+---------------------------
+
+=== options
+
+// connector options: START
+
+[width="100%",cols="2,5,^1,2",options="header"]
+|===
+
+| Name | Description  | Default | Type
+| *format* (common) | Format of the messages to be used | raw | Enum (raw, json, xml, string)
+| *lengthPrepend* (common) | If set to true, the length of the messages will be prepended before the message is journalled | true | Boolean
+| *producerOnly* (common) | If set to true, only producer will be created | false | Boolean
+| *bufferSize* (common) | Buffer size to be used when serializing/deserializing messages | 1024 * 1024 | Integer
+| *mode* (producer) | The open mode to be used when writing files | rw | Enum (rw, rwd, rws)
+| *override* (producer) | If set to true, the files will be overwritten, otherwise it will be appended | false | Boolean
+| *deleteOnStartup* (producer) | If set to true, the files will be deleted when connector starts | false | Boolean
+| *deleteOnShutdown* (producer) | If set to true, the files will be deleted when connector stops | false | Boolean
+| *limitSize* (producer) | The size limit of the files before limit strategy takes effect | -1 | Integer
+| *rotationCount* (producer) | The maximum number of rolling files | 10 | Integer
+| *limitStrategy* (common) | The limit strategy | null (no limit) | Enum (rotate, autoincrement)
+| *batchingEnabled* (common) | Whether or not batching is enabled. Only works with Disruptor engine | false | Boolean
+| *ringBufferSize* (common) | The size of the ring buffer to be used. Only works with Disruptor engine | false | Boolean
+| *maxBatchSize* (common) | The maximum size of the batch. Only works with Disruptor engine | false | Boolean
+
+|===
+// connector options: END
+
+=== headers
+
+// headers: START
+
+There is no supported headers for File connector.
+
+// headers: END
