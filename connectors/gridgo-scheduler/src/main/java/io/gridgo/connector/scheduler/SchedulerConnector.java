@@ -13,6 +13,6 @@ public class SchedulerConnector extends AbstractConnector {
     protected void onInit() {
         var name = getPlaceholder("name");
         var params = getConnectorConfig().getParameters();
-        this.consumer = Optional.of(new SchedulerComponent(getContext(), name, BObject.of(params)));
+        this.consumer = Optional.of(new SchedulerConsumer(getContext(), name, BObject.of(params)));
     }
 }

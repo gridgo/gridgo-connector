@@ -19,7 +19,7 @@ import io.gridgo.framework.support.Message;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class SchedulerComponent extends AbstractConsumer {
+public class SchedulerConsumer extends AbstractConsumer {
 
     private static final Map<String, ScheduledExecutorService> executors = new NonBlockingHashMap<>();
 
@@ -51,7 +51,7 @@ public class SchedulerComponent extends AbstractConsumer {
 
     private boolean daemon;
 
-    public SchedulerComponent(ConnectorContext context, String name, BObject params) {
+    public SchedulerConsumer(ConnectorContext context, String name, BObject params) {
         super(context);
         this.schedulerName = name;
         this.threads = params.getInteger("threads", 1);
