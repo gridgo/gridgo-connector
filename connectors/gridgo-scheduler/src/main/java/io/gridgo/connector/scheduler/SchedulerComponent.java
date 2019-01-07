@@ -39,11 +39,17 @@ public class SchedulerComponent extends AbstractConsumer {
 
     private Integer errorThreshold;
 
+    private Integer backoffMultiplier;
+
     private ScheduledFuture<?> future;
 
     private Supplier<Message> generator = this::createDefaultMessage;
 
     private AtomicInteger errorCounter = new AtomicInteger();
+
+    private AtomicInteger backoffCounter = new AtomicInteger();
+
+    private boolean daemon;
 
     public SchedulerComponent(ConnectorContext context, String name, BObject params) {
         super(context);
@@ -57,11 +63,17 @@ public class SchedulerComponent extends AbstractConsumer {
         if (generator != null)
             this.generator = context.getRegistry().lookupMandatory("generator", MessageGenerator.class);
         this.errorThreshold = params.getInteger("errorThreshold", -1);
+        this.backoffMultiplier = params.getInteger("backoffMultiplier", -1);
+        this.daemon = params.getBoolean("daemon", true);
+
+        if (this.backoffMultiplier > 0 && this.errorThreshold < 0)
+            throw new IllegalArgumentException("errorThreshold must be set when backoffMultiplier is set");
     }
 
     @Override
     protected void onStart() {
-        var scheduler = executors.computeIfAbsent(schedulerName, key -> Executors.newScheduledThreadPool(threads));
+        var scheduler = executors.computeIfAbsent(schedulerName,
+                key -> Executors.newScheduledThreadPool(threads, this::spawnThread));
         connRefs.computeIfAbsent(schedulerName, key -> new ConnectionRef<>(schedulerName)).ref();
 
         if (fixedRate)
@@ -72,19 +84,39 @@ public class SchedulerComponent extends AbstractConsumer {
             this.future = scheduler.schedule(this::poll, delay, TimeUnit.MILLISECONDS);
     }
 
+    private Thread spawnThread(Runnable runnable) {
+        var thread = new Thread(runnable);
+        thread.setName("[Scheduler] " + schedulerName);
+        thread.setDaemon(daemon);
+        return thread;
+    }
+
     private void poll() {
+        if (shouldBackoff())
+            return;
+
         var deferred = new AsyncDeferredObject<Message, Exception>();
         publish(generator.get(), deferred);
         deferred.done(r -> errorCounter.set(0)) //
                 .fail(this::handleException);
     }
 
+    private boolean shouldBackoff() {
+        if (backoffMultiplier < 0 || errorCounter.get() <= errorThreshold)
+            return false;
+        if (backoffCounter.incrementAndGet() <= backoffMultiplier) {
+            log.debug("Number of errors exceeds maximum allowed, trying to backoff");
+            return true;
+        }
+        log.trace("Recovering from backoff");
+        errorCounter.set(0);
+        backoffCounter.set(0);
+        return false;
+    }
+
     private void handleException(Exception ex) {
         log.error("Exception caught while running scheduler", ex);
-        if (errorThreshold >= 0 && errorCounter.incrementAndGet() > errorThreshold) {
-            log.warn("Number of errors exceeds maximum allowed, trying to stop");
-            stop();
-        }
+        errorCounter.incrementAndGet();
     }
 
     private Message createDefaultMessage() {
