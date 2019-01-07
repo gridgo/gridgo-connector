@@ -39,6 +39,8 @@ public class SchedulerConsumer extends AbstractConsumer {
 
     private Integer errorThreshold;
 
+    private Integer idleThreshold;
+
     private Integer backoffMultiplier;
 
     private ScheduledFuture<?> future;
@@ -46,6 +48,8 @@ public class SchedulerConsumer extends AbstractConsumer {
     private Supplier<Message> generator = this::createDefaultMessage;
 
     private AtomicInteger errorCounter = new AtomicInteger();
+
+    private AtomicInteger idleCounter = new AtomicInteger();
 
     private AtomicInteger backoffCounter = new AtomicInteger();
 
@@ -63,11 +67,13 @@ public class SchedulerConsumer extends AbstractConsumer {
         if (generator != null)
             this.generator = context.getRegistry().lookupMandatory("generator", MessageGenerator.class);
         this.errorThreshold = params.getInteger("errorThreshold", -1);
+        this.idleThreshold = params.getInteger("idleThreshold", -1);
         this.backoffMultiplier = params.getInteger("backoffMultiplier", -1);
         this.daemon = params.getBoolean("daemon", true);
 
-        if (this.backoffMultiplier > 0 && this.errorThreshold < 0)
-            throw new IllegalArgumentException("errorThreshold must be set when backoffMultiplier is set");
+        if (this.backoffMultiplier > 0 && this.errorThreshold < 0 && this.idleThreshold < 0)
+            throw new IllegalArgumentException(
+                    "errorThreshold and/or idleThreshold must be set when backoffMultiplier is set");
     }
 
     @Override
@@ -96,27 +102,45 @@ public class SchedulerConsumer extends AbstractConsumer {
             return;
 
         var deferred = new AsyncDeferredObject<Message, Exception>();
-        publish(generator.get(), deferred);
-        deferred.done(r -> errorCounter.set(0)) //
+        if (!publish(generator.get(), deferred)) {
+            handleIdle();
+            return;
+        }
+        deferred.done(this::handleResult) //
                 .fail(this::handleException);
     }
 
     private boolean shouldBackoff() {
-        if (backoffMultiplier < 0 || errorCounter.get() <= errorThreshold)
+        if (backoffMultiplier < 0)
+            return false;
+        if ((errorThreshold < 0 || errorCounter.get() <= errorThreshold)
+                && (idleThreshold < 0 || idleCounter.get() <= idleThreshold))
             return false;
         if (backoffCounter.incrementAndGet() <= backoffMultiplier) {
-            log.debug("Number of errors exceeds maximum allowed, trying to backoff");
+            log.debug("Number of errors or idles exceeds maximum allowed, trying to backoff");
             return true;
         }
         log.trace("Recovering from backoff");
         errorCounter.set(0);
+        idleCounter.set(0);
         backoffCounter.set(0);
         return false;
+    }
+
+    private void handleIdle() {
+        errorCounter.set(0);
+        idleCounter.incrementAndGet();
+    }
+
+    private void handleResult(Object ignored) {
+        errorCounter.set(0);
+        idleCounter.set(0);
     }
 
     private void handleException(Exception ex) {
         log.error("Exception caught while running scheduler", ex);
         errorCounter.incrementAndGet();
+        idleCounter.set(0);
     }
 
     private Message createDefaultMessage() {
