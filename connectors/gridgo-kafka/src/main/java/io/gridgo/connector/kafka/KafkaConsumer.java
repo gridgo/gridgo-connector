@@ -99,8 +99,19 @@ public class KafkaConsumer extends AbstractConsumer {
         }
 
         private void commitOffset(long offset, TopicPartition partition) {
-            if (offset != -1)
+            if (offset == -1)
+                return;
+            if ("async".equals(configuration.getCommitType())) {
+                consumer.commitAsync(Collections.singletonMap(partition, new OffsetAndMetadata(offset + 1)),
+                        (result, ex) -> {
+                            if (ex != null) {
+                                log.error("Commit failed on topic {} - {}", partition.topic(), partition.partition(),
+                                        ex);
+                            }
+                        });
+            } else {
                 consumer.commitSync(Collections.singletonMap(partition, new OffsetAndMetadata(offset + 1)));
+            }
         }
 
         protected void doInit() {
