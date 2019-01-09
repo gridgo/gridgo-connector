@@ -3,9 +3,11 @@ package io.gridgo.connector.redis.test;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.joo.promise4j.Promise;
 import org.junit.Assert;
 
 import io.gridgo.bean.BArray;
+import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
 import io.gridgo.framework.support.Message;
@@ -84,7 +86,11 @@ public abstract class RedisUnitTest {
 
 		Assert.assertNull(exRef.get());
 	}
-
+	
+	/*
+	 * Test `bitcount` command
+	 * https://redis.io/commands/bitcount
+	 */
 	public void testBitcountCommand() throws InterruptedException {
 		var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
 		var producer = connector.getProducer().orElseThrow();
@@ -93,28 +99,30 @@ public abstract class RedisUnitTest {
 		var exRef = new AtomicReference<Exception>();
 		var latch = new CountDownLatch(1);
 
-		producer.call(Message.ofAny(BObject.of(CMD, "set"), BArray.ofSequence("mykey", "foobar"))).fail(e -> {
-			exRef.set(e);
-			latch.countDown();
-		}).pipeDone(result -> {
-			System.out.println(Message.ofAny(buildCommand(RedisCommands.BITCOUNT), "mykey 0 0"));
-			return producer.call(Message.ofAny(buildCommand(RedisCommands.BITCOUNT), "mykey 0 0"));
-			
-		}).always((s, r, e) -> {
-			if (e != null) {
-				exRef.set(e);
-			} else {
-				var body = r.getPayload().getBody();
-				System.out.println(body);
-				if (!body.isValue() || !"26".equals(body.asValue().getString())) {
-					exRef.set(new RuntimeException("Body mismatch: " + body.asValue().getString()));
-				}
-			}
-			latch.countDown();
-		});
+		producer.call(Message.ofAny(BObject.of(CMD, "set"), BArray.ofSequence("mykey", "foobar")))
+				.pipeDone(result -> producer.call(
+						Message.ofAny(buildCommand(RedisCommands.BITCOUNT), BArray.ofSequence("mykey", "0", "0"))))//
+				.pipeDone(result -> checkResult(result, 4))//
+				.pipeDone(result -> producer
+						.call(Message.ofAny(buildCommand(RedisCommands.BITCOUNT), BArray.ofSequence("mykey", 1, 1))))//
+				.pipeDone(result -> checkResult(result, 6)) //
+				.done(msg -> latch.countDown()) //
+				.fail(ex -> {
+					exRef.set(ex);
+					latch.countDown();
+				});
 
 		latch.await();
 		connector.stop();
 		Assert.assertNull(exRef.get());
+	}
+	
+	public Promise<Message, Exception> checkResult(Message msg, int expected) {
+		System.out.println("check expected result");
+
+		long count = msg.body().asValue().getLong();
+		if (count == expected)
+			return Promise.of(msg);
+		return Promise.ofCause(new RuntimeException());
 	}
 }
