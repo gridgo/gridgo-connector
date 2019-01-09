@@ -86,10 +86,9 @@ public abstract class RedisUnitTest {
 
 		Assert.assertNull(exRef.get());
 	}
-	
+
 	/*
-	 * Test `bitcount` command
-	 * https://redis.io/commands/bitcount
+	 * Test `bitcount` command https://redis.io/commands/bitcount
 	 */
 	public void testBitcountCommand() throws InterruptedException {
 		var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
@@ -116,12 +115,81 @@ public abstract class RedisUnitTest {
 		connector.stop();
 		Assert.assertNull(exRef.get());
 	}
-	
-	public Promise<Message, Exception> checkResult(Message msg, int expected) {
-		System.out.println("check expected result");
 
-		long count = msg.body().asValue().getLong();
-		if (count == expected)
+	/*
+	 * https://redis.io/commands/bitop
+	 */
+
+	public void testBitopCommand() throws InterruptedException {
+		var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+		var producer = connector.getProducer().orElseThrow();
+		connector.start();
+
+		var exRef = new AtomicReference<Exception>();
+		var latch = new CountDownLatch(1);
+		producer.call(Message.ofAny(BObject.of(CMD, "set"), BArray.ofSequence("key1", "foobar"))) //
+				.pipeDone(result -> producer
+						.call(Message.ofAny(BObject.of(CMD, "set"), BArray.ofSequence("key2", "abcdef"))))//
+
+				.pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.BITOP),
+						BArray.ofSequence(Const.BITOPAND, "resultAnd", BArray.ofSequence("key1", "key2")))))// case AND
+				.pipeDone(result -> checkResult(result, 6))//
+				.pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GET), "resultAnd"))) //
+				.pipeDone(result -> checkStringResult(result, "`bc`ab"))
+
+				.pipeDone(result -> producer
+						.call(Message.ofAny(BObject.of(CMD, "set"), BArray.ofSequence("key1", "foobar"))))//
+				.pipeDone(result -> producer
+						.call(Message.ofAny(BObject.of(CMD, "set"), BArray.ofSequence("key2", "abcdef"))))//
+
+				.pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.BITOP),
+						BArray.ofSequence(Const.BITOPOR, "resultOr", BArray.ofSequence("key1", "key2")))))// case OR
+				.pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GET), "resultOr")))//
+				.pipeDone(result -> checkStringResult(result, "goofev"))
+
+				.pipeDone(result -> producer
+						.call(Message.ofAny(BObject.of(CMD, "set"), BArray.ofSequence("key1", "foobar"))))//
+				.pipeDone(result -> producer
+						.call(Message.ofAny(BObject.of(CMD, "set"), BArray.ofSequence("key2", "abcdef"))))//
+
+				.pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.BITOP),
+						BArray.ofSequence(Const.BITOPXOR, "resultXor", BArray.ofSequence("key1", "key2")))))// case XOR
+				.pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GET), "resultXor")))//
+				.pipeDone(result -> checkStringResult(result, "\\a\\r\\x0c\\x06\\x04\\x14"))
+
+				.pipeDone(result -> producer
+						.call(Message.ofAny(BObject.of(CMD, "set"), BArray.ofSequence("key1", "foobar"))))//
+				.pipeDone(result -> producer
+						.call(Message.ofAny(BObject.of(CMD, "set"), BArray.ofSequence("key2", "abcdef"))))//
+
+				.pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.BITOP),
+						BArray.ofSequence(Const.BITOPNOT, "dest", "key1"))))// case NOT
+				.pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GET), "dest")))//
+				.pipeDone(result -> checkStringResult(result, "\\x99\\x90\\x90\\x9d\\x9e\\x8d"))
+
+				.done(result -> latch.countDown())//
+				.fail(ex -> {
+					exRef.set(ex);
+					latch.countDown();
+				});
+
+		latch.await();
+		connector.stop();
+		Assert.assertNull(exRef.get());
+
+	}
+
+	public Promise<Message, Exception> checkStringResult(Message msg, String expected) {
+		String res = msg.body().asValue().getString();
+		System.out.println(res);
+		if (res.equals(expected))
+			return Promise.of(msg);
+		return Promise.ofCause(new RuntimeException());
+	}
+
+	public Promise<Message, Exception> checkResult(Message msg, long expected) {
+		long res = msg.body().asValue().getLong();
+		if (res == expected)
 			return Promise.of(msg);
 		return Promise.ofCause(new RuntimeException());
 	}
