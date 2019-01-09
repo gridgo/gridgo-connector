@@ -27,6 +27,7 @@
 		<module>gridgo-http-jdk</module>
 		<module>gridgo-file</module>
 		<module>gridgo-redis</module>
+		<module>gridgo-hazelcast</module>
 	</modules>
 
 	<dependencies>
