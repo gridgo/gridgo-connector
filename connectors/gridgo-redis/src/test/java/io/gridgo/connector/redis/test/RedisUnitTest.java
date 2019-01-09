@@ -33,7 +33,7 @@ public abstract class RedisUnitTest {
 			exRef.set(e);
 			latch.countDown();
 		}).pipeDone(result -> {
-			return producer.call(Message.ofAny(buildCommand(RedisCommands.APPEND), BArray.ofSequence("mykey", "3")));
+			return producer.call(Message.ofAny(buildCommand(RedisCommands.APPEND), BArray.ofSequence("mykey", "2")));
 		}).pipeDone(result -> {
 			return producer.call(Message.ofAny(buildCommand(RedisCommands.GET), "mykey"));
 		}).always((s, r, e) -> {

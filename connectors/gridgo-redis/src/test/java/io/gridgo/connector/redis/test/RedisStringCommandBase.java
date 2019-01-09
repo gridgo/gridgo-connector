@@ -12,15 +12,15 @@ import io.gridgo.framework.support.Message;
 import io.gridgo.redis.command.RedisCommands;
 
 public abstract class RedisStringCommandBase {
-	
+
 	private static final String CMD = "cmd";
 
 	private BObject buildCommand(String command) {
 		return BObject.of(CMD, command);
 	}
-	
+
 	protected abstract String getEndpoint();
-	
+
 	/*
 	 * Test `bitcount` command https://redis.io/commands/bitcount
 	 */
@@ -113,6 +113,9 @@ public abstract class RedisStringCommandBase {
 
 	}
 
+	/*
+	 * https://redis.io/commands/bitpos
+	 */
 	public void testBitposCommand() throws InterruptedException {
 		var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
 		var producer = connector.getProducer().orElseThrow();
@@ -121,19 +124,23 @@ public abstract class RedisStringCommandBase {
 		var exRef = new AtomicReference<Exception>();
 		var latch = new CountDownLatch(1);
 
-		producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("mykey", "\\xff\\xf0\\x00"))) //
-				.pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.BITPOS), BArray.ofSequence("mykey", 0))))//
-				.pipeDone(result -> Common.checkLongResult(result, 12))
-				.pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("mykey", "\\x00\\xff\\xf0"))))//
-				.pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.BITPOS), BArray.ofSequence("mykey", 1, 0))))//
+		producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("mykey", "foo"))) //
+				.pipeDone(result -> producer
+						.call(Message.ofAny(buildCommand(RedisCommands.BITPOS), BArray.ofSequence("mykey", false))))//
+				.pipeDone(result -> Common.checkLongResult(result, 0))
+				.pipeDone(result -> producer
+						.call(Message.ofAny(buildCommand(RedisCommands.BITPOS), BArray.ofSequence("mykey", true))))//
+				.pipeDone(result -> Common.checkLongResult(result, 1))
+				.pipeDone(result -> producer
+						.call(Message.ofAny(buildCommand(RedisCommands.BITPOS), BArray.ofSequence("mykey", true, 1))))//
+				.pipeDone(result -> Common.checkLongResult(result, 9))
+				.pipeDone(result -> producer
+						.call(Message.ofAny(buildCommand(RedisCommands.BITPOS), BArray.ofSequence("mykey", false, 1))))//
 				.pipeDone(result -> Common.checkLongResult(result, 8))
-				.pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.BITPOS), BArray.ofSequence("mykey", 1, 2))))//
-				.pipeDone(result -> Common.checkLongResult(result, 16))
-				.pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("mykey", "\\x00\\x00\\x00"))))//
-				.pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.BITPOS), BArray.ofSequence("mykey", 1))))//
-				.pipeDone(result -> Common.checkLongResult(result, -1))
-				.done(result -> latch.countDown())
-				.fail(ex -> {
+				.pipeDone(result -> producer.call(
+						Message.ofAny(buildCommand(RedisCommands.BITPOS), BArray.ofSequence("mykey", true, 1, 2))))//
+				.pipeDone(result -> Common.checkLongResult(result, 9))//
+				.done(result -> latch.countDown()).fail(ex -> {
 					exRef.set(ex);
 					latch.countDown();
 				});
