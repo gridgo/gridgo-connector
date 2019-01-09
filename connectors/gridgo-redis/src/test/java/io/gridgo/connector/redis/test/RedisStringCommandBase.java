@@ -1,8 +1,13 @@
 package io.gridgo.connector.redis.test;
 
+import static org.junit.Assert.assertEquals;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.joo.promise4j.Promise;
 import org.junit.Assert;
 
 import io.gridgo.bean.BArray;
@@ -149,4 +154,35 @@ public abstract class RedisStringCommandBase {
 		connector.stop();
 		Assert.assertNull(exRef.get());
 	}
+
+	/*
+	 * https://redis.io/commands/bitfield
+	 */
+
+	public void testBitFieldCommand() throws InterruptedException {
+		var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+		var producer = connector.getProducer().orElseThrow();
+		connector.start();
+
+		var exRef = new AtomicReference<Exception>();
+		var latch = new CountDownLatch(1);
+		producer.call(Message.ofAny(buildCommand(RedisCommands.BITFIELD),
+				BArray.ofSequence("mykey", "INCRBY", "i5", "100", "1", "GET", "u4", "0")))//
+				.pipeDone(result -> {
+					var responses = result.body().asArray();
+					if (1L == responses.get(0).asValue().getLong() && 0L == responses.get(1).asValue().getLong()) {
+						return Promise.of(result);
+					}
+					return Promise.ofCause(new RuntimeException());
+				})//
+				.done(result -> latch.countDown()).fail(ex -> {
+					exRef.set(ex);
+					latch.countDown();
+				});
+
+		latch.await();
+		connector.stop();
+		Assert.assertNull(exRef.get());
+	}
+
 }

@@ -27,5 +27,11 @@ public class SingleRedisStringCommand extends RedisStringCommandBase {
 	public void testBitposCommand() throws InterruptedException {
 		super.testBitposCommand();
 	}
+	
+	@Test
+	@Override
+	public void testBitFieldCommand() throws InterruptedException {
+		super.testBitFieldCommand();
+	}
 
 }
