@@ -1,5 +1,9 @@
 package io.gridgo.connector.mysql.support;
 
+import io.gridgo.bean.BElement;
+import io.gridgo.bean.BObject;
+import org.jdbi.v3.core.statement.SqlStatement;
+
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -28,4 +32,24 @@ public class Helper {
         }
         return rows;
     }
+
+    public static void  bindParams(SqlStatement sqlStatement, BObject params){
+        for (Map.Entry<String, BElement> entry: params.entrySet()){
+            try {
+                sqlStatement.bind(entry.getKey(), entry.getValue().getRaw());
+            }catch (Exception ex){
+                System.out.println("FUCKKKKKKKK: " + entry.getKey());
+            }
+        }
+    }
+
+    public static String getOperation(String sqlStatement){
+        for (int i = 0; i < sqlStatement.length(); i++) {
+            if (sqlStatement.charAt(i) == ' ') {
+                return sqlStatement.substring(0, i);
+            }
+        }
+        return "";
+    }
+
 }
