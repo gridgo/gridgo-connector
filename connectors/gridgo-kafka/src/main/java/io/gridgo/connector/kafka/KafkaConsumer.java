@@ -136,9 +136,13 @@ public class KafkaConsumer extends AbstractConsumer implements FormattedMarshall
                     isRaw = true;
             }
 
-            var body = isRaw ? BElement.ofBytes((byte[]) record.value())
-                    : deserialize(ByteArrayUtils.primitiveToBytes(record.value()));
+            var body = isRaw ? BElement.ofBytes((byte[]) record.value()) : deserializeWithFormat(record);
             return createMessage(headers, body);
+        }
+
+        private BElement deserializeWithFormat(ConsumerRecord<Object, Object> record) {
+            return format == null ? BElement.ofAny(record.value())
+                    : deserialize(ByteArrayUtils.primitiveToBytes(record.value()));
         }
 
         private Message buildMessageForBatch(List<ConsumerRecord<Object, Object>> records) {
