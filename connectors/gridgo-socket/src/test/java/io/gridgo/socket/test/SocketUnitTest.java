@@ -33,8 +33,8 @@ public class SocketUnitTest {
         var exRef = new AtomicInteger();
 
         connector1.getConsumer().get().subscribe(msg -> {
-            if (msg.getPayload().getBody().isValue())
-                exRef.set(msg.getPayload().getBody().asValue().getInteger());
+            if (msg.body().isValue())
+                exRef.set(msg.body().asValue().getInteger());
             latch.countDown();
         });
 
@@ -67,8 +67,8 @@ public class SocketUnitTest {
         var exRef = new AtomicInteger();
 
         connector1.getConsumer().get().subscribe(msg -> {
-            if (msg.getPayload().getBody().isValue())
-                exRef.set(msg.getPayload().getBody().asValue().getInteger());
+            if (msg.body().isValue())
+                exRef.set(msg.body().asValue().getInteger());
             latch.countDown();
         });
 

@@ -46,7 +46,7 @@ public class RedisBitopHandler extends AbstractRedisCommandHandler {
         case "xor":
             return redis.bitopXor(params[1].asValue().getRaw(), keys);
         case "not":
-            return redis.bitopAnd(params[1].asValue().getRaw(), keys[0]);
+            return redis.bitopNot(params[1].asValue().getRaw(), keys[0]);
         default:
         }
         return null;

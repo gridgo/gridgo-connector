@@ -38,11 +38,12 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
 
     @Override
     public final void applyConfig(@NonNull String name, @NonNull Object value) {
-        if (this.isStarted()) {
-            throw new IllegalStateException("Cannot apply config while this socket already stated");
-        }
         this.configs.putAny(name, value);
         this.onApplyConfig(name);
+    }
+
+    protected void onApplyConfig(String name) {
+        // do nothing
     }
 
     @Override
@@ -102,10 +103,6 @@ public abstract class AbstractNetty4Socket implements Netty4Socket, Loggable {
                 AbstractNetty4Socket.this.onHandlerAdded(ctx);
             }
         };
-    }
-
-    protected void onApplyConfig(String name) {
-        // do nothing
     }
 
     protected abstract void onChannelActive(ChannelHandlerContext ctx) throws Exception;

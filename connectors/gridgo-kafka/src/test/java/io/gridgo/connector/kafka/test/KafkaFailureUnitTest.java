@@ -68,7 +68,7 @@ public class KafkaFailureUnitTest {
 
         consumer.clearSubscribers();
         consumer.subscribe((msg, deferred) -> {
-            int body = msg.getPayload().getBody().asValue().getInteger();
+            int body = msg.body().asValue().getInteger();
             int counter = atomic.incrementAndGet();
             if (counter % (1 / ERROR_RATE) == 0) {
                 deferred.reject(new RuntimeException("just fail (" + body + ")"));

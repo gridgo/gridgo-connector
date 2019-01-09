@@ -77,7 +77,7 @@ public class TestRabbitMQ {
             final AtomicReference<String> receivedTextRef = new AtomicReference<String>(null);
 
             consumer.subscribe((message, deferred) -> {
-                receivedTextRef.set(message.getPayload().getBody().asValue().getString());
+                receivedTextRef.set(message.body().asValue().getString());
                 triggerDone.run();
             });
 
@@ -110,12 +110,12 @@ public class TestRabbitMQ {
         CountDownLatch doneSignal = new CountDownLatch(2);
 
         consumer1.subscribe((message, deferred) -> {
-            receivedTextRef1.set(message.getPayload().getBody().asValue().getString());
+            receivedTextRef1.set(message.body().asValue().getString());
             doneSignal.countDown();
         });
 
         consumer2.subscribe((message, deferred) -> {
-            receivedTextRef2.set(message.getPayload().getBody().asValue().getString());
+            receivedTextRef2.set(message.body().asValue().getString());
             doneSignal.countDown();
         });
 
@@ -154,13 +154,13 @@ public class TestRabbitMQ {
 
         consumer1.subscribe((message, deferred) -> {
             System.out.println("consumer 1: got message from source: " + message.getMisc().get("source"));
-            receivedTextRef1.set(message.getPayload().getBody().asValue().getString());
+            receivedTextRef1.set(message.body().asValue().getString());
             doneSignal.countDown();
         });
 
         consumer2.subscribe((message, deferred) -> {
             System.out.println("consumer 2: got message from source: " + message.getMisc().get("source"));
-            receivedTextRef2.set(message.getPayload().getBody().asValue().getString());
+            receivedTextRef2.set(message.body().asValue().getString());
             doneSignal.countDown();
         });
 
@@ -195,7 +195,7 @@ public class TestRabbitMQ {
 
         BiConsumer<Message, Deferred<Message, Exception>> echoMessageHandler = (message, deferred) -> {
             try {
-                Payload responsePayload = Payload.of(message.getPayload().getBody());
+                Payload responsePayload = Payload.of(message.body());
                 deferred.resolve(Message.of(responsePayload));
             } catch (Exception e) {
                 e.printStackTrace();
@@ -211,8 +211,8 @@ public class TestRabbitMQ {
         Message resp1 = producer.call(req1).get();
         Message resp2 = producer.call(req2).get();
 
-        assertEquals(text1, resp1.getPayload().getBody().asValue().getString());
-        assertEquals(text2, resp2.getPayload().getBody().asValue().getString());
+        assertEquals(text1, resp1.body().asValue().getString());
+        assertEquals(text2, resp2.body().asValue().getString());
 
         connector1.stop();
 
@@ -228,7 +228,7 @@ public class TestRabbitMQ {
             consumer.subscribe((message, deferred) -> {
                 System.out.println("got message from source: " + message.getMisc().get("source"));
                 try {
-                    Payload responsePayload = Payload.of(message.getPayload().getBody());
+                    Payload responsePayload = Payload.of(message.body());
                     deferred.resolve(Message.of(responsePayload));
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -239,7 +239,7 @@ public class TestRabbitMQ {
             Message msg = Message.of(Payload.of(BElement.ofAny(TEXT)));
             Promise<Message, Exception> promise = producer.call(msg);
             promise.done((message) -> {
-                receivedTextRef.set(message.getPayload().getBody().asValue().getString());
+                receivedTextRef.set(message.body().asValue().getString());
                 triggerDone.run();
             });
 

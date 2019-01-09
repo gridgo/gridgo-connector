@@ -7,7 +7,7 @@ public class HttpException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
     @Getter
-    private int code;
+    private final int code;
 
     public HttpException(int code) {
         super(code + "");

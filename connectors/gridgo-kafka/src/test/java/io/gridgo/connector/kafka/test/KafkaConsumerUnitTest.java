@@ -139,7 +139,7 @@ public class KafkaConsumerUnitTest {
 
         consumer.clearSubscribers();
         consumer.subscribe((msg, deferred) -> {
-            int processed = msg.getPayload().getHeaders().getInteger(KafkaConstants.BATCH_SIZE);
+            int processed = msg.headers().getInteger(KafkaConstants.BATCH_SIZE);
             latch.addAndGet(-processed);
             deferred.resolve(null);
         });

@@ -82,7 +82,7 @@ public class TestJettyConnector {
             Producer producer = connector.getProducer().get();
 
             consumer.subscribe((msg) -> {
-                var queryParams = msg.getPayload().getHeaders().get(HttpHeader.QUERY_PARAMS.asString());
+                var queryParams = msg.headers().get(HttpHeader.QUERY_PARAMS.asString());
                 producer.send(Message.of(msg.getRoutingId().get(), Payload.of(queryParams)));
             });
 
@@ -112,8 +112,8 @@ public class TestJettyConnector {
             Producer producer = connector.getProducer().get();
 
             consumer.subscribe((msg) -> {
-                var queryParams = msg.getPayload().getHeaders().get(HttpHeader.QUERY_PARAMS.asString());
-                var body = msg.getPayload().getBody();
+                var queryParams = msg.headers().get(HttpHeader.QUERY_PARAMS.asString());
+                var body = msg.body();
                 System.out.println("Got body: " + body);
                 var response = BObject.ofEmpty().set("query", queryParams).set("body", body);
                 producer.send(Message.of(msg.getRoutingId().get(), Payload.of(response)));

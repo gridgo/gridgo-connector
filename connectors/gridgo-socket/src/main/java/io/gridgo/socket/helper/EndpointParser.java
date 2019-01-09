@@ -4,6 +4,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.gridgo.utils.InetAddressUtils;
+import lombok.NonNull;
 
 public class EndpointParser {
 
@@ -12,10 +13,10 @@ public class EndpointParser {
 
     private static String[] extractToSegments(String address) {
         if (address == null)
-            return null;
+            return new String[0];
         Matcher matcher = ENDPOINT_PATTERN.matcher(address.trim());
         if (!matcher.find())
-            return null;
+            return new String[0];
         String protocol = matcher.group(1);
         String hostAndPort = matcher.group(2).trim();
         String[] arrMayContainsInterface = hostAndPort.split(";");
@@ -44,26 +45,29 @@ public class EndpointParser {
         return new String[] { protocol, hostAndPort, null, nic };
     }
 
-    public static Endpoint parse(String address) {
-        if (address != null) {
-            String[] segments = extractToSegments(address.trim());
-            if (segments == null) {
-                throw new IllegalArgumentException("Invalid address: " + address);
-            }
-
-            String protocol = segments[0].toLowerCase();
-            String host = segments[1];
-
-            if (!host.equals("*")) {
-                String resolvedHost = InetAddressUtils.resolve(host);
-                host = resolvedHost == null ? host : resolvedHost;
-            }
-
-            int port = segments[2] == null ? -1 : Integer.valueOf(segments[2]);
-            String nic = segments[3];
-
-            return Endpoint.builder().nic(nic).address(address).protocol(protocol).host(host).port(port).build();
+    public static Endpoint parse(@NonNull String address) {
+        String[] segments = extractToSegments(address.trim());
+        if (segments.length == 0) {
+            throw new IllegalArgumentException("Invalid address: " + address);
         }
-        throw new IllegalArgumentException("Invalid address: " + address);
+
+        String protocol = segments[0].toLowerCase();
+        String host = segments[1];
+
+        if (!host.equals("*")) {
+            String resolvedHost = InetAddressUtils.resolve(host);
+            host = resolvedHost == null ? host : resolvedHost;
+        }
+
+        int port = segments[2] == null ? -1 : Integer.valueOf(segments[2]);
+        String nic = segments[3];
+
+        return Endpoint.builder() //
+                       .nic(nic) //
+                       .address(address) //
+                       .protocol(protocol) //
+                       .host(host) //
+                       .port(port) //
+                       .build();
     }
 }
