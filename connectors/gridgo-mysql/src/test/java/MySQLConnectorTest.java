@@ -5,6 +5,7 @@ import io.gridgo.connector.Connector;
 import io.gridgo.connector.Producer;
 import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
 import io.gridgo.connector.mysql.MySQLConstants;
+import io.gridgo.connector.mysql.support.Helper;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
 import io.gridgo.framework.support.Message;
@@ -15,7 +16,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -23,64 +24,20 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MySQLConnectorTest {
 
-    Registry registry;
-    ConnectorContext context;
-    Connector connector;
-    Producer producer;
-    private Message createSelectRequest() {
-        String sql = "select name, age from test_table where name=:name and age=:age";
-        var headers = BObject.ofEmpty().setAny(MySQLConstants.OPERATION, MySQLConstants.OPERATION_SELECT)
-                .setAny("name", "Cuong")
-                .setAny("age", 20);
-        return Message.of(Payload.of(headers, BValue.of(sql)));
-    }
-
-    private Message createInsertRequest() {
-        String sql = "insert into test1 (id, name, gender, birthday, start, exist) values" +
-                "(id=:id, name=:name, gender=:gender, birthday=:birthday, start=:start. exist=:exist ) ";
-
-         var headers = BObject.ofEmpty().setAny(MySQLConstants.OPERATION, MySQLConstants.OPERATION_SELECT)
-                .setAny("name", "Cuong")
-                .setAny("id", 20)
-                .setAny("gender", true)
-                .setAny("birhday", Date.valueOf(LocalDate.now()).)
-                .setAny("start", Time.valueOf(LocalTime.now()))
-                .setAny("exist", Timestamp.valueOf(LocalDateTime.now()));
-        return Message.of(Payload.of(headers, BValue.of(sql)));
-    }
-
-    private Message createCreateTableMessage(String tableName, Column... column){
-        StringBuilder queryBuilder = new StringBuilder("create table ")
-                .append(tableName)
-                .append(" ( ");
-        for (int i = 0; i < column.length; i++){
-            queryBuilder.append(column[i].toString());
-            queryBuilder.append(",");
-        }
-        queryBuilder.deleteCharAt(queryBuilder.length() - 1);
-        queryBuilder.append(");");
-        return Message.ofAny(queryBuilder.toString());
-    }
-    private Message createCreateTableMessage(String tableName, List<String> columns){
-        StringBuilder queryBuilder = new StringBuilder("create table ")
-                .append(tableName)
-                .append(" ( ");
-        for (String column : columns){
-            queryBuilder.append(column);
-            queryBuilder.append(",");
-        }
-        queryBuilder.deleteCharAt(queryBuilder.length() - 1);
-        queryBuilder.append(");");
-        return Message.ofAny(queryBuilder.toString());
-    }
-
-    private Message createDropTableMessage(String tableName){
-        return Message.ofAny("drop table " + tableName + " ;");
-    }
+    private Registry registry;
+    private ConnectorContext context;
+    private Connector connector;
+    private Producer producer;
+    private List<String> columnsName;
+    private Map<String, String> sqlTypes;
+    private Map<String, Object> sqlValues;
+    private String tableName;
 
     @Before
     public void initialize(){
@@ -89,86 +46,154 @@ public class MySQLConnectorTest {
         connector = new DefaultConnectorFactory().createConnector("jdbc:mysql/localhost/3306/root/ManhCuong22293/test", context);
         connector.start();
         producer = connector.getProducer().orElseThrow();
+        tableName = "table_test_mysql_connector";
+        columnsName = new ArrayList<>();
+        sqlTypes = new HashMap<>();
+        sqlValues = new HashMap<>();
+        createFieldList();
     }
 
+
+
+    private String buildInsertSQL(){
+        StringBuilder sql = new StringBuilder("insert into ")
+                .append(tableName)
+                .append(" ( ");
+        columnsName.forEach(column -> {
+            sql.append(column);
+            sql.append(", ");
+        });
+        sql.replace(sql.length() - 2, sql.length() - 1, ")");
+        sql.append(" values ( ");
+        columnsName.forEach(column -> {
+            sql.append(":");
+            sql.append(column);
+            sql.append(", ");
+        });
+        sql.deleteCharAt(sql.length() - 2);
+        sql.append(" );");
+        return sql.toString();
+    }
+
+    private String buildSelectSQL(){
+        StringBuilder sql = new StringBuilder("select * from ")
+                .append(tableName)
+                .append(" where ");
+        columnsName.forEach(column -> {
+            sql.append(column);
+            sql.append(" = ");
+            sql.append(":");
+            sql.append(column);
+            sql.append(" AND ");
+        });
+        sql.replace(sql.length() - 4, sql.length(), "   ;");
+        return sql.toString();
+    }
+
+    private Message createSelectRequest() {
+        String sql = buildSelectSQL();
+        var headers = BObject.ofEmpty();
+        columnsName.forEach(column -> headers.putAny(column, sqlValues.get(column)));
+        return Message.ofAny(headers, sql);
+    }
+
+    private Message createInsertRequest() {
+        String sql = buildInsertSQL();
+        var headers = BObject.ofEmpty();
+        columnsName.forEach(column -> headers.putAny(column, sqlValues.get(column)));
+        return Message.of(Payload.of(headers, BValue.of(sql)));
+    }
+
+    private Message createCreateTableMessage(){
+        StringBuilder queryBuilder = new StringBuilder("create table ")
+                .append(tableName)
+                .append(" ( ");
+        for (String column : columnsName){
+            queryBuilder.append(column);
+            queryBuilder.append(" ");
+            queryBuilder.append(sqlTypes.get(column));
+            queryBuilder.append(",");
+        }
+        queryBuilder.deleteCharAt(queryBuilder.length() - 1);
+        queryBuilder.append(");");
+        return Message.ofAny(queryBuilder.toString());
+    }
+
+    private Message createDropTableMessage(){
+        return Message.ofAny("drop table " + tableName + " ;");
+    }
+
+    private void addField(Class type,String sqlType, Object value){
+        String columnName = type.getSimpleName().toLowerCase() + "test";
+        columnsName.add(columnName);
+        sqlTypes.put(columnName, sqlType);
+        sqlValues.put(columnName, value);
+    }
+
+    private void addField(String type, String sqlType, Object value){
+        String columnName = type + "test";
+        columnsName.add(columnName);
+        sqlTypes.put(columnName, sqlType);
+        sqlValues.put(columnName, value);
+    }
+
+    private void createFieldList(){
+        addField(Integer.class, "INTEGER", 1);
+        addField(String.class, "VARCHAR(200)", "test");
+        addField(BigDecimal.class, "DECIMAL", new BigDecimal(21323));
+        addField(Boolean.class, "BIT", true);
+//        addField("arraybyte", "BINARY(100)", "t".getBytes());
+        addField(Date.class, "DATE", Date.valueOf(LocalDate.now()));
+        addField(Time.class, "TIME", Time.valueOf(LocalTime.now()));
+        addField(Timestamp.class, "TIMESTAMP", Timestamp.valueOf(LocalDateTime.now()));
+    }
+
+
     @Test
-    public void testSelect() throws IOException, InterruptedException {
+    public void testSelect() {
         var ok = producer.call(createSelectRequest());
         ok.done(msg -> {
-            var list = msg.getPayload().getBody().asArray();
-            for (BElement bElement : list) {
+            try {
+                var list = msg.getPayload().getBody().asArray();
+                for (BElement bElement : list) {
                 var result = bElement.asObject();
-                System.out.println("My name is " + result.get("name") + ". ");
-                System.out.println("I'm " + result.get("age") + " years old.");
+                    columnsName.forEach(column -> {
+                        Assert.assertEquals(BValue.of(sqlValues.get(column)),result.get(column));
+                    });
+                }
+            }catch (Exception ex){
+                ex.printStackTrace();
+                Assert.fail();
             }
         });
     }
 
     @Test
-    public void testInsert() throws IOException, InterruptedException {
+    public void testInsert() {
         var ok = producer.call(createInsertRequest());
         ok.done(msg -> {
             var list = msg.getPayload().getBody().asValue().getInteger();
-           Assert.assertEquals(Integer.valueOf(1), list);
+            Assert.assertEquals(Integer.valueOf(1), list);
         });
         ok.fail(ex -> {
             ex.printStackTrace();
-            Assert.assertTrue(false);
+            Assert.fail();
         });
     }
 
     @Test
     public void testDropTable(){
-        Message message = createDropTableMessage("test1");
+        Message message = createDropTableMessage();
         var ok = producer.call(message);
-        ok.done(msg -> {
-            System.out.println(msg.toString());
-        });
+        ok.done(msg -> Assert.assertTrue(true))
+            .fail(ex -> Assert.fail());
     }
 
     @Test
     public void testCreateTable(){
-        Column id = new Column("id", "int");
-        List<String> columns = new ArrayList<>();
-        columns.add("id int");
-        columns.add("name varchar(25)");
-        columns.add("gender boolean");
-        columns.add("birthday DATE");
-        columns.add("start TIME");
-        columns.add("exist TIMESTAMP");
-        Message message = createCreateTableMessage("test1", columns);
+        Message message = createCreateTableMessage();
         var ok = producer.call(message);
-        ok.done(msg -> {
-            System.out.println(msg.toString());
-        });
+        ok.done(msg -> Assert.assertTrue(true))
+            .fail(ex -> Assert.fail());
     }
-
-
-    @Test
-    public void testByte(){
-        Byte.valueOf("Cuong");
-        System.out.println("OKOKOKO");
-    }
-
-    class Column{
-        String name;
-        String type;
-        String option;
-        Column(String name, String type){
-            this.name = name;
-            this.type = type;
-            this.option = "";
-        }
-        Column(String name, String type, String option){
-            this.name = name;
-            this.type = type;
-            this.option = option;
-        }
-
-        @Override
-        public String toString() {
-            return this.name + " " + this.type + " " + this.option;
-        }
-    }
-
 }

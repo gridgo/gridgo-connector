@@ -2,6 +2,7 @@ package io.gridgo.connector.mysql.support;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
+import io.gridgo.bean.impl.MutableBValue;
 import org.jdbi.v3.core.statement.SqlStatement;
 
 import java.sql.ResultSet;
@@ -34,13 +35,19 @@ public class Helper {
     }
 
     public static void  bindParams(SqlStatement sqlStatement, BObject params){
-        for (Map.Entry<String, BElement> entry: params.entrySet()){
-            try {
-                sqlStatement.bind(entry.getKey(), entry.getValue().getRaw());
-            }catch (Exception ex){
-                System.out.println("FUCKKKKKKKK: " + entry.getKey());
+        try {
+            for (Map.Entry<String, BElement> entry: params.entrySet()) {
+
+                if (entry.getValue() instanceof MutableBValue) {
+                    sqlStatement.bind(entry.getKey(), entry.getValue().asValue().getData());
+                } else {
+                    sqlStatement.bind(entry.getKey(), (Object) entry.getValue().asReference().getReference());
+                }
             }
+        } catch (Exception ex){
+            ex.printStackTrace();
         }
+
     }
 
     public static String getOperation(String sqlStatement){
