@@ -25,6 +25,6 @@ public class MySQLConnector extends AbstractConnector {
                 ":" + port +
                 "/" + schema + "?" +
                 "user=" + user + "&" +
-                "password=" + password;
+                (password == null ? "": "password=" + password);
     }
 }

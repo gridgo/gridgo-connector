@@ -4,8 +4,6 @@ import io.gridgo.bean.BValue;
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.Producer;
 import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
-import io.gridgo.connector.mysql.MySQLConstants;
-import io.gridgo.connector.mysql.support.Helper;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
 import io.gridgo.framework.support.Message;
@@ -43,7 +41,7 @@ public class MySQLConnectorTest {
     public void initialize(){
         registry = new SimpleRegistry();
         context = new DefaultConnectorContextBuilder().setRegistry(registry).build();
-        connector = new DefaultConnectorFactory().createConnector("jdbc:mysql/localhost/3306/root/ManhCuong22293/test", context);
+        connector = new DefaultConnectorFactory().createConnector("jdbc:mysql/localhost/3306/root//test", context);
         connector.start();
         producer = connector.getProducer().orElseThrow();
         tableName = "table_test_mysql_connector";
@@ -120,7 +118,7 @@ public class MySQLConnectorTest {
     }
 
     private Message createDropTableMessage(){
-        return Message.ofAny("drop table " + tableName + " ;");
+        return Message.ofAny("drop table if exists " + tableName + " ;");
     }
 
     private void addField(Class type,String sqlType, Object value){
@@ -143,23 +141,31 @@ public class MySQLConnectorTest {
         addField(BigDecimal.class, "DECIMAL", new BigDecimal(21323));
         addField(Boolean.class, "BIT", true);
 //        addField("arraybyte", "BINARY(100)", "t".getBytes());
-        addField(Date.class, "DATE", Date.valueOf(LocalDate.now()));
-        addField(Time.class, "TIME", Time.valueOf(LocalTime.now()));
-        addField(Timestamp.class, "TIMESTAMP", Timestamp.valueOf(LocalDateTime.now()));
+        addField(Date.class, "DATE", Date.valueOf(LocalDate.parse("2019-01-10")));
+        addField(Time.class, "TIME", Time.valueOf(LocalTime.parse("19:49:06")));
+        addField(Timestamp.class, "TIMESTAMP", Timestamp.valueOf(LocalDateTime.parse("2007-12-03T10:15:30")));
     }
+
 
 
     @Test
     public void testSelect() {
+        dropTable();
+        testCreateTable();
+        testInsert();
         var ok = producer.call(createSelectRequest());
         ok.done(msg -> {
             try {
                 var list = msg.getPayload().getBody().asArray();
                 for (BElement bElement : list) {
-                var result = bElement.asObject();
-                    columnsName.forEach(column -> {
-                        Assert.assertEquals(BValue.of(sqlValues.get(column)),result.get(column));
-                    });
+                    var result = bElement.asObject();
+                    Assert.assertEquals(sqlValues.get("integertest"), result.getInteger("integertest"));
+                    Assert.assertEquals(sqlValues.get("stringtest"), result.getString("stringtest"));
+                    Assert.assertEquals(sqlValues.get("bigdecimaltest"), result.get("bigdecimaltest").asValue().getDataAs(BigDecimal.class));
+                    Assert.assertEquals(sqlValues.get("booleantest"), result.getBoolean("booleantest"));
+                    Assert.assertEquals(sqlValues.get("datetest"), result.get("datetest").asReference().getReference());
+                    Assert.assertEquals(sqlValues.get("timetest"), result.get("timetest").asReference().getReference());
+                    Assert.assertEquals(sqlValues.get("timestamptest"), result.get("timestamptest").asReference().getReference());
                 }
             }catch (Exception ex){
                 ex.printStackTrace();
@@ -168,8 +174,8 @@ public class MySQLConnectorTest {
         });
     }
 
-    @Test
-    public void testInsert() {
+
+     private void testInsert() {
         var ok = producer.call(createInsertRequest());
         ok.done(msg -> {
             var list = msg.getPayload().getBody().asValue().getInteger();
@@ -181,16 +187,16 @@ public class MySQLConnectorTest {
         });
     }
 
-    @Test
-    public void testDropTable(){
+
+    private void dropTable(){
         Message message = createDropTableMessage();
-        var ok = producer.call(message);
-        ok.done(msg -> Assert.assertTrue(true))
-            .fail(ex -> Assert.fail());
+        producer.call(message);
     }
 
-    @Test
-    public void testCreateTable(){
+
+
+    private void testCreateTable(){
+        dropTable();
         Message message = createCreateTableMessage();
         var ok = producer.call(message);
         ok.done(msg -> Assert.assertTrue(true))

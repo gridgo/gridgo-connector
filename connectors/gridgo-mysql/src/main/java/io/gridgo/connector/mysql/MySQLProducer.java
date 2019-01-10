@@ -94,7 +94,7 @@ public class MySQLProducer extends AbstractProducer {
         return _call(request, deferred, true);
     }
 
-
+    //TODO: Have not supported byte[] in params yet
     private void select(Message msg, Deferred<Message, Exception> deferred)  {
         var queryStatement = msg.getPayload().getBody().asValue().getString();
         var query = Jdbi.create(connectionPool::getConnection)
