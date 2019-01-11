@@ -59,7 +59,7 @@ public class MongoDBProducer extends AbstractProducer {
         bindHandlers();
     }
 
-    private Promise<Message, Exception> _call(Message request, CompletableDeferredObject<Message, Exception> deferred,
+    private Promise<Message, Exception> doCall(Message request, CompletableDeferredObject<Message, Exception> deferred,
             boolean isRPC) {
         var operation = request.headers().getString(MongoDBConstants.OPERATION);
         var handler = operations.get(operation);
@@ -89,25 +89,6 @@ public class MongoDBProducer extends AbstractProducer {
         return new MongoOperationException(throwable);
     }
 
-    private void applyProjection(Message msg, FindIterable<Document> filterable) {
-        var headers = msg.headers();
-        var project = getHeaderAs(msg, MongoDBConstants.PROJECT, Bson.class);
-        var projectInclude = headers.getArray(MongoDBConstants.PROJECT_INCLUDE, null);
-        var projectExclude = headers.getArray(MongoDBConstants.PROJECT_EXCLUDE, null);
-        if (project != null || projectInclude != null || projectExclude != null) {
-            project = getProject(project, projectInclude, projectExclude);
-            filterable.projection(project);
-        }
-    }
-
-    private Bson getProject(Bson project, BArray projectInclude, BArray projectExclude) {
-        if (projectInclude != null)
-            return Projections.include(toStringArray(projectInclude));
-        if (projectExclude != null)
-            return Projections.exclude(toStringArray(projectExclude));
-        return project;
-    }
-
     public void bind(String name, ProducerHandler handler) {
         operations.put(name, handler);
     }
@@ -126,7 +107,7 @@ public class MongoDBProducer extends AbstractProducer {
     @Override
     public Promise<Message, Exception> call(Message request) {
         var deferred = new CompletableDeferredObject<Message, Exception>();
-        return _call(request, deferred, true);
+        return doCall(request, deferred, true);
     }
 
     private Document convertToDocument(BReference body) {
@@ -147,7 +128,8 @@ public class MongoDBProducer extends AbstractProducer {
         if (result instanceof Document)
             return createMessage(BObject.ofEmpty(), toReference((Document) result));
         if (result instanceof List<?>) {
-            var cloned = StreamSupport.stream(((List<Document>) result).spliterator(), false).map(this::toReference)
+            var cloned = StreamSupport.stream(((List<Document>) result).spliterator(), false) //
+                                      .map(this::toReference) //
                                       .collect(Collectors.toList());
             return createMessage(BObject.ofEmpty(), BArray.of(cloned));
         }
@@ -157,11 +139,10 @@ public class MongoDBProducer extends AbstractProducer {
     public void countCollection(Message msg, Deferred<Message, Exception> deferred, boolean isRPC) {
         var filter = getHeaderAs(msg, MongoDBConstants.FILTER, Bson.class);
         var options = getHeaderAs(msg, MongoDBConstants.COUNT_OPTIONS, CountOptions.class);
-        if (options != null)
-            collection.countDocuments(filter, options,
-                    (result, throwable) -> ack(deferred, isRPC ? result : null, throwable));
-        else
-            collection.countDocuments(filter, (result, throwable) -> ack(deferred, isRPC ? result : null, throwable));
+        if (options == null)
+            options = new CountOptions();
+        collection.countDocuments(filter, options,
+                (result, throwable) -> ack(deferred, isRPC ? result : null, throwable));
     }
 
     public void deleteDocument(Message msg, Deferred<Message, Exception> deferred, boolean isRPC) {
@@ -210,9 +191,23 @@ public class MongoDBProducer extends AbstractProducer {
         filterable.first((result, throwable) -> ack(deferred, isRPC ? result : null, throwable));
     }
 
-    @Override
-    protected String generateName() {
-        return generatedName;
+    private void applyProjection(Message msg, FindIterable<Document> filterable) {
+        var headers = msg.headers();
+        var project = getHeaderAs(msg, MongoDBConstants.PROJECT, Bson.class);
+        var projectInclude = headers.getArray(MongoDBConstants.PROJECT_INCLUDE, null);
+        var projectExclude = headers.getArray(MongoDBConstants.PROJECT_EXCLUDE, null);
+        if (project != null || projectInclude != null || projectExclude != null) {
+            project = getProject(project, projectInclude, projectExclude);
+            filterable.projection(project);
+        }
+    }
+
+    private Bson getProject(Bson project, BArray projectInclude, BArray projectExclude) {
+        if (projectInclude != null)
+            return Projections.include(toStringArray(projectInclude));
+        if (projectExclude != null)
+            return Projections.exclude(toStringArray(projectExclude));
+        return project;
     }
 
     private <T> T getHeaderAs(Message msg, String name, Class<T> clazz) {
@@ -245,32 +240,6 @@ public class MongoDBProducer extends AbstractProducer {
         collection.insertOne(doc, (ignore, throwable) -> ack(deferred, null, throwable));
     }
 
-    @Override
-    public boolean isCallSupported() {
-        return true;
-    }
-
-    @Override
-    protected void onStart() {
-        // Nothing to do here
-    }
-
-    @Override
-    protected void onStop() {
-        // Nothing to do here
-    }
-
-    @Override
-    public void send(Message message) {
-        _call(message, null, false);
-    }
-
-    @Override
-    public Promise<Message, Exception> sendWithAck(Message message) {
-        var deferred = new CompletableDeferredObject<Message, Exception>();
-        return _call(message, deferred, false);
-    }
-
     private BObject toReference(Document doc) {
         return BObject.of(doc);
     }
@@ -298,5 +267,36 @@ public class MongoDBProducer extends AbstractProducer {
         var doc = convertToDocument(body.asReference());
         collection.updateMany(filter, doc,
                 (result, throwable) -> ack(deferred, isRPC ? result.getModifiedCount() : null, throwable));
+    }
+
+    @Override
+    public boolean isCallSupported() {
+        return true;
+    }
+
+    @Override
+    protected void onStart() {
+        // Nothing to do here
+    }
+
+    @Override
+    protected void onStop() {
+        // Nothing to do here
+    }
+
+    @Override
+    public void send(Message message) {
+        doCall(message, null, false);
+    }
+
+    @Override
+    public Promise<Message, Exception> sendWithAck(Message message) {
+        var deferred = new CompletableDeferredObject<Message, Exception>();
+        return doCall(message, deferred, false);
+    }
+
+    @Override
+    protected String generateName() {
+        return generatedName;
     }
 }
