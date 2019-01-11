@@ -10,8 +10,6 @@ public interface RedisStringCommands {
 
     public Promise<BElement, Exception> append(byte[] key, byte[] value);
 
-    public Promise<BElement, Exception> bitcount(byte[] key);
-
     public Promise<BElement, Exception> bitcount(byte[] key, long start, long end);
 
     public Promise<BElement, Exception> bitfield(byte[] key, String overflow, Object... subCommandAndArgs);

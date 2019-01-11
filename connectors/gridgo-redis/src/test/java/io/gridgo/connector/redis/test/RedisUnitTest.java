@@ -40,7 +40,7 @@ public abstract class RedisUnitTest {
             if (e != null) {
                 exRef.set(e);
             } else {
-                var body = r.getPayload().getBody();
+                var body = r.body();
                 if (!body.isValue() || !"12".equals(new String(body.asValue().getRaw()))) {
                     exRef.set(new RuntimeException("Body mismatch: " + body.asValue().getString()));
                 }
@@ -71,7 +71,7 @@ public abstract class RedisUnitTest {
             if (e != null) {
                 exRef.set(e);
             } else {
-                var body = r.getPayload().getBody();
+                var body = r.body();
                 if (!body.isValue() || !"1".equals(new String(body.asValue().getRaw()))) {
                     exRef.set(new RuntimeException("Body mismatch: " + body.asValue().getString()));
                 }

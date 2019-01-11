@@ -132,12 +132,12 @@ public class NNConnectorUnitTest {
         AtomicReference<String> recvDataRef2 = new AtomicReference<String>(null);
 
         connector1.getConsumer().get().subscribe((message) -> {
-            recvDataRef2.set(message.getPayload().getBody().asValue().getString());
+            recvDataRef2.set(message.body().asValue().getString());
             doneSignal.countDown();
         });
 
         connector2.getConsumer().get().subscribe((message) -> {
-            recvDataRef1.set(message.getPayload().getBody().asValue().getString());
+            recvDataRef1.set(message.body().asValue().getString());
             doneSignal.countDown();
         });
 
@@ -182,7 +182,7 @@ public class NNConnectorUnitTest {
 
         final CountDownLatch doneSignal = new CountDownLatch(1);
         connector2.getConsumer().get().subscribe((message) -> {
-            pongDataRef.set(message.getPayload().getBody().asValue().getString());
+            pongDataRef.set(message.body().asValue().getString());
             doneSignal.countDown();
         });
 
@@ -237,14 +237,14 @@ public class NNConnectorUnitTest {
             final CountDownLatch doneSignal = new CountDownLatch(2);
 
             subscriber1.subscribe((msg) -> {
-                String body = msg.getPayload().getBody().asValue().getString();
+                String body = msg.body().asValue().getString();
                 System.out.println("Got msg: " + body);
                 recv1.set(body);
                 doneSignal.countDown();
             });
 
             subscriber2.subscribe((msg) -> {
-                String body = msg.getPayload().getBody().asValue().getString();
+                String body = msg.body().asValue().getString();
                 System.out.println("Got msg: " + body);
                 recv2.set(body);
                 doneSignal.countDown();

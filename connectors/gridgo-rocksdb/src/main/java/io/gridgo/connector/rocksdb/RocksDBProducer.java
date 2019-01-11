@@ -1,6 +1,5 @@
 package io.gridgo.connector.rocksdb;
 
-import static io.gridgo.connector.rocksdb.RocksDBConstants.*;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION_GET;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.OPERATION_GET_ALL;
@@ -9,6 +8,8 @@ import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_ALLOW_2_PHASE_C
 import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_ALLOW_MMAP_READS;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_ALLOW_MMAP_WRITES;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_CREATE_IF_MISSING;
+import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_MAX_WRITE_BUFFER_NUMBER;
+import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_MIN_WRITE_BUFFER_TO_MERGE;
 import static io.gridgo.connector.rocksdb.RocksDBConstants.PARAM_WRITE_BUFFER_SIZE;
 
 import java.util.HashMap;
@@ -17,7 +18,6 @@ import java.util.Map;
 import org.joo.promise4j.Deferred;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.CompletableDeferredObject;
-import org.joo.promise4j.impl.SimpleFailurePromise;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -79,10 +79,10 @@ public class RocksDBProducer extends AbstractProducer {
 
     private Promise<Message, Exception> _call(Message message, boolean deferredRequired, boolean isRPC) {
         // get the operation and associated handler
-        var operation = message.getPayload().getHeaders().getString(OPERATION);
+        var operation = message.headers().getString(OPERATION);
         var handler = operations.get(operation);
         if (handler == null) {
-            return new SimpleFailurePromise<>(
+            return Promise.ofCause(
                     new IllegalArgumentException("Operation " + operation + " is not supported"));
         }
 
@@ -104,7 +104,7 @@ public class RocksDBProducer extends AbstractProducer {
     private void putValue(Message message, Deferred<Message, Exception> deferred, boolean isRPC)
             throws RocksDBException {
         // TODO check if we should only flush after batch writes
-        var body = message.getPayload().getBody().asObject();
+        var body = message.body().asObject();
         for (var entry : body.entrySet()) {
             var value = entry.getValue();
             if (value.isValue() && value.asValue().isNull())
@@ -121,7 +121,7 @@ public class RocksDBProducer extends AbstractProducer {
             ack(deferred, (Message) null);
             return;
         }
-        var key = message.getPayload().getBody().asValue().getString().getBytes();
+        var key = message.body().asValue().getString().getBytes();
         var bytes = db.get(key);
         ack(deferred, Message.ofAny(BElement.ofBytes(bytes)));
     }
