@@ -52,12 +52,12 @@ public class ZMQPairUnitTest {
         AtomicReference<String> recvDataRef2 = new AtomicReference<String>(null);
 
         connector1.getConsumer().get().subscribe((message) -> {
-            recvDataRef2.set(message.getPayload().getBody().asValue().getString());
+            recvDataRef2.set(message.body().asValue().getString());
             doneSignal.countDown();
         });
 
         connector2.getConsumer().get().subscribe((message) -> {
-            recvDataRef1.set(message.getPayload().getBody().asValue().getString());
+            recvDataRef1.set(message.body().asValue().getString());
             doneSignal.countDown();
         });
 
@@ -102,7 +102,7 @@ public class ZMQPairUnitTest {
 
             final CountDownLatch doneSignal = new CountDownLatch(1);
             connector2.getConsumer().get().subscribe((message) -> {
-                pongDataRef.set(message.getPayload().getBody().asValue().getString());
+                pongDataRef.set(message.body().asValue().getString());
                 doneSignal.countDown();
             });
 

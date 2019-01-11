@@ -143,7 +143,7 @@ public class KafkaProducerUnitTest {
 
         for (int i = 0; i < NUM_MESSAGES; i++) {
             producer.sendWithAck(msg).done(response -> {
-                var body = response.getPayload().getBody();
+                var body = response.body();
                 if (body.isArray() && body.asArray().size() == 2)
                     latch.countDown();
             });

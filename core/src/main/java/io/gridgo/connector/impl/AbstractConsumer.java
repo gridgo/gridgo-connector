@@ -79,7 +79,9 @@ public abstract class AbstractConsumer extends AbstractMessageComponent implemen
         }
     }
 
-    protected void publish(@NonNull Message message, Deferred<Message, Exception> deferred) {
+    protected boolean publish(@NonNull Message message, Deferred<Message, Exception> deferred) {
+        if (this.subscribers.isEmpty())
+            return false;
         message.attachSource(getName());
         for (var subscriber : this.subscribers) {
             try {
@@ -89,6 +91,7 @@ public abstract class AbstractConsumer extends AbstractMessageComponent implemen
                 notifyErrors(deferred, ex);
             }
         }
+        return true;
     }
 
     @Override

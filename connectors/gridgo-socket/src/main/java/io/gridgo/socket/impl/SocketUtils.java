@@ -49,7 +49,7 @@ public class SocketUtils {
             }
 
             var message = Message.parse(buffer);
-            BObject headers = message.getPayload().getHeaders();
+            BObject headers = message.headers();
             if (headers != null && headers.getBoolean(SocketConstants.IS_BATCH, false)) {
                 processBatch(receiver, recvMsgCounter, message, headers);
             } else {
@@ -66,7 +66,7 @@ public class SocketUtils {
     }
 
     private static void processBatch(Consumer<Message> receiver, Consumer<Integer> recvMsgCounter, Message message, BObject headers) {
-        var subMessages = message.getPayload().getBody().asArray();
+        var subMessages = message.body().asArray();
         recvMsgCounter.accept(headers.getInteger(SocketConstants.BATCH_SIZE, subMessages.size()));
         for (BElement payload : subMessages) {
             var subMessage = Message.parse(payload);

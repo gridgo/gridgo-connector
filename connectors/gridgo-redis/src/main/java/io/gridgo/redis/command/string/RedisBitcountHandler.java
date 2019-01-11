@@ -18,6 +18,12 @@ public class RedisBitcountHandler extends AbstractRedisCommandHandler {
 
     @Override
     protected Promise<BElement, Exception> process(RedisClient redis, BObject options, BElement[] params) {
-        return redis.bitcount(params[0].asValue().getRaw());
+        long start = 0;
+        long end = 0;
+        if (params.length > 1) {
+            start = params[1].asValue().getLong();
+            end = params[2].asValue().getLong();
+        }
+        return redis.bitcount(params[0].asValue().getRaw(), start, end);
     }
 }

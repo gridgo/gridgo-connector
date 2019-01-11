@@ -70,7 +70,7 @@ public class TestFileServer {
         BObject headers = BObject.ofEmpty();
         BElement body = null;
 
-        String pathInfo = message.getPayload().getHeaders().getString(HttpCommonConstants.PATH_INFO);
+        String pathInfo = message.headers().getString(HttpCommonConstants.PATH_INFO);
         if (pathInfo != null) {
             if (pathInfo.equalsIgnoreCase("/upload")) {
                 System.out.println("got request: " + message.getPayload().toBArray());
