@@ -3,7 +3,9 @@ package io.gridgo.connector.mysql.support;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.impl.MutableBValue;
+import io.gridgo.framework.support.Message;
 import org.jdbi.v3.core.statement.SqlStatement;
+import org.joo.promise4j.Deferred;
 
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -57,6 +59,17 @@ public class Helper {
             }
         }
         return "";
+    }
+
+    public static void ack(Deferred<Message, Exception> deferred, Object result, Throwable throwable) {
+        if (deferred == null) {
+            return;
+        }
+        if (throwable != null) {
+            deferred.reject((Exception) throwable);
+            return;
+        }
+        deferred.resolve(Message.ofAny(result));
     }
 
 }
