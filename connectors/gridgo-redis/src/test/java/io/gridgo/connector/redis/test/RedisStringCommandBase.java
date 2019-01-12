@@ -278,4 +278,29 @@ public abstract class RedisStringCommandBase {
         connector.stop();
         Assert.assertNull(exRef.get());
     }
+
+    /**
+     *
+     */
+    public void testDecrbyCommand() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("mykey", "10")))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.DECRBY), BArray.ofSequence("mykey", 3))))//
+                .pipeDone(result -> Common.checkLongResult(result, 7))//
+                .done(result -> latch.countDown())//
+                .fail(ex -> {
+                    exRef.set(ex);
+                    latch.countDown();
+                });
+
+        latch.await();
+        connector.stop();
+        Assert.assertNull(exRef.get());
+    }
 }
