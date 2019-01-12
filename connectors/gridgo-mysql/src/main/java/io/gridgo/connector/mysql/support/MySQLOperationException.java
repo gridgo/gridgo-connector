@@ -10,4 +10,8 @@ public class MySQLOperationException extends Exception {
     public MySQLOperationException(String message) {
         super(message);
     }
+
+    public MySQLOperationException() {
+        super("Invalid Operation");
+    }
 }

@@ -17,6 +17,10 @@ import java.util.Map;
 
 public class Helper {
 
+    private Helper(){
+
+    }
+
     public static List<Map<String, Object>> resultSetAsList(ResultSet resultSet){
         List<Map<String, Object>> rows = new ArrayList<>();
         try {
@@ -31,7 +35,7 @@ public class Helper {
             }
         }catch (SQLException sqlEx){
             sqlEx.printStackTrace();
-            return null;
+            return new ArrayList<>();
         }
         return rows;
     }

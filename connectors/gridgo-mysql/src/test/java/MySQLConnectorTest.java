@@ -4,6 +4,7 @@ import io.gridgo.bean.BValue;
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.Producer;
 import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
+import io.gridgo.connector.mysql.MySQLConstants;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
 import io.gridgo.framework.support.Message;
@@ -90,19 +91,20 @@ public class MySQLConnectorTest {
 
     private Message createSelectRequest() {
         String sql = buildSelectSQL();
-        var headers = BObject.ofEmpty();
+        var headers = BObject.ofEmpty().setAny(MySQLConstants.OPERATION, MySQLConstants.OPERATION_SELECT);
         columnsName.forEach(column -> headers.putAny(column, sqlValues.get(column)));
         return Message.ofAny(headers, sql);
     }
 
     private Message createInsertRequest() {
         String sql = buildInsertSQL();
-        var headers = BObject.ofEmpty();
+        var headers = BObject.ofEmpty().setAny(MySQLConstants.OPERATION, MySQLConstants.OPERATION_INSERT);
         columnsName.forEach(column -> headers.putAny(column, sqlValues.get(column)));
         return Message.of(Payload.of(headers, BValue.of(sql)));
     }
 
     private Message createCreateTableMessage(){
+        var headers = BObject.ofEmpty().setAny(MySQLConstants.OPERATION,"asdasd");
         StringBuilder queryBuilder = new StringBuilder("create table ")
                 .append(tableName)
                 .append(" ( ");
@@ -114,11 +116,13 @@ public class MySQLConnectorTest {
         }
         queryBuilder.deleteCharAt(queryBuilder.length() - 1);
         queryBuilder.append(");");
-        return Message.ofAny(queryBuilder.toString());
+
+        return Message.ofAny(headers, queryBuilder.toString());
     }
 
     private Message createDropTableMessage(){
-        return Message.ofAny("drop table if exists " + tableName + " ;");
+        var headers = BObject.ofEmpty().setAny(MySQLConstants.OPERATION, MySQLConstants.OPERATION_EXCUTE);;
+        return Message.ofAny(headers, "drop table if exists " + tableName + " ;");
     }
 
     private void addField(Class type,String sqlType, Object value){
@@ -200,6 +204,9 @@ public class MySQLConnectorTest {
         Message message = createCreateTableMessage();
         var ok = producer.call(message);
         ok.done(msg -> Assert.assertTrue(true))
-            .fail(ex -> Assert.fail());
+            .fail(ex -> {
+                ex.printStackTrace();
+                Assert.fail();
+            });
     }
 }

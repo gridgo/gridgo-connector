@@ -2,6 +2,7 @@ package io.gridgo.connector.mysql;
 
 
 import io.gridgo.connector.impl.AbstractProducer;
+import io.gridgo.connector.mysql.support.MySQLOperationException;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +42,9 @@ public class MySQLProducer extends AbstractProducer {
         }
         var operation = request.headers().getString(OPERATION);
         var handler = operationsMap.get(operation);
+        if (handler == null){
+            return new SimpleFailurePromise<>(new MySQLOperationException());
+        }
         if (BEGIN_TRANSACTION.equals(operation)){
             handler.handle(request, Jdbi.create(connectionPool::getConnection).open(), deferred);
         }else {
