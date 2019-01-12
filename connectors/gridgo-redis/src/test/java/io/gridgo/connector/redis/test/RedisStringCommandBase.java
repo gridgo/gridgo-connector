@@ -246,4 +246,36 @@ public abstract class RedisStringCommandBase {
         connector.stop();
         Assert.assertNull(exRef.get());
     }
+
+    /*
+     * https://redis.io/commands/decr
+     */
+    public void testDecrementCommand() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("mykey", "10")))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.DECR), "mykey")))//
+                .pipeDone(result -> Common.checkLongResult(result, 9))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("mykey", "234293482390480948029348230948"))))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.DECR), "mykey")))//
+                .done(result -> latch.countDown())//
+                .fail(ex -> {
+                    if (ex.getMessage().equals("io.lettuce.core.RedisCommandExecutionException: ERR value is not an integer or out of range")) {
+                        exRef.set(null);
+                        latch.countDown();
+                        return;
+                    }
+                    exRef.set(ex);
+                    latch.countDown();
+                });
+
+
+        latch.await();
+        connector.stop();
+        Assert.assertNull(exRef.get());
+    }
 }
