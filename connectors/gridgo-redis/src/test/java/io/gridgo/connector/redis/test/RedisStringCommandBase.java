@@ -210,10 +210,40 @@ public abstract class RedisStringCommandBase {
                     exRef.set(ex);
                     latch.countDown();
                 });
-        
+
         latch.await();
         connector.stop();
         Assert.assertNull(exRef.get());
     }
 
+    /*
+     * https://redis.io/commands/getbit
+     */
+
+    public void testGBitCommand() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+        producer.call(Message.ofAny(buildCommand(RedisCommands.DEL), "mykey"))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SETBIT), BArray.ofSequence("mykey", 7, 1))))//
+                .pipeDone(result -> Common.checkLongResult(result, 0))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GETBIT), BArray.ofSequence("mykey", 0))))//
+                .pipeDone(result -> Common.checkLongResult(result, 0))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GETBIT), BArray.ofSequence("mykey", 7))))//
+                .pipeDone(result -> Common.checkLongResult(result, 1))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GETBIT), BArray.ofSequence("mykey", 100))))//
+                .pipeDone(result -> Common.checkLongResult(result, 0))//
+                .done(result -> latch.countDown())
+                .fail(ex -> {
+                    exRef.set(ex);
+                    latch.countDown();
+                });
+
+        latch.await();
+        connector.stop();
+        Assert.assertNull(exRef.get());
+    }
 }

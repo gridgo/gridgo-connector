@@ -40,4 +40,10 @@ public class SingleRedisStringCommand extends RedisStringCommandBase {
         super.testSetBitCommand();
     }
 
+    @Test
+    @Override
+    public void testGBitCommand() throws InterruptedException {
+        super.testGBitCommand();
+    }
+
 }
