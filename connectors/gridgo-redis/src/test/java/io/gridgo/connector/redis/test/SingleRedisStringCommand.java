@@ -57,4 +57,10 @@ public class SingleRedisStringCommand extends RedisStringCommandBase {
     public void testDecrbyCommand() throws InterruptedException {
         super.testDecrbyCommand();
     }
+
+    @Test
+    @Override
+    public void testMsetCommand() throws InterruptedException {
+        super.testMsetCommand();
+    }
 }
