@@ -21,15 +21,6 @@ public interface MessageSenderComponent {
     public void send(Message message);
 
     /**
-     * Send a message and wait for acknowledgement but ignore the response. Use this
-     * method if you must know the status of the sending.
-     * 
-     * @param message the message to be sent
-     * @return the acknowledgement promise
-     */
-    public Promise<Message, Exception> sendWithAck(Message message);
-
-    /**
      * Sugar-syntactic method for <code>send()</code>. Create a message from body
      * and send it, ignoring status and response.
      * 
@@ -51,6 +42,15 @@ public interface MessageSenderComponent {
     public default void sendAny(BObject headers, Object body) {
         send(Message.ofAny(headers, body));
     }
+
+    /**
+     * Send a message and wait for acknowledgement but ignore the response. Use this
+     * method if you must know the status of the sending.
+     * 
+     * @param message the message to be sent
+     * @return the acknowledgement promise
+     */
+    public Promise<Message, Exception> sendWithAck(Message message);
 
     /**
      * Sugar-syntactic method for <code>sendWithAck()</code>. Create a message from
