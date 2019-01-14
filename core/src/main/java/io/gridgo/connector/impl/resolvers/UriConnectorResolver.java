@@ -122,7 +122,8 @@ public class UriConnectorResolver implements ConnectorResolver {
                         continue;
                     }
                     throw new MalformedEndpointException(
-                            String.format("Malformed endpoint, invalid token at %d, expected '%c', actual '%c': %s", i, syntaxChar, schemeChar, schemePart));
+                            String.format("Malformed endpoint, invalid token at %d, expected '%c', actual '%c': %s", i,
+                                    syntaxChar, schemeChar, schemePart));
                 }
                 i++;
                 j++;
@@ -150,10 +151,12 @@ public class UriConnectorResolver implements ConnectorResolver {
         }
 
         if (i < schemePart.length()) {
-            throw new MalformedEndpointException(String.format("Malformed endpoint, unexpected tokens \"%s\": %s", schemePart.substring(i), schemePart));
+            throw new MalformedEndpointException(String.format("Malformed endpoint, unexpected tokens \"%s\": %s",
+                    schemePart.substring(i), schemePart));
         }
         if (j < syntax.length()) {
-            throw new MalformedEndpointException(String.format("Malformed endpoint, missing values for syntax \"%s\": %s", syntax.substring(j), schemePart));
+            throw new MalformedEndpointException(String.format(
+                    "Malformed endpoint, missing values for syntax \"%s\": %s", syntax.substring(j), schemePart));
         }
 
         return props;
@@ -178,7 +181,8 @@ public class UriConnectorResolver implements ConnectorResolver {
         if (insideBracket) {
             if (schemePart.charAt(i) != ']') {
                 throw new MalformedEndpointException(
-                        String.format("Malformed endpoint, invalid token at %d, expected ']', actualy '%c': %s", i, schemePart.charAt(i), schemePart));
+                        String.format("Malformed endpoint, invalid token at %d, expected ']', actualy '%c': %s", i,
+                                schemePart.charAt(i), schemePart));
             }
             buffer.put(']');
         }
@@ -190,7 +194,8 @@ public class UriConnectorResolver implements ConnectorResolver {
     private boolean isPlaceholder(char c, boolean insideBracket) {
         if (insideBracket && (c == ':' || c == '/'))
             return true;
-        return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_' || c == '-' || c == '.' || c == '*' || c == ',';
+        return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_' || c == '-' || c == '.'
+                || c == '*' || c == ',';
     }
 
     @Override
@@ -198,8 +203,8 @@ public class UriConnectorResolver implements ConnectorResolver {
         try {
             var config = resolveConfig(endpoint, context.getRegistry());
             return clazz.getConstructor().newInstance().initialize(config, context);
-        } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
-                | SecurityException e) {
+        } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
+                | NoSuchMethodException | SecurityException e) {
             throw new ConnectorResolutionException("Exception caught while resolving endpoint " + endpoint, e);
         }
     }
@@ -220,7 +225,14 @@ public class UriConnectorResolver implements ConnectorResolver {
 
         var params = extractParameters(queryPart);
         var placeholders = extractPlaceholders(schemePart);
-        return new DefaultConnectorConfig(scheme, scheme + ":" + schemePart, schemePart, params, placeholders);
+        return DefaultConnectorConfig.builder() //
+                                     .scheme(scheme) //
+                                     .nonQueryEndpoint(scheme + ":" + schemePart) //
+                                     .originalEndpoint(endpoint) //
+                                     .remaining(schemePart) //
+                                     .parameters(params) //
+                                     .placeholders(placeholders) //
+                                     .build();
     }
 
     private int skipOptionalPart(String syntax, int j) {
