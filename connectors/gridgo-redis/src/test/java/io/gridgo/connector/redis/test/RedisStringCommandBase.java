@@ -330,4 +330,31 @@ public abstract class RedisStringCommandBase {
         connector.stop();
         Assert.assertNull(exRef.get());
     }
+
+    /*
+     * https://redis.io/commands/getset
+     */
+    public void testGetsetCommand() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.MSET), BArray.ofSequence("key1", "Hello", "key2", "World")))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GET), "key1")))//
+                .pipeDone(result -> Common.checkStringResult(result, "Hello"))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GET), "key2")))//
+                .pipeDone(result -> Common.checkStringResult(result, "World"))//
+                .done(result -> latch.countDown())//
+                .fail(ex -> {
+                    exRef.set(ex);
+                    latch.countDown();
+                });
+
+        latch.await();
+        connector.stop();
+        Assert.assertNull(exRef.get());
+    }
 }
