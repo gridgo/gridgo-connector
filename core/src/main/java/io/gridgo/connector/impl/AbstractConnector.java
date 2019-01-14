@@ -8,7 +8,7 @@ import io.gridgo.connector.Consumer;
 import io.gridgo.connector.Producer;
 import io.gridgo.connector.support.config.ConnectorConfig;
 import io.gridgo.connector.support.config.ConnectorContext;
-import io.gridgo.framework.AbstractComponentLifecycle;
+import io.gridgo.framework.impl.AbstractComponentLifecycle;
 import lombok.Getter;
 
 public abstract class AbstractConnector extends AbstractComponentLifecycle implements Connector {
