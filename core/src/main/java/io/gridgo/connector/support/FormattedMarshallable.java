@@ -24,7 +24,7 @@ public interface FormattedMarshallable {
     public String getFormat();
 
     public default byte[] serialize(BElement body) {
-        if (body == null)
+        if (body == null || body.isNullValue())
             return null;
         var format = getFormat();
         if (format == null || format.equals("json"))

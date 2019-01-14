@@ -26,9 +26,10 @@ public class KafkaConnector extends AbstractConnector {
         } else if (mode.equals(KafkaConstants.MODE_PRODUCER)) {
             createConsumer = false;
         }
+        var format = getParam("format");
         var kafkaConfig = createKafkaConfig(config);
         if (createConsumer)
-            consumer = Optional.of(new KafkaConsumer(getContext(), kafkaConfig));
+            consumer = Optional.of(new KafkaConsumer(getContext(), kafkaConfig, format));
         if (createProducer)
             producer = Optional.of(new KafkaProducer(getContext(), kafkaConfig));
     }
