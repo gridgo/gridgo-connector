@@ -12,33 +12,33 @@ import java.util.Map;
 class MySQLOperator {
 
     //TODO: Have not supported byte[] in params yet
-    static void select(Message msg, Handle handle, Deferred<Message, Exception> deferred){
+    static Message select(Message msg, Handle handle){
         var queryStatement = msg.body().asValue().getString();
         var query = handle.createQuery(queryStatement);
         Helper.bindParams(query, msg.getPayload().getHeaders());
         ResultSet resultSet =  query.execute((supplier, context) -> supplier.get().executeQuery());
         List<Map<String, Object>> rows = Helper.resultSetAsList(resultSet);
-        Helper.ack(deferred, rows, null);
+        return Message.ofAny(rows);
     }
 
-    static void updateRow(Message msg, Handle handle, Deferred<Message, Exception> deferred)  {
+    static Message updateRow(Message msg, Handle handle)  {
         var headers = msg.getPayload().getHeaders();
         var queryStatement = msg.getPayload().getBody().asValue().getString();
         var query = handle.createUpdate(queryStatement);
         Helper.bindParams(query, headers);
         int rowNum =  query.execute();
-        Helper.ack(deferred, rowNum, null);
+        return Message.ofAny(rowNum);
     }
 
-    static void execute(Message msg, Handle handle, Deferred<Message, Exception> deferred){
+    static Message execute(Message msg, Handle handle){
         var queryStatement = msg.getPayload().getBody().asValue().getString();
         int result = handle.execute(queryStatement);
-        Helper.ack(deferred, result, null);
+        return Message.ofAny(result);
     }
 
-    static void begin(Message msg, Handle handle, Deferred<Message, Exception> deferred){
+    static Message begin(Message msg, Handle handle){
         handle.begin();
         Transaction transaction = new Transaction(handle);
-        Helper.ack(deferred, transaction, null);
+        return Message.ofAny(transaction);
     }
 }

@@ -36,13 +36,13 @@ class Transaction {
 
     public Promise select(Message msg){
         var deferred = new CompletableDeferredObject<Message, Exception>();
-        MySQLOperator.select(msg, handle, deferred);
+        MySQLOperator.select(msg, handle);
         return deferred;
     }
 
     public Promise update(Message msg){
         var deferred = new CompletableDeferredObject<Message, Exception>();
-        MySQLOperator.updateRow(msg, handle, deferred);
+        MySQLOperator.updateRow(msg, handle);
         return deferred;
     }
 

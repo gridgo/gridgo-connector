@@ -2,6 +2,7 @@ import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.Connector;
+import io.gridgo.connector.ConnectorFactory;
 import io.gridgo.connector.Producer;
 import io.gridgo.connector.impl.factories.DefaultConnectorFactory;
 import io.gridgo.connector.mysql.MySQLConstants;
@@ -11,9 +12,11 @@ import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 import io.gridgo.framework.support.Registry;
 import io.gridgo.framework.support.impl.SimpleRegistry;
+import org.jdbi.v3.core.ConnectionFactory;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import snaq.db.ConnectionPool;
 
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -40,9 +43,10 @@ public class MySQLConnectorTest {
 
     @Before
     public void initialize(){
-        registry = new SimpleRegistry();
+        var pool = new ConnectionPool("local", 5, 15, 0, 180, "jdbc:mysql://localhost:3306/test", "root", "1");
+        registry = new SimpleRegistry().register("sonaq", (ConnectionFactory)pool::getConnection);
         context = new DefaultConnectorContextBuilder().setRegistry(registry).build();
-        connector = new DefaultConnectorFactory().createConnector("jdbc:mysql/localhost/3306/root//test", context);
+        connector = new DefaultConnectorFactory().createConnector("jdbc:mysql://localhost:3306/test?user=root&password=1&pool=sonaq", context);
         connector.start();
         producer = connector.getProducer().orElseThrow();
         tableName = "table_test_mysql_connector";
@@ -104,7 +108,7 @@ public class MySQLConnectorTest {
     }
 
     private Message createCreateTableMessage(){
-        var headers = BObject.ofEmpty().setAny(MySQLConstants.OPERATION,"asdasd");
+        var headers = BObject.ofEmpty().setAny(MySQLConstants.OPERATION,MySQLConstants.OPERATION_EXCUTE);
         StringBuilder queryBuilder = new StringBuilder("create table ")
                 .append(tableName)
                 .append(" ( ");

@@ -6,6 +6,7 @@ import io.gridgo.connector.mysql.support.MySQLOperationException;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import lombok.extern.slf4j.Slf4j;
+import org.jdbi.v3.core.ConnectionFactory;
 import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.Jdbi;
 import org.joo.promise4j.Deferred;
@@ -23,18 +24,20 @@ import static io.gridgo.connector.mysql.MySQLConstants.*;
 public class MySQLProducer extends AbstractProducer {
 
     interface ProducerHandler {
-        void handle(Message msg, Handle handle, Deferred<Message, Exception> deferred);
+        Message handle(Message msg, Handle handle);
     }
 
     private Map<String, ProducerHandler> operationsMap = new HashMap<>();
+    private Jdbi jdbiClient;
 
-    private ConnectionPool connectionPool;
 
-    MySQLProducer(ConnectorContext context, String url, String userName, String password) {
+    MySQLProducer(ConnectorContext context, ConnectionFactory connectionFactory) {
         super(context);
-        this.connectionPool = new ConnectionPool("local", 5, 10, 30, 180, url, userName, password);
+        this.jdbiClient = Jdbi.create(connectionFactory);
         bindHandlers();
     }
+
+
 
     private Promise<Message, Exception> _call(Message request, CompletableDeferredObject<Message, Exception> deferred, boolean isRPC) {
         if(deferred == null){
@@ -46,13 +49,14 @@ public class MySQLProducer extends AbstractProducer {
             return new SimpleFailurePromise<>(new MySQLOperationException());
         }
         if (BEGIN_TRANSACTION.equals(operation)){
-            handler.handle(request, Jdbi.create(connectionPool::getConnection).open(), deferred);
+            handler.handle(request, jdbiClient.open());
         }else {
-            try(Handle handle = Jdbi.create(connectionPool::getConnection).open()) {
-                handler.handle(request, handle, deferred);
+            try(Handle handle = jdbiClient.open()) {
+                Message result = handler.handle(request, handle);
+                ack(deferred, result);
             } catch (Exception ex) {
                 log.error("Error while processing MySQL request", ex);
-                return new SimpleFailurePromise<>(ex);
+                ack(deferred, ex);
             }
         }
         return  deferred.promise();
@@ -94,7 +98,6 @@ public class MySQLProducer extends AbstractProducer {
 
     @Override
     protected void onStop() {
-        connectionPool.release();
     }
 
     @Override
