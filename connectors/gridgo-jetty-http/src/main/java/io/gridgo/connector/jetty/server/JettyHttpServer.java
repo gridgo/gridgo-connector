@@ -17,7 +17,7 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
-import io.gridgo.framework.NonameComponentLifecycle;
+import io.gridgo.framework.impl.NonameComponentLifecycle;
 import io.gridgo.utils.support.HostAndPort;
 import lombok.Getter;
 import lombok.NonNull;
