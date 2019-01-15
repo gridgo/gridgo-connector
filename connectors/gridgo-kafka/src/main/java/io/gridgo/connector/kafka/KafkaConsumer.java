@@ -20,16 +20,82 @@ import org.joo.promise4j.impl.AsyncDeferredObject;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.AbstractConsumer;
+import io.gridgo.connector.support.FormattedMarshallable;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.execution.ExecutionStrategy;
 import io.gridgo.framework.execution.impl.ExecutorExecutionStrategy;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.impl.MultipartMessage;
+import io.gridgo.utils.ByteArrayUtils;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class KafkaConsumer extends AbstractConsumer {
+public class KafkaConsumer extends AbstractConsumer implements FormattedMarshallable {
+
+    private static final int DEFAULT_THREADS = 8;
+
+    private static final ExecutionStrategy DEFAULT_EXECUTION_STRATEGY = new ExecutorExecutionStrategy(DEFAULT_THREADS);
+
+    static {
+        DEFAULT_EXECUTION_STRATEGY.start();
+        Runtime.getRuntime().addShutdownHook(new Thread(DEFAULT_EXECUTION_STRATEGY::stop));
+    }
+
+    private final KafkaConfiguration configuration;
+
+    private List<KafkaFetchRecords> tasks;
+
+    @Getter
+    private String format;
+
+    public KafkaConsumer(ConnectorContext context, final @NonNull KafkaConfiguration configuration, String format) {
+        super(context);
+        this.configuration = configuration;
+        this.format = format;
+    }
+
+    @Override
+    protected String generateName() {
+        return "consumer.kafka." + configuration.getTopic();
+    }
+
+    private Properties getProps() {
+        return configuration.createConsumerProperties();
+    }
+
+    @Override
+    protected void onStart() {
+        var consumerExecutionStrategy = getContext().getConsumerExecutionStrategy().orElse(DEFAULT_EXECUTION_STRATEGY);
+        consumerExecutionStrategy.start();
+
+        tasks = new ArrayList<>();
+
+        var props = getProps();
+
+        Pattern pattern = null;
+        if (configuration.isTopicIsPattern()) {
+            pattern = Pattern.compile(configuration.getTopic());
+        }
+
+        for (int i = 0; i < configuration.getConsumersCount(); i++) {
+            var task = new KafkaFetchRecords(configuration.getTopic(), pattern, i + "", props);
+            task.doInit();
+            consumerExecutionStrategy.execute(task);
+            tasks.add(task);
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        for (KafkaFetchRecords task : tasks) {
+            task.shutdown();
+        }
+        var consumerExecutionStrategy = getContext().getConsumerExecutionStrategy().orElse(null);
+        if (consumerExecutionStrategy != null)
+            consumerExecutionStrategy.stop();
+    }
 
     class KafkaFetchRecords implements Runnable {
 
@@ -70,8 +136,13 @@ public class KafkaConsumer extends AbstractConsumer {
                     isRaw = true;
             }
 
-            var body = isRaw ? BElement.ofBytes((byte[]) record.value()) : BElement.ofAny(record.value());
+            var body = isRaw ? BElement.ofBytes((byte[]) record.value()) : deserializeWithFormat(record);
             return createMessage(headers, body);
+        }
+
+        private BElement deserializeWithFormat(ConsumerRecord<Object, Object> record) {
+            return format == null ? BElement.ofAny(record.value())
+                    : deserialize(ByteArrayUtils.primitiveToBytes(record.value()));
         }
 
         private Message buildMessageForBatch(List<ConsumerRecord<Object, Object>> records) {
@@ -301,64 +372,5 @@ public class KafkaConsumer extends AbstractConsumer {
                 consumer.subscribe(Arrays.asList(topicName.split(",")));
             }
         }
-    }
-
-    private static final int DEFAULT_THREADS = 8;
-
-    private static final ExecutionStrategy DEFAULT_EXECUTION_STRATEGY = new ExecutorExecutionStrategy(DEFAULT_THREADS);
-
-    static {
-        DEFAULT_EXECUTION_STRATEGY.start();
-        Runtime.getRuntime().addShutdownHook(new Thread(DEFAULT_EXECUTION_STRATEGY::stop));
-    }
-
-    private final KafkaConfiguration configuration;
-
-    private List<KafkaFetchRecords> tasks;
-
-    public KafkaConsumer(ConnectorContext context, final @NonNull KafkaConfiguration configuration) {
-        super(context);
-        this.configuration = configuration;
-    }
-
-    @Override
-    protected String generateName() {
-        return "consumer.kafka." + configuration.getTopic();
-    }
-
-    private Properties getProps() {
-        return configuration.createConsumerProperties();
-    }
-
-    @Override
-    protected void onStart() {
-        var consumerExecutionStrategy = getContext().getConsumerExecutionStrategy().orElse(DEFAULT_EXECUTION_STRATEGY);
-        consumerExecutionStrategy.start();
-
-        tasks = new ArrayList<>();
-
-        var props = getProps();
-
-        Pattern pattern = null;
-        if (configuration.isTopicIsPattern()) {
-            pattern = Pattern.compile(configuration.getTopic());
-        }
-
-        for (int i = 0; i < configuration.getConsumersCount(); i++) {
-            KafkaFetchRecords task = new KafkaFetchRecords(configuration.getTopic(), pattern, i + "", props);
-            task.doInit();
-            consumerExecutionStrategy.execute(task);
-            tasks.add(task);
-        }
-    }
-
-    @Override
-    protected void onStop() {
-        for (KafkaFetchRecords task : tasks) {
-            task.shutdown();
-        }
-        var consumerExecutionStrategy = getContext().getConsumerExecutionStrategy().orElse(null);
-        if (consumerExecutionStrategy != null)
-            consumerExecutionStrategy.stop();
     }
 }

@@ -3,7 +3,7 @@ package io.gridgo.redis.lettuce;
 import java.util.function.Function;
 
 import io.gridgo.bean.BElement;
-import io.gridgo.framework.AbstractComponentLifecycle;
+import io.gridgo.framework.impl.AbstractComponentLifecycle;
 import io.gridgo.redis.RedisConfig;
 import io.gridgo.redis.RedisType;
 import io.gridgo.redis.lettuce.delegate.LettuceCommandsDelegate;
