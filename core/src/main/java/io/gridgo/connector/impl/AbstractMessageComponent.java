@@ -5,7 +5,7 @@ import java.util.Optional;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
-import io.gridgo.framework.AbstractComponentLifecycle;
+import io.gridgo.framework.impl.AbstractComponentLifecycle;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 import lombok.NonNull;
