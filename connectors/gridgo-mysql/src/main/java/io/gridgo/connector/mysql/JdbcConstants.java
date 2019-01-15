@@ -2,8 +2,7 @@ package io.gridgo.connector.mysql;
 
 public class JdbcConstants {
 
-    private JdbcConstants(){
-
+    private JdbcConstants() {
     }
 
     public static final String OPERATION = "JDBC_Operation";

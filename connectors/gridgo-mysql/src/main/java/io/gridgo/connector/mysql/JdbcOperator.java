@@ -11,33 +11,27 @@ import java.util.Map;
 class JdbcOperator {
 
     //TODO: Have not supported byte[] in params yet
-    static Message select(Message msg, Handle handle){
+    static Message select(Message msg, Handle handle) {
         var queryStatement = msg.body().asValue().getString();
         var query = handle.createQuery(queryStatement);
         Helper.bindParams(query, msg.getPayload().getHeaders());
-        ResultSet resultSet =  query.execute((supplier, context) -> supplier.get().executeQuery());
+        ResultSet resultSet = query.execute((supplier, context) -> supplier.get().executeQuery());
         List<Map<String, Object>> rows = Helper.resultSetAsList(resultSet);
         return Message.ofAny(rows);
     }
 
-    static Message updateRow(Message msg, Handle handle)  {
+    static Message updateRow(Message msg, Handle handle) {
         var headers = msg.getPayload().getHeaders();
         var queryStatement = msg.getPayload().getBody().asValue().getString();
         var query = handle.createUpdate(queryStatement);
         Helper.bindParams(query, headers);
-        int rowNum =  query.execute();
+        int rowNum = query.execute();
         return Message.ofAny(rowNum);
     }
 
-    static Message execute(Message msg, Handle handle){
+    static Message execute(Message msg, Handle handle) {
         var queryStatement = msg.getPayload().getBody().asValue().getString();
         int result = handle.execute(queryStatement);
         return Message.ofAny(result);
-    }
-
-    static Message begin(Message msg, Handle handle){
-        handle.begin();
-        JdbcTransaction jdbcTransaction = new JdbcTransaction(handle);
-        return Message.ofAny(jdbcTransaction);
     }
 }
