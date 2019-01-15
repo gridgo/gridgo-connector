@@ -3,13 +3,12 @@ package io.gridgo.connector.mysql;
 import io.gridgo.connector.mysql.support.Helper;
 import io.gridgo.framework.support.Message;
 import org.jdbi.v3.core.Handle;
-import org.joo.promise4j.Deferred;
 
 import java.sql.ResultSet;
 import java.util.List;
 import java.util.Map;
 
-class MySQLOperator {
+class JdbcOperator {
 
     //TODO: Have not supported byte[] in params yet
     static Message select(Message msg, Handle handle){
@@ -38,7 +37,7 @@ class MySQLOperator {
 
     static Message begin(Message msg, Handle handle){
         handle.begin();
-        Transaction transaction = new Transaction(handle);
-        return Message.ofAny(transaction);
+        JdbcTransaction jdbcTransaction = new JdbcTransaction(handle);
+        return Message.ofAny(jdbcTransaction);
     }
 }

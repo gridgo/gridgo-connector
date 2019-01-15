@@ -2,26 +2,24 @@ package io.gridgo.connector.mysql;
 
 
 import io.gridgo.connector.impl.AbstractProducer;
-import io.gridgo.connector.mysql.support.MySQLOperationException;
+import io.gridgo.connector.mysql.support.JdbcOperationException;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import lombok.extern.slf4j.Slf4j;
 import org.jdbi.v3.core.ConnectionFactory;
 import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.Jdbi;
-import org.joo.promise4j.Deferred;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.CompletableDeferredObject;
 import org.joo.promise4j.impl.SimpleFailurePromise;
-import snaq.db.ConnectionPool;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.gridgo.connector.mysql.MySQLConstants.*;
+import static io.gridgo.connector.mysql.JdbcConstants.*;
 
 @Slf4j
-public class MySQLProducer extends AbstractProducer {
+public class JdbcProducer extends AbstractProducer {
 
     interface ProducerHandler {
         Message handle(Message msg, Handle handle);
@@ -31,7 +29,7 @@ public class MySQLProducer extends AbstractProducer {
     private Jdbi jdbiClient;
 
 
-    MySQLProducer(ConnectorContext context, ConnectionFactory connectionFactory) {
+    JdbcProducer(ConnectorContext context, ConnectionFactory connectionFactory) {
         super(context);
         this.jdbiClient = Jdbi.create(connectionFactory);
         bindHandlers();
@@ -46,7 +44,7 @@ public class MySQLProducer extends AbstractProducer {
         var operation = request.headers().getString(OPERATION);
         var handler = operationsMap.get(operation);
         if (handler == null){
-            return new SimpleFailurePromise<>(new MySQLOperationException());
+            return new SimpleFailurePromise<>(new JdbcOperationException());
         }
         if (BEGIN_TRANSACTION.equals(operation)){
             handler.handle(request, jdbiClient.open());
@@ -55,7 +53,7 @@ public class MySQLProducer extends AbstractProducer {
                 Message result = handler.handle(request, handle);
                 ack(deferred, result);
             } catch (Exception ex) {
-                log.error("Error while processing MySQL request", ex);
+                log.error("Error while processing JDBC request", ex);
                 ack(deferred, ex);
             }
         }
@@ -67,12 +65,12 @@ public class MySQLProducer extends AbstractProducer {
     }
 
     private void bindHandlers() {
-        bind(OPERATION_SELECT, MySQLOperator::select);
-        bind(OPERATION_UPDATE, MySQLOperator::updateRow);
-        bind(OPERATION_DELETE, MySQLOperator::updateRow);
-        bind(OPERATION_INSERT, MySQLOperator::updateRow);
-        bind(OPERATION_EXCUTE, MySQLOperator::execute);
-        bind(BEGIN_TRANSACTION, MySQLOperator::begin);
+        bind(OPERATION_SELECT, JdbcOperator::select);
+        bind(OPERATION_UPDATE, JdbcOperator::updateRow);
+        bind(OPERATION_DELETE, JdbcOperator::updateRow);
+        bind(OPERATION_INSERT, JdbcOperator::updateRow);
+        bind(OPERATION_EXCUTE, JdbcOperator::execute);
+        bind(BEGIN_TRANSACTION, JdbcOperator::begin);
     }
 
     @Override

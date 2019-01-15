@@ -15,7 +15,7 @@ import snaq.db.ConnectionPool;
 
 import java.math.BigDecimal;
 
-public class MySQLConnectorTest {
+public class JdbcConnectorTest {
 
     private Registry registry;
     private ConnectorContext context;

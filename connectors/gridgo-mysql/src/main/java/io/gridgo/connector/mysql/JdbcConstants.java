@@ -1,8 +1,8 @@
 package io.gridgo.connector.mysql;
 
-public class MySQLConstants {
+public class JdbcConstants {
 
-    private MySQLConstants(){
+    private JdbcConstants(){
 
     }
 
