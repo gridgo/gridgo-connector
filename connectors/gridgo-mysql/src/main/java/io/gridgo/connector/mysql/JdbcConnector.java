@@ -32,8 +32,6 @@ public class JdbcConnector extends AbstractConnector {
             var connectionPool = new ConnectionPool("local", 5, 15, 0, 180, url, userName, password);
             this.producer = Optional.of(new JdbcProducer(getContext(), connectionPool::getConnection));
         }
-
-
     }
 
 }

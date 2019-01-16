@@ -18,7 +18,6 @@ public abstract class JdbcClient extends AbstractTransaction {
 
     Map<String, JdbcClientHandler> operationsMap = new HashMap<>();
 
-
     JdbcClient(ConnectorContext context) {
         super(context);
         bindHandlers();

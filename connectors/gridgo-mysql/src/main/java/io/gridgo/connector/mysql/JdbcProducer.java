@@ -1,27 +1,22 @@
 package io.gridgo.connector.mysql;
 
 
-import io.gridgo.connector.impl.AbstractProducer;
 import io.gridgo.connector.mysql.support.JdbcOperationException;
 import io.gridgo.connector.support.config.ConnectorContext;
+import static io.gridgo.connector.support.transaction.TransactionConstants.HEADER_CREATE_TRANSACTION;
 import io.gridgo.framework.support.Message;
 import lombok.extern.slf4j.Slf4j;
 import org.jdbi.v3.core.ConnectionFactory;
 import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.Jdbi;
-import org.joo.promise4j.Deferred;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.CompletableDeferredObject;
 import org.joo.promise4j.impl.SimpleFailurePromise;
-
-import java.util.HashMap;
-import java.util.Map;
 
 import static io.gridgo.connector.mysql.JdbcConstants.*;
 
 @Slf4j
 class JdbcProducer extends JdbcClient {
-
 
     private Jdbi jdbiClient;
     private String generatedName;
@@ -43,7 +38,7 @@ class JdbcProducer extends JdbcClient {
             return null;
         }
         var operation = request.headers().getString(OPERATION);
-        if (BEGIN_TRANSACTION.equals(operation)) {
+        if (HEADER_CREATE_TRANSACTION.equals(operation)) {
             var result = beginTransaction(request, jdbiClient.open(), this.getContext());
             ack(deferred, result);
             return deferred.promise();
@@ -66,10 +61,5 @@ class JdbcProducer extends JdbcClient {
     protected String generateName() {
         return this.generatedName;
     }
-
-
-
-
-
 
 }

@@ -2,7 +2,6 @@ package io.gridgo.connector.mysql.support;
 
 public class JdbcOperationException extends Exception {
 
-
     public JdbcOperationException(Throwable cause) {
         super(cause);
     }

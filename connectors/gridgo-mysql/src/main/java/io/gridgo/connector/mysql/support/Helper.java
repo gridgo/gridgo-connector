@@ -53,15 +53,6 @@ public class Helper {
 
     }
 
-    public static String getOperation(String sqlStatement){
-        for (int i = 0; i < sqlStatement.length(); i++) {
-            if (sqlStatement.charAt(i) == ' ') {
-                return sqlStatement.substring(0, i);
-            }
-        }
-        return "";
-    }
-
     public static void ack(Deferred<Message, Exception> deferred, Object result, Throwable throwable) {
         if (deferred == null) {
             return;
@@ -72,7 +63,5 @@ public class Helper {
         }
         deferred.resolve(Message.ofAny(result));
     }
-
-
 
 }
