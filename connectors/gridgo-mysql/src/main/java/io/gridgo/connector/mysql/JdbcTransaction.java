@@ -54,8 +54,8 @@ class JdbcTransaction extends JdbcClient {
     @Override
     protected Promise<Message, Exception> doCommit() {
         var deferred = new CompletableDeferredObject<Message, Exception>();
-        try (handle) {
-            handle.commit();
+        try (var tempHandle = handle) {
+            tempHandle.commit();
             ack(deferred, Message.ofEmpty());
         } catch (Exception ex) {
             ack(deferred, ex);
@@ -66,8 +66,8 @@ class JdbcTransaction extends JdbcClient {
     @Override
     protected Promise<Message, Exception> doRollback() {
         var deferred = new CompletableDeferredObject<Message, Exception>();
-        try (handle) {
-            handle.rollback();
+        try (var tempHandle = handle) {
+            tempHandle.rollback();
             Helper.ack(deferred, null, null);
         }
         return deferred;
