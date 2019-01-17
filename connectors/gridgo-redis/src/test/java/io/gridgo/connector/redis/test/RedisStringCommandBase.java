@@ -5,9 +5,12 @@ import static org.junit.Assert.assertEquals;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.gridgo.redis.command.string.RedisMGetHandler;
 import org.joo.promise4j.Promise;
+import org.joo.promise4j.PromiseException;
 import org.junit.Assert;
 
 import io.gridgo.bean.BArray;
@@ -347,6 +350,227 @@ public abstract class RedisStringCommandBase {
                 .pipeDone(result -> Common.checkStringResult(result, "Hello"))//
                 .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GET), "key2")))//
                 .pipeDone(result -> Common.checkStringResult(result, "World"))//
+                .done(result -> latch.countDown())//
+                .fail(ex -> {
+                    exRef.set(ex);
+                    latch.countDown();
+                });
+
+        latch.await();
+        connector.stop();
+        Assert.assertNull(exRef.get());
+    }
+
+    /**
+     * https://redis.io/commands/mget
+     */
+    public void testMGetCommand() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("key1", "Hello")))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("key2", "World"))))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.MGET), BArray.ofSequence("key1", "key2", "nonexistkey"))))//
+                .pipeDone(result -> {
+                    System.out.println(result.getPayload().getHeaders());
+                    System.out.println(result);
+                    var responses = result.body().asArray();
+                    System.out.println("responses" + responses);
+                    if ("Hello".equals(responses.get(0).asArray().get(1).toString())
+                            && "World".equals(responses.get(1).asArray().get(1).toString())) {
+                        return Promise.of(result);
+                    }
+                    return Promise.ofCause(new RuntimeException());
+
+                })//
+                .done(result -> {
+                    System.out.println("res: " + result);
+                    latch.countDown();
+                })//
+                .fail(ex -> {
+                    exRef.set(ex);
+                    latch.countDown();
+                });
+
+
+        latch.await();
+        connector.stop();
+        Assert.assertNull(exRef.get());
+    }
+
+    /*
+     * https://redis.io/commands/getrange
+     */
+    public void testGetRangeCommand() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("mykey", "This is a string")))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GETRANGE), BArray.ofSequence("mykey", 0, 3))))//
+                .pipeDone(result -> Common.checkStringResult(result, "This"))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GETRANGE), BArray.ofSequence("mykey", -3, -1))))//
+                .pipeDone(result -> Common.checkStringResult(result, "ing"))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GETRANGE), BArray.ofSequence("mykey", 0, -1))))//
+                .pipeDone(result -> Common.checkStringResult(result, "This is a string"))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GETRANGE), BArray.ofSequence("mykey", 10, 100))))//
+                .pipeDone(result -> Common.checkStringResult(result, "string"))
+                .done(result -> latch.countDown())//
+                .fail(ex -> {
+                    exRef.set(ex);
+                    latch.countDown();
+                });
+
+        latch.await();
+        connector.stop();
+        Assert.assertNull(exRef.get());
+
+    }
+
+    public void testStrLenCommand() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("mykey", "Hello world")))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.STRLEN), "mykey")))//
+                .pipeDone(result -> Common.checkLongResult(result, 11))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.STRLEN), "nonexisting")))//
+                .pipeDone(result -> Common.checkLongResult(result, 0))//
+                .done(result -> latch.countDown())//
+                .fail(ex -> {
+                    exRef.set(ex);
+                    latch.countDown();
+                });
+        latch.await();
+        connector.stop();
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testIncrCommand() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+        producer.call(Message.ofAny(buildCommand(RedisCommands.DEL), "mykey"))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("mykey", 10))))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.INCR), "mykey")))//
+                .pipeDone(result -> Common.checkLongResult(result, 11))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GET), "mykey")))//
+                .pipeDone(result -> Common.checkStringResult(result, "11"))//
+                .done(result -> latch.countDown())//
+                .fail(ex -> {
+                    exRef.set(ex);
+                    latch.countDown();
+                });
+
+        latch.await();
+        connector.stop();
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testSetRangeCommand() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("key1", "Hello World")))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SETRANGE), BArray.ofSequence("key1", 6, "Redis"))))//
+                .pipeDone(result -> Common.checkLongResult(result, 11))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GET), "key1")))//
+                .pipeDone(result -> Common.checkStringResult(result, "Hello Redis"))//
+                .done(result -> latch.countDown())//
+                .fail(ex -> {
+                    exRef.set(ex);
+                    latch.countDown();
+                });
+
+        latch.await();
+        connector.stop();
+        Assert.assertNull(exRef.get());
+    }
+
+    protected void testSetNxCommand() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+        producer.call(Message.ofAny(buildCommand(RedisCommands.DEL), "mykey"))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SETNX), BArray.ofSequence("mykey", "Hello"))))//
+                .pipeDone(result -> Common.checkLongResult(result, 1))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SETNX), BArray.ofSequence("mykey", "World"))))//
+                .pipeDone(result -> Common.checkLongResult(result, 0))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GET), "mykey")))//
+                .pipeDone(result -> Common.checkStringResult(result, "Hello"))//
+                .done(result -> latch.countDown())//
+                .fail(ex -> {
+                    exRef.set(ex);
+                    latch.countDown();
+                });
+
+        latch.await();
+        connector.stop();
+        Assert.assertNull(exRef.get());
+
+    }
+
+    protected void testSetExCommand() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+        int hold = 10;
+        producer.call(Message.ofAny(buildCommand(RedisCommands.DEL), "mykey"))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SETEX), BArray.ofSequence("mykey", hold, "Hello"))))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.TTL), "mykey")))//
+                .pipeDone(result -> {
+                    if (result.body().asValue().getLong() > 0) {
+                        return Promise.of(result);
+                    }
+                    return Promise.ofCause(new TimeoutException());
+                })//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GET), "mykey")))//
+                .pipeDone(result -> Common.checkStringResult(result, "Hello"))//
+                .done(result -> latch.countDown())//
+                .fail(ex -> {
+                    exRef.set(ex);
+                    latch.countDown();
+                });
+
+        latch.await();
+        connector.stop();
+        Assert.assertNull(exRef.get());
+    }
+
+    protected void testIncrByCommand() throws InterruptedException {
+
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+        producer.call(Message.ofAny(buildCommand(RedisCommands.DEL), "mykey"))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("mykey", 10))))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.INCRBY), BArray.ofSequence("mykey", 10))))//
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GET), "mykey")))//
+                .pipeDone(result -> Common.checkLongResult(result, 20))//
                 .done(result -> latch.countDown())//
                 .fail(ex -> {
                     exRef.set(ex);

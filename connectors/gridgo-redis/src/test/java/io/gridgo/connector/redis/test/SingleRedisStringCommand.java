@@ -66,7 +66,56 @@ public class SingleRedisStringCommand extends RedisStringCommandBase {
 
     @Test
     @Override
+    public void testMGetCommand() throws InterruptedException {
+        super.testMGetCommand();
+    }
+
+    @Test
+    @Override
     public void testGetsetCommand() throws InterruptedException {
         super.testGetsetCommand();
     }
+
+    @Test
+    @Override
+    public void testGetRangeCommand() throws InterruptedException {
+        super.testGetRangeCommand();
+    }
+
+    @Test
+    @Override
+    public void testStrLenCommand() throws InterruptedException {
+        super.testStrLenCommand();
+    }
+
+    @Test
+    @Override
+    public void testIncrCommand() throws InterruptedException {
+        super.testIncrCommand();
+    }
+
+    @Test
+    @Override
+    public void testSetRangeCommand() throws InterruptedException {
+        super.testSetRangeCommand();
+    }
+
+    @Test
+    @Override
+    public void testSetNxCommand() throws InterruptedException {
+        super.testSetNxCommand();
+    }
+
+    @Test
+    @Override
+    public void testSetExCommand() throws InterruptedException {
+        super.testSetExCommand();
+    }
+
+    @Test
+    @Override
+    public void testIncrByCommand() throws InterruptedException {
+        super.testIncrByCommand();
+    }
+
 }
