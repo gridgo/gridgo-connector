@@ -216,7 +216,7 @@ public class MongoDBProducer extends AbstractProducer {
 
     private <T> T getHeaderAs(Message msg, String name, Class<T> clazz) {
         var options = msg.headers().get(name);
-        if (options == null)
+        if (options == null || options.isNullValue())
             return null;
         return clazz.cast(options.asReference().getReference());
     }
