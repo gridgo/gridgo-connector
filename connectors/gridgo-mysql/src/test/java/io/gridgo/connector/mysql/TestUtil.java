@@ -1,6 +1,8 @@
+package io.gridgo.connector.mysql;
+
+
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
-import io.gridgo.connector.mysql.JdbcConstants;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Payload;
 import java.math.BigDecimal;
@@ -96,7 +98,7 @@ public class TestUtil {
     }
 
     Message createDropTableMessage(){
-        var headers = BObject.ofEmpty().setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_EXCUTE);;
+        var headers = BObject.ofEmpty().setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_EXCUTE);
         return Message.ofAny(headers, "drop table if exists " + tableName + " ;");
     }
 

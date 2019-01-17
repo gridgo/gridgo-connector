@@ -3,10 +3,8 @@ package io.gridgo.connector.mysql.support;
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.impl.MutableBValue;
-import io.gridgo.framework.support.Message;
+import lombok.extern.slf4j.Slf4j;
 import org.jdbi.v3.core.statement.SqlStatement;
-import org.joo.promise4j.Deferred;
-
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -15,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 public class Helper {
 
     private Helper(){}
@@ -47,21 +46,12 @@ public class Helper {
                     sqlStatement.bind(entry.getKey(), (Object) entry.getValue().asReference().getReference());
                 }
             }
-        } catch (Exception ex){
-            ex.printStackTrace();
+        } catch (ClassCastException ex){
+            log.error("Error while binding param to sql statement", ex);
+            throw ex;
         }
 
     }
 
-    public static void ack(Deferred<Message, Exception> deferred, Object result, Throwable throwable) {
-        if (deferred == null) {
-            return;
-        }
-        if (throwable != null) {
-            deferred.reject((Exception) throwable);
-            return;
-        }
-        deferred.resolve(Message.ofAny(result));
-    }
 
 }

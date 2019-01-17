@@ -12,7 +12,6 @@ import org.jdbi.v3.core.Jdbi;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.CompletableDeferredObject;
 import org.joo.promise4j.impl.SimpleFailurePromise;
-
 import static io.gridgo.connector.mysql.JdbcConstants.*;
 
 @Slf4j
@@ -34,9 +33,6 @@ class JdbcProducer extends JdbcClient {
     }
 
     protected Promise<Message, Exception> _call(Message request, CompletableDeferredObject<Message, Exception> deferred, boolean isRPC) {
-        if (deferred == null) {
-            return null;
-        }
         var operation = request.headers().getString(OPERATION);
         if (HEADER_CREATE_TRANSACTION.equals(operation)) {
             var result = beginTransaction(request, jdbiClient.open(), this.getContext());

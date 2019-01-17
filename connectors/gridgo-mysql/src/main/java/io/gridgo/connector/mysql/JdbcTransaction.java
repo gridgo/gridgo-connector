@@ -55,7 +55,7 @@ class JdbcTransaction extends JdbcClient {
             temHandle.commit();
             ack(deferred, Message.ofEmpty());
         } catch (TransactionException ex) {
-            ex.printStackTrace();
+            log.error("Commit error!!!", ex);
             ack(deferred, ex);
         }
         return deferred;
@@ -68,7 +68,7 @@ class JdbcTransaction extends JdbcClient {
             temHandle.rollback();
             ack(deferred, Message.ofEmpty());
         }catch (Exception ex){
-            ex.printStackTrace();
+            log.error("Rollback Error!!!", ex);
             ack(deferred, ex);
         }
         return deferred;
