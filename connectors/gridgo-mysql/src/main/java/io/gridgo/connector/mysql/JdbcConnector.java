@@ -17,6 +17,7 @@ public class JdbcConnector extends AbstractConnector {
     // Params of gridgo, exclude user and password
     private static HashSet<String> reserveParams = new HashSet<>(Arrays.asList("pool"));
 
+    @Override
     protected void onInit() {
         var userName = getParam("user");
         var password = getParam("password");
@@ -38,9 +39,9 @@ public class JdbcConnector extends AbstractConnector {
     private ConnectionFactory initialDefaulConnectionFactory(String userName, String password) {
         // exclude param of gridgo
         var params = getConnectorConfig().getParameters().entrySet().stream()//
-                                         .filter(entry -> !reserveParams.contains(entry.getKey()))//
-                                         .map(entry -> entry.getKey() + "=" + entry.getValue())//
-                                         .reduce((p1, p2) -> p1 + "&" + p2)//
+                                         .filter(entry -> !reserveParams.contains(entry.getKey())) //
+                                         .map(entry -> entry.getKey() + "=" + entry.getValue()) //
+                                         .reduce((p1, p2) -> p1 + "&" + p2) //
                                          .orElse("");
         var jdbcUrl = getConnectorConfig().getNonQueryEndpoint() + (params.isEmpty() ? "" : "?" + params);
         var connectionPool = new ConnectionPool("local", DEFAULT_CONNECTION_POOL_MIN_POOL_SIZE,

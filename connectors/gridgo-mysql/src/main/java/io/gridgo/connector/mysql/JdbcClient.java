@@ -23,7 +23,7 @@ public abstract class JdbcClient extends AbstractTransaction {
         bindHandlers();
     }
 
-    protected abstract Promise<Message, Exception> _call(Message request,
+    protected abstract Promise<Message, Exception> doCall(Message request,
             CompletableDeferredObject<Message, Exception> deferred, boolean isRPC);
 
     private void bind(String name, JdbcClientHandler handler) {
@@ -65,18 +65,18 @@ public abstract class JdbcClient extends AbstractTransaction {
     @Override
     public Promise<Message, Exception> call(Message request) {
         var deferred = new CompletableDeferredObject<Message, Exception>();
-        return _call(request, deferred, true);
+        return doCall(request, deferred, true);
     }
 
     @Override
     public void send(Message message) {
-        _call(message, null, false);
+        doCall(message, null, false);
     }
 
     @Override
     public Promise<Message, Exception> sendWithAck(Message message) {
         var deferred = new CompletableDeferredObject<Message, Exception>();
-        return _call(message, deferred, false);
+        return doCall(message, deferred, false);
     }
 
     @Override

@@ -25,6 +25,8 @@ public class KafkaConfiguration {
     private String clientId;
 
     private String groupId;
+    
+    private String transactionId;
 
     private int consumersCount = 1;
 
@@ -197,6 +199,7 @@ public class KafkaConfiguration {
         addPropertyIfNotNull(props, ProducerConfig.RETRY_BACKOFF_MS_CONFIG, getRetryBackoffMs());
         addPropertyIfNotNull(props, ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, isEnableIdempotence());
         addPropertyIfNotNull(props, ProducerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, getReconnectBackoffMaxMs());
+        addPropertyIfNotNull(props, ProducerConfig.TRANSACTIONAL_ID_CONFIG, getTransactionId());
 
         return props;
     }

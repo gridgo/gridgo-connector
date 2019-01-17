@@ -3,6 +3,7 @@ package io.gridgo.connector.kafka;
 import java.util.ArrayList;
 import java.util.Properties;
 
+import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.joo.promise4j.Deferred;
@@ -16,10 +17,12 @@ import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.AbstractProducer;
 import io.gridgo.connector.support.config.ConnectorContext;
+import io.gridgo.connector.support.transaction.Transaction;
+import io.gridgo.connector.support.transaction.TransactionalComponent;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.impl.MultipartMessage;
 
-public class KafkaProducer extends AbstractProducer {
+public class KafkaProducer extends AbstractProducer implements TransactionalComponent, Transaction {
 
     private KafkaConfiguration configuration;
 
@@ -41,8 +44,10 @@ public class KafkaProducer extends AbstractProducer {
     private Message buildAckMessage(RecordMetadata metadata) {
         if (metadata == null)
             return null;
-        var headers = BObject.ofEmpty().setAny(KafkaConstants.IS_ACK_MSG, "true").setAny(KafkaConstants.TIMESTAMP, metadata.timestamp())
-                             .setAny(KafkaConstants.OFFSET, metadata.offset()).setAny(KafkaConstants.PARTITION, metadata.partition())
+        var headers = BObject.ofEmpty().setAny(KafkaConstants.IS_ACK_MSG, "true")
+                             .setAny(KafkaConstants.TIMESTAMP, metadata.timestamp())
+                             .setAny(KafkaConstants.OFFSET, metadata.offset())
+                             .setAny(KafkaConstants.PARTITION, metadata.partition())
                              .setAny(KafkaConstants.TOPIC, metadata.topic());
         return createMessage(headers, BValue.ofEmpty());
     }
@@ -111,8 +116,11 @@ public class KafkaProducer extends AbstractProducer {
         try {
             // Kafka uses reflection for loading authentication settings, use its
             // classloader
-            Thread.currentThread().setContextClassLoader(org.apache.kafka.clients.producer.KafkaProducer.class.getClassLoader());
+            Thread.currentThread()
+                  .setContextClassLoader(org.apache.kafka.clients.producer.KafkaProducer.class.getClassLoader());
             this.producer = new org.apache.kafka.clients.producer.KafkaProducer<>(props);
+            if (configuration.getTransactionId() != null && !configuration.getTransactionId().isBlank())
+                this.producer.initTransactions();
         } finally {
             Thread.currentThread().setContextClassLoader(threadClassLoader);
         }
@@ -126,22 +134,54 @@ public class KafkaProducer extends AbstractProducer {
 
     @Override
     public void send(Message message) {
-        for (var topic : topics) {
-            var record = buildProducerRecord(topic, message);
-            this.producer.send(record);
-        }
+        sendAllTopics(message, false);
     }
 
     @Override
     public Promise<Message, Exception> sendWithAck(Message message) {
+        var promises = sendAllTopics(message, true);
+        return promises.size() == 1 ? promises.get(0)
+                : JoinedPromise.from(promises).filterDone(this::convertJoinedResult);
+    }
+
+    private ArrayList<Promise<Message, Exception>> sendAllTopics(Message message, boolean ack) {
         var promises = new ArrayList<Promise<Message, Exception>>();
         for (var topic : topics) {
-            var deferred = new CompletableDeferredObject<Message, Exception>();
-            var record = buildProducerRecord(topic, message);
-            this.producer.send(record, (metadata, ex) -> ack(deferred, metadata, ex));
-            promises.add(deferred);
+            if (!ack) {
+                sendSingle(message, topic, null);
+            } else {
+                var deferred = new CompletableDeferredObject<Message, Exception>();
+                sendSingle(message, topic, (metadata, ex) -> ack(deferred, metadata, ex));
+                promises.add(deferred);
+            }
         }
+        return promises;
+    }
 
-        return promises.size() == 1 ? promises.get(0) : JoinedPromise.from(promises).filterDone(this::convertJoinedResult);
+    private void sendSingle(Message message, String topic, Callback callback) {
+        var record = buildProducerRecord(topic, message);
+        this.producer.send(record, callback);
+    }
+
+    @Override
+    public Promise<Transaction, Exception> createTransaction() {
+        try {
+            this.producer.beginTransaction();
+            return Promise.of(this);
+        } catch (Exception ex) {
+            return Promise.ofCause(ex);
+        }
+    }
+
+    @Override
+    public Promise<Message, Exception> commit() {
+        this.producer.commitTransaction();
+        return Promise.of(null);
+    }
+
+    @Override
+    public Promise<Message, Exception> rollback() {
+        this.producer.abortTransaction();
+        return Promise.of(null);
     }
 }

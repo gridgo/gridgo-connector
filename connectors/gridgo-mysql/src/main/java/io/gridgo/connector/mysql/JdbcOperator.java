@@ -1,12 +1,9 @@
 package io.gridgo.connector.mysql;
 
-import io.gridgo.connector.mysql.support.Helper;
-import io.gridgo.framework.support.Message;
 import org.jdbi.v3.core.Handle;
 
-import java.sql.ResultSet;
-import java.util.List;
-import java.util.Map;
+import io.gridgo.connector.mysql.support.Helper;
+import io.gridgo.framework.support.Message;
 
 class JdbcOperator {
 
@@ -15,8 +12,8 @@ class JdbcOperator {
         var queryStatement = msg.body().asValue().getString();
         var query = handle.createQuery(queryStatement);
         Helper.bindParams(query, msg.getPayload().getHeaders());
-        ResultSet resultSet = query.execute((supplier, context) -> supplier.get().executeQuery());
-        List<Map<String, Object>> rows = Helper.resultSetAsList(resultSet);
+        var resultSet = query.execute((supplier, context) -> supplier.get().executeQuery());
+        var rows = Helper.resultSetAsList(resultSet);
         return Message.ofAny(rows);
     }
 
