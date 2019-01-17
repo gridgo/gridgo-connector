@@ -31,7 +31,7 @@ public class Helper {
                 rows.add(row);
             }
         }catch (SQLException sqlEx){
-            throw new JdbcOperationException("Error when converting resultSet to List");
+            throw new JdbcOperationException("Error when converting resultSet to List", sqlEx);
         }
         return rows;
     }

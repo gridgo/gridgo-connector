@@ -10,6 +10,10 @@ public class JdbcOperationException extends RuntimeException {
         super(message);
     }
 
+    JdbcOperationException(String message, Exception ex) {
+        super(message, ex);
+    }
+
     public JdbcOperationException() {
         super("Invalid Operation");
     }
