@@ -45,7 +45,7 @@ class JdbcTransaction extends JdbcClient {
             log.error("Error while processing JDBC Transaction request", ex);
             ack(deferred, ex);
         }
-        return deferred.promise();
+        return deferred == null ? null : deferred.promise();
     }
 
     @Override

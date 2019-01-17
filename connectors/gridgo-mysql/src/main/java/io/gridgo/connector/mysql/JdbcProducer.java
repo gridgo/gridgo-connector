@@ -37,7 +37,7 @@ class JdbcProducer extends JdbcClient {
         if (HEADER_CREATE_TRANSACTION.equals(operation)) {
             var result = beginTransaction(request, jdbiClient.open(), this.getContext());
             ack(deferred, result);
-            return deferred.promise();
+            return deferred == null ? null : deferred.promise();
         }
         var handler = operationsMap.get(operation);
         if (handler == null) {
@@ -50,7 +50,7 @@ class JdbcProducer extends JdbcClient {
             log.error("Error while processing JDBC request", ex);
             ack(deferred, ex);
         }
-        return deferred.promise();
+        return deferred == null ? null : deferred.promise();
     }
 
     @Override
