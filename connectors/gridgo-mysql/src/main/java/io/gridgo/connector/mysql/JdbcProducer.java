@@ -1,6 +1,5 @@
 package io.gridgo.connector.mysql;
 
-
 import io.gridgo.connector.mysql.support.JdbcOperationException;
 import io.gridgo.connector.support.config.ConnectorContext;
 import static io.gridgo.connector.support.transaction.TransactionConstants.HEADER_CREATE_TRANSACTION;
@@ -32,7 +31,8 @@ class JdbcProducer extends JdbcClient {
         return Message.ofAny(jdbcTransaction);
     }
 
-    protected Promise<Message, Exception> _call(Message request, CompletableDeferredObject<Message, Exception> deferred, boolean isRPC) {
+    protected Promise<Message, Exception> _call(Message request, CompletableDeferredObject<Message, Exception> deferred,
+            boolean isRPC) {
         var operation = request.headers().getString(OPERATION);
         if (HEADER_CREATE_TRANSACTION.equals(operation)) {
             var result = beginTransaction(request, jdbiClient.open(), this.getContext());

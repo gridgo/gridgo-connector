@@ -1,6 +1,5 @@
 package io.gridgo.connector.mysql;
 
-
 import io.gridgo.bean.BElement;
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.Producer;
@@ -26,11 +25,12 @@ public class JdbcConnectorTest {
     private Producer producer;
 
     @Before
-    public void initialize(){
+    public void initialize() {
         var pool = new ConnectionPool("local", 5, 15, 0, 180, "jdbc:mysql://localhost:3306/test", "root", "");
-        registry = new SimpleRegistry().register("sonaq", (ConnectionFactory)pool::getConnection);
+        registry = new SimpleRegistry().register("sonaq", (ConnectionFactory) pool::getConnection);
         context = new DefaultConnectorContextBuilder().setRegistry(registry).build();
-        connector = new DefaultConnectorFactory().createConnector("jdbc:mysql://localhost:3306/test?user=root&pool=sonaq", context);
+        connector = new DefaultConnectorFactory().createConnector(
+                "jdbc:mysql://localhost:3306/test?user=root&pool=sonaq", context);
         connector.start();
         producer = connector.getProducer().orElseThrow();
     }
@@ -44,7 +44,7 @@ public class JdbcConnectorTest {
         select(testUtil);
     }
 
-    private void select(TestUtil testUtil){
+    private void select(TestUtil testUtil) {
         var ok = producer.call(testUtil.createSelectRequest());
         var sqlValues = testUtil.getSqlValues();
         ok.done(msg -> {
@@ -54,20 +54,22 @@ public class JdbcConnectorTest {
                     var result = bElement.asObject();
                     Assert.assertEquals(sqlValues.get("integertest"), result.getInteger("integertest"));
                     Assert.assertEquals(sqlValues.get("stringtest"), result.getString("stringtest"));
-                    Assert.assertEquals(sqlValues.get("bigdecimaltest"), result.get("bigdecimaltest").asValue().getDataAs(BigDecimal.class));
+                    Assert.assertEquals(sqlValues.get("bigdecimaltest"),
+                            result.get("bigdecimaltest").asValue().getDataAs(BigDecimal.class));
                     Assert.assertEquals(sqlValues.get("booleantest"), result.getBoolean("booleantest"));
                     Assert.assertEquals(sqlValues.get("datetest"), result.get("datetest").asReference().getReference());
                     Assert.assertEquals(sqlValues.get("timetest"), result.get("timetest").asReference().getReference());
-                    Assert.assertEquals(sqlValues.get("timestamptest"), result.get("timestamptest").asReference().getReference());
+                    Assert.assertEquals(sqlValues.get("timestamptest"),
+                            result.get("timestamptest").asReference().getReference());
                 }
-            }catch (Exception ex){
+            } catch (Exception ex) {
                 ex.printStackTrace();
                 Assert.fail();
             }
         });
     }
 
-     private void insert(TestUtil testUtil) {
+    private void insert(TestUtil testUtil) {
         var ok = producer.call(testUtil.createInsertRequest());
         ok.done(msg -> {
             var list = msg.getPayload().getBody().asValue().getInteger();
@@ -79,18 +81,17 @@ public class JdbcConnectorTest {
         });
     }
 
-    private void dropTable(TestUtil testUtil){
+    private void dropTable(TestUtil testUtil) {
         Message message = testUtil.createDropTableMessage();
         producer.call(message);
     }
 
-    private void createTable(TestUtil testUtil){
+    private void createTable(TestUtil testUtil) {
         Message message = testUtil.createCreateTableMessage();
         var ok = producer.call(message);
-        ok.done(msg -> Assert.assertTrue(true))
-            .fail(ex -> {
-                ex.printStackTrace();
-                Assert.fail();
-            });
+        ok.done(msg -> Assert.assertTrue(true)).fail(ex -> {
+            ex.printStackTrace();
+            Assert.fail();
+        });
     }
 }

@@ -16,9 +16,10 @@ import java.util.Map;
 @Slf4j
 public class Helper {
 
-    private Helper(){}
+    private Helper() {
+    }
 
-    public static List<Map<String, Object>> resultSetAsList(ResultSet resultSet){
+    public static List<Map<String, Object>> resultSetAsList(ResultSet resultSet) {
         List<Map<String, Object>> rows = new ArrayList<>();
         try {
             ResultSetMetaData md = resultSet.getMetaData();
@@ -30,27 +31,24 @@ public class Helper {
                 }
                 rows.add(row);
             }
-        }catch (SQLException sqlEx){
+        } catch (SQLException sqlEx) {
             throw new JdbcOperationException("Error when converting resultSet to List", sqlEx);
         }
         return rows;
     }
 
-    public static void  bindParams(SqlStatement sqlStatement, BObject params){
+    public static void bindParams(SqlStatement<?> sqlStatement, BObject params) {
         try {
-            for (Map.Entry<String, BElement> entry: params.entrySet()) {
+            for (Map.Entry<String, BElement> entry : params.entrySet()) {
                 if (entry.getValue() instanceof MutableBValue) {
                     sqlStatement.bind(entry.getKey(), entry.getValue().asValue().getData());
                 } else {
                     sqlStatement.bind(entry.getKey(), (Object) entry.getValue().asReference().getReference());
                 }
             }
-        } catch (ClassCastException ex){
+        } catch (ClassCastException ex) {
             log.error("Error while binding param to sql statement", ex);
             throw ex;
         }
-
     }
-
-
 }

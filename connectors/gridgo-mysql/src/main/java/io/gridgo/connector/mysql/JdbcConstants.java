@@ -25,6 +25,4 @@ public class JdbcConstants {
 
     static final int DEFAULT_CONNECTION_POOL_IDLE_TIMEOUT = 180;
 
-
-
 }

@@ -23,7 +23,8 @@ public abstract class JdbcClient extends AbstractTransaction {
         bindHandlers();
     }
 
-    protected abstract Promise<Message, Exception> _call(Message request, CompletableDeferredObject<Message, Exception> deferred, boolean isRPC);
+    protected abstract Promise<Message, Exception> _call(Message request,
+            CompletableDeferredObject<Message, Exception> deferred, boolean isRPC);
 
     private void bind(String name, JdbcClientHandler handler) {
         operationsMap.put(name, handler);

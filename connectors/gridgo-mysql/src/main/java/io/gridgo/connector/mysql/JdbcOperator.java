@@ -10,7 +10,7 @@ import java.util.Map;
 
 class JdbcOperator {
 
-    //TODO: Have not supported byte[] in params yet
+    // TODO: Have not supported byte[] in params yet
     static Message select(Message msg, Handle handle) {
         var queryStatement = msg.body().asValue().getString();
         var query = handle.createQuery(queryStatement);

@@ -14,14 +14,14 @@ import java.util.Optional;
 @Slf4j
 @ConnectorEndpoint(scheme = "jdbc", syntax = "jdbcUri", raw = true)
 public class JdbcConnector extends AbstractConnector {
-    //Params of gridgo, exclude user and password
+    // Params of gridgo, exclude user and password
     private static HashSet<String> reserveParams = new HashSet<>(Arrays.asList("pool"));
 
     protected void onInit() {
         var userName = getParam("user");
         var password = getParam("password");
         var connectionBean = getParam("pool");
-        if (connectionBean == null){
+        if (connectionBean == null) {
             var connectionFactory = initialDefaulConnectionFactory(userName, password);
             this.producer = Optional.of(new JdbcProducer(getContext(), connectionFactory));
             return;
@@ -35,13 +35,13 @@ public class JdbcConnector extends AbstractConnector {
         }
     }
 
-    private ConnectionFactory initialDefaulConnectionFactory(String userName, String password){
-        //exclude param of gridgo
+    private ConnectionFactory initialDefaulConnectionFactory(String userName, String password) {
+        // exclude param of gridgo
         var params = getConnectorConfig().getParameters().entrySet().stream()//
-                .filter(entry -> !reserveParams.contains(entry.getKey()))//
-                .map(entry -> entry.getKey() + "=" + entry.getValue())//
-                .reduce((p1, p2) -> p1 + "&" + p2)//
-                .orElse("");
+                                         .filter(entry -> !reserveParams.contains(entry.getKey()))//
+                                         .map(entry -> entry.getKey() + "=" + entry.getValue())//
+                                         .reduce((p1, p2) -> p1 + "&" + p2)//
+                                         .orElse("");
         var jdbcUrl = getConnectorConfig().getNonQueryEndpoint() + (params.isEmpty() ? "" : "?" + params);
         var connectionPool = new ConnectionPool("local", DEFAULT_CONNECTION_POOL_MIN_POOL_SIZE,
                 DEFAULT_CONNECTION_POOL_MAX_POOL_SIZE, DEFAULT_CONNECTION_POOL_MAX_SIZE,
