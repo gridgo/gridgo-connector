@@ -169,10 +169,10 @@ public class KafkaConsumer extends AbstractConsumer implements FormattedMarshall
             }
         }
 
-        private void commitOffset(long offset, TopicPartition partition) {
+        private void commitOffset(long offset, TopicPartition partition, boolean force) {
             if (offset == -1)
                 return;
-            if ("async".equals(configuration.getCommitType())) {
+            if (!force && "async".equals(configuration.getCommitType())) {
                 consumer.commitAsync(Collections.singletonMap(partition, new OffsetAndMetadata(offset + 1)),
                         (result, ex) -> {
                             if (ex != null) {
@@ -268,7 +268,7 @@ public class KafkaConsumer extends AbstractConsumer implements FormattedMarshall
                     getContext().getExceptionHandler().accept(ex);
                     reConnect = true;
                 }
-                commitOffset(offset, partition);
+                commitOffset(offset, partition, reConnect);
             }
             return reConnect;
         }
@@ -303,7 +303,7 @@ public class KafkaConsumer extends AbstractConsumer implements FormattedMarshall
                 } catch (Exception ex) {
                     log.error("Exception caught while processing ConsumerRecord", ex);
                     if (breakOnFirstError) {
-                        commitOffset(lastRecord, partition);
+                        commitOffset(lastRecord, partition, true);
                         return Promise.ofCause(ex);
                     }
                 }
