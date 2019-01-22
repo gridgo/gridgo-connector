@@ -6,7 +6,7 @@ services:
 - rabbitmq
 - mongodb
 - redis-server
-- mysql
+- jdbc
 
 notifications:
   slack: gridgo:EkUUzu8RhdhIVeNKg9JlcuIv
@@ -19,7 +19,7 @@ addons:
 before_install:
   - sudo apt-get install -y libpgm-dev 
   - sudo apt-get install -y libstdc++6
-  - mysql -e 'CREATE DATABASE IF NOT EXISTS test;'
+  - jdbc -e 'CREATE DATABASE IF NOT EXISTS test;'
 
 
 after_success:

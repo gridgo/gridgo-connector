@@ -1,4 +1,4 @@
-package io.gridgo.connector.mysql;
+package io.gridgo.connector.jdbc;
 
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.transaction.AbstractTransaction;
@@ -9,7 +9,7 @@ import org.joo.promise4j.impl.CompletableDeferredObject;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.gridgo.connector.mysql.JdbcConstants.*;
+import static io.gridgo.connector.jdbc.JdbcConstants.*;
 
 public abstract class JdbcClient extends AbstractTransaction {
     interface JdbcClientHandler {

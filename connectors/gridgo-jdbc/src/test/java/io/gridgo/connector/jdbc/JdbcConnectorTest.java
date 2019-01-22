@@ -1,4 +1,4 @@
-package io.gridgo.connector.mysql;
+package io.gridgo.connector.jdbc;
 
 
 import io.gridgo.bean.BElement;
@@ -27,10 +27,10 @@ public class JdbcConnectorTest {
 
     @Before
     public void initialize(){
-        var pool = new ConnectionPool("local", 5, 15, 0, 180, "jdbc:mysql://localhost:3306/test", "root", "");
+        var pool = new ConnectionPool("local", 5, 15, 0, 180, "jdbc:jdbc://localhost:3306/test", "root", "");
         registry = new SimpleRegistry().register("sonaq", (ConnectionFactory)pool::getConnection);
         context = new DefaultConnectorContextBuilder().setRegistry(registry).build();
-        connector = new DefaultConnectorFactory().createConnector("jdbc:mysql://localhost:3306/test?user=root&pool=sonaq", context);
+        connector = new DefaultConnectorFactory().createConnector("jdbc:jdbc://localhost:3306/test?user=root&pool=sonaq", context);
         connector.start();
         producer = connector.getProducer().orElseThrow();
     }
