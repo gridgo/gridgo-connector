@@ -1,15 +1,21 @@
 package io.gridgo.connector.jdbc;
 
-import io.gridgo.connector.support.config.ConnectorContext;
-import io.gridgo.connector.support.transaction.AbstractTransaction;
-import io.gridgo.framework.support.Message;
-import org.jdbi.v3.core.Handle;
-import org.joo.promise4j.Promise;
-import org.joo.promise4j.impl.CompletableDeferredObject;
+import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION_DELETE;
+import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION_EXCUTE;
+import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION_INSERT;
+import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION_SELECT;
+import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION_UPDATE;
+
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.gridgo.connector.jdbc.JdbcConstants.*;
+import org.jdbi.v3.core.Handle;
+import org.joo.promise4j.Promise;
+import org.joo.promise4j.impl.CompletableDeferredObject;
+
+import io.gridgo.connector.support.config.ConnectorContext;
+import io.gridgo.connector.support.transaction.AbstractTransaction;
+import io.gridgo.framework.support.Message;
 
 public abstract class JdbcClient extends AbstractTransaction {
     interface JdbcClientHandler {
@@ -23,7 +29,8 @@ public abstract class JdbcClient extends AbstractTransaction {
         bindHandlers();
     }
 
-    protected abstract Promise<Message, Exception> _call(Message request, CompletableDeferredObject<Message, Exception> deferred, boolean isRPC);
+    protected abstract Promise<Message, Exception> doCall(Message request,
+            CompletableDeferredObject<Message, Exception> deferred, boolean isRPC);
 
     private void bind(String name, JdbcClientHandler handler) {
         operationsMap.put(name, handler);
@@ -64,18 +71,18 @@ public abstract class JdbcClient extends AbstractTransaction {
     @Override
     public Promise<Message, Exception> call(Message request) {
         var deferred = new CompletableDeferredObject<Message, Exception>();
-        return _call(request, deferred, true);
+        return doCall(request, deferred, true);
     }
 
     @Override
     public void send(Message message) {
-        _call(message, null, false);
+        doCall(message, null, false);
     }
 
     @Override
     public Promise<Message, Exception> sendWithAck(Message message) {
         var deferred = new CompletableDeferredObject<Message, Exception>();
-        return _call(message, deferred, false);
+        return doCall(message, deferred, false);
     }
 
     @Override

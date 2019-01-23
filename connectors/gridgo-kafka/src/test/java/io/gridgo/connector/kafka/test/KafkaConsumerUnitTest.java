@@ -31,8 +31,8 @@ public class KafkaConsumerUnitTest {
     private static final int NUM_MESSAGES = 100;
 
     @ClassRule
-    public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(1).withBrokerProperty(
-            "auto.create.topics.enable", "false");
+    public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(
+            1).withBrokerProperty("auto.create.topics.enable", "false");
 
     private Connector createKafkaConnector(String connectString) {
         var connector = new DefaultConnectorFactory().createConnector(connectString);

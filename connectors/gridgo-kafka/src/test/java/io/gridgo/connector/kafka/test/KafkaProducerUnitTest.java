@@ -32,8 +32,8 @@ public class KafkaProducerUnitTest {
     private static final int NUM_BROKERS = 1;
 
     @ClassRule
-    public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(NUM_BROKERS).withBrokerProperty(
-            "auto.create.topics.enable", "false");
+    public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(
+            NUM_BROKERS).withBrokerProperty("auto.create.topics.enable", "false");
 
     private Connector createKafkaConnector(String connectString) {
         var connector = new DefaultConnectorFactory().createConnector(connectString);
@@ -53,8 +53,8 @@ public class KafkaProducerUnitTest {
 
     private void printPace(String name, int numMessages, long elapsed) {
         DecimalFormat df = new DecimalFormat("###,###.##");
-        log.info(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6) + "ms -> pace: "
-                + df.format(1e9 * numMessages / elapsed) + "ops/s");
+        log.info(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6)
+                + "ms -> pace: " + df.format(1e9 * numMessages / elapsed) + "ops/s");
     }
 
     @Test

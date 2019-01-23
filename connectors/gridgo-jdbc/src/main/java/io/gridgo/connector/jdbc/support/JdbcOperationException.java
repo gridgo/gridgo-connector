@@ -2,6 +2,8 @@ package io.gridgo.connector.jdbc.support;
 
 public class JdbcOperationException extends RuntimeException {
 
+    private static final long serialVersionUID = -7029131652408759411L;
+
     public JdbcOperationException(Throwable cause) {
         super(cause);
     }

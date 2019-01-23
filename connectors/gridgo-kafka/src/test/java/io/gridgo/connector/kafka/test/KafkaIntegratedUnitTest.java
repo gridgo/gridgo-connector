@@ -31,8 +31,9 @@ public class KafkaIntegratedUnitTest {
     private static final int NUM_MESSAGES = 1000;
 
     @ClassRule
-    public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(1).withBrokerProperty(
-            "auto.create.topics.enable", "false");
+    public static final SharedKafkaTestResource sharedKafkaTestResource = //
+            new SharedKafkaTestResource().withBrokers(1) //
+                                         .withBrokerProperty("auto.create.topics.enable", "false");
 
     private Connector createKafkaConnector(String connectString) {
         var connector = new DefaultConnectorFactory().createConnector(connectString);
@@ -110,8 +111,8 @@ public class KafkaIntegratedUnitTest {
 
     private void printPace(String name, int numMessages, long elapsed) {
         DecimalFormat df = new DecimalFormat("###,###.##");
-        System.out.println(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6) + "ms -> pace: "
-                + df.format(1e9 * numMessages / elapsed) + "ops/s");
+        System.out.println(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6)
+                + "ms -> pace: " + df.format(1e9 * numMessages / elapsed) + "ops/s");
     }
 
     private void sendTestObjectRecords(String topicName, Producer producer, int numMessages) {
