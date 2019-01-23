@@ -1,4 +1,4 @@
-package io.gridgo.connector.mysql;
+package io.gridgo.connector.jdbc;
 
 import io.gridgo.connector.impl.AbstractConnector;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
@@ -6,7 +6,7 @@ import io.gridgo.framework.support.exceptions.BeanNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.jdbi.v3.core.ConnectionFactory;
 import snaq.db.ConnectionPool;
-import static io.gridgo.connector.mysql.JdbcConstants.*;
+import static io.gridgo.connector.jdbc.JdbcConstants.*;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Optional;

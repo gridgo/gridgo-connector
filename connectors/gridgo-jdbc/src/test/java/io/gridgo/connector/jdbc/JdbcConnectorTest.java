@@ -1,4 +1,4 @@
-package io.gridgo.connector.mysql;
+package io.gridgo.connector.jdbc;
 
 
 import io.gridgo.bean.BElement;
@@ -27,21 +27,36 @@ public class JdbcConnectorTest {
 
     @Before
     public void initialize(){
-        var pool = new ConnectionPool("local", 5, 15, 0, 180, "jdbc:mysql://localhost:3306/test", "root", "");
+        var pool = new ConnectionPool("local", 5, 15, 0, 180, "jdbc:mysql://localhost:3306/test", "root", "1");
         registry = new SimpleRegistry().register("sonaq", (ConnectionFactory)pool::getConnection);
         context = new DefaultConnectorContextBuilder().setRegistry(registry).build();
-        connector = new DefaultConnectorFactory().createConnector("jdbc:mysql://localhost:3306/test?user=root&pool=sonaq", context);
+        connector = new DefaultConnectorFactory().createConnector("jdbc:mysql://localhost:3306/test?user=root&password=1&pool=sonaq", context);
         connector.start();
         producer = connector.getProducer().orElseThrow();
+    }
+
+    private void sleep(int time){
+        try {
+            Thread.sleep(time);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     @Test
     public void testSelect() {
         TestUtil testUtil = new TestUtil("testSelect");
-        dropTable(testUtil);
-        createTable(testUtil);
-        insert(testUtil);
-        select(testUtil);
+        try {
+            dropTable(testUtil);
+            createTable(testUtil);
+            insert(testUtil);
+            select(testUtil);
+//            update(testUtil);
+        }catch (Exception ex){
+            ex.printStackTrace();
+            Assert.fail();
+        }
+        sleep(3000);
     }
 
     private void select(TestUtil testUtil){

@@ -1,4 +1,4 @@
-package io.gridgo.connector.mysql.support;
+package io.gridgo.connector.jdbc.support;
 
 public class JdbcOperationException extends RuntimeException {
 
