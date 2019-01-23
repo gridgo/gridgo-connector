@@ -33,7 +33,7 @@ class JdbcProducer extends JdbcClient {
     }
 
     protected Promise<Message, Exception> _call(Message request, CompletableDeferredObject<Message, Exception> deferred, boolean isRPC) {
-        var operation = request.headers().getString(OPERATION);
+        var operation = request.headers().remove(OPERATION).toString();
         if (HEADER_CREATE_TRANSACTION.equals(operation)) {
             var result = beginTransaction(request, jdbiClient.open(), this.getContext());
             ack(deferred, result);
