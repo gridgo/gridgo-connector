@@ -25,16 +25,17 @@ public class JdbcConnectorTest {
     private Producer producer;
 
     @Before
-    public void initialize(){
+    public void initialize() {
         var pool = new ConnectionPool("local", 5, 15, 0, 180, "jdbc:mysql://localhost:3306/test", "root", "1");
-        registry = new SimpleRegistry().register("sonaq", (ConnectionFactory)pool::getConnection);
+        registry = new SimpleRegistry().register("sonaq", (ConnectionFactory) pool::getConnection);
         context = new DefaultConnectorContextBuilder().setRegistry(registry).build();
-        connector = new DefaultConnectorFactory().createConnector("jdbc:mysql://localhost:3306/test?user=root&password=1&pool=sonaq", context);
+        connector = new DefaultConnectorFactory().createConnector(
+                "jdbc:mysql://localhost:3306/test?user=root&password=1&pool=sonaq", context);
         connector.start();
         producer = connector.getProducer().orElseThrow();
     }
 
-    private void sleep(int time){
+    private void sleep(int time) {
         try {
             Thread.sleep(time);
         } catch (InterruptedException e) {
@@ -51,7 +52,7 @@ public class JdbcConnectorTest {
             insert(testUtil);
             select(testUtil);
 //            update(testUtil);
-        }catch (Exception ex){
+        } catch (Exception ex) {
             ex.printStackTrace();
             Assert.fail();
         }
