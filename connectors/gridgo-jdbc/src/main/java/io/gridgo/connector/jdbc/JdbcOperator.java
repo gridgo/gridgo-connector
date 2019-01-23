@@ -1,8 +1,8 @@
-package io.gridgo.connector.mysql;
+package io.gridgo.connector.jdbc;
 
 import org.jdbi.v3.core.Handle;
 
-import io.gridgo.connector.mysql.support.Helper;
+import io.gridgo.connector.jdbc.support.Helper;
 import io.gridgo.framework.support.Message;
 
 class JdbcOperator {

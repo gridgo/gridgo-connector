@@ -1,6 +1,6 @@
-package io.gridgo.connector.mysql;
+package io.gridgo.connector.jdbc;
 
-import static io.gridgo.connector.mysql.JdbcConstants.OPERATION;
+import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION;
 
 import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.transaction.TransactionException;
@@ -8,7 +8,7 @@ import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.CompletableDeferredObject;
 import org.joo.promise4j.impl.SimpleFailurePromise;
 
-import io.gridgo.connector.mysql.support.JdbcOperationException;
+import io.gridgo.connector.jdbc.support.JdbcOperationException;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
 import lombok.extern.slf4j.Slf4j;

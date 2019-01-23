@@ -1,4 +1,4 @@
-package io.gridgo.connector.mysql;
+package io.gridgo.connector.jdbc;
 
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;

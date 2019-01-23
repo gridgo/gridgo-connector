@@ -1,17 +1,19 @@
-package io.gridgo.connector.mysql;
+package io.gridgo.connector.jdbc;
 
-import io.gridgo.connector.mysql.support.JdbcOperationException;
-import io.gridgo.connector.support.config.ConnectorContext;
+import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION;
 import static io.gridgo.connector.support.transaction.TransactionConstants.HEADER_CREATE_TRANSACTION;
-import io.gridgo.framework.support.Message;
-import lombok.extern.slf4j.Slf4j;
+
 import org.jdbi.v3.core.ConnectionFactory;
 import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.Jdbi;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.CompletableDeferredObject;
 import org.joo.promise4j.impl.SimpleFailurePromise;
-import static io.gridgo.connector.mysql.JdbcConstants.*;
+
+import io.gridgo.connector.jdbc.support.JdbcOperationException;
+import io.gridgo.connector.support.config.ConnectorContext;
+import io.gridgo.framework.support.Message;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class JdbcProducer extends JdbcClient {
@@ -31,7 +33,7 @@ class JdbcProducer extends JdbcClient {
 
     protected Promise<Message, Exception> doCall(Message request,
             CompletableDeferredObject<Message, Exception> deferred, boolean isRPC) {
-        var operation = request.headers().getString(OPERATION);
+        var operation = request.headers().remove(OPERATION).toString();
         if (HEADER_CREATE_TRANSACTION.equals(operation)) {
             var result = beginTransaction(jdbiClient.open(), this.getContext());
             ack(deferred, result);

@@ -1,15 +1,21 @@
-package io.gridgo.connector.mysql;
+package io.gridgo.connector.jdbc;
+
+import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION_DELETE;
+import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION_EXCUTE;
+import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION_INSERT;
+import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION_SELECT;
+import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION_UPDATE;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.jdbi.v3.core.Handle;
+import org.joo.promise4j.Promise;
+import org.joo.promise4j.impl.CompletableDeferredObject;
 
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.transaction.AbstractTransaction;
 import io.gridgo.framework.support.Message;
-import org.jdbi.v3.core.Handle;
-import org.joo.promise4j.Promise;
-import org.joo.promise4j.impl.CompletableDeferredObject;
-import java.util.HashMap;
-import java.util.Map;
-
-import static io.gridgo.connector.mysql.JdbcConstants.*;
 
 public abstract class JdbcClient extends AbstractTransaction {
     interface JdbcClientHandler {

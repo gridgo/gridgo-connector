@@ -12,7 +12,7 @@
 	<artifactId>gridgo-connector-base</artifactId>
 
 	<modules>
-		<module>gridgo-mysql</module>
+		<module>gridgo-jdbc</module>
 		<module>gridgo-socket</module>
 		<module>gridgo-socket-nanomsg</module>
 		<module>gridgo-socket-zmq</module>
