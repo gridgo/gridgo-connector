@@ -8,7 +8,7 @@ import io.gridgo.framework.support.Message;
 /**
  * Represent a Message sender component.
  */
-public interface MessageSenderComponent {
+public interface MessageProducer {
 
     /**
      * Send a message and ignore status and response. This is called fire-and-forget
