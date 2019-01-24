@@ -25,7 +25,7 @@ public class KafkaConfiguration {
     private String clientId;
 
     private String groupId;
-    
+
     private String transactionId;
 
     private int consumersCount = 1;
@@ -74,7 +74,7 @@ public class KafkaConfiguration {
     private boolean autoCommitEnable = true;
 
     private String autoCommitOnStop = "sync";
-    
+
     private String commitType = "sync";
 
     // producer
