@@ -118,4 +118,21 @@ public class SingleRedisStringCommand extends RedisStringCommandBase {
         super.testIncrByCommand();
     }
 
+    @Test
+    @Override
+    public void testMsetNxCommand() throws InterruptedException {
+        super.testMsetNxCommand();
+    }
+
+    @Test
+    @Override
+    public void testPSetxECommand() throws InterruptedException {
+        super.testPSetxECommand();
+    }
+
+    @Test
+    @Override
+    public void testIncrByFloatCommand() throws InterruptedException {
+        super.testIncrByFloatCommand();
+    }
 }
