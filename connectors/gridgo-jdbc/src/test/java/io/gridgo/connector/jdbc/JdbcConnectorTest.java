@@ -30,7 +30,7 @@ public class JdbcConnectorTest {
         registry = new SimpleRegistry().register("sonaq", (ConnectionFactory) pool::getConnection);
         context = new DefaultConnectorContextBuilder().setRegistry(registry).build();
         connector = new DefaultConnectorFactory().createConnector(
-                "jdbc:mysql://localhost:3306/test?user=root&password=1&pool=sonaq", context);
+                "jdbc:mysql://localhost:3306/test?user=root&pool=sonaq", context);
         connector.start();
         producer = connector.getProducer().orElseThrow();
     }
