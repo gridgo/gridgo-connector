@@ -31,6 +31,6 @@ public class KafkaConnector extends AbstractConnector {
         if (createConsumer)
             consumer = Optional.of(new KafkaConsumer(getContext(), kafkaConfig, format));
         if (createProducer)
-            producer = Optional.of(new KafkaProducer(getContext(), kafkaConfig));
+            producer = Optional.of(new KafkaProducer(getContext(), kafkaConfig, format));
     }
 }

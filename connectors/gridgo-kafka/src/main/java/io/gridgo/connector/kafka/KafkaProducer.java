@@ -16,13 +16,16 @@ import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.AbstractProducer;
+import io.gridgo.connector.support.FormattedMarshallable;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.transaction.Transaction;
 import io.gridgo.connector.support.transaction.TransactionalComponent;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.impl.MultipartMessage;
+import lombok.Getter;
 
-public class KafkaProducer extends AbstractProducer implements TransactionalComponent, Transaction {
+public class KafkaProducer extends AbstractProducer
+        implements TransactionalComponent, Transaction, FormattedMarshallable {
 
     private KafkaConfiguration configuration;
 
@@ -30,10 +33,14 @@ public class KafkaProducer extends AbstractProducer implements TransactionalComp
 
     private String[] topics;
 
-    public KafkaProducer(ConnectorContext context, KafkaConfiguration configuration) {
+    @Getter
+    private String format;
+
+    public KafkaProducer(ConnectorContext context, KafkaConfiguration configuration, String format) {
         super(context);
         this.configuration = configuration;
         this.topics = configuration.getTopic().split(",");
+        this.format = format;
     }
 
     private void ack(Deferred<Message, Exception> deferred, RecordMetadata metadata, Exception exception) {
@@ -86,7 +93,7 @@ public class KafkaProducer extends AbstractProducer implements TransactionalComp
             return null;
         if (body.isValue())
             return body.asValue().getData();
-        return body.toBytes();
+        return serialize(body);
     }
 
     public Message convertJoinedResult(JoinedResults<Message> results) {
@@ -183,5 +190,10 @@ public class KafkaProducer extends AbstractProducer implements TransactionalComp
     public Promise<Message, Exception> rollback() {
         this.producer.abortTransaction();
         return Promise.of(null);
+    }
+    
+    @Override
+    public String getDefaultFormat() {
+        return "raw";
     }
 }

@@ -10,7 +10,9 @@ public interface FormattedMarshallable {
         if (responseBody == null || responseBody.length == 0)
             return null;
         var format = getFormat();
-        if (format == null || format.equals("json"))
+        if (format == null)
+            format = getDefaultFormat();
+        if (format.equals("json"))
             return BElement.ofJson(new String(responseBody));
         if (format.equals("xml"))
             return BElement.ofXml(new String(responseBody));
@@ -21,13 +23,13 @@ public interface FormattedMarshallable {
         throw new UnsupportedFormatException(format);
     }
 
-    public String getFormat();
-
     public default byte[] serialize(BElement body) {
         if (body == null || body.isNullValue())
             return null;
         var format = getFormat();
-        if (format == null || format.equals("json"))
+        if (format == null)
+            format = getDefaultFormat();
+        if (format.equals("json"))
             return body.toJson().getBytes();
         if (format.equals("xml"))
             return body.toXml().getBytes();
@@ -38,5 +40,11 @@ public interface FormattedMarshallable {
                 return body.asValue().getRaw();
         }
         throw new UnsupportedFormatException(format);
+    }
+
+    public String getFormat();
+    
+    public default String getDefaultFormat() {
+        return "json";
     }
 }

@@ -373,4 +373,9 @@ public class KafkaConsumer extends AbstractConsumer implements FormattedMarshall
             }
         }
     }
+
+    @Override
+    public String getDefaultFormat() {
+        return "raw";
+    }
 }
