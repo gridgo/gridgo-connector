@@ -1,5 +1,13 @@
 package io.gridgo.connector.jdbc;
 
+import java.math.BigDecimal;
+import java.util.concurrent.CountDownLatch;
+
+import org.jdbi.v3.core.ConnectionFactory;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.gridgo.bean.BElement;
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.Producer;
@@ -9,13 +17,7 @@ import io.gridgo.connector.support.config.impl.DefaultConnectorContextBuilder;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.Registry;
 import io.gridgo.framework.support.impl.SimpleRegistry;
-import org.jdbi.v3.core.ConnectionFactory;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
 import snaq.db.ConnectionPool;
-
-import java.math.BigDecimal;
 
 public class JdbcConnectorTest {
 
@@ -26,7 +28,7 @@ public class JdbcConnectorTest {
 
     @Before
     public void initialize() {
-        var pool = new ConnectionPool("local", 5, 15, 0, 180, "jdbc:mysql://localhost:3306/test", "root", "1");
+        var pool = new ConnectionPool("local", 5, 15, 0, 180, "jdbc:mysql://localhost:3306/test", "root", "");
         registry = new SimpleRegistry().register("sonaq", (ConnectionFactory) pool::getConnection);
         context = new DefaultConnectorContextBuilder().setRegistry(registry).build();
         connector = new DefaultConnectorFactory().createConnector(
@@ -35,31 +37,29 @@ public class JdbcConnectorTest {
         producer = connector.getProducer().orElseThrow();
     }
 
-    private void sleep(int time) {
-        try {
-            Thread.sleep(time);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
     @Test
     public void testSelect() {
         TestUtil testUtil = new TestUtil("testSelect");
+        var latch = new CountDownLatch(1);
         try {
-            dropTable(testUtil);
-            createTable(testUtil);
-            insert(testUtil);
-            select(testUtil);
-//            update(testUtil);
+            dropTable(testUtil, latch);
+            latch.await();
+            latch = new CountDownLatch(1);
+            createTable(testUtil, latch);
+            latch.await();
+            latch = new CountDownLatch(1);
+            insert(testUtil, latch);
+            latch.await();
+            latch = new CountDownLatch(1);
+            select(testUtil, latch);
+            latch.await();
         } catch (Exception ex) {
             ex.printStackTrace();
             Assert.fail();
         }
-        sleep(3000);
     }
 
-    private void select(TestUtil testUtil) {
+    private void select(TestUtil testUtil, CountDownLatch latch) {
         var ok = producer.call(testUtil.createSelectRequest());
         var sqlValues = testUtil.getSqlValues();
         ok.done(msg -> {
@@ -76,6 +76,7 @@ public class JdbcConnectorTest {
                     Assert.assertEquals(sqlValues.get("timetest"), result.get("timetest").asReference().getReference());
                     Assert.assertEquals(sqlValues.get("timestamptest"),
                             result.get("timestamptest").asReference().getReference());
+                    latch.countDown();
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -84,11 +85,12 @@ public class JdbcConnectorTest {
         });
     }
 
-    private void insert(TestUtil testUtil) {
+    private void insert(TestUtil testUtil, CountDownLatch latch) {
         var ok = producer.call(testUtil.createInsertRequest());
         ok.done(msg -> {
             var list = msg.getPayload().getBody().asValue().getInteger();
             Assert.assertEquals(Integer.valueOf(1), list);
+            latch.countDown();
         });
         ok.fail(ex -> {
             ex.printStackTrace();
@@ -96,15 +98,17 @@ public class JdbcConnectorTest {
         });
     }
 
-    private void dropTable(TestUtil testUtil) {
+    private void dropTable(TestUtil testUtil, CountDownLatch latch) {
         Message message = testUtil.createDropTableMessage();
-        producer.call(message);
+        producer.call(message).done(msg -> latch.countDown()).fail(ex -> {
+            ex.printStackTrace();
+            Assert.fail();
+        });
     }
 
-    private void createTable(TestUtil testUtil) {
+    private void createTable(TestUtil testUtil, CountDownLatch latch) {
         Message message = testUtil.createCreateTableMessage();
-        var ok = producer.call(message);
-        ok.done(msg -> Assert.assertTrue(true)).fail(ex -> {
+        producer.call(message).done(msg -> latch.countDown()).fail(ex -> {
             ex.printStackTrace();
             Assert.fail();
         });

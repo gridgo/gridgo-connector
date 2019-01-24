@@ -3,6 +3,7 @@ package io.gridgo.connector.jdbc;
 import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION;
 import static io.gridgo.connector.support.transaction.TransactionConstants.HEADER_CREATE_TRANSACTION;
 
+import io.gridgo.connector.jdbc.support.Helper;
 import org.jdbi.v3.core.ConnectionFactory;
 import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.Jdbi;
@@ -33,7 +34,9 @@ class JdbcProducer extends JdbcClient {
 
     protected Promise<Message, Exception> doCall(Message request,
             CompletableDeferredObject<Message, Exception> deferred, boolean isRPC) {
-        var operation = request.headers().remove(OPERATION).toString();
+        var operationParam = request.headers().remove(OPERATION);
+        var sqlStatement = request.body().asValue().getString();
+        String operation = operationParam == null ? Helper.getOperation(sqlStatement) : operationParam.toString();
         if (HEADER_CREATE_TRANSACTION.equals(operation)) {
             var result = beginTransaction(jdbiClient.open(), this.getContext());
             ack(deferred, result);
