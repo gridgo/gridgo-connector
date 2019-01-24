@@ -93,6 +93,8 @@ public class KafkaProducer extends AbstractProducer
             return null;
         if (body.isValue())
             return body.asValue().getData();
+        if ("raw".equals(format))
+            return serialize(body);
         return new String(serialize(body));
     }
 
@@ -190,10 +192,5 @@ public class KafkaProducer extends AbstractProducer
     public Promise<Message, Exception> rollback() {
         this.producer.abortTransaction();
         return Promise.of(null);
-    }
-
-    @Override
-    public String getDefaultFormat() {
-        return "raw";
     }
 }

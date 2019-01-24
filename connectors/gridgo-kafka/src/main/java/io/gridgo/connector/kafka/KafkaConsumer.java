@@ -139,7 +139,8 @@ public class KafkaConsumer extends AbstractConsumer implements FormattedMarshall
         }
 
         private BElement deserializeWithFormat(ConsumerRecord<Object, Object> record) {
-            return deserialize(record.value().toString().getBytes());
+            var value = record.value();
+            return deserialize(value instanceof byte[] ? (byte[]) value : value.toString().getBytes());
         }
 
         private Message buildMessageForBatch(List<ConsumerRecord<Object, Object>> records) {
@@ -369,10 +370,5 @@ public class KafkaConsumer extends AbstractConsumer implements FormattedMarshall
                 consumer.subscribe(Arrays.asList(topicName.split(",")));
             }
         }
-    }
-
-    @Override
-    public String getDefaultFormat() {
-        return "raw";
     }
 }
