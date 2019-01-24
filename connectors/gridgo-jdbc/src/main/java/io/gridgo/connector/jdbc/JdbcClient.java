@@ -1,7 +1,7 @@
 package io.gridgo.connector.jdbc;
 
 import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION_DELETE;
-import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION_EXCUTE;
+import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION_EXECUTE;
 import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION_INSERT;
 import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION_SELECT;
 import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION_UPDATE;
@@ -41,7 +41,7 @@ public abstract class JdbcClient extends AbstractTransaction {
         bind(OPERATION_UPDATE, JdbcOperator::updateRow);
         bind(OPERATION_DELETE, JdbcOperator::updateRow);
         bind(OPERATION_INSERT, JdbcOperator::updateRow);
-        bind(OPERATION_EXCUTE, JdbcOperator::execute);
+        bind(OPERATION_EXECUTE, JdbcOperator::execute);
     }
 
     @Override
