@@ -70,6 +70,9 @@ public class KafkaProducer extends AbstractProducer
         Object key = keyValue != null ? keyValue.getData() : null;
         var body = message.body();
         var record = new ProducerRecord<Object, Object>(topic, partition, timestamp, key, convert(body));
+        if (body != null && body.isValue()) {
+            record.headers().add(KafkaConstants.IS_VALUE, new byte[] { 1 });
+        }
 
         for (var header : headers.entrySet()) {
             if (header.getValue().isValue()) {
@@ -89,7 +92,7 @@ public class KafkaProducer extends AbstractProducer
         if (body == null || body.isNullValue())
             return null;
         if (body.isValue())
-            return body.asValue().getData().toString();
+            return body.asValue().getData();
         return new String(serialize(body));
     }
 

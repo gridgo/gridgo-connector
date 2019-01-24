@@ -127,11 +127,14 @@ public class KafkaConsumer extends AbstractConsumer implements FormattedMarshall
                 headers.putAny(KafkaConstants.KEY, record.key());
             }
 
+            var isValue = false;
             for (Header header : record.headers()) {
                 headers.putAny(header.key(), header.value());
+                if (KafkaConstants.IS_VALUE.equals(header.key()))
+                    isValue = true;
             }
 
-            var body = deserializeWithFormat(record);
+            var body = isValue ? BElement.ofAny(record.value()) : deserializeWithFormat(record);
             return createMessage(headers, body);
         }
 
