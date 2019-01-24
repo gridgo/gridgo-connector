@@ -1,4 +1,4 @@
-package io.gridgo.connector.mysql;
+package io.gridgo.connector.jdbc;
 
 public class JdbcConstants {
 
@@ -24,7 +24,5 @@ public class JdbcConstants {
     static final int DEFAULT_CONNECTION_POOL_MAX_SIZE = 0;
 
     static final int DEFAULT_CONNECTION_POOL_IDLE_TIMEOUT = 180;
-
-
 
 }

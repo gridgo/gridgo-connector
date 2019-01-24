@@ -1,5 +1,4 @@
-package io.gridgo.connector.mysql;
-
+package io.gridgo.connector.jdbc;
 
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
@@ -23,7 +22,7 @@ public class TestUtil {
     private Map<String, Object> sqlValues;
     private String tableName;
 
-    TestUtil(String tableName){
+    TestUtil(String tableName) {
         this.tableName = tableName;
         columnsName = new ArrayList<>();
         sqlTypes = new HashMap<>();
@@ -31,10 +30,8 @@ public class TestUtil {
         createDefaultFieldList();
     }
 
-    private String buildInsertSQL(){
-        StringBuilder sql = new StringBuilder("insert into ")
-                .append(tableName)
-                .append(" ( ");
+    private String buildInsertSQL() {
+        StringBuilder sql = new StringBuilder("insert into ").append(tableName).append(" ( ");
         columnsName.forEach(column -> {
             sql.append(column);
             sql.append(", ");
@@ -51,10 +48,8 @@ public class TestUtil {
         return sql.toString();
     }
 
-    private String buildSelectSQL(){
-        StringBuilder sql = new StringBuilder("select * from ")
-                .append(tableName)
-                .append(" where ");
+    private String buildSelectSQL() {
+        StringBuilder sql = new StringBuilder("select * from ").append(tableName).append(" where ");
         columnsName.forEach(column -> {
             sql.append(column);
             sql.append(" = ");
@@ -80,12 +75,10 @@ public class TestUtil {
         return Message.of(Payload.of(headers, BValue.of(sql)));
     }
 
-    Message createCreateTableMessage(){
+    Message createCreateTableMessage() {
         var headers = BObject.ofEmpty().setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_EXCUTE);
-        StringBuilder queryBuilder = new StringBuilder("create table ")
-                .append(tableName)
-                .append(" ( ");
-        for (String column : columnsName){
+        StringBuilder queryBuilder = new StringBuilder("create table ").append(tableName).append(" ( ");
+        for (String column : columnsName) {
             queryBuilder.append(column);
             queryBuilder.append(" ");
             queryBuilder.append(sqlTypes.get(column));
@@ -97,20 +90,18 @@ public class TestUtil {
         return Message.ofAny(headers, queryBuilder.toString());
     }
 
-    Message createDropTableMessage(){
+    Message createDropTableMessage() {
         var headers = BObject.ofEmpty().setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_EXCUTE);
         return Message.ofAny(headers, "drop table if exists " + tableName + " ;");
     }
 
-
-
-    void addField(Field field){
+    void addField(Field field) {
         columnsName.add(field.fieldName);
         sqlTypes.put(field.fieldName, field.sqlType);
         sqlValues.put(field.fieldName, field.value);
     }
 
-    void createDefaultFieldList(){
+    void createDefaultFieldList() {
         addField(new Field(Integer.class, "INTEGER", 112));
         addField(new Field(String.class, "VARCHAR(200)", "test"));
         addField(new Field(BigDecimal.class, "DECIMAL", new BigDecimal(21323)));
@@ -118,7 +109,8 @@ public class TestUtil {
 //        addField(new Field("arraybyte", "BINARY(100)", "t".getBytes()));
         addField(new Field(Date.class, "DATE", Date.valueOf(LocalDate.parse("2019-01-10"))));
         addField(new Field(Time.class, "TIME", Time.valueOf(LocalTime.parse("19:49:06"))));
-        addField(new Field(Timestamp.class, "TIMESTAMP", Timestamp.valueOf(LocalDateTime.parse("2007-12-03T10:15:30"))));
+        addField(
+                new Field(Timestamp.class, "TIMESTAMP", Timestamp.valueOf(LocalDateTime.parse("2007-12-03T10:15:30"))));
     }
 
     public List<String> getColumnsName() {

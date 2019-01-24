@@ -1,6 +1,6 @@
 package io.gridgo.connector.support.transaction;
 
-import io.gridgo.connector.support.MessageSenderComponent;
+import io.gridgo.connector.support.MessageProducer;
 import io.gridgo.framework.support.Message;
 import org.joo.promise4j.Promise;
 
@@ -8,7 +8,7 @@ import org.joo.promise4j.Promise;
  * Represent an asychronous transaction. It can be used to call requests inside
  * a transaction boundary, commit the transaction or rollback it.
  */
-public interface Transaction extends MessageSenderComponent {
+public interface Transaction extends MessageProducer {
 
     /**
      * Commit the transaction and close the underlying connection. This method
