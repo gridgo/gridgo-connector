@@ -16,9 +16,9 @@ public class KafkaConstants {
 
     public static final String MANUAL_COMMIT = "kafka.MANUAL_COMMIT";
 
-    public static final String KAFKA_DEFAULT_SERIALIZER = "org.apache.kafka.common.serialization.ByteArraySerializer";
+    public static final String KAFKA_DEFAULT_SERIALIZER = "org.apache.kafka.common.serialization.StringSerializer";
 
-    public static final String KAFKA_DEFAULT_DESERIALIZER = "org.apache.kafka.common.serialization.ByteArrayDeserializer";
+    public static final String KAFKA_DEFAULT_DESERIALIZER = "org.apache.kafka.common.serialization.StringDeserializer";
 
     public static final String PARTITIONER_RANGE_ASSIGNOR = "org.apache.kafka.clients.consumer.RangeAssignor";
 
@@ -41,6 +41,4 @@ public class KafkaConstants {
     public static final String BATCH_SIZE = "batchSize";
 
     public static final String IS_ACK_MSG = "kafka.IS_ACK_MSG";
-
-    public static final String RAW = "kafka.RAW";
 }

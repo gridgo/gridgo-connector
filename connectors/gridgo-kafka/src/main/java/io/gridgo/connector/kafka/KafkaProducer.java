@@ -70,9 +70,6 @@ public class KafkaProducer extends AbstractProducer
         Object key = keyValue != null ? keyValue.getData() : null;
         var body = message.body();
         var record = new ProducerRecord<Object, Object>(topic, partition, timestamp, key, convert(body));
-        if (body != null && !body.isValue()) {
-            record.headers().add(KafkaConstants.RAW, new byte[] { 1 });
-        }
 
         for (var header : headers.entrySet()) {
             if (header.getValue().isValue()) {
@@ -89,11 +86,11 @@ public class KafkaProducer extends AbstractProducer
     }
 
     private Object convert(BElement body) {
-        if (body == null)
+        if (body == null || body.isNullValue())
             return null;
         if (body.isValue())
-            return body.asValue().getData();
-        return serialize(body);
+            return body.asValue().getData().toString();
+        return new String(serialize(body));
     }
 
     public Message convertJoinedResult(JoinedResults<Message> results) {
@@ -191,7 +188,7 @@ public class KafkaProducer extends AbstractProducer
         this.producer.abortTransaction();
         return Promise.of(null);
     }
-    
+
     @Override
     public String getDefaultFormat() {
         return "raw";

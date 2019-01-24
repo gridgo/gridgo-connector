@@ -26,7 +26,6 @@ import io.gridgo.framework.execution.ExecutionStrategy;
 import io.gridgo.framework.execution.impl.ExecutorExecutionStrategy;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.impl.MultipartMessage;
-import io.gridgo.utils.ByteArrayUtils;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -128,21 +127,16 @@ public class KafkaConsumer extends AbstractConsumer implements FormattedMarshall
                 headers.putAny(KafkaConstants.KEY, record.key());
             }
 
-            boolean isRaw = false;
-
             for (Header header : record.headers()) {
                 headers.putAny(header.key(), header.value());
-                if (KafkaConstants.RAW.equals(header.key()))
-                    isRaw = true;
             }
 
-            var body = isRaw ? BElement.ofBytes((byte[]) record.value()) : deserializeWithFormat(record);
+            var body = deserializeWithFormat(record);
             return createMessage(headers, body);
         }
 
         private BElement deserializeWithFormat(ConsumerRecord<Object, Object> record) {
-            return format == null ? BElement.ofAny(record.value())
-                    : deserialize(ByteArrayUtils.primitiveToBytes(record.value()));
+            return deserialize(record.value().toString().getBytes());
         }
 
         private Message buildMessageForBatch(List<ConsumerRecord<Object, Object>> records) {
