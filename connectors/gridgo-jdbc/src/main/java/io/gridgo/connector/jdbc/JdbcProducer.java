@@ -13,11 +13,14 @@ import org.joo.promise4j.impl.SimpleFailurePromise;
 
 import io.gridgo.connector.jdbc.support.JdbcOperationException;
 import io.gridgo.connector.support.config.ConnectorContext;
+import io.gridgo.framework.execution.impl.ExecutorExecutionStrategy;
 import io.gridgo.framework.support.Message;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class JdbcProducer extends JdbcClient {
+
+    private static final ExecutorExecutionStrategy DEFAULT_STRATEGY = new ExecutorExecutionStrategy(8);
 
     private Jdbi jdbiClient;
 
@@ -26,17 +29,12 @@ class JdbcProducer extends JdbcClient {
         this.jdbiClient = Jdbi.create(connectionFactory);
     }
 
-    private Message beginTransaction(Handle handle, ConnectorContext context) {
-        handle.begin();
-        JdbcTransaction jdbcTransaction = new JdbcTransaction(handle, context);
-        return Message.ofAny(jdbcTransaction);
-    }
-
     protected Promise<Message, Exception> doCall(Message request,
             CompletableDeferredObject<Message, Exception> deferred, boolean isRPC) {
         var operationParam = request.headers().remove(OPERATION);
         var sqlStatement = request.body().asValue().getString();
-        String operation = operationParam == null ? Helper.getOperation(sqlStatement) : operationParam.toString();
+        String operation = operationParam == null ? Helper.getOperation(sqlStatement).toLowerCase()
+                : operationParam.toString();
         if (HEADER_CREATE_TRANSACTION.equals(operation)) {
             var result = beginTransaction(jdbiClient.open(), this.getContext());
             ack(deferred, result);
@@ -46,14 +44,23 @@ class JdbcProducer extends JdbcClient {
         if (handler == null) {
             return new SimpleFailurePromise<>(new JdbcOperationException());
         }
-        try (var handle = jdbiClient.open()) {
-            var result = handler.handle(request, handle);
-            ack(deferred, result);
-        } catch (Exception ex) {
-            log.error("Error while processing JDBC request", ex);
-            ack(deferred, ex);
-        }
+        var strategy = getContext().getProducerExecutionStrategy().orElse(DEFAULT_STRATEGY);
+        strategy.execute(() -> {
+            try (var handle = jdbiClient.open()) {
+                var result = handler.handle(request, handle);
+                ack(deferred, result);
+            } catch (Exception ex) {
+                log.error("Error while processing JDBC request", ex);
+                ack(deferred, ex);
+            }
+        });
         return deferred == null ? null : deferred.promise();
+    }
+
+    private Message beginTransaction(Handle handle, ConnectorContext context) {
+        handle.begin();
+        JdbcTransaction jdbcTransaction = new JdbcTransaction(handle, context);
+        return Message.ofAny(jdbcTransaction);
     }
 
     @Override
