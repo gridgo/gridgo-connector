@@ -7,17 +7,17 @@ import org.junit.Test;
 public class TestHelper {
 
     @Test
-    public void testGetOperationNormalCase(){
+    public void testGetOperationNormalCase() {
         String sqlStatement = "Select * from table";
         String operation = Helper.getOperation(sqlStatement);
-        Assert.assertEquals("Select", operation);
+        Assert.assertEquals(JdbcConstants.OPERATION_SELECT, operation);
     }
 
     @Test
-    public void testGetOperationSpaceAtFirst(){
+    public void testGetOperationSpaceAtFirst() {
         String sqlStatement = "  Select   * from table";
         String operation = Helper.getOperation(sqlStatement);
-        Assert.assertEquals("Select", operation);
+        Assert.assertEquals(JdbcConstants.OPERATION_SELECT, operation);
     }
 
 }

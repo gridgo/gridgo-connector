@@ -76,7 +76,7 @@ public class TestUtil {
     }
 
     Message createCreateTableMessage() {
-        var headers = BObject.ofEmpty().setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_EXCUTE);
+        var headers = BObject.ofEmpty().setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_EXECUTE);
         StringBuilder queryBuilder = new StringBuilder("create table ").append(tableName).append(" ( ");
         for (String column : columnsName) {
             queryBuilder.append(column);
@@ -91,7 +91,7 @@ public class TestUtil {
     }
 
     Message createDropTableMessage() {
-        var headers = BObject.ofEmpty().setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_EXCUTE);
+        var headers = BObject.ofEmpty().setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_EXECUTE);
         return Message.ofAny(headers, "drop table if exists " + tableName + " ;");
     }
 
