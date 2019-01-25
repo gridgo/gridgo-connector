@@ -27,7 +27,7 @@ public class KafkaProducerUnitTest {
 
     private static final int NUM_PARTITIONS = 1;
 
-    private static final int NUM_MESSAGES = 100;
+    private static final int NUM_MESSAGES = 1;
 
     private static final int NUM_BROKERS = 1;
 
@@ -202,7 +202,7 @@ public class KafkaProducerUnitTest {
 
     @Test
     public void testSendObject() {
-        String extraQuery = "&mode=producer&serializerClass=org.apache.kafka.common.serialization.ByteArraySerializer";
+        String extraQuery = "&mode=producer";
         String topicName = createTopic();
 
         String brokers = sharedKafkaTestResource.getKafkaConnectString();
@@ -216,7 +216,7 @@ public class KafkaProducerUnitTest {
         String key = "test-key";
         BObject headers = BObject.ofEmpty().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
         Message msg = Message.of(Payload.of(headers, BObject.ofEmpty().setAny("test", 1).setAny("hello", "world")));
-
+        
         long started = System.nanoTime();
 
         for (int i = 0; i < NUM_MESSAGES; i++) {

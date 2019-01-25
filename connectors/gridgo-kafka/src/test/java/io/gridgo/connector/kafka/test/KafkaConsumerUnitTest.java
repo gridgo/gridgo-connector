@@ -28,7 +28,7 @@ public class KafkaConsumerUnitTest {
 
     private static final int NUM_PARTITIONS = 1;
 
-    private static final int NUM_MESSAGES = 100;
+    private static final int NUM_MESSAGES = 1;
 
     @ClassRule
     public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(

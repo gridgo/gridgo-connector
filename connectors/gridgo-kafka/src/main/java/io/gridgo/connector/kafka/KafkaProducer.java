@@ -16,13 +16,16 @@ import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.bean.BValue;
 import io.gridgo.connector.impl.AbstractProducer;
+import io.gridgo.connector.support.FormattedMarshallable;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.transaction.Transaction;
 import io.gridgo.connector.support.transaction.TransactionalComponent;
 import io.gridgo.framework.support.Message;
 import io.gridgo.framework.support.impl.MultipartMessage;
+import lombok.Getter;
 
-public class KafkaProducer extends AbstractProducer implements TransactionalComponent, Transaction {
+public class KafkaProducer extends AbstractProducer
+        implements TransactionalComponent, Transaction, FormattedMarshallable {
 
     private KafkaConfiguration configuration;
 
@@ -30,10 +33,14 @@ public class KafkaProducer extends AbstractProducer implements TransactionalComp
 
     private String[] topics;
 
-    public KafkaProducer(ConnectorContext context, KafkaConfiguration configuration) {
+    @Getter
+    private String format;
+
+    public KafkaProducer(ConnectorContext context, KafkaConfiguration configuration, String format) {
         super(context);
         this.configuration = configuration;
         this.topics = configuration.getTopic().split(",");
+        this.format = format;
     }
 
     private void ack(Deferred<Message, Exception> deferred, RecordMetadata metadata, Exception exception) {
@@ -63,8 +70,8 @@ public class KafkaProducer extends AbstractProducer implements TransactionalComp
         Object key = keyValue != null ? keyValue.getData() : null;
         var body = message.body();
         var record = new ProducerRecord<Object, Object>(topic, partition, timestamp, key, convert(body));
-        if (body != null && !body.isValue()) {
-            record.headers().add(KafkaConstants.RAW, new byte[] { 1 });
+        if (body != null && body.isValue()) {
+            record.headers().add(KafkaConstants.IS_VALUE, new byte[] { 1 });
         }
 
         for (var header : headers.entrySet()) {
@@ -82,11 +89,13 @@ public class KafkaProducer extends AbstractProducer implements TransactionalComp
     }
 
     private Object convert(BElement body) {
-        if (body == null)
+        if (body == null || body.isNullValue())
             return null;
         if (body.isValue())
             return body.asValue().getData();
-        return body.toBytes();
+        if ("raw".equals(format))
+            return serialize(body);
+        return new String(serialize(body));
     }
 
     public Message convertJoinedResult(JoinedResults<Message> results) {

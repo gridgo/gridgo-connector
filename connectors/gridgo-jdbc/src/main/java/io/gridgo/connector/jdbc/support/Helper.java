@@ -52,8 +52,8 @@ public class Helper {
         }
     }
 
-    public static String getOperation(String sqlStatement){
+    public static String getOperation(String sqlStatement) {
         String trim = sqlStatement.trim();
-        return  trim.substring(0, trim.indexOf(' ')).toLowerCase();
+        return trim.substring(0, trim.indexOf(' ')).toLowerCase();
     }
 }

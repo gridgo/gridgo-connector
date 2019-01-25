@@ -63,8 +63,7 @@ public class TestUtil {
 
     Message createSelectRequest() {
         String sql = buildSelectSQL();
-        var headers = BObject.ofEmpty()
-                .setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_SELECT);
+        var headers = BObject.ofEmpty().setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_SELECT);
         columnsName.forEach(column -> headers.putAny(column, sqlValues.get(column)));
         return Message.ofAny(headers, sql);
     }

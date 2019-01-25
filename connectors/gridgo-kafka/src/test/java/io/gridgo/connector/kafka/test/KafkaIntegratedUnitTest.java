@@ -4,6 +4,7 @@ import java.text.DecimalFormat;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
 import org.junit.Assert;
@@ -28,7 +29,7 @@ public class KafkaIntegratedUnitTest {
 
     private static final int NUM_PARTITIONS = 1;
 
-    private static final int NUM_MESSAGES = 1000;
+    private static final int NUM_MESSAGES = 1;
 
     @ClassRule
     public static final SharedKafkaTestResource sharedKafkaTestResource = //
@@ -121,7 +122,7 @@ public class KafkaIntegratedUnitTest {
         long started = System.nanoTime();
         // Produce it & wait for it to complete.
         for (int i = 0; i < numMessages; i++) {
-            Message msg = Message.of(Payload.of(BObject.ofEmpty().setAny("test", 1)));
+            var msg = Message.ofAny(BObject.of("test", 1));
             producer.send(msg);
         }
         long elapsed = System.nanoTime() - started;
@@ -160,7 +161,7 @@ public class KafkaIntegratedUnitTest {
     @Test
     public void testConsumerAndProducerWithObject() {
 
-        String extraQuery = "&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest&serializerClass=org.apache.kafka.common.serialization.ByteArraySerializer&valueDeserializer=org.apache.kafka.common.serialization.ByteArrayDeserializer";
+        String extraQuery = "&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest";
 
         String topicName = createTopic();
 
@@ -195,14 +196,18 @@ public class KafkaIntegratedUnitTest {
         System.out.println("Warm up done");
 
         var latch = new AtomicInteger(NUM_MESSAGES);
+        var exRef = new AtomicReference<>();
 
         consumer.clearSubscribers();
         consumer.subscribe((msg, deferred) -> {
             if (msg.body().isObject() && msg.body().asObject().getInteger("test") == 1) {
                 int size = msg.headers().getInteger(KafkaConstants.BATCH_SIZE, 1);
                 latch.addAndGet(-size);
-                deferred.resolve(null);
+            } else {
+                exRef.set(new IllegalArgumentException(msg.body().toString()));
+                latch.set(0);
             }
+            deferred.resolve(null);
         });
 
         long started = System.nanoTime();
@@ -219,5 +224,7 @@ public class KafkaIntegratedUnitTest {
         connector.stop();
 
         System.out.println("Connector stop");
+
+        Assert.assertNull(exRef.get());
     }
 }
