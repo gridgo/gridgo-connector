@@ -44,7 +44,7 @@ class JdbcProducer extends JdbcClient {
         }
         var handler = operationsMap.get(operation);
         if (handler == null) {
-            return new SimpleFailurePromise<>(new JdbcOperationException());
+            handler = JdbcOperator::execute;
         }
         try (var handle = jdbiClient.open()) {
             var result = handler.handle(request, handle);

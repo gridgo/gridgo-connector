@@ -63,7 +63,8 @@ public class TestUtil {
 
     Message createSelectRequest() {
         String sql = buildSelectSQL();
-        var headers = BObject.ofEmpty().setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_SELECT);
+        var headers = BObject.ofEmpty()
+                .setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_SELECT);
         columnsName.forEach(column -> headers.putAny(column, sqlValues.get(column)));
         return Message.ofAny(headers, sql);
     }
@@ -76,7 +77,7 @@ public class TestUtil {
     }
 
     Message createCreateTableMessage() {
-        var headers = BObject.ofEmpty().setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_EXCUTE);
+        var headers = BObject.ofEmpty().setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_EXECUTE);
         StringBuilder queryBuilder = new StringBuilder("create table ").append(tableName).append(" ( ");
         for (String column : columnsName) {
             queryBuilder.append(column);
@@ -91,7 +92,7 @@ public class TestUtil {
     }
 
     Message createDropTableMessage() {
-        var headers = BObject.ofEmpty().setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_EXCUTE);
+        var headers = BObject.ofEmpty().setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_EXECUTE);
         return Message.ofAny(headers, "drop table if exists " + tableName + " ;");
     }
 
