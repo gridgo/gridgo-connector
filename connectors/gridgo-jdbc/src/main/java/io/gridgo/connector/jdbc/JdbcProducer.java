@@ -3,15 +3,13 @@ package io.gridgo.connector.jdbc;
 import static io.gridgo.connector.jdbc.JdbcConstants.OPERATION;
 import static io.gridgo.connector.support.transaction.TransactionConstants.HEADER_CREATE_TRANSACTION;
 
-import io.gridgo.connector.jdbc.support.Helper;
 import org.jdbi.v3.core.ConnectionFactory;
 import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.Jdbi;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.CompletableDeferredObject;
-import org.joo.promise4j.impl.SimpleFailurePromise;
 
-import io.gridgo.connector.jdbc.support.JdbcOperationException;
+import io.gridgo.connector.jdbc.support.Helper;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.execution.impl.ExecutorExecutionStrategy;
 import io.gridgo.framework.support.Message;
@@ -40,10 +38,7 @@ class JdbcProducer extends JdbcClient {
             ack(deferred, result);
             return deferred == null ? null : deferred.promise();
         }
-        var handler = operationsMap.get(operation);
-        if (handler == null) {
-            return new SimpleFailurePromise<>(new JdbcOperationException());
-        }
+        var handler = findHandler(operation);
         var strategy = getContext().getProducerExecutionStrategy().orElse(DEFAULT_STRATEGY);
         strategy.execute(() -> {
             try (var handle = jdbiClient.open()) {
@@ -55,6 +50,13 @@ class JdbcProducer extends JdbcClient {
             }
         });
         return deferred == null ? null : deferred.promise();
+    }
+
+    private JdbcClientHandler findHandler(String operation) {
+        var handler = operationsMap.get(operation);
+        if (handler != null)
+            return handler;
+        return JdbcOperator::execute;
     }
 
     private Message beginTransaction(Handle handle, ConnectorContext context) {
