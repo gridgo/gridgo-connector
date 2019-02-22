@@ -102,6 +102,10 @@ public class RocksDBProducer extends AbstractProducer {
 
     private void putValue(Message message, Deferred<Message, Exception> deferred, boolean isRPC)
             throws RocksDBException {
+        if (!db.isOwningHandle()) {
+            deferred.reject(new IllegalStateException("Handle is already closed"));
+            return;
+        }
         // TODO check if we should only flush after batch writes
         var body = message.body().asObject();
         for (var entry : body.entrySet()) {
