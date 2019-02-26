@@ -46,7 +46,7 @@ public class FileConsumerUnitTest {
         var latch = new CountDownLatch(NUM_MESSAGES);
         var exRef = new AtomicReference<>();
         consumer.subscribe(msg -> {
-            var response = msg.getPayload().getBody().asValue().getString();
+            var response = msg.body().asValue().getString();
             if (!"hello".equals(response))
                 exRef.set(new RuntimeException("Expected: hello. Actual: " + response));
             latch.countDown();
@@ -123,7 +123,7 @@ public class FileConsumerUnitTest {
         var latch = new CountDownLatch(numMessages * 2);
         var exRef = new AtomicReference<>();
         consumer.subscribe(request -> {
-            var response = request.getPayload().getBody().asValue().getString();
+            var response = request.body().asValue().getString();
             if (!"hello".equals(response))
                 exRef.set(new RuntimeException("Expected: hello. Actual: " + response));
             latch.countDown();

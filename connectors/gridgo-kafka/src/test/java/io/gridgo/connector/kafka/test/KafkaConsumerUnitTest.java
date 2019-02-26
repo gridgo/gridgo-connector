@@ -28,11 +28,11 @@ public class KafkaConsumerUnitTest {
 
     private static final int NUM_PARTITIONS = 1;
 
-    private static final int NUM_MESSAGES = 100;
+    private static final int NUM_MESSAGES = 1;
 
     @ClassRule
-    public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(1).withBrokerProperty(
-            "auto.create.topics.enable", "false");
+    public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(
+            1).withBrokerProperty("auto.create.topics.enable", "false");
 
     private Connector createKafkaConnector(String connectString) {
         var connector = new DefaultConnectorFactory().createConnector(connectString);
@@ -139,7 +139,7 @@ public class KafkaConsumerUnitTest {
 
         consumer.clearSubscribers();
         consumer.subscribe((msg, deferred) -> {
-            int processed = msg.getPayload().getHeaders().getInteger(KafkaConstants.BATCH_SIZE);
+            int processed = msg.headers().getInteger(KafkaConstants.BATCH_SIZE);
             latch.addAndGet(-processed);
             deferred.resolve(null);
         });

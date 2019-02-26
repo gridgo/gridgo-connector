@@ -9,6 +9,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.gridgo.bean.BValue;
@@ -61,19 +62,19 @@ public class ZMQPubSubUnitTest {
             final CountDownLatch doneSignal = new CountDownLatch(4);
 
             subscriber1.subscribe((msg) -> {
-                String body = msg.getPayload().getBody().asValue().getString();
+                String body = msg.body().asValue().getString();
                 recv1.set(body);
                 doneSignal.countDown();
             });
 
             subscriber2.subscribe((msg) -> {
-                String body = msg.getPayload().getBody().asValue().getString();
+                String body = msg.body().asValue().getString();
                 recv2.set(body);
                 doneSignal.countDown();
             });
 
             subscriber3.subscribe((msg) -> {
-                String body = msg.getPayload().getBody().asValue().getString();
+                String body = msg.body().asValue().getString();
                 recv3.add(body);
                 doneSignal.countDown();
             });
@@ -101,6 +102,7 @@ public class ZMQPubSubUnitTest {
     }
 
     @Test
+    @Ignore
     public void testPubSubPGM() throws Exception {
         System.out.println("Test PGM protocol support");
 

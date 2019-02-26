@@ -26,6 +26,8 @@ public class KafkaConfiguration {
 
     private String groupId;
 
+    private String transactionId;
+
     private int consumersCount = 1;
 
     private String interceptorClasses;
@@ -73,6 +75,8 @@ public class KafkaConfiguration {
 
     private String autoCommitOnStop = "sync";
 
+    private String commitType = "sync";
+
     // producer
 
     private boolean topicIsPattern = false;
@@ -85,13 +89,13 @@ public class KafkaConfiguration {
 
     private String keySerializerClass = KafkaConstants.KAFKA_DEFAULT_SERIALIZER;
 
-    private String requestRequiredAcks = "1";
+    private String acks = "1";
 
     private int bufferMemorySize = 33554432;
 
     private String compressionCodec = "none";
 
-    private int retries = 0;
+    private Integer retries = null;
 
     private int producerBatchSize = 16384;
 
@@ -170,7 +174,7 @@ public class KafkaConfiguration {
         addPropertyIfNotNull(props, ConsumerConfig.GROUP_ID_CONFIG, getGroupId());
         addPropertyIfNotNull(props, ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, getKeySerializerClass());
         addPropertyIfNotNull(props, ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, getSerializerClass());
-        addPropertyIfNotNull(props, ProducerConfig.ACKS_CONFIG, getRequestRequiredAcks());
+        addPropertyIfNotNull(props, ProducerConfig.ACKS_CONFIG, getAcks());
         addPropertyIfNotNull(props, ProducerConfig.BUFFER_MEMORY_CONFIG, getBufferMemorySize());
         addPropertyIfNotNull(props, ProducerConfig.COMPRESSION_TYPE_CONFIG, getCompressionCodec());
         addPropertyIfNotNull(props, ProducerConfig.RETRIES_CONFIG, getRetries());
@@ -195,6 +199,7 @@ public class KafkaConfiguration {
         addPropertyIfNotNull(props, ProducerConfig.RETRY_BACKOFF_MS_CONFIG, getRetryBackoffMs());
         addPropertyIfNotNull(props, ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, isEnableIdempotence());
         addPropertyIfNotNull(props, ProducerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, getReconnectBackoffMaxMs());
+        addPropertyIfNotNull(props, ProducerConfig.TRANSACTIONAL_ID_CONFIG, getTransactionId());
 
         return props;
     }

@@ -5,13 +5,14 @@
 	<parent>
 		<groupId>io.gridgo</groupId>
 		<artifactId>gridgo-connector</artifactId>
-		<version>0.3.0</version>
+		<version>0.4.0</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
 	<artifactId>gridgo-connector-base</artifactId>
 
 	<modules>
+		<module>gridgo-jdbc</module>
 		<module>gridgo-socket</module>
 		<module>gridgo-socket-nanomsg</module>
 		<module>gridgo-socket-zmq</module>

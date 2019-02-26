@@ -35,15 +35,18 @@ public abstract class AbstractNetty4UnitTest {
         assertTrue(connector.getConsumer().isPresent());
     }
 
-    protected void testCloseServer(@NonNull String transport, String path) throws InterruptedException, PromiseException {
+    protected void testCloseServer(@NonNull String transport, String path)
+            throws InterruptedException, PromiseException {
 
         System.out.println("****** Netty4 " + transport + " - test shutdown server while client still alive");
         final String host = "localhost:8889";
 
-        Connector serverConnector = RESOLVER.resolve("netty4:server:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
+        Connector serverConnector = RESOLVER.resolve(
+                "netty4:server:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
         assertNetty4Connector(serverConnector);
 
-        Connector clientConnector = RESOLVER.resolve("netty4:client:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
+        Connector clientConnector = RESOLVER.resolve(
+                "netty4:client:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
         assertNetty4Connector(clientConnector);
 
         // server side
@@ -67,7 +70,8 @@ public abstract class AbstractNetty4UnitTest {
                 System.out.println("[" + transport + " server] - socket closed, routing id: " + routingId);
                 break;
             case "message":
-                System.out.println("[" + transport + " server] - got message from routing id " + routingId + ": " + msg.getPayload().toBArray()
+                System.out.println("[" + transport + " server] - got message from routing id " + routingId + ": "
+                        + msg.getPayload().toBArray()
                         + " --> trigger done to close server while client still alive...");
                 doneSignal1.countDown();
                 break;
@@ -116,15 +120,18 @@ public abstract class AbstractNetty4UnitTest {
         clientConnector.stop();
     }
 
-    protected void testCloseSocketFromClient(@NonNull String transport, String path) throws InterruptedException, PromiseException {
+    protected void testCloseSocketFromClient(@NonNull String transport, String path)
+            throws InterruptedException, PromiseException {
 
         System.out.println("****** Netty4 " + transport + " - test close connection from client");
         final String host = "localhost:8889";
 
-        Connector serverConnector = RESOLVER.resolve("netty4:server:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
+        Connector serverConnector = RESOLVER.resolve(
+                "netty4:server:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
         assertNetty4Connector(serverConnector);
 
-        Connector clientConnector = RESOLVER.resolve("netty4:client:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
+        Connector clientConnector = RESOLVER.resolve(
+                "netty4:client:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
         assertNetty4Connector(clientConnector);
 
         // server side
@@ -149,7 +156,8 @@ public abstract class AbstractNetty4UnitTest {
                 doneSignal.countDown();
                 break;
             case "message":
-                System.out.println("[" + transport + " server] - got message from routing id " + routingId + ": " + msg.getPayload().toBArray());
+                System.out.println("[" + transport + " server] - got message from routing id " + routingId + ": "
+                        + msg.getPayload().toBArray());
                 break;
             }
         });
@@ -204,15 +212,18 @@ public abstract class AbstractNetty4UnitTest {
         clientConnector.stop();
     }
 
-    protected void testCloseSocketFromServer(@NonNull String transport, String path) throws InterruptedException, PromiseException {
+    protected void testCloseSocketFromServer(@NonNull String transport, String path)
+            throws InterruptedException, PromiseException {
 
         System.out.println("****** Netty4 " + transport + " - test close connection from server");
         final String host = "localhost:8889";
 
-        Connector serverConnector = RESOLVER.resolve("netty4:server:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
+        Connector serverConnector = RESOLVER.resolve(
+                "netty4:server:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
         assertNetty4Connector(serverConnector);
 
-        Connector clientConnector = RESOLVER.resolve("netty4:client:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
+        Connector clientConnector = RESOLVER.resolve(
+                "netty4:client:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
         assertNetty4Connector(clientConnector);
 
         // server side
@@ -238,7 +249,8 @@ public abstract class AbstractNetty4UnitTest {
                 doneSignal.countDown();
                 break;
             case "message":
-                System.out.println("[" + transport + " server] - got message from routing id " + routingId + ": " + msg.getPayload().toBArray()
+                System.out.println("[" + transport + " server] - got message from routing id " + routingId + ": "
+                        + msg.getPayload().toBArray()
                         + " --> close client connection (by send a null-payload msg) right now...");
 
                 try {
@@ -291,15 +303,18 @@ public abstract class AbstractNetty4UnitTest {
         clientConnector.stop();
     }
 
-    protected void testHandlerException(@NonNull String transport, String path) throws InterruptedException, PromiseException {
+    protected void testHandlerException(@NonNull String transport, String path)
+            throws InterruptedException, PromiseException {
 
         System.out.println("****** Netty4 " + transport + " - test server side handle exception");
         final String host = "localhost:8889";
 
-        Connector serverConnector = RESOLVER.resolve("netty4:server:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
+        Connector serverConnector = RESOLVER.resolve(
+                "netty4:server:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
         assertNetty4Connector(serverConnector);
 
-        Connector clientConnector = RESOLVER.resolve("netty4:client:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
+        Connector clientConnector = RESOLVER.resolve(
+                "netty4:client:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
         assertNetty4Connector(clientConnector);
 
         // server side
@@ -316,10 +331,11 @@ public abstract class AbstractNetty4UnitTest {
                 System.out.println("[" + transport + " server] - socket open, routing id: " + msg.getRoutingId().get());
                 break;
             case "close":
-                System.out.println("[" + transport + " server] - socket closed, routing id: " + msg.getRoutingId().get());
+                System.out.println(
+                        "[" + transport + " server] - socket closed, routing id: " + msg.getRoutingId().get());
                 break;
             case "message":
-                String received = msg.getPayload().getBody().asValue().getString();
+                String received = msg.body().asValue().getString();
                 throw new RuntimeException(received);
             }
         });
@@ -349,10 +365,12 @@ public abstract class AbstractNetty4UnitTest {
         System.out.println("****** Netty4 " + transport + " - test ping/pong");
         final String host = "localhost:8889";
 
-        Connector serverConnector = RESOLVER.resolve("netty4:server:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
+        Connector serverConnector = RESOLVER.resolve(
+                "netty4:server:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
         assertNetty4Connector(serverConnector);
 
-        Connector clientConnector = RESOLVER.resolve("netty4:client:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
+        Connector clientConnector = RESOLVER.resolve(
+                "netty4:client:" + transport + "://" + host + (path == null ? "" : ("/" + path)));
         assertNetty4Connector(clientConnector);
 
         // server side
@@ -367,19 +385,18 @@ public abstract class AbstractNetty4UnitTest {
 
         System.out.println("Subscribe to server consumer");
         serverConsumer.subscribe((msg) -> {
-            if (msg.getPayload() != null) {
+            String socketMessageType = (String) msg.getMisc().get("socketMessageType");
+            switch (socketMessageType) {
+            case "open":
+                System.out.println("[" + transport + " server] - socket open, routing id: " + msg.getRoutingId().get());
+                break;
+            case "close":
+                System.out.println(
+                        "[" + transport + " server] - socket closed, routing id: " + msg.getRoutingId().get());
+                break;
+            default:
                 System.out.println("[" + transport + " server] - got msg from source: " + msg.getMisc().get("source"));
                 serverResponder.send(msg);
-            } else {
-                String socketMessageType = (String) msg.getMisc().get("socketMessageType");
-                switch (socketMessageType) {
-                case "open":
-                    System.out.println("[" + transport + " server] - socket open, routing id: " + msg.getRoutingId().get());
-                    break;
-                case "close":
-                    System.out.println("[" + transport + " server] - socket closed, routing id: " + msg.getRoutingId().get());
-                    break;
-                }
             }
         });
 
@@ -392,21 +409,19 @@ public abstract class AbstractNetty4UnitTest {
         final AtomicReference<String> receivedText = new AtomicReference<>(null);
 
         clientReceiver.subscribe((msg) -> {
-            if (msg.getPayload() != null) {
-                System.out.println(
-                        "[" + transport + " client] - got msg from source: " + msg.getMisc().get("source") + " -> payload: " + msg.getPayload().toBArray());
-                receivedText.set(msg.getPayload().getBody().asValue().getString());
+            String socketMessageType = (String) msg.getMisc().get("socketMessageType");
+            switch (socketMessageType) {
+            case "open":
+                System.out.println("[" + transport + " client] - connection established");
+                break;
+            case "close":
+                System.out.println("[" + transport + " client] - connection closed");
+                break;
+            default:
+                System.out.println("[" + transport + " client] - got msg from source: " + msg.getMisc().get("source")
+                        + " -> payload: " + msg.getPayload().toBArray());
+                receivedText.set(msg.body().asValue().getString());
                 doneSignal.countDown();
-            } else {
-                String socketMessageType = (String) msg.getMisc().get("socketMessageType");
-                switch (socketMessageType) {
-                case "open":
-                    System.out.println("[" + transport + " client] - connection established");
-                    break;
-                case "close":
-                    System.out.println("[" + transport + " client] - connection closed");
-                    break;
-                }
             }
         });
 

@@ -44,7 +44,7 @@ public class HttpConnectorUnitTest {
             if (ex != null) {
                 atomic.set(ex);
             } else {
-                var body = response.getPayload().getBody().asValue().getString();
+                var body = response.body().asValue().getString();
                 if (!"hello".equals(body)) {
                     atomic.set(new RuntimeException("expected 'hello', got '" + body + "'"));
                 }
@@ -81,7 +81,7 @@ public class HttpConnectorUnitTest {
             if (ex != null) {
                 atomic.set(ex);
             } else {
-                var body = response.getPayload().getBody().asValue().getString();
+                var body = response.body().asValue().getString();
                 if (!"hello".equals(body)) {
                     atomic.set(new RuntimeException("expected 'hello', got '" + body + "'"));
                 }
