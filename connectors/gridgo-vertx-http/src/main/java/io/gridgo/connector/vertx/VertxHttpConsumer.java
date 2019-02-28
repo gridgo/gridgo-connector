@@ -167,7 +167,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         var statusCode = ctx.statusCode() != -1 ? ctx.statusCode() : DEFAULT_EXCEPTION_STATUS_CODE;
         ctx.response().setStatusCode(statusCode);
 
-        if (ctx.failure() != null)
+        if (ctx.failure() != null && ctx.failure().getMessage() != null)
             ctx.response().end(ctx.failure().getMessage());
         else
             ctx.response().end();
