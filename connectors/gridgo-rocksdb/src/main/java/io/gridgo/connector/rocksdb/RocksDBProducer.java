@@ -82,8 +82,7 @@ public class RocksDBProducer extends AbstractProducer {
         var operation = message.headers().getString(OPERATION);
         var handler = operations.get(operation);
         if (handler == null) {
-            return Promise.ofCause(
-                    new IllegalArgumentException("Operation " + operation + " is not supported"));
+            return Promise.ofCause(new IllegalArgumentException("Operation " + operation + " is not supported"));
         }
 
         // call the handler with deferred if required
@@ -103,6 +102,10 @@ public class RocksDBProducer extends AbstractProducer {
 
     private void putValue(Message message, Deferred<Message, Exception> deferred, boolean isRPC)
             throws RocksDBException {
+        if (!db.isOwningHandle()) {
+            deferred.reject(new IllegalStateException("Handle is already closed"));
+            return;
+        }
         // TODO check if we should only flush after batch writes
         var body = message.body().asObject();
         for (var entry : body.entrySet()) {
@@ -123,7 +126,10 @@ public class RocksDBProducer extends AbstractProducer {
         }
         var key = message.body().asValue().getString().getBytes();
         var bytes = db.get(key);
-        ack(deferred, Message.ofAny(BElement.ofBytes(bytes)));
+        if (bytes == null)
+            ack(deferred);
+        else
+            ack(deferred, Message.ofAny(BElement.ofBytes(bytes)));
     }
 
     private void getAllValues(Message message, Deferred<Message, Exception> deferred, boolean isRPC)
