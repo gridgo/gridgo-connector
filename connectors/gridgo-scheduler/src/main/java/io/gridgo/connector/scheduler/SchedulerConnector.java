@@ -6,7 +6,7 @@ import io.gridgo.bean.BObject;
 import io.gridgo.connector.impl.AbstractConnector;
 import io.gridgo.connector.support.annotations.ConnectorEndpoint;
 
-@ConnectorEndpoint(scheme = "scheduler", syntax = "scheduler:{name}")
+@ConnectorEndpoint(scheme = "scheduler", syntax = "{name}")
 public class SchedulerConnector extends AbstractConnector {
 
     @Override
