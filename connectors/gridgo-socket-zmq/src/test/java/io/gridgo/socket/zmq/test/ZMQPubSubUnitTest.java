@@ -9,6 +9,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.gridgo.bean.BValue;
@@ -101,6 +102,7 @@ public class ZMQPubSubUnitTest {
     }
 
     @Test
+    @Ignore
     public void testPubSubPGM() throws Exception {
         System.out.println("Test PGM protocol support");
 
