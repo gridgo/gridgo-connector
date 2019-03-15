@@ -42,5 +42,5 @@ public class KafkaConstants {
 
     public static final String IS_ACK_MSG = "kafka.IS_ACK_MSG";
 
-    public static final String RAW = "kafka.RAW";
+    public static final String IS_VALUE = "kafka.IS_VALUE";
 }

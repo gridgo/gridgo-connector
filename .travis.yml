@@ -6,6 +6,7 @@ services:
 - rabbitmq
 - mongodb
 - redis-server
+- mysql
 
 notifications:
   slack: gridgo:EkUUzu8RhdhIVeNKg9JlcuIv
@@ -18,6 +19,8 @@ addons:
 before_install:
   - sudo apt-get install -y libpgm-dev 
   - sudo apt-get install -y libstdc++6
+  - mysql -e 'CREATE DATABASE IF NOT EXISTS test;'
+
 
 after_success:
 - mvn clean test jacoco:report sonar:sonar -Dsonar.projectKey=gridgo_gridgo-connector coveralls:report -DrepoToken=$CoverallsRepoToken

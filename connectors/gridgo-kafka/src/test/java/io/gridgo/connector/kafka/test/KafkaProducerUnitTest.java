@@ -27,13 +27,13 @@ public class KafkaProducerUnitTest {
 
     private static final int NUM_PARTITIONS = 1;
 
-    private static final int NUM_MESSAGES = 100;
+    private static final int NUM_MESSAGES = 1;
 
     private static final int NUM_BROKERS = 1;
 
     @ClassRule
-    public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(NUM_BROKERS).withBrokerProperty(
-            "auto.create.topics.enable", "false");
+    public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(
+            NUM_BROKERS).withBrokerProperty("auto.create.topics.enable", "false");
 
     private Connector createKafkaConnector(String connectString) {
         var connector = new DefaultConnectorFactory().createConnector(connectString);
@@ -53,8 +53,8 @@ public class KafkaProducerUnitTest {
 
     private void printPace(String name, int numMessages, long elapsed) {
         DecimalFormat df = new DecimalFormat("###,###.##");
-        log.info(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6) + "ms -> pace: "
-                + df.format(1e9 * numMessages / elapsed) + "ops/s");
+        log.info(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6)
+                + "ms -> pace: " + df.format(1e9 * numMessages / elapsed) + "ops/s");
     }
 
     @Test
@@ -202,7 +202,7 @@ public class KafkaProducerUnitTest {
 
     @Test
     public void testSendObject() {
-        String extraQuery = "&mode=producer&serializerClass=org.apache.kafka.common.serialization.ByteArraySerializer";
+        String extraQuery = "&mode=producer";
         String topicName = createTopic();
 
         String brokers = sharedKafkaTestResource.getKafkaConnectString();
@@ -216,7 +216,7 @@ public class KafkaProducerUnitTest {
         String key = "test-key";
         BObject headers = BObject.ofEmpty().setAny(KafkaConstants.KEY, key).setAny(KafkaConstants.PARTITION, 0);
         Message msg = Message.of(Payload.of(headers, BObject.ofEmpty().setAny("test", 1).setAny("hello", "world")));
-
+        
         long started = System.nanoTime();
 
         for (int i = 0; i < NUM_MESSAGES; i++) {

@@ -30,8 +30,8 @@ public class KafkaFailureUnitTest {
     private static final double ERROR_RATE = 0.01;
 
     @ClassRule
-    public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(1).withBrokerProperty(
-            "auto.create.topics.enable", "false");
+    public static final SharedKafkaTestResource sharedKafkaTestResource = new SharedKafkaTestResource().withBrokers(
+            1).withBrokerProperty("auto.create.topics.enable", "false");
 
     private Connector createKafkaConnector(String connectString) {
         var connector = new DefaultConnectorFactory().createConnector(connectString);
@@ -98,8 +98,8 @@ public class KafkaFailureUnitTest {
 
     private void printPace(String name, int numMessages, long elapsed) {
         DecimalFormat df = new DecimalFormat("###,###.##");
-        System.out.println(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6) + "ms -> pace: "
-                + df.format(1e9 * numMessages / elapsed) + "ops/s");
+        System.out.println(name + ": " + numMessages + " operations were processed in " + df.format(elapsed / 1e6)
+                + "ms -> pace: " + df.format(1e9 * numMessages / elapsed) + "ops/s");
     }
 
     private void sendTestRecords(String topicName, Producer producer, int numMessages) {
@@ -119,12 +119,14 @@ public class KafkaFailureUnitTest {
     @Test
     public void testConsumerWithError() {
 
-        doTestConsumerWithError("&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest&pollTimeoutMs=0");
+        doTestConsumerWithError(
+                "&consumersCount=1&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest&pollTimeoutMs=0");
     }
 
     @Test
     public void testMultiConsumerWithError() {
 
-        doTestConsumerWithError("&consumersCount=2&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest&pollTimeoutMs=0");
+        doTestConsumerWithError(
+                "&consumersCount=2&autoCommitEnable=false&groupId=test&autoOffsetReset=earliest&pollTimeoutMs=0");
     }
 }
