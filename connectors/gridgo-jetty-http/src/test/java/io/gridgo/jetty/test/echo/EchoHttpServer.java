@@ -4,6 +4,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import io.gridgo.bean.BElement;
+import io.gridgo.bean.BValue;
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.ConnectorResolver;
 import io.gridgo.connector.Consumer;
@@ -54,8 +55,8 @@ public class EchoHttpServer {
     private void onRequest(Message message) {
         System.out.println("Got message payload: " + message.getPayload().toBArray());
 
-        BElement body = message.getPayload().toBArray();
-        Payload payload = Payload.of(body);
+        // BElement body = message.getPayload().toBArray();
+        Payload payload = Payload.of(BValue.of("Hello world"));
         Message response = Message.of(payload).setRoutingIdFromAny(message.getRoutingId().get());
 
         this.responder.send(response);

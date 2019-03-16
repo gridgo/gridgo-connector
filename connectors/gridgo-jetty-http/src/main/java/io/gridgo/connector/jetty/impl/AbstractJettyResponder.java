@@ -301,7 +301,9 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
             writeBodyBinary(body, response, //
                     contentLength -> response.addHeader(HttpCommonConstants.CONTENT_LENGTH, String.valueOf(contentLength)));
         } else {
-            takeWriter(response, writer -> writer.write(body.toJson()));
+            // takeWriter(response, writer -> writer.write(body.toJson()));
+            // getLogger().debug("write json directly to output stream...");
+            takeOutputStream(response, body::writeJson);
         }
     }
 
