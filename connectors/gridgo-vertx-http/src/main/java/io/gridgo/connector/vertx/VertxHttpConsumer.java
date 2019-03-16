@@ -336,6 +336,5 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
             return;
         }
         serverResponse.end(Buffer.buffer(bytes));
-        serverResponse.close();
     }
 }
