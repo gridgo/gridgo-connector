@@ -1,5 +1,6 @@
 package io.gridgo.connector.vertx;
 
+import static io.gridgo.connector.vertx.VertxHttpConstants.HEADER_OUTPUT_STREAM;
 import static io.gridgo.connector.httpcommon.HttpCommonConstants.HEADER_HTTP_METHOD;
 import static io.gridgo.connector.httpcommon.HttpCommonConstants.HEADER_QUERY_PARAMS;
 import static io.gridgo.connector.httpcommon.HttpCommonConstants.HEADER_STATUS;
@@ -289,6 +290,8 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
             }
             headers.put(HEADER_COOKIE, cookies);
         }
+
+        headers.setAny(HEADER_OUTPUT_STREAM, ctx.response());
     }
 
     private void sendException(RoutingContext ctx, Exception ex) {
@@ -319,7 +322,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
             if (entry.getValue().isValue())
                 serverResponse.headers().add(entry.getKey(), entry.getValue().toString());
         }
-        if (response.body() == null) {
+        if (response.body() == null || response.body().isNullValue()) {
             serverResponse.end();
             return;
         }
@@ -333,5 +336,6 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
             return;
         }
         serverResponse.end(Buffer.buffer(bytes));
+        serverResponse.close();
     }
 }
