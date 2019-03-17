@@ -265,7 +265,7 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         } else if (body instanceof BReference) {
             writeBodyBinary(body, response);
         } else {
-            takeWriter(response, body::writeJson);
+            takeOutputStream(response, body::writeJson);
         }
     }
 
