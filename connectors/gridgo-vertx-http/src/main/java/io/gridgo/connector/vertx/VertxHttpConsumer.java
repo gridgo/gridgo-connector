@@ -30,6 +30,7 @@ import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.exceptions.NoSubscriberException;
 import io.gridgo.connector.vertx.support.exceptions.HttpException;
 import io.gridgo.framework.support.Message;
+import io.netty.buffer.Unpooled;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
@@ -81,6 +82,8 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 
     private Route route;
 
+    private boolean wrap;
+
     public VertxHttpConsumer(ConnectorContext context, Vertx vertx, VertxOptions vertxOptions,
             HttpServerOptions options, String path, String method, String format, Map<String, Object> params) {
         super(context, format);
@@ -89,6 +92,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         this.httpOptions = options;
         this.path = path;
         this.method = method;
+        this.wrap = Boolean.TRUE.equals(params.get(VertxHttpConstants.WRAP_RESPONSE));
         this.parseCookie = Boolean.valueOf(params.getOrDefault(PARAM_PARSE_COOKIE, "false").toString());
     }
 
@@ -335,6 +339,10 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
                 ctx.fail(ex);
             return;
         }
-        serverResponse.end(Buffer.buffer(bytes));
+        if (wrap) {
+            serverResponse.end(Buffer.buffer(Unpooled.wrappedBuffer(bytes)));
+        } else {
+            serverResponse.end(Buffer.buffer(bytes));
+        }
     }
 }
