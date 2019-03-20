@@ -324,7 +324,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 
         for (var entry : headers.entrySet()) {
             if (entry.getValue().isValue())
-                serverResponse.headers().add(entry.getKey(), entry.getValue().toString());
+                serverResponse.headers().add(entry.getKey(), entry.getValue().asValue().getString());
         }
         if (response.body() == null || response.body().isNullValue()) {
             serverResponse.end();
