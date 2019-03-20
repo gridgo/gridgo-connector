@@ -92,7 +92,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         this.httpOptions = options;
         this.path = path;
         this.method = method;
-        this.wrap = Boolean.TRUE.equals(params.get(VertxHttpConstants.WRAP_RESPONSE));
+        this.wrap = "true".equals(params.get(VertxHttpConstants.WRAP_RESPONSE));
         this.parseCookie = Boolean.valueOf(params.getOrDefault(PARAM_PARSE_COOKIE, "false").toString());
     }
 
