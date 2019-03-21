@@ -2,6 +2,7 @@ package io.gridgo.connector.jetty.impl;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
@@ -54,31 +55,13 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
 
     private final String uniqueIdentifier;
 
-    protected AbstractJettyResponder(ConnectorContext context, @NonNull String uniqueIdentifier) {
+    private final boolean mmapEnabled;
+
+    protected AbstractJettyResponder(ConnectorContext context, boolean mmapEnabled, @NonNull String uniqueIdentifier) {
         super(context);
         this.uniqueIdentifier = uniqueIdentifier;
+        this.mmapEnabled = mmapEnabled;
     }
-
-//    private InputStream createInputStream(BElement body) {
-//        if (!(body instanceof BReference))
-//            return null;
-//        var obj = body.asReference().getReference();
-//        if (obj instanceof InputStream)
-//            return (InputStream) obj;
-//        if (obj instanceof ByteBuffer)
-//            return new ByteBufferInputStream((ByteBuffer) obj);
-//        if (obj instanceof byte[])
-//            return new ByteArrayInputStream((byte[]) obj);
-//        if (obj instanceof File || obj instanceof Path) {
-//            var file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
-//            try {
-//                return new FileInputStream(file);
-//            } catch (FileNotFoundException e) {
-//                handleException(e);
-//            }
-//        }
-//        return null;
-//    }
 
     @Override
     public Message generateFailureMessage(Throwable ex) {
@@ -222,10 +205,6 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         }
     }
 
-    protected void writeBodyBinary(BElement body, HttpServletResponse response) {
-        writeBodyBinary(body, response, null);
-    }
-
     private boolean trySendContent(ServletOutputStream output, BElement body) throws Exception {
         if (output instanceof HttpOutput) {
             HttpOutput httpOutput = (HttpOutput) output;
@@ -233,10 +212,16 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
                 var ref = body.asReference().getReference();
                 if (ref instanceof File) {
                     File file = (File) ref;
-                    long length = file.length();
-                    try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "r")) {
-                        ByteBuffer buffer = randomAccessFile.getChannel().map(MapMode.READ_ONLY, 0, length);
-                        httpOutput.sendContent(buffer);
+                    if (mmapEnabled) {
+                        long length = file.length();
+                        try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "r")) {
+                            ByteBuffer buffer = randomAccessFile.getChannel().map(MapMode.READ_ONLY, 0, length);
+                            httpOutput.sendContent(buffer);
+                        }
+                    } else {
+                        try (InputStream input = new FileInputStream(file)) {
+                            httpOutput.sendContent(input);
+                        }
                     }
                 } else if (ref instanceof ByteBuffer) {
                     httpOutput.sendContent((ByteBuffer) ref);
@@ -263,29 +248,11 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
             } catch (Exception e) {
                 handleException(e);
             }
-//            if (output instanceof HttpOutput && body.isReference() && body.asReference().getReference() instanceof ByteBuffer) {
-//                ByteBuffer buffer = body.asReference().getReference();
-//                try {
-//                    ((HttpOutput) output).sendContent(buffer);
-//                } catch (IOException e) {
-//                    handleException(e);
-//                }
-//            } else {
-//                var inputStream = createInputStream(body);
-//                if (inputStream != null) {
-//                    try (var is = inputStream) {
-//                        if (contentLengthConsumer != null) {
-//                            contentLengthConsumer.accept(is.available());
-//                        }
-//                        is.transferTo(output);
-//                    } catch (Exception e) {
-//                        handleException(e);
-//                    }
-//                } else {
-//                    
-//                }
-//            }
         });
+    }
+
+    protected void writeBodyBinary(BElement body, HttpServletResponse response) {
+        writeBodyBinary(body, response, null);
     }
 
     protected void writeBodyJson(BElement body, HttpServletResponse response) {

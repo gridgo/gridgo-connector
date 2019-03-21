@@ -33,7 +33,7 @@ public class AbstractJettyConsumer extends AbstractHasResponderConsumer implemen
 
     private final Set<JettyServletContextHandlerOption> options;
 
-    public AbstractJettyConsumer(ConnectorContext context, @NonNull HostAndPort address, boolean http2Enabled, String path,
+    public AbstractJettyConsumer(ConnectorContext context, @NonNull HostAndPort address, boolean http2Enabled, boolean mmapEnabled, String path,
             Set<JettyServletContextHandlerOption> options) {
         super(context);
 
@@ -50,7 +50,7 @@ public class AbstractJettyConsumer extends AbstractHasResponderConsumer implemen
         }
 
         this.uniqueIdentifier = address.toHostAndPort() + this.path;
-        this.setResponder(new DefaultJettyResponder(getContext(), this.uniqueIdentifier));
+        this.setResponder(new DefaultJettyResponder(getContext(), mmapEnabled, this.uniqueIdentifier));
     }
 
     protected Deferred<Message, Exception> createDeferred() {
