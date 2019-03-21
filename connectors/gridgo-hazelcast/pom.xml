@@ -10,7 +10,7 @@
 	<artifactId>gridgo-hazelcast</artifactId>
 
 	<properties>
-		<hazelcast.version>3.11.1</hazelcast.version>
+		<hazelcast.version>3.11.2</hazelcast.version>
 	</properties>
 
 	<dependencies>

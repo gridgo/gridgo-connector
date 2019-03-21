@@ -2,12 +2,12 @@ package io.gridgo.connector.jetty.impl;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintWriter;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel.MapMode;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -21,6 +21,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.StringBody;
+import org.eclipse.jetty.server.HttpOutput;
 import org.joo.promise4j.Deferred;
 import org.joo.promise4j.DeferredStatus;
 import org.joo.promise4j.impl.CompletableDeferredObject;
@@ -58,26 +59,26 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         this.uniqueIdentifier = uniqueIdentifier;
     }
 
-    private InputStream createInputStream(BElement body) {
-        if (!(body instanceof BReference))
-            return null;
-        var obj = body.asReference().getReference();
-        if (obj instanceof InputStream)
-            return (InputStream) obj;
-        if (obj instanceof ByteBuffer)
-            return new ByteBufferInputStream((ByteBuffer) obj);
-        if (obj instanceof byte[])
-            return new ByteArrayInputStream((byte[]) obj);
-        if (obj instanceof File || obj instanceof Path) {
-            var file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
-            try {
-                return new FileInputStream(file);
-            } catch (FileNotFoundException e) {
-                handleException(e);
-            }
-        }
-        return null;
-    }
+//    private InputStream createInputStream(BElement body) {
+//        if (!(body instanceof BReference))
+//            return null;
+//        var obj = body.asReference().getReference();
+//        if (obj instanceof InputStream)
+//            return (InputStream) obj;
+//        if (obj instanceof ByteBuffer)
+//            return new ByteBufferInputStream((ByteBuffer) obj);
+//        if (obj instanceof byte[])
+//            return new ByteArrayInputStream((byte[]) obj);
+//        if (obj instanceof File || obj instanceof Path) {
+//            var file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
+//            try {
+//                return new FileInputStream(file);
+//            } catch (FileNotFoundException e) {
+//                handleException(e);
+//            }
+//        }
+//        return null;
+//    }
 
     @Override
     public Message generateFailureMessage(Throwable ex) {
@@ -221,41 +222,69 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         }
     }
 
-    protected void takeWriter(HttpServletResponse response, Consumer<PrintWriter> writerConsumer) {
-        PrintWriter writer = null;
-
-        try {
-            writer = response.getWriter();
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
-
-        try {
-            writerConsumer.accept(writer);
-        } finally {
-            writer.flush();
-        }
-    }
-
     protected void writeBodyBinary(BElement body, HttpServletResponse response) {
         writeBodyBinary(body, response, null);
     }
 
+    private boolean trySendContent(ServletOutputStream output, BElement body) throws Exception {
+        if (output instanceof HttpOutput) {
+            HttpOutput httpOutput = (HttpOutput) output;
+            if (body.isReference()) {
+                var ref = body.asReference().getReference();
+                if (ref instanceof File) {
+                    File file = (File) ref;
+                    long length = file.length();
+                    try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "r")) {
+                        ByteBuffer buffer = randomAccessFile.getChannel().map(MapMode.READ_ONLY, 0, length);
+                        httpOutput.sendContent(buffer);
+                    }
+                } else if (ref instanceof ByteBuffer) {
+                    httpOutput.sendContent((ByteBuffer) ref);
+                } else if (ref instanceof InputStream) {
+                    httpOutput.sendContent((InputStream) ref);
+                } else if (ref instanceof ReadableByteChannel) {
+                    httpOutput.sendContent((ReadableByteChannel) ref);
+                } else {
+                    return false;
+                }
+
+                return true;
+            }
+        }
+        return false;
+    }
+
     protected void writeBodyBinary(BElement body, HttpServletResponse response, LongConsumer contentLengthConsumer) {
         takeOutputStream(response, output -> {
-            var inputStream = createInputStream(body);
-            if (inputStream != null) {
-                try (var is = inputStream) {
-                    if (contentLengthConsumer != null) {
-                        contentLengthConsumer.accept((long) is.available());
-                    }
-                    is.transferTo(output);
-                } catch (Exception e) {
-                    handleException(e);
+            try {
+                if (!trySendContent(output, body)) {
+                    body.writeBytes(output);
                 }
-            } else {
-                body.writeBytes(output);
+            } catch (Exception e) {
+                handleException(e);
             }
+//            if (output instanceof HttpOutput && body.isReference() && body.asReference().getReference() instanceof ByteBuffer) {
+//                ByteBuffer buffer = body.asReference().getReference();
+//                try {
+//                    ((HttpOutput) output).sendContent(buffer);
+//                } catch (IOException e) {
+//                    handleException(e);
+//                }
+//            } else {
+//                var inputStream = createInputStream(body);
+//                if (inputStream != null) {
+//                    try (var is = inputStream) {
+//                        if (contentLengthConsumer != null) {
+//                            contentLengthConsumer.accept(is.available());
+//                        }
+//                        is.transferTo(output);
+//                    } catch (Exception e) {
+//                        handleException(e);
+//                    }
+//                } else {
+//                    
+//                }
+//            }
         });
     }
 
