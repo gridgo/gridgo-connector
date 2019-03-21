@@ -13,6 +13,7 @@ import io.gridgo.utils.support.HostAndPort;
 @ConnectorEndpoint(scheme = "jetty", syntax = "http://{host}[:{port}][/{path}]")
 public class JettyConnector extends AbstractConnector {
 
+    private static final String TRUE = "true";
     private static final String FALSE = "false";
 
     @Override
@@ -27,16 +28,17 @@ public class JettyConnector extends AbstractConnector {
             path = "/*";
         }
 
-        Set<JettyServletContextHandlerOption> options = readOptions();
-        boolean http2Enabled = Boolean.valueOf(getParam("http2Enabled", "true"));
+        Set<JettyServletContextHandlerOption> options = readJettyOptions();
+        boolean http2Enabled = Boolean.valueOf(getParam("http2Enabled", TRUE));
+        boolean mmapEnabled = Boolean.valueOf(getParam("mmapEnabled", TRUE));
 
-        var jettyConsumer = new DefaultJettyConsumer(getContext(), HostAndPort.newInstance(host, port), http2Enabled, path, options);
+        var jettyConsumer = new DefaultJettyConsumer(getContext(), HostAndPort.newInstance(host, port), http2Enabled, mmapEnabled, path, options);
 
         this.consumer = Optional.of(jettyConsumer);
         this.producer = Optional.of(jettyConsumer.getResponder());
     }
 
-    private Set<JettyServletContextHandlerOption> readOptions() {
+    private Set<JettyServletContextHandlerOption> readJettyOptions() {
         Set<JettyServletContextHandlerOption> options = new HashSet<>();
 
         if (Boolean.parseBoolean(getParam("session", FALSE))) {
