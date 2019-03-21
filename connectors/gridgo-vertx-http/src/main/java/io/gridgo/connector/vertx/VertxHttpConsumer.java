@@ -1,6 +1,5 @@
 package io.gridgo.connector.vertx;
 
-import static io.gridgo.connector.vertx.VertxHttpConstants.HEADER_OUTPUT_STREAM;
 import static io.gridgo.connector.httpcommon.HttpCommonConstants.HEADER_HTTP_METHOD;
 import static io.gridgo.connector.httpcommon.HttpCommonConstants.HEADER_QUERY_PARAMS;
 import static io.gridgo.connector.httpcommon.HttpCommonConstants.HEADER_STATUS;
@@ -12,6 +11,7 @@ import static io.gridgo.connector.vertx.VertxHttpConstants.COOKIE_PATH;
 import static io.gridgo.connector.vertx.VertxHttpConstants.COOKIE_VALUE;
 import static io.gridgo.connector.vertx.VertxHttpConstants.HEADER_CONTENT_TYPE;
 import static io.gridgo.connector.vertx.VertxHttpConstants.HEADER_COOKIE;
+import static io.gridgo.connector.vertx.VertxHttpConstants.HEADER_OUTPUT_STREAM;
 import static io.gridgo.connector.vertx.VertxHttpConstants.PARAM_PARSE_COOKIE;
 
 import java.util.HashMap;
@@ -30,6 +30,7 @@ import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.exceptions.NoSubscriberException;
 import io.gridgo.connector.vertx.support.exceptions.HttpException;
 import io.gridgo.framework.support.Message;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
@@ -37,6 +38,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -326,13 +328,20 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
             if (entry.getValue().isValue())
                 serverResponse.headers().add(entry.getKey(), entry.getValue().asValue().getString());
         }
-        if (response.body() == null || response.body().isNullValue()) {
+        var body = response.body();
+        if (body == null || body.isNullValue()) {
             serverResponse.end();
             return;
         }
+
+        if (body.isReference()) {
+            handleReferenceResponse(serverResponse, body.asReference().getReference());
+            return;
+        }
+
         byte[] bytes;
         try {
-            bytes = serialize(response.body());
+            bytes = serialize(body);
         } catch (Exception ex) {
             log.error("Exception caught while sending response", ex);
             if (!fromException)
@@ -343,6 +352,16 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
             serverResponse.end(Buffer.buffer(Unpooled.wrappedBuffer(bytes)));
         } else {
             serverResponse.end(Buffer.buffer(bytes));
+        }
+    }
+
+    private void handleReferenceResponse(HttpServerResponse response, Object ref) {
+        if (ref instanceof ByteBuf) {
+            response.end(Buffer.buffer((ByteBuf) ref));
+        } else if (ref instanceof Buffer) {
+            response.end((Buffer) ref);
+        } else {
+            throw new IllegalArgumentException("Response of type BReference must be either Buffer or ByteBuf");
         }
     }
 }
