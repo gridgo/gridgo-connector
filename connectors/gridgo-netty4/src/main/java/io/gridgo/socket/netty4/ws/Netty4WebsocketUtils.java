@@ -1,10 +1,10 @@
 package io.gridgo.socket.netty4.ws;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 
 import io.gridgo.bean.BElement;
 import io.gridgo.bean.BValue;
-import io.gridgo.utils.exception.UnsupportedTypeException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
@@ -18,31 +18,24 @@ import lombok.NonNull;
 
 public class Netty4WebsocketUtils {
 
-    public static BElement parseWebsocketFrame(WebSocketFrame frame, boolean autoParseAsBElement, String serializerName) throws Exception {
-        if (frame instanceof BinaryWebSocketFrame) {
-            ByteBuf content = frame.content();
-            if (!autoParseAsBElement) {
+    public static BElement parseWebsocketFrame(WebSocketFrame frame, boolean autoParse, String format) throws Exception {
+        ByteBuf content = frame.content();
+        if (!autoParse) {
+            if (frame instanceof TextWebSocketFrame) {
+                return BValue.of(content.toString(Charset.forName("UTF-8")));
+            }
+            if (frame instanceof BinaryWebSocketFrame) {
                 byte[] bytes = new byte[content.readableBytes()];
                 content.readBytes(bytes);
                 return BValue.of(bytes);
             }
-            try (var inputStream = new ByteBufInputStream(content)) {
-                return BElement.ofBytes(inputStream, serializerName);
-            }
-        } else if (frame instanceof TextWebSocketFrame) {
-            String text = ((TextWebSocketFrame) frame).text();
-            if (!autoParseAsBElement) {
-                return BValue.of(text);
-            }
-            if (serializerName == null) {
-                return BElement.ofJson(text);
-            } else {
-                try (var inputStream = new ByteBufInputStream(frame.content())) {
-                    return BElement.ofBytes(inputStream, serializerName);
-                }
-            }
         }
-        throw new UnsupportedTypeException("Unexpected websocket frame type: " + frame.getClass().getName());
+        try (var inputStream = new ByteBufInputStream(content)) {
+            if (frame instanceof TextWebSocketFrame && format == null) {
+                return BElement.ofJson(inputStream);
+            }
+            return BElement.ofBytes(inputStream, format);
+        }
     }
 
     public static ChannelFuture send(@NonNull Channel channel, @NonNull BElement data) {
