@@ -1,6 +1,5 @@
 package io.gridgo.socket.helper;
 
-import java.net.UnknownHostException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
