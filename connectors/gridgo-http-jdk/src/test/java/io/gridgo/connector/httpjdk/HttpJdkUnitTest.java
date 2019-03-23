@@ -91,6 +91,7 @@ public class HttpJdkUnitTest {
                         var body = response.body().toString();
                         if (!"hello".equals(body)) {
                             atomic.incrementAndGet();
+                            ref.set(new RuntimeException(body));
                         }
                     }).fail(ex -> {
                         ref.set(ex);
