@@ -33,8 +33,9 @@ where:
 - **workerThreads**: (client and server) number of thread use for worker group. Default: 1
 
 ### other config
+- **format**: use for serialize/deserialize received data by ``BElement.ofBytes(...)``, if it's not set, ``null`` value passed then it use default serializer in BSerializerRegistry - ``msgpack`` (or ``json`` if it's ``websocket`` with ``TextWebSocketFrame``).
 - **frameType**: (client and server ws only) can be ``TEXT`` (default) or ``BINARY`` - case insensitive to indicate transmitted frame format . Note that frameType only affect on ``send`` action, receive will detect type and parse by BElement.fromRaw and BElement.fromJson automatically. 
-- **autoParse**: (client and server ws only) boolean config (default true) indicate where client/server will/won parse received frame as BElement (if not, byte[] or text passed as a BValue)
+- **autoParse**: (client and server ws only) boolean config (default true) indicate where client/server will/won parse received frame as BElement (if not, byte[] or text passed as a BValue). If ``false``, config ``format`` will be ignored.
 
 ## binary format
 default gridgo-socket-netty4 connector using BFactory default serializer for serialize/deserialize binary stream. 
