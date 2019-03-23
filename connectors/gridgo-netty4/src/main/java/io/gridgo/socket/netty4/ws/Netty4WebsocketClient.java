@@ -154,6 +154,6 @@ public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements
 
     @Override
     public ChannelFuture send(BElement data) {
-        return Netty4WebsocketUtils.send(getChannel(), data, getFrameType());
+        return Netty4WebsocketUtils.send(getChannel(), data, getFrameType(), this.format);
     }
 }

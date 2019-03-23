@@ -38,21 +38,21 @@ public class Netty4WebsocketUtils {
         }
     }
 
-    public static ChannelFuture send(@NonNull Channel channel, @NonNull BElement data) {
-        return send(channel, data, Netty4WebsocketFrameType.TEXT);
-    }
-
-    public static ChannelFuture send(@NonNull Channel channel, @NonNull BElement data, @NonNull Netty4WebsocketFrameType frameType) {
+    public static ChannelFuture send(@NonNull Channel channel, @NonNull BElement data, @NonNull Netty4WebsocketFrameType frameType, String format) {
         try (ByteBufOutputStream output = new ByteBufOutputStream(PooledByteBufAllocator.DEFAULT.buffer())) {
             WebSocketFrame tobeSentFrame;
 
             switch (frameType) {
             case BINARRY:
-                data.writeBytes(output);
+                data.writeBytes(output, format);
                 tobeSentFrame = new BinaryWebSocketFrame(output.buffer());
                 break;
             case TEXT:
-                data.writeJson(output);
+                if (format == null) {
+                    data.writeJson(output);
+                } else {
+                    data.writeBytes(output, format);
+                }
                 tobeSentFrame = new TextWebSocketFrame(output.buffer());
                 break;
             default:

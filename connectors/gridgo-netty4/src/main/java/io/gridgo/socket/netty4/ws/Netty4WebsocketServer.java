@@ -204,7 +204,7 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
             closeChannel(channel);
             return null;
         } else {
-            return Netty4WebsocketUtils.send(channel, data, getFrameType());
+            return Netty4WebsocketUtils.send(channel, data, getFrameType(), this.format);
         }
     }
 }
