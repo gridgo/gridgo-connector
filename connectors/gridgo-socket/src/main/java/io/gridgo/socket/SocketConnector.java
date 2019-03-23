@@ -17,8 +17,8 @@ import io.gridgo.connector.support.exceptions.InvalidPlaceholderException;
 import io.gridgo.connector.support.exceptions.MalformedEndpointException;
 
 /**
- * The sub-class must annotated by {@link io.gridgo.connector.ConnectorResolver ConnectorResolver}
- * which syntax has some placeholders as: <br/>
+ * The sub-class must annotated by {@link io.gridgo.connector.ConnectorResolver
+ * ConnectorResolver} which syntax has some placeholders as:
  * <ol>
  * <li><b>{type}</b>: push, pull, pub, sub, pair</li>
  * <li><b>{transport}</b>: tcp, pgm, epgm, inproc, ipc</li>
