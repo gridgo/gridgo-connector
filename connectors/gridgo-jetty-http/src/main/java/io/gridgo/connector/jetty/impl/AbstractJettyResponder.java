@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel.MapMode;
@@ -205,6 +206,23 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         }
     }
 
+    protected void takeWriter(HttpServletResponse response, Consumer<PrintWriter> osConsumer) {
+        PrintWriter writer = null;
+
+        try {
+            writer = response.getWriter();
+        } catch (IOException e) {
+            handleException(e);
+            return;
+        }
+
+        try {
+            osConsumer.accept(writer);
+        } finally {
+            writer.flush();
+        }
+    }
+
     private boolean trySendContent(ServletOutputStream output, BElement body) throws Exception {
         if (output instanceof HttpOutput) {
             HttpOutput httpOutput = (HttpOutput) output;
@@ -270,14 +288,14 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         if (body instanceof BObject) {
             for (var entry : body.asObject().entrySet()) {
                 String name = entry.getKey();
-                writePart(name, entry.getValue(), builder);
+                addMultipartEntity(name, entry.getValue(), builder);
             }
         } else if (body instanceof BArray) {
             for (var entry : body.asArray()) {
-                writePart(null, entry, builder);
+                addMultipartEntity(null, entry, builder);
             }
         } else {
-            writePart(null, body, builder);
+            addMultipartEntity(null, body, builder);
         }
 
         takeOutputStream(response, outstream -> {
@@ -292,14 +310,53 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
 
     }
 
+    protected void addMultipartEntity(String name, @NonNull BElement value, @NonNull MultipartEntityBuilder builder) {
+        name = name == null ? "" : name;
+        if (value.isValue()) {
+            if (value.getType() == BType.RAW) {
+                builder.addBinaryBody(name, value.asValue().getRaw());
+            } else {
+                builder.addTextBody(name, value.asValue().getString());
+            }
+        } else if (value.isReference()) {
+            var obj = value.asReference().getReference();
+            if (obj instanceof File || obj instanceof Path) {
+                var file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
+                builder.addBinaryBody(name, file);
+                return;
+            }
+            var inputStream = getInputStreamFromBody(obj);
+
+            if (inputStream != null) {
+                builder.addBinaryBody(name, inputStream);
+            } else {
+                handleException(new IllegalArgumentException("cannot make input stream from BReferrence"));
+            }
+        } else {
+            builder.addPart(name, new StringBody(value.toJson(), ContentType.APPLICATION_JSON));
+        }
+    }
+
     protected void writeBodyTextPlain(BElement body, HttpServletResponse response) {
         if (body instanceof BReference) {
             writeBodyBinary(body, response, //
                     contentLength -> response.addHeader(HttpCommonConstants.CONTENT_LENGTH, String.valueOf(contentLength)));
         } else {
-            // takeWriter(response, writer -> writer.write(body.toJson()));
-            // getLogger().debug("write json directly to output stream...");
-            takeOutputStream(response, body::writeJson);
+            if (body.isValue()) {
+                if (body.getType() == BType.RAW) {
+                    takeOutputStream(response, output -> {
+                        try {
+                            output.write(body.asValue().getRaw());
+                        } catch (IOException e) {
+                            handleException(e);
+                        }
+                    });
+                } else {
+                    takeWriter(response, writer -> writer.write(body.asValue().getString()));
+                }
+            } else {
+                takeOutputStream(response, body::writeJson);
+            }
         }
     }
 
@@ -311,33 +368,6 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
                     response.addHeader(stdHeaderName, entry.getValue().asValue().getString());
                 }
             }
-        }
-    }
-
-    protected void writePart(String name, BElement value, MultipartEntityBuilder builder) {
-        name = name == null ? "" : name;
-        if (value instanceof BValue) {
-            writeValue(name, value, builder);
-        } else if (value instanceof BReference) {
-            writeReference(name, value, builder);
-        } else {
-            builder.addPart(name, new StringBody(value.toJson(), ContentType.APPLICATION_JSON));
-        }
-    }
-
-    private void writeReference(String name, BElement value, MultipartEntityBuilder builder) {
-        var obj = value.asReference().getReference();
-        if (obj instanceof File || obj instanceof Path) {
-            var file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
-            builder.addBinaryBody(name, file);
-            return;
-        }
-        var inputStream = getInputStreamFromBody(obj);
-
-        if (inputStream != null) {
-            builder.addBinaryBody(name, inputStream);
-        } else {
-            handleException(new IllegalArgumentException("cannot make input stream from BReferrence"));
         }
     }
 
@@ -366,13 +396,5 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         }
 
         sendResponse(response, headers, body, contentType);
-    }
-
-    private void writeValue(String name, BElement value, MultipartEntityBuilder builder) {
-        if (value.getType() == BType.RAW) {
-            builder.addBinaryBody(name, value.asValue().getRaw());
-        } else {
-            builder.addTextBody(name, value.asValue().getString());
-        }
     }
 }
