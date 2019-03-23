@@ -14,9 +14,9 @@ public final class Netty4RawChannelPreset {
                 new LengthFieldBasedFrameDecoder(1048576, 0, 4, 0, 4));
     }
 
-    public static void applyBElementCodec(SocketChannel socketChannel, String format) {
+    public static void applyBElementCodec(SocketChannel socketChannel, String format, boolean nativeBytesSupport) {
         socketChannel.pipeline().addLast(//
-                new BelementEncoder(format), //
+                new BelementEncoder(format, nativeBytesSupport), //
                 new BelementDecoder(format));
     }
 }

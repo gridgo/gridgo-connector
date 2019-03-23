@@ -11,6 +11,7 @@ import lombok.AllArgsConstructor;
 public class BelementEncoder extends MessageToByteEncoder<BElement> {
 
     private final String format;
+    private final boolean nativeBytesSupport;
 
     @Override
     public boolean acceptOutboundMessage(Object msg) throws Exception {
@@ -19,7 +20,12 @@ public class BelementEncoder extends MessageToByteEncoder<BElement> {
 
     @Override
     protected void encode(ChannelHandlerContext ctx, BElement in, ByteBuf out) throws Exception {
-        in.writeBytes(new ByteBufOutputStream(out), format);
+        try (ByteBufOutputStream outputStream = new ByteBufOutputStream(out)) {
+            if (nativeBytesSupport && in.isReference() && in.asReference().tryWriteNativeBytes(outputStream)) {
+                return;
+            }
+            in.writeBytes(outputStream, format);
+        }
     }
 
 }

@@ -33,8 +33,9 @@ where:
 - **workerThreads**: (client and server) number of thread use for worker group. Default: 1
 
 ### other config
-- **format**: use for serialize/deserialize received data by `BElement.ofBytes(...)`, if it's not set, `null` value passed then it use default serializer in BSerializerRegistry - `msgpack` (or `json` if it's `websocket` with `TextWebSocketFrame`).
-- **autoParse**: (client and server ws only) boolean value (default `true` - recommended) indicate where client/server will/won parse received frame as BElement (if not, byte[] or text passed as a BValue). If `false`, config `format` will be ignored.
+- **format**: (default `null`) use for serialize/deserialize received data by `BElement.ofBytes(...)`, if it's not set, `null` value passed then it use default serializer in BSerializerRegistry - `msgpack` (or `json` if it's `websocket` with `TextWebSocketFrame`).
+- **nativeBytesEnabled**: (default `false`) when developer want to pass origin data (`File`, `ByteBuffer`, `InputStream`) wrapped in a `BReference` instance without any formatting. Note that `format` config will be ignored.
+- **autoParse**: (client and server ws only, default `true` - recommended) boolean value indicate where client/server will/won parse received frame as BElement (if not, byte[] or text passed as a BValue). If `false`, config `format` will be ignored.
 - **frameType**: (client and server ws only) can be `TEXT` (default) or `BINARY` - case insensitive - indicate transmitted frame format . Note that `frameType` only affect on `send` action, `receive` action will detect type and parse by `BElement.ofBytes` and `BElement.ofJson` if `autoParse == true` (if not, `BValue` with `byte[]` or `String` will be passed). 
 
 ## binary format
