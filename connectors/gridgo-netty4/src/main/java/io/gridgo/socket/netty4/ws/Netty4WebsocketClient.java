@@ -50,6 +50,8 @@ public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements
 
     private ChannelPromise handshakeFuture;
 
+    private String format = null;
+
     protected URI getWsUri(HostAndPort host) {
         int port = host.getPortOrDefault(80);
         String wsUri = "ws://" + host.getHostOrDefault("localhost") + (port == 80 ? "" : (":" + port)) + (getPath().startsWith("/") ? "" : "/")
@@ -64,14 +66,19 @@ public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements
     @Override
     protected void onApplyConfig(@NonNull String name) {
         super.onApplyConfig(name);
-        if (name.trim().equalsIgnoreCase("autoParse")) {
-            this.autoParse = this.getConfigs().getBoolean("autoParse", true);
+        switch (name.trim().toLowerCase()) {
+        case "autoparse":
+            this.autoParse = this.getConfigs().getBoolean(name, this.autoParse);
+            break;
+        case "format":
+            this.format = this.getConfigs().getString(name, this.format);
+            break;
         }
     }
 
     @Override
     protected BElement handleIncomingMessage(Object msg) throws Exception {
-        return Netty4WebsocketUtils.parseWebsocketFrame((WebSocketFrame) msg, autoParse);
+        return Netty4WebsocketUtils.parseWebsocketFrame((WebSocketFrame) msg, autoParse, format);
     }
 
     @Override

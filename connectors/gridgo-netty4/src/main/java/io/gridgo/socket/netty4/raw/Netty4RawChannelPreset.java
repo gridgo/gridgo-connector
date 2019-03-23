@@ -1,7 +1,7 @@
 package io.gridgo.socket.netty4.raw;
 
-import io.gridgo.socket.netty4.raw.codec.MsgpackDecoder;
-import io.gridgo.socket.netty4.raw.codec.MsgpackEncoder;
+import io.gridgo.socket.netty4.raw.codec.BelementDecoder;
+import io.gridgo.socket.netty4.raw.codec.BelementEncoder;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
@@ -14,9 +14,9 @@ public final class Netty4RawChannelPreset {
                 new LengthFieldBasedFrameDecoder(1048576, 0, 4, 0, 4));
     }
 
-    public static void applyMsgpackCodec(SocketChannel socketChannel) {
+    public static void applyBElementCodec(SocketChannel socketChannel, String format) {
         socketChannel.pipeline().addLast(//
-                new MsgpackEncoder(), //
-                new MsgpackDecoder());
+                new BelementEncoder(format), //
+                new BelementDecoder(format));
     }
 }
