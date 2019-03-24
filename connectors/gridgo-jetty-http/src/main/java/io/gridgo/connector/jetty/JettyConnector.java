@@ -29,10 +29,11 @@ public class JettyConnector extends AbstractConnector {
         }
 
         Set<JettyServletContextHandlerOption> options = readJettyOptions();
-        boolean http2Enabled = Boolean.valueOf(getParam("http2Enabled", TRUE));
-        boolean mmapEnabled = Boolean.valueOf(getParam("mmapEnabled", TRUE));
+        final boolean http2Enabled = Boolean.valueOf(getParam("http2Enabled", TRUE));
+        final boolean mmapEnabled = Boolean.valueOf(getParam("mmapEnabled", TRUE));
+        final String format = getParam("format", null);
 
-        var jettyConsumer = new DefaultJettyConsumer(getContext(), HostAndPort.newInstance(host, port), http2Enabled, mmapEnabled, path, options);
+        var jettyConsumer = new DefaultJettyConsumer(getContext(), HostAndPort.newInstance(host, port), http2Enabled, mmapEnabled, format, path, options);
 
         this.consumer = Optional.of(jettyConsumer);
         this.producer = Optional.of(jettyConsumer.getResponder());

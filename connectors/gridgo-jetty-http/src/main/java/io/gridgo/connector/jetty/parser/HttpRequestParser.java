@@ -9,7 +9,9 @@ import io.gridgo.framework.support.Message;
 
 public interface HttpRequestParser {
 
-    public static final HttpRequestParser DEFAULT = new JsonBodyHttpRequestParser();
+    static HttpRequestParser newDefault(String format) {
+        return new DefaultHttpRequestParser(format);
+    }
 
-    public Message parse(HttpServletRequest request, Set<JettyServletContextHandlerOption> options);
+    Message parse(HttpServletRequest request, Set<JettyServletContextHandlerOption> options);
 }

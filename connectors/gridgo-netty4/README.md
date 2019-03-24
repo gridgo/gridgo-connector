@@ -39,7 +39,7 @@ where:
 - **frameType**: (client and server ws only) can be `TEXT` (default) or `BINARY` - case insensitive - indicate transmitted frame format . Note that `frameType` only affect on `send` action, `receive` action will detect type and parse by `BElement.ofBytes` and `BElement.ofJson` if `autoParse == true` (if not, `BValue` with `byte[]` or `String` will be passed). 
 
 ## binary format
-default gridgo-socket-netty4 connector using BFactory default serializer for serialize/deserialize binary stream. 
+default gridgo-socket-netty4 connector using `BElement` to serialize/deserialize message, if param `format` doesn't specified, default serializer (should be `msgpack` if system properties `gridgo.bean.serializer.binary.default` is absent) will be used.
 <br/><br/>
 message frames are always prepended by 4 bytes length (a big endian integer).
 
