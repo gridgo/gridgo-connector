@@ -21,8 +21,7 @@ where:
 ### other configs
 - **http2Enabled**: optional - default `true`.
 - **mmapEnabled**: optional - default `true`. If response contains `BReference` which wrap an instance of `File`, responder will try to create MappedByteBuffer to stream data directly to output stream.
-- **format**: optional - default `null`. use for `binary` mime (`application/*`) in http header `content-type`. `json` or `plain text` detected automatically.
-
+- **format**: optional - default `null`. From request side, it use for (and only for) `application/octet-stream` mime, `multipart`, `json` or `text` mimes detected automatically. From response side, it would be used when `content-type` is a kind of `binary`, and the response value cannot be send directly via `sendContent` method (which require `File`, `InputStream` or `ByteBuffer`).
 
 ## example endpoint
 - http server on port 80: `jetty:http://127.0.0.1/path`.
