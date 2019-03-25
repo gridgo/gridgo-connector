@@ -84,4 +84,35 @@ public abstract class RedisUnitTest {
 
         Assert.assertNull(exRef.get());
     }
+
+    public void testSetAndBitCount() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("bitcount1", "countme"))).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        }).pipeDone(result -> {
+            return producer.call(Message.ofAny(buildCommand(RedisCommands.BITCOUNT), "bitcount"));
+        }).always((s, r, e) -> {
+            if (e != null) {
+                exRef.set(e);
+            } else {
+                var body = r.body();
+                if (!body.isValue() || 4 != body.asValue().convertToLong().getLong()) {
+                    exRef.set(new RuntimeException("Body mismatch: " + body.asValue().getString()));
+                }
+            }
+            latch.countDown();
+        });
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
 }
