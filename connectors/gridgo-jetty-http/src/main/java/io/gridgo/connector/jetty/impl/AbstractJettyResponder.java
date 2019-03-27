@@ -57,9 +57,11 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
     private final String uniqueIdentifier;
 
     private final boolean mmapEnabled;
+    private final String format;
 
-    protected AbstractJettyResponder(ConnectorContext context, boolean mmapEnabled, @NonNull String uniqueIdentifier) {
+    protected AbstractJettyResponder(ConnectorContext context, boolean mmapEnabled, String format, @NonNull String uniqueIdentifier) {
         super(context);
+        this.format = format;
         this.uniqueIdentifier = uniqueIdentifier;
         this.mmapEnabled = mmapEnabled;
     }
@@ -261,7 +263,7 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         takeOutputStream(response, output -> {
             try {
                 if (!trySendContent(output, body)) {
-                    body.writeBytes(output);
+                    body.writeBytes(output, format);
                 }
             } catch (Exception e) {
                 handleException(e);

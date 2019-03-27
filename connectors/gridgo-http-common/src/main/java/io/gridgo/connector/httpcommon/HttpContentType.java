@@ -11,37 +11,54 @@ import lombok.NonNull;
 public enum HttpContentType {
 
     /* -------------- TEXT ---------------- */
-    APPLICATION_ATOM_XML("application/atom+xml", true, false, false, false), APPLICATION_SVG_XML("application/svg+xml", true, false, false, false),
-    APPLICATION_XHTML_XML("application/xhtml+xml", true, false, false, false), APPLICATION_XML("application/xml", true, false, false, false),
-    TEXT_HTML("text/html", true, false, false, false), TEXT_PLAIN("text/plain", true, false, false, false), TEXT_CSS("text/css", true, false, false, false),
-    TEXT_XML("text/xml", true, false, false, false), WILDCARD("*/*", true, false, false, false), //
+    APPLICATION_ATOM_XML("application/atom+xml", true, false, false, false), //
+    APPLICATION_SVG_XML("application/svg+xml", true, false, false, false), //
+    APPLICATION_XHTML_XML("application/xhtml+xml", true, false, false, false), //
+    APPLICATION_XML("application/xml", true, false, false, false), //
+    TEXT_HTML("text/html", true, false, false, false), //
+    TEXT_PLAIN("text/plain", true, false, false, false), //
+    TEXT_CSS("text/css", true, false, false, false), //
+    TEXT_XML("text/xml", true, false, false, false), //
+    WILDCARD("*/*", true, false, false, false), //
 
     /* -------------- BINARY ---------------- */
-    APPLICATION_OCTET_STREAM("application/octet-stream", false, true, false, false),
-    APPLICATION_JAVASCRIPT("application/javascript", false, true, false, false), APPLICATION_PKCS12("application/pkcs12", false, true, false, false),
-    APPLICATION_POWERPOINT("application/vnd.mspowerpoint", false, true, false, false), APPLICATION_PDF("application/pdf", false, true, false, false),
+    APPLICATION_OCTET_STREAM("application/octet-stream", false, true, false, false), //
+    APPLICATION_JAVASCRIPT("application/javascript", false, true, false, false), //
+    APPLICATION_PKCS12("application/pkcs12", false, true, false, false), //
+    APPLICATION_POWERPOINT("application/vnd.mspowerpoint", false, true, false, false), //
+    APPLICATION_PDF("application/pdf", false, true, false, false),
 
     /**
      * Images
      */
-    IMAGE_BMP("image/bmp", false, true, false, false), IMAGE_GIF("image/gif", false, true, false, false), IMAGE_JPEG("image/jpeg", false, true, false, false),
-    IMAGE_PNG("image/png", false, true, false, false), IMAGE_SVG("image/svg+xml", false, true, false, false),
-    IMAGE_TIFF("image/tiff", false, true, false, false), IMAGE_WEBP("image/webp", false, true, false, false),
+    IMAGE_BMP("image/bmp", false, true, false, false), //
+    IMAGE_GIF("image/gif", false, true, false, false), //
+    IMAGE_JPEG("image/jpeg", false, true, false, false), //
+    IMAGE_PNG("image/png", false, true, false, false), //
+    IMAGE_SVG("image/svg+xml", false, true, false, false), //
+    IMAGE_TIFF("image/tiff", false, true, false, false), //
+    IMAGE_WEBP("image/webp", false, true, false, false),
 
     /**
      * Audio
      * 
      */
-    AUDIO_BASIC("audio/basic", false, true, false, false), AUDIO_MPEG("audio/mpeg", false, true, false, false),
-    AUDIO_MP4("audio/mp4", false, true, false, false), AUDIO_AIF("audio/x-aiff", false, true, false, false), AUDIO_MID("audio/mid", false, true, false, false),
-    AUDIO_MPEGURL("audio/x-mpegurl", false, true, false, false), AUDIO_REAL("audio/vnd.rn-realaudio", false, true, false, false),
-    AUDIO_OGG("audio/ogg", false, true, false, false), AUDIO_WAV("audio/vnd.wav", false, true, false, false),
+    AUDIO_BASIC("audio/basic", false, true, false, false), //
+    AUDIO_MPEG("audio/mpeg", false, true, false, false), //
+    AUDIO_MP4("audio/mp4", false, true, false, false), //
+    AUDIO_AIF("audio/x-aiff", false, true, false, false), //
+    AUDIO_MID("audio/mid", false, true, false, false), //
+    AUDIO_MPEGURL("audio/x-mpegurl", false, true, false, false), //
+    AUDIO_REAL("audio/vnd.rn-realaudio", false, true, false, false), //
+    AUDIO_OGG("audio/ogg", false, true, false, false), //
+    AUDIO_WAV("audio/vnd.wav", false, true, false, false),
 
     /**
      * Video
      * 
      */
-    VIDEO_OGG("video/ogg", false, true, false, false), VIDEO_WEBM("video/webm", false, true, false, false),
+    VIDEO_OGG("video/ogg", false, true, false, false), //
+    VIDEO_WEBM("video/webm", false, true, false, false),
 
     /* -------------- MULTYPART ---------------- */
     APPLICATION_FORM_URLENCODED("application/x-www-form-urlencoded", false, false, true, false),
@@ -63,6 +80,7 @@ public enum HttpContentType {
         String fileName = file.getName();
         return forFileName(fileName);
     }
+
     public static final HttpContentType forFileName(String fileName) {
         String[] splittedFileName = fileName.split("\\.");
 
@@ -150,20 +168,23 @@ public enum HttpContentType {
         }
         return DEFAULT_BINARY;
     }
+
     public static final HttpContentType forValue(String mime) {
         if (mime != null) {
             for (HttpContentType contentType : values()) {
-                if (contentType.getMime().equalsIgnoreCase(mime)) {
+                if (mime.trim().toLowerCase().startsWith(contentType.getMime().toLowerCase())) {
                     return contentType;
                 }
             }
         }
         return null;
     }
+
     public static final HttpContentType forValueOrDefault(String value, HttpContentType defaultValue) {
         var result = forValue(value);
         return result == null ? defaultValue : result;
     }
+
     public static final boolean isBinaryType(@NonNull String mime) {
         var contentType = forValue(mime);
         if (contentType != null) {
