@@ -11,6 +11,7 @@ import static io.gridgo.connector.vertx.VertxHttpConstants.COOKIE_PATH;
 import static io.gridgo.connector.vertx.VertxHttpConstants.COOKIE_VALUE;
 import static io.gridgo.connector.vertx.VertxHttpConstants.HEADER_CONTENT_TYPE;
 import static io.gridgo.connector.vertx.VertxHttpConstants.HEADER_COOKIE;
+import static io.gridgo.connector.vertx.VertxHttpConstants.HEADER_OUTPUT_STREAM;
 import static io.gridgo.connector.vertx.VertxHttpConstants.PARAM_PARSE_COOKIE;
 
 import java.util.HashMap;
@@ -29,12 +30,15 @@ import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.connector.support.exceptions.NoSubscriberException;
 import io.gridgo.connector.vertx.support.exceptions.HttpException;
 import io.gridgo.framework.support.Message;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -80,6 +84,8 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 
     private Route route;
 
+    private boolean wrap;
+
     public VertxHttpConsumer(ConnectorContext context, Vertx vertx, VertxOptions vertxOptions,
             HttpServerOptions options, String path, String method, String format, Map<String, Object> params) {
         super(context, format);
@@ -88,6 +94,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         this.httpOptions = options;
         this.path = path;
         this.method = method;
+        this.wrap = "true".equals(params.get(VertxHttpConstants.WRAP_RESPONSE));
         this.parseCookie = Boolean.valueOf(params.getOrDefault(PARAM_PARSE_COOKIE, "false").toString());
     }
 
@@ -167,7 +174,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
         var statusCode = ctx.statusCode() != -1 ? ctx.statusCode() : DEFAULT_EXCEPTION_STATUS_CODE;
         ctx.response().setStatusCode(statusCode);
 
-        if (ctx.failure() != null)
+        if (ctx.failure() != null && ctx.failure().getMessage() != null)
             ctx.response().end(ctx.failure().getMessage());
         else
             ctx.response().end();
@@ -192,7 +199,7 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
     private void handleException(RoutingContext ctx) {
         var ex = ctx.failure() != null ? ctx.failure() : new HttpException(ctx.statusCode());
         if (ex instanceof HttpException)
-            log.warn("HTTP error {} when handling request {}", ((HttpException) ex).getCode(), ctx.request().path());
+            log.info("HTTP error {} when handling request {}", ((HttpException) ex).getCode(), ctx.request().path());
         else
             log.error("Exception caught when handling request", ex);
         var msg = buildFailureMessage(ex);
@@ -289,6 +296,8 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
             }
             headers.put(HEADER_COOKIE, cookies);
         }
+
+        headers.setAny(HEADER_OUTPUT_STREAM, ctx.response());
     }
 
     private void sendException(RoutingContext ctx, Exception ex) {
@@ -317,21 +326,42 @@ public class VertxHttpConsumer extends AbstractHttpConsumer implements Consumer 
 
         for (var entry : headers.entrySet()) {
             if (entry.getValue().isValue())
-                serverResponse.headers().add(entry.getKey(), entry.getValue().toString());
+                serverResponse.headers().add(entry.getKey(), entry.getValue().asValue().getString());
         }
-        if (response.body() == null) {
+        var body = response.body();
+        if (body == null || body.isNullValue()) {
             serverResponse.end();
             return;
         }
+
+        if (body.isReference()) {
+            handleReferenceResponse(serverResponse, body.asReference().getReference());
+            return;
+        }
+
         byte[] bytes;
         try {
-            bytes = serialize(response.body());
+            bytes = serialize(body);
         } catch (Exception ex) {
             log.error("Exception caught while sending response", ex);
             if (!fromException)
                 ctx.fail(ex);
             return;
         }
-        serverResponse.end(Buffer.buffer(bytes));
+        if (wrap) {
+            serverResponse.end(Buffer.buffer(Unpooled.wrappedBuffer(bytes)));
+        } else {
+            serverResponse.end(Buffer.buffer(bytes));
+        }
+    }
+
+    private void handleReferenceResponse(HttpServerResponse response, Object ref) {
+        if (ref instanceof ByteBuf) {
+            response.end(Buffer.buffer((ByteBuf) ref));
+        } else if (ref instanceof Buffer) {
+            response.end((Buffer) ref);
+        } else {
+            throw new IllegalArgumentException("Response of type BReference must be either Buffer or ByteBuf");
+        }
     }
 }

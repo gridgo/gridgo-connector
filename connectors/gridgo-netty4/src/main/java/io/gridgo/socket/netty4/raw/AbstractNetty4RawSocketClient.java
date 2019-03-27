@@ -14,6 +14,8 @@ public abstract class AbstractNetty4RawSocketClient extends AbstractNetty4Socket
     @Override
     protected void onInitChannel(SocketChannel socketChannel) {
         Netty4RawChannelPreset.applyLengthPrepender(socketChannel);
-        Netty4RawChannelPreset.applyMsgpackCodec(socketChannel);
+        Netty4RawChannelPreset.applyBElementCodec(socketChannel, //
+                getConfigs().getString("format", null), //
+                getConfigs().getBoolean("nativeBytesEnabled", false));
     }
 }

@@ -114,7 +114,6 @@ public class TestJettyConnector {
             consumer.subscribe((msg) -> {
                 var queryParams = msg.headers().get(HttpHeader.QUERY_PARAMS.asString());
                 var body = msg.body();
-                System.out.println("Got body: " + body);
                 var response = BObject.ofEmpty().set("query", queryParams).set("body", body);
                 producer.send(Message.of(msg.getRoutingId().get(), Payload.of(response)));
             });

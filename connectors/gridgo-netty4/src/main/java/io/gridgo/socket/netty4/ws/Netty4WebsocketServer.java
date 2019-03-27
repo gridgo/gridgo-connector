@@ -41,6 +41,7 @@ import lombok.Setter;
 public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements Netty4Websocket {
 
     private boolean autoParse = true;
+    private String format = null;
 
     private static final AttributeKey<WebSocketServerHandshaker> HANDSHAKER = AttributeKey.newInstance("handshaker");
 
@@ -73,8 +74,13 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
     @Override
     protected void onApplyConfig(@NonNull String name) {
         super.onApplyConfig(name);
-        if (name.trim().equalsIgnoreCase("autoParse")) {
-            this.autoParse = this.getConfigs().getBoolean("autoParse", true);
+        switch (name.trim().toLowerCase()) {
+        case "autoParse":
+            this.autoParse = this.getConfigs().getBoolean(name, this.autoParse);
+            break;
+        case "format":
+            this.format = this.getConfigs().getString(name, this.format);
+            break;
         }
     }
 
@@ -155,7 +161,7 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
         return null;
     }
 
-    protected BElement handleWebSocketFrame(Channel channel, WebSocketFrame frame) {
+    protected BElement handleWebSocketFrame(Channel channel, WebSocketFrame frame) throws Exception {
         if (frame == null) {
             return null;
         }
@@ -173,7 +179,7 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
             return null;
         }
 
-        return Netty4WebsocketUtils.parseWebsocketFrame(frame, this.autoParse);
+        return Netty4WebsocketUtils.parseWebsocketFrame(frame, this.autoParse, this.format);
     }
 
     @Override
@@ -198,7 +204,7 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
             closeChannel(channel);
             return null;
         } else {
-            return Netty4WebsocketUtils.send(channel, data, getFrameType());
+            return channel.writeAndFlush(Netty4WebsocketUtils.makeWebsocketFrame(data, getFrameType(), this.format));
         }
     }
 }

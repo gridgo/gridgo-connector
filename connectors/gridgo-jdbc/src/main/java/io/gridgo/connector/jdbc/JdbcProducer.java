@@ -29,7 +29,7 @@ class JdbcProducer extends JdbcClient {
 
     protected Promise<Message, Exception> doCall(Message request,
             CompletableDeferredObject<Message, Exception> deferred, boolean isRPC) {
-        var operationParam = request.headers().remove(OPERATION);
+        var operationParam = request.headers().remove(OPERATION).asValue().getData();
         var sqlStatement = request.body().asValue().getString();
         String operation = operationParam == null ? Helper.getOperation(sqlStatement).toLowerCase()
                 : operationParam.toString();

@@ -17,10 +17,18 @@ import io.gridgo.connector.support.exceptions.InvalidPlaceholderException;
 import io.gridgo.connector.support.exceptions.MalformedEndpointException;
 
 /**
- * The sub-class must annotated by ConnectorResolver which syntax has at least 4
- * placeholders: {type} (push, pull, pub, sub) {transport} (tcp, pgm, epgm,
- * inproc, ipc), {host} (allow ipv4, ipv6 (with bracket []), hostname or
- * interface and {port}
+ * The sub-class must annotated by {@link io.gridgo.connector.ConnectorResolver
+ * ConnectorResolver} which syntax has some placeholders as:
+ * <ol>
+ * <li><b>{type}</b>: push, pull, pub, sub, pair</li>
+ * <li><b>{transport}</b>: tcp, pgm, epgm, inproc, ipc</li>
+ * <li><b>[{role}]</b>: for <b>'pair'</b> pattern, indicate the socket will be
+ * <i>active</i> or <i>passive</i></li>
+ * <li><b>{host}</b>: allow ipv4, ipv6 (with bracket [])</li>
+ * <li><b>[{interface}]</b>: use for multicast transport types (pgm or epgm)
+ * </li>
+ * <li><b>{port}</b>: port (to bind-on or connect-to)</li>
+ * </ol>
  *
  * @author bachden
  *
