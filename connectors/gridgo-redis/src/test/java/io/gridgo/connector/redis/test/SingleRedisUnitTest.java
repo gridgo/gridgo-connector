@@ -27,10 +27,4 @@ public class SingleRedisUnitTest extends RedisUnitTest {
     public void testSetAndBitCount() throws InterruptedException {
         super.testSetAndBitCount();
     }
-
-    @Test
-    @Override
-    public void testEcho() throws InterruptedException {
-        super.testEcho();
-    }
 }
