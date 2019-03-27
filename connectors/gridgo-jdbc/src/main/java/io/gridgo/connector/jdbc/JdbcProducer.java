@@ -29,10 +29,10 @@ class JdbcProducer extends JdbcClient {
 
     protected Promise<Message, Exception> doCall(Message request,
             CompletableDeferredObject<Message, Exception> deferred, boolean isRPC) {
-        var operationParam = request.headers().remove(OPERATION).asValue().getData();
+        var operationParam = request.headers().remove(OPERATION);
         var sqlStatement = request.body().asValue().getString();
         String operation = operationParam == null ? Helper.getOperation(sqlStatement).toLowerCase()
-                : operationParam.toString();
+                : operationParam.asValue().getString();
         if (HEADER_CREATE_TRANSACTION.equals(operation)) {
             var result = beginTransaction(jdbiClient.open(), this.getContext());
             ack(deferred, result);
