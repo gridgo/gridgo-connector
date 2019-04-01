@@ -13,7 +13,9 @@ import org.joo.promise4j.Promise;
 import io.gridgo.connector.impl.AbstractProducer;
 import io.gridgo.connector.support.config.ConnectorContext;
 import io.gridgo.framework.support.Message;
+import lombok.Getter;
 
+@Getter
 public abstract class AbstractKeyValueProducer extends AbstractProducer implements KeyValueProducer {
 
     private Map<String, ProducerHandler> operations = new HashMap<>();

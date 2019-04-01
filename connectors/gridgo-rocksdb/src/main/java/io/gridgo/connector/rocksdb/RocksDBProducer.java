@@ -41,7 +41,7 @@ public class RocksDBProducer extends AbstractKeyValueProducer {
     }
 
     @Override
-    protected void putValue(Message message, BObject body, Deferred<Message, Exception> deferred, boolean isRPC)
+    public void putValue(Message message, BObject body, Deferred<Message, Exception> deferred, boolean isRPC)
             throws RocksDBException {
         if (!db.isOwningHandle()) {
             deferred.reject(new IllegalStateException("Handle is already closed"));
@@ -59,7 +59,7 @@ public class RocksDBProducer extends AbstractKeyValueProducer {
     }
 
     @Override
-    protected void delete(Message message, BValue body, Deferred<Message, Exception> deferred, boolean isRPC)
+    public void delete(Message message, BValue body, Deferred<Message, Exception> deferred, boolean isRPC)
             throws Exception {
         if (!db.isOwningHandle()) {
             deferred.reject(new IllegalStateException("Handle is already closed"));
@@ -70,7 +70,7 @@ public class RocksDBProducer extends AbstractKeyValueProducer {
     }
 
     @Override
-    protected void getValue(Message message, BValue body, Deferred<Message, Exception> deferred, boolean isRPC)
+    public void getValue(Message message, BValue body, Deferred<Message, Exception> deferred, boolean isRPC)
             throws RocksDBException {
         if (!isRPC) {
             ack(deferred, (Message) null);
@@ -85,7 +85,7 @@ public class RocksDBProducer extends AbstractKeyValueProducer {
     }
 
     @Override
-    protected void getAll(Message message, Deferred<Message, Exception> deferred, boolean isRPC)
+    public void getAll(Message message, Deferred<Message, Exception> deferred, boolean isRPC)
             throws RocksDBException {
         if (!isRPC) {
             ack(deferred, (Message) null);
