@@ -135,4 +135,16 @@ public class SingleRedisStringCommand extends RedisStringCommandBase {
     public void testIncrByFloatCommand() throws InterruptedException {
         super.testIncrByFloatCommand();
     }
+
+    @Test
+    @Override
+    public void testEcho() throws InterruptedException {
+        super.testEcho();
+    }
+
+    @Test
+    @Override
+    public void testDelete() throws InterruptedException {
+        super.testDelete();
+    }
 }

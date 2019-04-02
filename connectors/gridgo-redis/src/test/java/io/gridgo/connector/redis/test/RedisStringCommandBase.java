@@ -9,7 +9,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.gridgo.redis.command.RedisCommand;
 import io.gridgo.redis.command.string.RedisMGetHandler;
+import org.apache.commons.lang3.StringUtils;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.PromiseException;
 import org.junit.Assert;
@@ -655,34 +657,70 @@ public abstract class RedisStringCommandBase {
         var exRef = new AtomicReference<Exception>();
         var latch = new CountDownLatch(1);
 
-        producer.call(Message.ofAny(buildCommand(RedisCommands.DEL), "mykey"))//
-                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("mykey", 10.50))))//
-                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.INCRBYFLOAT), BArray.ofSequence("mykey", 0.1))))//
-                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GET), "mykey")))//
-                .pipeDone(result -> {
-                    var floatVal = result.body().asValue().getFloat();
-                    if (floatVal != 10.6) {
-                        return Promise.ofCause(new RuntimeException());
-                    }
-                    return Promise.of(result);
-                })//
-                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.INCRBYFLOAT), BArray.ofSequence("mykey", -5))))//
-                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GET), "mykey")))//
-                .pipeDone(result -> {
-                    var floatVal = result.body().asValue().getFloat();
-                    if (floatVal != 5.6) {
-                        return Promise.ofCause(new RuntimeException());
-                    }
-                    return Promise.of(result);
-                })//
-                .done(result -> latch.countDown())//
-                .fail(ex -> {
-                    exRef.set(ex);
+        producer.call(Message.ofAny(buildCommand(RedisCommands.DEL), "mykey"))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("mykey", "10.5"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.INCRBYFLOAT), BArray.ofSequence("mykey", 0.1f))))
+                .done(result -> latch.countDown())
+                .fail(failedCause -> {
+                    exRef.set(failedCause);
                     latch.countDown();
-                });
+        });
 
         latch.await();
         connector.stop();
+        Assert.assertNull(exRef.get());
+    }
+
+    protected void testEcho() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.ECHO),"hello world"))
+                .done(result -> {
+                    var body = result.body();
+                    if (!body.isValue() || !StringUtils.equals("hello world", body.asValue().convertToString().getString())) {
+                        exRef.set(new RuntimeException("Body mismatch: " + body.asValue().getString()));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+                    exRef.set(e);
+                    latch.countDown();
+                });
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    protected void testDelete() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET),BArray.ofSequence("del", 10.5f)))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.DEL), "del")))
+                .done(result -> {
+                    var body = result.body();
+                    if(1 != body.asValue().getLong()) {
+                        exRef.set(new RuntimeException("Body mismatch: " + body.asValue().getString()));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+        latch.await();
+
+        connector.stop();
+
         Assert.assertNull(exRef.get());
     }
 }
