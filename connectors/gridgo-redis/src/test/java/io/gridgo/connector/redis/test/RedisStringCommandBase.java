@@ -723,4 +723,95 @@ public abstract class RedisStringCommandBase {
 
         Assert.assertNull(exRef.get());
     }
+
+    protected void testSaddAndSmembers() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SADD), BArray.ofSequence("sadd", "Hello")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SADD), BArray.ofSequence("sadd", "World"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SMEMBERS), "sadd")))
+                .done(result -> {
+                    var body = result.body();
+                    if(body.asArray().size() != 2) {
+                        exRef.set(new RuntimeException("Body mismatch: " + body.asValue().getString()));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+                    exRef.set(e);
+                    latch.countDown();
+        });
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    protected void testSaddAndScard() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SADD), BArray.ofSequence("scard", "Hello")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SADD), BArray.ofSequence("scard", "World"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SMEMBERS), "scard")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SCARD), "scard")))
+                .done(result -> {
+                    var body = result.body();
+                    if(body.asValue().getLong() != 2) {
+                        exRef.set(new RuntimeException("Body mismatch: " + body.asValue().getString()));
+                    }
+                    latch.countDown();
+                })
+                .fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    protected void testSaddAndSdiff() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SADD), BArray.ofSequence("diff1", "a")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SADD), BArray.ofSequence("diff1", "b"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SADD), BArray.ofSequence("diff1", "c"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SADD), BArray.ofSequence("diff2", "c"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SADD), BArray.ofSequence("diff2", "d"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SADD), BArray.ofSequence("diff2", "e"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SDIFF), BArray.ofSequence("diff1", "diff2"))))
+                .done(result -> {
+                    var body = result.body();
+                    if(body.asArray().size() != 2) {
+                        exRef.set(new RuntimeException("Body mismatch: " + body.asValue().getString()));
+                    }
+                    latch.countDown();
+                })
+                .fail(e -> {
+                    exRef.set(e);
+                    latch.countDown();
+                });
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
 }

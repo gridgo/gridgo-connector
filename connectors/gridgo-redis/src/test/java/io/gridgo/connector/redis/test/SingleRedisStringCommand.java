@@ -147,4 +147,22 @@ public class SingleRedisStringCommand extends RedisStringCommandBase {
     public void testDelete() throws InterruptedException {
         super.testDelete();
     }
+
+    @Test
+    @Override
+    public void testSaddAndSmembers() throws InterruptedException {
+        super.testSaddAndSmembers();
+    }
+
+    @Test
+    @Override
+    public void testSaddAndScard() throws InterruptedException {
+        super.testSaddAndScard();
+    }
+
+    @Test
+    @Override
+    public void testSaddAndSdiff() throws InterruptedException {
+        super.testSaddAndSdiff();
+    }
 }
