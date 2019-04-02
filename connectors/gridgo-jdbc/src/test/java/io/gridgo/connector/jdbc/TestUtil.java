@@ -63,20 +63,20 @@ public class TestUtil {
 
     Message createSelectRequest() {
         String sql = buildSelectSQL();
-        var headers = BObject.ofEmpty().setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_SELECT);
+        var headers = BObject.ofEmpty();
         columnsName.forEach(column -> headers.putAny(column, sqlValues.get(column)));
         return Message.ofAny(headers, sql);
     }
 
     Message createInsertRequest() {
         String sql = buildInsertSQL();
-        var headers = BObject.ofEmpty().setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_INSERT);
+        var headers = BObject.ofEmpty();
         columnsName.forEach(column -> headers.putAny(column, sqlValues.get(column)));
         return Message.of(Payload.of(headers, BValue.of(sql)));
     }
 
     Message createCreateTableMessage() {
-        var headers = BObject.ofEmpty().setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_EXECUTE);
+        var headers = BObject.ofEmpty();
         StringBuilder queryBuilder = new StringBuilder("create table ").append(tableName).append(" ( ");
         for (String column : columnsName) {
             queryBuilder.append(column);
@@ -91,7 +91,7 @@ public class TestUtil {
     }
 
     Message createDropTableMessage() {
-        var headers = BObject.ofEmpty().setAny(JdbcConstants.OPERATION, JdbcConstants.OPERATION_EXECUTE);
+        var headers = BObject.ofEmpty();
         return Message.ofAny(headers, "drop table if exists " + tableName + " ;");
     }
 
