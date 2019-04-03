@@ -150,19 +150,19 @@ public class SingleRedisStringCommand extends RedisStringCommandBase {
 
     @Test
     @Override
-    public void testSaddAndSmembers() throws InterruptedException {
-        super.testSaddAndSmembers();
+    public void testSadd() throws InterruptedException {
+        super.testSadd();
     }
 
     @Test
     @Override
-    public void testSaddAndScard() throws InterruptedException {
-        super.testSaddAndScard();
+    public void testScard() throws InterruptedException {
+        super.testScard();
     }
 
     @Test
     @Override
-    public void testSaddAndSdiff() throws InterruptedException {
-        super.testSaddAndSdiff();
+    public void testSdiff() throws InterruptedException {
+        super.testSdiff();
     }
 }
