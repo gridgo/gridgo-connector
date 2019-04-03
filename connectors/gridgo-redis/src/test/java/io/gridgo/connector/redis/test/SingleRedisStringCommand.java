@@ -231,4 +231,10 @@ public class SingleRedisStringCommand extends RedisStringCommandBase {
     public void testSunionStore() throws InterruptedException {
         super.testSunionStore();
     }
+
+    @Test
+    @Override
+    public void testScan() throws InterruptedException {
+        super.testScan();
+    }
 }
