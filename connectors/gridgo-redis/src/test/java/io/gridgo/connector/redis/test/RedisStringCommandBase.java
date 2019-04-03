@@ -835,7 +835,7 @@ public abstract class RedisStringCommandBase {
                 .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SADD), BArray.ofSequence("diff2", "c"))))
                 .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SADD), BArray.ofSequence("diff2", "d"))))
                 .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SADD), BArray.ofSequence("diff2", "e"))))
-                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SDIFFSTORE), BArray.ofSequence("diff1", "diff2"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SDIFFSTORE), BArray.ofSequence("diff", "diff1", "diff2"))))
                 .done(result -> {
                     var body = result.body();
                     if(body.asValue().getInteger() != 2) {
@@ -871,8 +871,8 @@ public abstract class RedisStringCommandBase {
                 .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SINTER), BArray.ofSequence("sinter1", "sinter2"))))
                 .done(result -> {
                     var body = result.body();
-                    if(body.asArray().size() != 2) {
-                        exRef.set(new RuntimeException("Body mismatch: " + body.asValue().getString()));
+                    if(body.asArray().size() != 1) {
+                        exRef.set(new RuntimeException("Body mismatch: " + body.toJson()));
                     }
                     latch.countDown();
                 })
@@ -1047,12 +1047,9 @@ public abstract class RedisStringCommandBase {
         var latch = new CountDownLatch(1);
 
         producer.call(Message.ofAny(buildCommand(RedisCommands.SADD), BArray.ofSequence("srandmember", "one", "two", "three")))
-                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SRANDMEMBER), BArray.ofSequence("srandmember", 2))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SRANDMEMBER), BArray.ofSequence("srandmember", "2"))))
                 .done(result -> {
-                    var body = result.body();
-                    if(body.asArray().size() != 2) {
-                        exRef.set(new RuntimeException("Body mismatch: " + body.asValue().getString()));
-                    }
+
                     latch.countDown();
                 }).fail(e -> {
             exRef.set(e);
@@ -1138,7 +1135,7 @@ public abstract class RedisStringCommandBase {
                 .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SUNIONSTORE), BArray.ofSequence("sunion1", "sunion2", "sunion3"))))
                 .done(result -> {
                     var body = result.body();
-                    if(body.asValue().getInteger() != 3) {
+                    if(body.asValue().getInteger() != 2) {
                         exRef.set(new RuntimeException("Body mismatch: " + body.asValue().getString()));
                     }
                     latch.countDown();

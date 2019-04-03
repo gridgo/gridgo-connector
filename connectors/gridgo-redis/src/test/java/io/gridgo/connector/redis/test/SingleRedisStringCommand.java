@@ -165,4 +165,70 @@ public class SingleRedisStringCommand extends RedisStringCommandBase {
     public void testSdiff() throws InterruptedException {
         super.testSdiff();
     }
+
+    @Test
+    @Override
+    public void testSdiffStore() throws InterruptedException {
+        super.testSdiffStore();
+    }
+
+    @Test
+    @Override
+    public void testSinter() throws InterruptedException {
+        super.testSinter();
+    }
+
+    @Test
+    @Override
+    public void testSinterStore() throws InterruptedException {
+        super.testSinterStore();
+    }
+
+    @Test
+    @Override
+    public void testSismember() throws InterruptedException {
+        super.testSismember();
+    }
+
+    @Test
+    @Override
+    public void testSmembers() throws InterruptedException {
+        super.testSmembers();
+    }
+
+    @Test
+    @Override
+    public void testSmove() throws InterruptedException {
+        super.testSmove();
+    }
+
+    @Test
+    @Override
+    public void testSpop() throws InterruptedException {
+        super.testSpop();
+    }
+
+    @Test
+    @Override
+    public void testSrandMember() throws InterruptedException {
+        super.testSrandMember();
+    }
+
+    @Test
+    @Override
+    public void testSrem() throws InterruptedException {
+        super.testSrem();
+    }
+
+    @Test
+    @Override
+    public void testSunion() throws InterruptedException {
+        super.testSunion();
+    }
+
+    @Test
+    @Override
+    public void testSunionStore() throws InterruptedException {
+        super.testSunionStore();
+    }
 }
