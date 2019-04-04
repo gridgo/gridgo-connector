@@ -1191,11 +1191,10 @@ public abstract class RedisStringCommandBase {
         var latch = new CountDownLatch(1);
 
         producer.call(Message.ofAny(buildCommand(RedisCommands.DEL), "Sicily"))
-                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GEOADD), BArray.ofSequence("Sicily", "13.361389", "38.115556", "Palermo", "15.087269", "37.502669", "Catania"))))
-                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GEODIST), BArray.ofSequence("Sicily", "Palermo", "Catania"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GEOADD), BArray.ofSequence("Sicily", "-73.9454966", "40.747533", "Palermo"))))
                 .done(result -> {
                     var body = result.body();
-                    if(body.asValue().getInteger() != 2) {
+                    if(body.asValue().getLong() != 1L) {
                         exRef.set(new RuntimeException("Body mismatch"));
                     }
                     latch.countDown();
