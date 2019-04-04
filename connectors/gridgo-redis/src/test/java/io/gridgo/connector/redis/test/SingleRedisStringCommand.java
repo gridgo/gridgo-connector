@@ -237,4 +237,10 @@ public class SingleRedisStringCommand extends RedisStringCommandBase {
     public void testScan() throws InterruptedException {
         super.testScan();
     }
+
+    @Test
+    @Override
+    public void testGeoAdd() throws InterruptedException {
+        super.testGeoAdd();
+    }
 }
