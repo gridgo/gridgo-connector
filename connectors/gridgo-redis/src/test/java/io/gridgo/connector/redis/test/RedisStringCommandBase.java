@@ -1177,4 +1177,35 @@ public abstract class RedisStringCommandBase {
 
         Assert.assertNull(exRef.get());
     }
+
+    /**
+     * GEO redis
+     * url: https://redis.io/commands#geo
+     */
+    protected void testGeoAdd() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.GEOADD), BArray.ofSequence("Sicily", 13.361389, 38.115556, "Palermo", 15.087269, 37.502669, "Catania")))
+                .done(result -> {
+                    var body = result.body();
+                    if(body.asValue().getInteger() != 2) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
 }
