@@ -1,5 +1,9 @@
 package io.gridgo.connector.httpjdk;
 
+import static io.gridgo.connector.httpcommon.HttpCommonConstants.HEADER_HTTP_HEADERS;
+import static io.gridgo.connector.httpcommon.HttpCommonConstants.HEADER_PATH;
+import static io.gridgo.connector.httpcommon.HttpCommonConstants.HEADER_STATUS_CODE;
+
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -14,6 +18,8 @@ import java.nio.charset.Charset;
 import org.joo.promise4j.Promise;
 import org.joo.promise4j.impl.CompletableDeferredObject;
 
+import io.gridgo.bean.BArray;
+import io.gridgo.bean.BElement;
 import io.gridgo.bean.BObject;
 import io.gridgo.connector.httpcommon.AbstractHttpProducer;
 import io.gridgo.connector.httpcommon.support.exceptions.ConnectionException;
@@ -76,8 +82,7 @@ public class HttpJdkProducer extends AbstractHttpProducer {
 
     private Message buildMessage(HttpResponse<byte[]> response) {
         var headers = buildHeaders(response.headers()) //
-                                                      .setAny(HttpJdkConstants.HEADER_STATUS_CODE,
-                                                              response.statusCode());
+                                                      .setAny(HEADER_STATUS_CODE, response.statusCode());
         var body = deserialize(response.body());
         return createMessage(headers, body);
     }
@@ -95,18 +100,46 @@ public class HttpJdkProducer extends AbstractHttpProducer {
         var endpoint = endpointUri;
         var bodyPublisher = BodyPublishers.noBody();
         var method = defaultMethod;
+        var headers = BObject.ofEmpty();
 
         if (message != null && message.getPayload() != null) {
+            headers = message.headers();
             var body = message.body();
             bodyPublisher = body != null ? BodyPublishers.ofByteArray(serialize(body)) : BodyPublishers.noBody();
-            endpoint = endpointUri + parseParams(getQueryParams(message));
+            endpoint = endpointUri + getPath(message) + parseParams(getQueryParams(message));
             method = getMethod(message, defaultMethod);
         }
 
-        return HttpRequest.newBuilder() //
-                          .uri(URI.create(endpoint)) //
-                          .method(method, bodyPublisher) //
-                          .build();
+        var request = HttpRequest.newBuilder() //
+                                 .uri(URI.create(endpoint)) //
+                                 .method(method, bodyPublisher);
+        populateHeaders(headers.getObjectOrEmpty(HEADER_HTTP_HEADERS), request);
+        return request.build();
+    }
+
+    private String getPath(Message message) {
+        return message.headers().getString(HEADER_PATH, "");
+    }
+
+    private void populateHeaders(BObject headers, java.net.http.HttpRequest.Builder request) {
+        for (var entry : headers.entrySet()) {
+            if (entry.getValue().isArray()) {
+                putMultiHeaders(request, entry.getKey(), entry.getValue().asArray());
+            } else {
+                putHeader(request, entry.getKey(), entry.getValue());
+            }
+        }
+    }
+
+    private void putMultiHeaders(java.net.http.HttpRequest.Builder request, String key, BArray arr) {
+        for (var e : arr) {
+            putHeader(request, key, e);
+        }
+    }
+
+    private void putHeader(java.net.http.HttpRequest.Builder request, String key, BElement e) {
+        if (e.isValue())
+            request.header(key, e.asValue().getString());
     }
 
     private String parseParams(BObject queryParams) {

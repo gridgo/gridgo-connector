@@ -20,6 +20,7 @@
 		<module>gridgo-kafka</module>
 		<module>gridgo-rabbitmq</module>
 		<module>gridgo-vertx-http</module>
+		<module>gridgo-keyvalue-common</module>
 		<module>gridgo-rocksdb</module>
 		<module>gridgo-mongodb</module>
 		<module>gridgo-http-common</module>
