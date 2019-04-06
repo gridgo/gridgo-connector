@@ -9,7 +9,7 @@ scheme: `netty4` <br/>
 syntax: ` {type}:{transport}://{host}[:{port}][/{path}] ` <br/>
 where:
 - **type** is `server` or `client	`.
-- **transport** is `tcp` or `ws`.
+- **transport** is `tcp`, `ws` or `wss`.
 - **host** can be ip (both v4 and v6), hostname or interface name.
 - **port**: required for `tcp` but optional for `ws` (80 by default).
 - **path**: required for `ws` transport, optional (and will be ignored) for `tcp`.
@@ -32,11 +32,19 @@ where:
 - **bossThreads**: (server only) number of thread use for boss group. Default: 1
 - **workerThreads**: (client and server) number of thread use for worker group. Default: 1
 
+### ssl config (required if transport == wss)
+- **sslContext**: name of `SSLContext` instance which registered in connector context's registry
+- **sslProtocol**: (optional) default TLS.
+- **keyStoreFile**: (required if `sslContext` is unset) path to ssl keystore file (relative to process working dir).
+- **keyStoreType**: (optional) default `JKS`. value is one of `JCEKS`, `JKS`, `DKS`, `PKCS11`, `PKCS12`.
+- **keyStoreAlgorithm**: (optional) default `SunX509`. The algorithm of the `keyStoreFile`'s content.
+- **keyStorePassword**: (optional) default empty. Password for `keyStoreFile`.
+
 ### other config
 - **format**: (default `null`) use for serialize/deserialize received data by `BElement.ofBytes(...)`, if it's not set, `null` value passed then it use default serializer in BSerializerRegistry - `msgpack` (or `json` if it's `websocket` with `TextWebSocketFrame`).
 - **nativeBytesEnabled**: (default `false`) when developer want to pass origin data (`File`, `ByteBuffer`, `InputStream`) wrapped in a `BReference` instance without any formatting. Note that `format` config will be ignored.
-- **autoParse**: (client and server ws only, default `true` - recommended) boolean value indicate where client/server will/won parse received frame as BElement (if not, byte[] or text passed as a BValue). If `false`, config `format` will be ignored.
-- **frameType**: (client and server ws only) can be `TEXT` (default) or `BINARY` - case insensitive - indicate transmitted frame format . Note that `frameType` only affect on `send` action, `receive` action will detect type and parse by `BElement.ofBytes` and `BElement.ofJson` if `autoParse == true` (if not, `BValue` with `byte[]` or `String` will be passed). 
+- **autoParse**: (client and server websocket only, default `true` - recommended) boolean value indicate where client/server will/won parse received frame as BElement (if not, byte[] or text passed as a BValue). If `false`, config `format` will be ignored.
+- **frameType**: (client and server websocket only) can be `TEXT` (default) or `BINARY` - case insensitive - indicate transmitted frame format . Note that `frameType` only affect on `send` action, `receive` action will detect type and parse by `BElement.ofBytes` and `BElement.ofJson` if `autoParse == true` (if not, `BValue` with `byte[]` or `String` will be passed). 
 
 ## binary format
 default gridgo-socket-netty4 connector using `BElement` to serialize/deserialize message, if param `format` doesn't specified, default serializer (should be `msgpack` if system properties `gridgo.bean.serializer.binary.default` is absent) will be used.

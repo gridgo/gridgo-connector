@@ -97,12 +97,12 @@ public abstract class AbstractNetty4Server extends AbstractHasResponderConsumer 
             throw new InvalidParamException("Missing keyStoreType param");
         }
 
-        String algorithm = this.getOptions().getString("keyStoreAlgorithm", null);
+        String algorithm = this.getOptions().getString("keyStoreAlgorithm", "SunX509");
         if (algorithm == null) {
             throw new InvalidParamException("Missing keyStoreAlgorithm param");
         }
 
-        String protocol = this.getOptions().getString("sslProtocol", null);
+        String protocol = this.getOptions().getString("sslProtocol", "TLS");
         if (protocol == null) {
             throw new InvalidParamException("Missing sslProtocol param");
         }
