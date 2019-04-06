@@ -232,7 +232,7 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
         ChannelPipeline pipeline = ch.pipeline();
         if (this.ssl) {
             final SSLEngine sslEngine = this.sslContext.createSSLEngine();
-            sslEngine.setUseClientMode(true);
+            sslEngine.setUseClientMode(false);
             pipeline.addLast(new SslHandler(sslEngine));
         }
         pipeline.addLast(new HttpServerCodec());
