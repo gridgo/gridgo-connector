@@ -5,7 +5,7 @@ import java.util.Set;
 
 public enum Netty4Transport {
 
-    TCP, WEBSOCKET("ws");
+    TCP, WEBSOCKET("ws"), WEBSOCKET_SSL("wss");
 
     public static final Netty4Transport fromName(String name) {
         if (name != null) {

@@ -9,8 +9,12 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+
 import io.gridgo.bean.BElement;
 import io.gridgo.socket.netty4.impl.AbstractNetty4SocketServer;
+import io.gridgo.socket.netty4.utils.SSLContextRegistry;
 import io.gridgo.utils.support.HostAndPort;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -31,6 +35,7 @@ import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshakerFactory;
+import io.netty.handler.ssl.SslHandler;
 import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
 import lombok.AccessLevel;
@@ -39,6 +44,9 @@ import lombok.NonNull;
 import lombok.Setter;
 
 public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements Netty4Websocket {
+
+    private boolean ssl = false;
+    private SSLContext sslContext;
 
     private boolean autoParse = true;
     private String format = null;
@@ -61,6 +69,23 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
         }
     }
 
+    public Netty4WebsocketServer() {
+        this(false, null);
+    }
+
+    /**
+     * Create new Netty4WebsocketServer instance
+     * 
+     * @param useSSL         whether using ssl or not
+     * @param sslContextName which registered with SSLContextRegistry.getInstance()
+     */
+    public Netty4WebsocketServer(boolean useSSL, String sslContextName) {
+        this.ssl = useSSL;
+        if (this.ssl) {
+            this.sslContext = SSLContextRegistry.getInstance().lookupMandatory(sslContextName);
+        }
+    }
+
     @Setter
     @Getter(AccessLevel.PROTECTED)
     private String path;
@@ -70,6 +95,8 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 
     @Getter(AccessLevel.PROTECTED)
     private WebSocketServerHandshakerFactory wsFactory;
+
+    private HostAndPort host;
 
     @Override
     protected void onApplyConfig(@NonNull String name) {
@@ -90,16 +117,22 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
         super.closeChannel(channel);
     }
 
-    protected String getWsUri(HostAndPort host) {
+    protected String getWsUri() {
         String proxy = this.getConfigs().getString("proxy", null);
-        String wsUri = proxy == null ? null : proxy;
 
-        if (wsUri == null) {
-            int port = host.getPortOrDefault(80);
-            wsUri = "ws://" + host.getHostOrDefault("localhost") + (port == 80 ? "" : (":" + port)) + (getPath().startsWith("/") ? "" : "/") + this.getPath();
+        if (proxy != null) {
+            return proxy;
         }
 
-        return wsUri;
+        int port = host.getPortOrDefault(ssl ? 443 : 80);
+        StringBuilder sb = new StringBuilder();
+        return sb.append(ssl ? "wss" : "ws") //
+                 .append("://") //
+                 .append(host.getHostOrDefault("localhost")) //
+                 .append(port == 80 ? "" : (":" + port)) //
+                 .append(getPath().startsWith("/") ? "" : "/") //
+                 .append(this.getPath()) //
+                 .toString();
     }
 
     @SuppressWarnings("deprecation")
@@ -116,6 +149,7 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
             return;
         }
 
+        // response for root path
         if ("/".equals(req.uri())) {
             ByteBuf content = Unpooled.copiedBuffer("Default gridgo-socket-netty4 connector websocket welcome page".getBytes());
             FullHttpResponse res = new DefaultFullHttpResponse(HTTP_1_1, OK, content);
@@ -127,12 +161,14 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
             return;
         }
 
+        // response for favicon.ico, default not supported
         if ("/favicon.ico".equals(req.uri())) {
             FullHttpResponse res = new DefaultFullHttpResponse(HTTP_1_1, NOT_FOUND);
             sendHttpResponse(channel, req, res);
             return;
         }
 
+        // put all header entries to channel details
         var channelDetails = getChannelDetails(extractChannelId(channel));
         req.headers().forEach(entry -> {
             channelDetails.put(entry.getKey(), entry.getValue());
@@ -184,7 +220,8 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
 
     @Override
     protected void onBeforeBind(HostAndPort host) {
-        wsFactory = new WebSocketServerHandshakerFactory(getWsUri(host), null, true);
+        this.host = host;
+        wsFactory = new WebSocketServerHandshakerFactory(getWsUri(), null, true);
 
         String configFrameType = this.getConfigs().getString("frameType", "text");
         this.frameType = Netty4WebsocketFrameType.fromNameOrDefault(configFrameType, TEXT);
@@ -193,6 +230,11 @@ public class Netty4WebsocketServer extends AbstractNetty4SocketServer implements
     @Override
     protected void onInitChannel(SocketChannel ch) {
         ChannelPipeline pipeline = ch.pipeline();
+        if (this.ssl) {
+            final SSLEngine sslEngine = this.sslContext.createSSLEngine();
+            sslEngine.setUseClientMode(true);
+            pipeline.addLast(new SslHandler(sslEngine));
+        }
         pipeline.addLast(new HttpServerCodec());
         pipeline.addLast(new HttpObjectAggregator(65536));
     }

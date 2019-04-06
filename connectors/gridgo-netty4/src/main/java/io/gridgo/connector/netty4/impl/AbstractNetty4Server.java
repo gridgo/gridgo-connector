@@ -1,6 +1,9 @@
 package io.gridgo.connector.netty4.impl;
 
+import java.io.File;
 import java.util.function.Function;
+
+import javax.net.ssl.SSLContext;
 
 import org.joo.promise4j.Deferred;
 import org.joo.promise4j.impl.CompletableDeferredObject;
@@ -12,10 +15,13 @@ import io.gridgo.connector.impl.AbstractHasResponderConsumer;
 import io.gridgo.connector.netty4.Netty4Server;
 import io.gridgo.connector.netty4.exceptions.UnsupportedTransportException;
 import io.gridgo.connector.support.config.ConnectorContext;
+import io.gridgo.connector.support.exceptions.InvalidParamException;
 import io.gridgo.framework.support.Message;
 import io.gridgo.socket.netty4.Netty4SocketServer;
 import io.gridgo.socket.netty4.Netty4Transport;
 import io.gridgo.socket.netty4.raw.tcp.Netty4TCPServer;
+import io.gridgo.socket.netty4.utils.KeyStoreType;
+import io.gridgo.socket.netty4.utils.SSLContextRegistry;
 import io.gridgo.socket.netty4.ws.Netty4Websocket;
 import io.gridgo.socket.netty4.ws.Netty4WebsocketServer;
 import io.gridgo.utils.support.HostAndPort;
@@ -66,8 +72,47 @@ public abstract class AbstractNetty4Server extends AbstractHasResponderConsumer 
             return new Netty4TCPServer();
         case WEBSOCKET:
             return new Netty4WebsocketServer();
+        case WEBSOCKET_SSL:
+            String sslContextName = this.registerSSLContext();
+            return new Netty4WebsocketServer(true, sslContextName);
         }
         throw new UnsupportedTransportException("Transport type doesn't supported: " + this.transport);
+    }
+
+    protected String registerSSLContext() {
+        String sslContextName = this.getOptions().getString("sslContext", null);
+        if (sslContextName != null) {
+            SSLContext sslContext = (SSLContext) this.getContext().getRegistry().lookupMandatory(sslContextName);
+            SSLContextRegistry.getInstance().register(sslContextName, sslContext);
+            return sslContextName;
+        }
+
+        String keyStoreFilePath = this.getOptions().getString("keyStoreFile", null);
+        if (keyStoreFilePath == null) {
+            throw new InvalidParamException("Missing both sslContext and keyStoreFilePath param");
+        }
+
+        KeyStoreType type = KeyStoreType.forName(this.getOptions().getString("keyStoreType", null));
+        if (type == null) {
+            throw new InvalidParamException("Missing keyStoreType param");
+        }
+
+        String algorithm = this.getOptions().getString("keyStoreAlgorithm", null);
+        if (algorithm == null) {
+            throw new InvalidParamException("Missing keyStoreAlgorithm param");
+        }
+
+        String protocol = this.getOptions().getString("sslProtocol", null);
+        if (protocol == null) {
+            throw new InvalidParamException("Missing sslProtocol param");
+        }
+
+        String password = this.getOptions().getString("keyStorePassword", null);
+
+        String name = this.getUniqueIdentifier() + "-sslContext";
+        SSLContextRegistry.getInstance().register(name, new File(keyStoreFilePath), type, algorithm, protocol, password);
+
+        return name;
     }
 
     @Override
@@ -76,7 +121,12 @@ public abstract class AbstractNetty4Server extends AbstractHasResponderConsumer 
     }
 
     protected String getUniqueIdentifier() {
-        return "netty:server:" + this.transport.name().toLowerCase() + "://" + this.host.toIpAndPort();
+        StringBuilder sb = new StringBuilder();
+        sb.append("netty:server:").append(this.transport.name().toLowerCase()).append("://").append(this.host.toIpAndPort());
+        if (this.transport == Netty4Transport.WEBSOCKET && this.path != null) {
+            sb.append(this.path.startsWith("/") ? "" : "/").append(this.path);
+        }
+        return sb.toString();
     }
 
     private void initSocketServer() {

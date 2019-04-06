@@ -1,5 +1,6 @@
 package io.gridgo.connector.netty4.test;
 
+import io.gridgo.bean.BObject;
 import io.gridgo.connector.Connector;
 import io.gridgo.connector.ConnectorResolver;
 import io.gridgo.connector.Consumer;
@@ -14,7 +15,7 @@ public class Netty4EchoServer {
 
     public static void main(String[] args) {
         String transport = "ws";
-        String host = "localhost:8889";
+        String host = "0.0.0.0:8889";
         String path = "websocket";
 
         if (args.length > 0) {
@@ -44,7 +45,7 @@ public class Netty4EchoServer {
                 System.out.println("socket closed, routing id: " + msg.getRoutingId().get());
                 break;
             default:
-                System.out.println("got msg from source: " + msg.getMisc().get("source"));
+                System.out.println("got msg with misc: " + BObject.wrap(msg.getMisc()));
                 serverResponder.send(msg);
             }
         });

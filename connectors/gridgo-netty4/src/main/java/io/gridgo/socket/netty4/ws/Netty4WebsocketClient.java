@@ -4,7 +4,10 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import javax.net.ssl.SSLException;
+
 import io.gridgo.bean.BElement;
+import io.gridgo.socket.netty4.exceptions.SSLContextException;
 import io.gridgo.socket.netty4.impl.AbstractNetty4SocketClient;
 import io.gridgo.utils.support.HostAndPort;
 import io.netty.channel.Channel;
@@ -25,6 +28,9 @@ import io.netty.handler.codec.http.websocketx.WebSocketClientHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketClientHandshakerFactory;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketVersion;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.util.CharsetUtil;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -33,6 +39,7 @@ import lombok.Setter;
 
 public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements Netty4Websocket {
 
+    private boolean ssl = false;
     private boolean autoParse = true;
 
     @Setter
@@ -51,6 +58,14 @@ public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements
     private ChannelPromise handshakeFuture;
 
     private String format = null;
+
+    public Netty4WebsocketClient() {
+        this(false);
+    }
+
+    public Netty4WebsocketClient(boolean ssl) {
+        this.ssl = ssl;
+    }
 
     protected URI getWsUri(HostAndPort host) {
         int port = host.getPortOrDefault(80);
@@ -132,12 +147,10 @@ public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements
 
     @Override
     protected void onClose() throws IOException {
-//		System.out.println("[ws client] - send close websocket frame and wait for done");
         this.getChannel().writeAndFlush(new CloseWebSocketFrame()) //
             .addListener(ChannelFutureListener.CLOSE) //
             .addListener(ChannelFutureListener.CLOSE_ON_FAILURE) //
             .syncUninterruptibly();
-//		System.out.println("[ws client] - close frame sent, waiting for channel inactive event...");
     }
 
     @Override
@@ -148,6 +161,14 @@ public class Netty4WebsocketClient extends AbstractNetty4SocketClient implements
     @Override
     protected void onInitChannel(SocketChannel ch) {
         ChannelPipeline pipeline = ch.pipeline();
+        if (this.ssl) {
+            try {
+                SslContext sslCtx = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+                pipeline.addLast(sslCtx.newHandler(ch.alloc()));
+            } catch (SSLException e) {
+                throw new SSLContextException("Cannot init ssl context for client " + this.getName());
+            }
+        }
         pipeline.addLast("http-codec", new HttpClientCodec());
         pipeline.addLast("aggregator", new HttpObjectAggregator(65536));
     }
