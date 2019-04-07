@@ -7,7 +7,7 @@ import lombok.Getter;
 
 public class SingleRedisStringCommand extends RedisStringCommandBase {
 
-    @Getter(AccessLevel.PROTECTED)
+    @Getter(AccessLevel.PUBLIC)
     private final String endpoint = "redis:single://[localhost:6379]";
 
     @Test
@@ -16,23 +16,23 @@ public class SingleRedisStringCommand extends RedisStringCommandBase {
         super.testBitcountCommand();
     }
 
-    @Test
+    /*@Test
     @Override
     public void testBitopCommand() throws InterruptedException {
         super.testBitopCommand();
-    }
+    }*/
 
-    @Test
+    /*@Test
     @Override
     public void testBitposCommand() throws InterruptedException {
         super.testBitposCommand();
-    }
+    }*/
 
-    @Test
+    /*@Test
     @Override
     public void testBitFieldCommand() throws InterruptedException {
         super.testBitFieldCommand();
-    }
+    }*/
 
     @Test
     @Override
@@ -64,11 +64,11 @@ public class SingleRedisStringCommand extends RedisStringCommandBase {
         super.testMsetCommand();
     }
 
-    @Test
+    /*@Test
     @Override
     public void testMGetCommand() throws InterruptedException {
         super.testMGetCommand();
-    }
+    }*/
 
     @Test
     @Override
@@ -88,11 +88,11 @@ public class SingleRedisStringCommand extends RedisStringCommandBase {
         super.testStrLenCommand();
     }
 
-    @Test
+    /*@Test
     @Override
     public void testIncrCommand() throws InterruptedException {
         super.testIncrCommand();
-    }
+    }*/
 
     @Test
     @Override
@@ -112,7 +112,8 @@ public class SingleRedisStringCommand extends RedisStringCommandBase {
         super.testSetExCommand();
     }
 
-    @Test
+
+    /*@Test
     @Override
     public void testIncrByCommand() throws InterruptedException {
         super.testIncrByCommand();
@@ -128,7 +129,7 @@ public class SingleRedisStringCommand extends RedisStringCommandBase {
     @Override
     public void testPSetxECommand() throws InterruptedException {
         super.testPSetxECommand();
-    }
+    }*/
 
     @Test
     @Override
@@ -242,5 +243,186 @@ public class SingleRedisStringCommand extends RedisStringCommandBase {
     @Override
     public void testGeoAdd() throws InterruptedException {
         super.testGeoAdd();
+    }
+
+    @Test
+    @Override
+    public void testDump() throws InterruptedException {
+        super.testDump();
+    }
+
+    @Test
+    @Override
+    public void testDel() throws InterruptedException {
+        super.testDel();
+    }
+
+    @Test
+    @Override
+    public void testExists() throws InterruptedException {
+        super.testExists();
+    }
+
+    @Test
+    @Override
+    public void testExpire() throws InterruptedException {
+        super.testExpire();
+    }
+
+    @Test
+    @Override
+    public void testExpireat() throws InterruptedException {
+        super.testExpireat();
+    }
+
+    @Test
+    @Override
+    public void testKeys() throws InterruptedException {
+        super.testKeys();
+    }
+
+    @Test
+    @Override
+    public void testPersits() throws InterruptedException {
+        super.testPersits();
+    }
+
+
+    @Test
+    @Override
+    public void testPExpire() throws InterruptedException {
+        super.testPExpire();
+    }
+
+    @Test
+    @Override
+    public void testPExpireat() throws InterruptedException {
+        super.testPExpireat();
+    }
+
+    @Test
+    @Override
+    public void testPTTL() throws InterruptedException {
+        super.testPTTL();
+    }
+
+    @Test
+    @Override
+    public void testRandomkey() throws InterruptedException {
+        super.testRandomkey();
+    }
+
+    @Test
+    @Override
+    public void testRename() throws InterruptedException {
+        super.testRename();
+    }
+
+    @Test
+    @Override
+    public void testRenamenx() throws InterruptedException {
+        super.testRenamenx();
+    }
+
+    @Test
+    @Override
+    public void testTouch() throws InterruptedException {
+        super.testTouch();
+    }
+
+    @Test
+    @Override
+    public void testType() throws InterruptedException {
+        super.testType();
+    }
+
+    @Test
+    @Override
+    public void testUnlink() throws InterruptedException {
+        super.testUnlink();
+    }
+
+    @Test
+    @Override
+    public void testHash() throws InterruptedException {
+        super.testHash();
+    }
+
+    @Test
+    @Override
+    public void testHashExist() throws InterruptedException {
+        super.testHashExist();
+    }
+
+    @Test
+    @Override
+    public void testHashGet() throws InterruptedException {
+        super.testHashGet();
+    }
+
+    @Test
+    @Override
+    public void testHashGetAll() throws InterruptedException {
+        super.testHashGetAll();
+    }
+
+    @Test
+    @Override
+    public void testHINCRBY() throws InterruptedException {
+        super.testHINCRBY();
+    }
+
+    @Test
+    @Override
+    public void testHINCRBYFLOAT() throws InterruptedException {
+        super.testHINCRBYFLOAT();
+    }
+
+    @Test
+    @Override
+    public void testHKEYS() throws InterruptedException {
+        super.testHKEYS();
+    }
+
+    @Test
+    @Override
+    public void testHLEN() throws InterruptedException {
+        super.testHLEN();
+    }
+
+    @Test
+    @Override
+    public void testHMGET() throws InterruptedException {
+        super.testHMGET();
+    }
+
+    @Test
+    @Override
+    public void testHMSET() throws InterruptedException {
+        super.testHMSET();
+    }
+
+    @Test
+    @Override
+    public void testHSET() throws InterruptedException {
+        super.testHSET();
+    }
+
+    @Test
+    @Override
+    public void testHSETNX() throws InterruptedException {
+        super.testHSETNX();
+    }
+
+    @Test
+    @Override
+    public void testHSTRLEN() throws InterruptedException {
+        super.testHSTRLEN();
+    }
+
+    @Test
+    @Override
+    public void testHVALS() throws InterruptedException {
+        super.testHVALS();
     }
 }

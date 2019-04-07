@@ -2,12 +2,14 @@ package io.gridgo.connector.redis.test;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 
 import io.gridgo.redis.command.RedisCommand;
 import io.gridgo.redis.command.string.RedisMGetHandler;
@@ -30,7 +32,7 @@ public abstract class RedisStringCommandBase {
         return BObject.of(CMD, command);
     }
 
-    protected abstract String getEndpoint();
+    public abstract String getEndpoint();
 
     /*
      * Test `bitcount` command https://redis.io/commands/bitcount
@@ -505,7 +507,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testSetNxCommand() throws InterruptedException {
+    public void testSetNxCommand() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -531,7 +533,7 @@ public abstract class RedisStringCommandBase {
 
     }
 
-    protected void testSetExCommand() throws InterruptedException {
+    public void testSetExCommand() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -561,7 +563,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testIncrByCommand() throws InterruptedException {
+    public void testIncrByCommand() throws InterruptedException {
 
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
@@ -585,7 +587,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testMsetNxCommand() throws InterruptedException {
+    public void testMsetNxCommand() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -611,7 +613,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testPSetxECommand() throws InterruptedException {
+    public void testPSetxECommand() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -648,7 +650,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testIncrByFloatCommand() throws InterruptedException {
+    public void testIncrByFloatCommand() throws InterruptedException {
 
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
@@ -671,7 +673,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testEcho() throws InterruptedException {
+    public void testEcho() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -697,7 +699,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testDelete() throws InterruptedException {
+    public void testDelete() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -730,7 +732,7 @@ public abstract class RedisStringCommandBase {
      * @throws InterruptedException
      */
 
-    protected void testSadd() throws InterruptedException {
+    public void testSadd() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -758,7 +760,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testScard() throws InterruptedException {
+    public void testScard() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -788,7 +790,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testSdiff() throws InterruptedException {
+    public void testSdiff() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -821,7 +823,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testSdiffStore() throws InterruptedException {
+    public void testSdiffStore() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -854,7 +856,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testSinter() throws InterruptedException {
+    public void testSinter() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -888,7 +890,7 @@ public abstract class RedisStringCommandBase {
     }
 
 
-    protected void testSinterStore() throws InterruptedException {
+    public void testSinterStore() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -921,7 +923,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testSismember() throws InterruptedException {
+    public void testSismember() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -949,7 +951,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testSmembers() throws InterruptedException {
+    public void testSmembers() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -978,7 +980,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testSmove() throws InterruptedException {
+    public void testSmove() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -1008,7 +1010,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testSpop() throws InterruptedException {
+    public void testSpop() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -1038,7 +1040,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testSrandMember() throws InterruptedException {
+    public void testSrandMember() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -1063,7 +1065,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testSrem() throws InterruptedException {
+    public void testSrem() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -1091,7 +1093,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testSunion() throws InterruptedException {
+    public void testSunion() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -1121,7 +1123,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testSunionStore() throws InterruptedException {
+    public void testSunionStore() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -1151,7 +1153,7 @@ public abstract class RedisStringCommandBase {
         Assert.assertNull(exRef.get());
     }
 
-    protected void testScan() throws InterruptedException {
+    public void testScan() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -1182,7 +1184,7 @@ public abstract class RedisStringCommandBase {
      * GEO redis
      * url: https://redis.io/commands#geo
      */
-    protected void testGeoAdd() throws InterruptedException {
+    public void testGeoAdd() throws InterruptedException {
         var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
         var producer = connector.getProducer().orElseThrow();
         connector.start();
@@ -1209,5 +1211,925 @@ public abstract class RedisStringCommandBase {
 
         Assert.assertNull(exRef.get());
 
+    }
+
+    /**
+     * Key command
+     * url: https://redis.io/commands#generic
+     */
+    public void testDel() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.APPEND), BArray.ofSequence("del", "Hello")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.DEL), "del")))
+                .done(result -> {
+                    var body = result.body().asValue().getInteger();
+                    if(body != 1) {
+                        exRef.set(new RuntimeException("result must equal to 1"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+           exRef.set(e);
+           latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testDump() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.APPEND), BArray.ofSequence("dump", "Hello")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.DUMP), "dump")))
+                .done(result -> {
+                    var body = result.body().asValue().getString();
+                    if(body.length() == 0) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testExists() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("set", "Hello")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.EXISTS), "set")))
+                .done(result -> {
+                    var body = result.body().asValue().getInteger();
+                    if(body != 1) {
+                        exRef.set(new RuntimeException("Result must equal to 1"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+
+    public void testExpire() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("expire", "Hello")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.EXPIRE), BArray.ofSequence("expire", 10))))
+                .pipeDone(result -> {
+                    var body = result.body().asValue().getInteger();
+                    if(body != 1) {
+                        exRef.set(new RuntimeException("Result must equal to 1"));
+                    }
+                    return producer.call(Message.ofAny(buildCommand(RedisCommands.TTL), "expire"));
+                })
+                .done(result -> {
+                    var body = result.body().asValue().getInteger();
+                    if(body != 10) {
+                        exRef.set(new RuntimeException("Result must equal to 10"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testExpireat() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        long currentTimestamp = Instant.now().toEpochMilli();
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("expireat", "Hello")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.EXPIREAT), BArray.ofSequence("expireat", currentTimestamp + 1000))))
+                .pipeDone(result -> {
+                    var body = result.body().asValue().getInteger();
+                    if(body != 1) {
+                        exRef.set(new RuntimeException("Result must equal to 1"));
+                    }
+                    return producer.call(Message.ofAny(buildCommand(RedisCommands.TTL), "expireat"));
+                })
+                .done(result -> {
+                    var body = result.body().asValue().getLong();
+                    if(body > currentTimestamp) {
+                        exRef.set(new RuntimeException("Result must greater than " + currentTimestamp));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testKeys() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        Map<String, String> map = new LinkedHashMap<>();
+        map.put("KEY1", "1");
+        map.put("KEY2", "2");
+        map.put("KEY3", "3");
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.MSET), BArray.ofSequence(map)))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.KEYS), "KEY*")))
+                .done(result -> {
+                    var body = result.body().asArray();
+                    Predicate<String> predicate = value -> map.containsKey(value);
+                    body.stream().forEach(bElement -> {
+                        if(!predicate.test(bElement.asValue().getString())) {
+                            exRef.set(new RuntimeException("Body miss match"));
+                        }
+                    });
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+        connector.stop();
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testPersits() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("persits", "Hello")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.EXPIRE), BArray.ofSequence("persits", 10))))
+                .pipeDone(result -> {
+                    var body = result.body().asValue().getInteger();
+                    if(body != 1) {
+                        exRef.set(new RuntimeException("Result must equal to 1"));
+                    }
+                    return producer.call(Message.ofAny(buildCommand(RedisCommands.PERSIST), "persits"));
+                })
+                .done(result -> {
+                    var body = result.body().asValue();
+                    if(!body.getBoolean()) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+        connector.stop();
+        Assert.assertNull(exRef.get());
+    }
+
+
+    public void testPExpire() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        long currentTimestamp = Instant.now().toEpochMilli();
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("pexpireat", "Hello")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.PEXPIRE), BArray.ofSequence("pexpireat", 5000))))
+                .pipeDone(result -> {
+                    var body = result.body().asValue().getInteger();
+                    if(body != 1) {
+                        exRef.set(new RuntimeException("Result must equal to 1"));
+                    }
+                    return producer.call(Message.ofAny(buildCommand(RedisCommands.PTTL), "pexpireat"));
+                })
+                .done(result -> {
+                    var body = result.body().asValue().getLong();
+                    if(body <= 0) {
+                        exRef.set(new RuntimeException("Body mismtach"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+
+    public void testPExpireat() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        long currentTimestamp = Instant.now().toEpochMilli();
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("pexpireat", "Hello")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.EXPIREAT), BArray.ofSequence("pexpireat", currentTimestamp + 5000))))
+                .pipeDone(result -> {
+                    var body = result.body().asValue().getInteger();
+                    if(body != 1) {
+                        exRef.set(new RuntimeException("Result must equal to 1"));
+                    }
+                    return producer.call(Message.ofAny(buildCommand(RedisCommands.PTTL), "pexpireat"));
+                })
+                .done(result -> {
+                    var body = result.body().asValue().getLong();
+                    if(body < currentTimestamp) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testPTTL() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("pexpireat", "Hello")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.EXPIRE), BArray.ofSequence("pexpireat", 1))))
+                .pipeDone(result -> {
+                    var body = result.body().asValue().getInteger();
+                    if(body != 1) {
+                        exRef.set(new RuntimeException("Result must equal to 1"));
+                    }
+                    return producer.call(Message.ofAny(buildCommand(RedisCommands.PTTL), "pexpireat"));
+                })
+                .done(result -> {
+                    var body = result.body().asValue().getLong();
+                    if(body < 0 || body > 1000) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testRandomkey() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.RANDOMKEY), null))
+                .done(result -> {
+                    var body = result.body().asValue().getString();
+                    if(StringUtils.isEmpty(body)) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testRename() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("rename", "Hello")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.RENAME), BArray.ofSequence("rename", "rename1"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.GET), BArray.ofSequence("rename1"))))
+                .done(result -> {
+                    var body = result.body().asValue().getString();
+                    if(StringUtils.isEmpty(body)) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testRenamenx() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("renamenx1", "Hello")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("renamenx2", "WORLD"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.RENAMENX), BArray.ofSequence("renamenx1", "renamenx2"))))
+                .pipeDone(result -> {
+                    var body = result.body().asValue().getInteger();
+                    if(body != 0) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    return producer.call(Message.ofAny(buildCommand(RedisCommands.GET), BArray.ofSequence("renamenx2")));
+                })
+                .done(result -> {
+                    var body = result.body().asValue().getString();
+                    if(StringUtils.isEmpty(body) || !StringUtils.equals("WORLD", body)) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testTouch() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("touch1", "Hello")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("touch2", "WORLD"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.TOUCH), BArray.ofSequence("touch1", "touch2"))))
+                .done(result -> {
+                    var body = result.body().asValue().getInteger();
+                    if(body != 2) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testType() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("type", "Hello")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.TYPE), "type")))
+                .done(result -> {
+                    var body = result.body().asValue().getString();
+                    if(!StringUtils.equals(body, "string")) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testUnlink() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("unlink1", "Hello")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.SET), BArray.ofSequence("unlink2", "WORLD"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.TOUCH), BArray.ofSequence("unlink1", "unlink2"))))
+                .done(result -> {
+                    var body = result.body().asValue().getInteger();
+                    if(body != 2) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    /**
+     * Test Hash
+     * url: https://redis.io/commands#hash
+     */
+    public void testHash() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("hash", "field1", "foo")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HDEL), BArray.ofSequence("hash", "field1"))))
+                .done(result -> {
+                    var body = result.body().asValue().getInteger();
+                    if(body != 1) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testHashExist() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("hashexist", "field1", "foo")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HEXISTS), BArray.ofSequence("hashexist", "field1"))))
+                .done(result -> {
+                    var body = result.body().asValue().getInteger();
+                    if(body != 1) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testHashGet() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("hashget", "field1", "foo")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HGET), BArray.ofSequence("hashget", "field1"))))
+                .done(result -> {
+                    var body = result.body().asValue().getString();
+                    if(!StringUtils.equals(body, "foo")) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testHashGetAll() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("hashgetall", "field1", "foo")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("hashgetall", "field2", "bar"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("hashgetall", "field3", "sekiro"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HGETALL), BArray.ofSequence("hashgetall"))))
+                .done(result -> {
+                    var body = result.body().asObject();
+                    if(body.size() <= 0) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testHINCRBY() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("HINCRBY", "field1", "5")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HINCRBY), BArray.ofSequence("HINCRBY", "field1", "1"))))
+                .done(result -> {
+                    var body = result.body().asValue().getInteger();
+                    if(body != 6) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testHINCRBYFLOAT() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("HINCRBYFLOAT", "field1", "5")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HINCRBYFLOAT), BArray.ofSequence("HINCRBYFLOAT", "field1", 0.1))))
+                .done(result -> {
+                    var body = result.body().asValue().getDouble();
+                    if(body <= 5) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testHKEYS() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("HKEYS", "field1", "foo")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("HKEYS", "field2", "bar"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("HKEYS", "field3", "sekiro"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HKEYS), BArray.ofSequence("HKEYS"))))
+                .done(result -> {
+                    var body = result.body().asArray();
+                    if(body.size() <= 0) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testHLEN() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("HLEN", "field1", "foo")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("HLEN", "field2", "bar"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("HLEN", "field3", "sekiro"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HLEN), BArray.ofSequence("HLEN"))))
+                .done(result -> {
+                    var body = result.body().asValue().getInteger();
+                    if(body != 3) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testHMGET() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("HMGET", "field1", "foo")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("HMGET", "field2", "bar"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("HMGET", "field3", "sekiro"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HMGET), BArray.ofSequence("HMGET", "field1", "field2", "field3"))))
+                .done(result -> {
+                    var body = result.body().asArray();
+                    if(body.size() <= 0) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testHMSET() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.HMSET), BArray.ofSequence("HMSET", "field1", "foo", "field2", "bar")))
+                .done(result -> {
+                    var body = result.body().asValue().getString();
+                    if(!StringUtils.equals("OK", body)) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testHSET() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("HSET", "field1", "foo")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HGET), BArray.ofSequence("HSET", "field1"))))
+                .done(result -> {
+                    var body = result.body().asValue().getString();
+                    if(!StringUtils.equals("foo", body)) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testHSETNX() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("HSETNX", "field1", "foo")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HGET), BArray.ofSequence("HSETNX", "field1", "bar"))))
+                .done(result -> {
+                    var body = result.body().asValue().getString();
+                    if(!StringUtils.equals(body, "foo")) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+
+    public void testHSTRLEN() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.HMSET), BArray.ofSequence("HSTRLEN", "field1", "HelloWorld", "field2", "bar")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HSTRLEN), BArray.ofSequence("HSTRLEN", "field1"))))
+                .done(result -> {
+                    var body = result.body().asValue().getInteger();
+                    if(body != 10) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
+    }
+
+    public void testHVALS() throws InterruptedException {
+        var connector = new DefaultConnectorFactory().createConnector(this.getEndpoint());
+        var producer = connector.getProducer().orElseThrow();
+        connector.start();
+
+        var exRef = new AtomicReference<Exception>();
+        var latch = new CountDownLatch(1);
+
+        producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("HMGET", "field1", "foo")))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("HMGET", "field2", "bar"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HSET), BArray.ofSequence("HMGET", "field3", "sekiro"))))
+                .pipeDone(result -> producer.call(Message.ofAny(buildCommand(RedisCommands.HVALS), BArray.ofSequence("HMGET"))))
+                .done(result -> {
+                    var body = result.body().asArray();
+                    if(body.size() <= 0) {
+                        exRef.set(new RuntimeException("Body mismatch"));
+                    }
+                    latch.countDown();
+                }).fail(e -> {
+            exRef.set(e);
+            latch.countDown();
+        });
+
+        latch.await();
+
+        connector.stop();
+
+        Assert.assertNull(exRef.get());
     }
 }
