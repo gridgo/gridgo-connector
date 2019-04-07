@@ -86,7 +86,7 @@ public class AbstractJettyConsumer extends AbstractHasResponderConsumer implemen
         }
 
         if (requestMessage != null) {
-            var deferredAndRoutingId = ((JettyResponder) this.getResponder()).registerRequest(request);
+            var deferredAndRoutingId = getJettyResponder().registerRequest(request);
             this.publish(requestMessage.setRoutingIdFromAny(deferredAndRoutingId.getRoutingId()), deferredAndRoutingId.getDeferred());
         }
     }

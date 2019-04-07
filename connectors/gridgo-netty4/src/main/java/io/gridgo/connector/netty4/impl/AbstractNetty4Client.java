@@ -71,6 +71,8 @@ public abstract class AbstractNetty4Client extends AbstractHasReceiverProducer i
             return new Netty4TCPClient();
         case WEBSOCKET:
             return new Netty4WebsocketClient();
+        case WEBSOCKET_SSL:
+            return new Netty4WebsocketClient(true);
         }
         throw new UnsupportedTransportException("Transport type " + transport + " doesn't supported");
     }
