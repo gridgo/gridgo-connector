@@ -23,8 +23,12 @@ import lombok.NonNull;
 
 public class AbstractJettyConsumer extends AbstractHasResponderConsumer implements JettyConsumer {
 
+    private final HttpRequestParser requestParser;
+
     private final HostAndPort address;
     private final String path;
+
+    private final String format;
 
     private JettyHttpServer httpServer;
     private Function<Throwable, Message> failureHandler;
@@ -33,13 +37,17 @@ public class AbstractJettyConsumer extends AbstractHasResponderConsumer implemen
 
     private final Set<JettyServletContextHandlerOption> options;
 
-    public AbstractJettyConsumer(ConnectorContext context, @NonNull HostAndPort address, boolean http2Enabled, String path,
+    public AbstractJettyConsumer(ConnectorContext context, @NonNull HostAndPort address, boolean http2Enabled, boolean mmapEnabled, String format, String path,
             Set<JettyServletContextHandlerOption> options) {
         super(context);
 
         this.options = options;
 
         this.address = address;
+
+        this.format = format;
+
+        this.requestParser = HttpRequestParser.newDefault(format);
 
         path = (path == null || path.isBlank()) ? "/*" : path.trim();
         this.path = path.startsWith("/") ? path : ("/" + path);
@@ -50,7 +58,7 @@ public class AbstractJettyConsumer extends AbstractHasResponderConsumer implemen
         }
 
         this.uniqueIdentifier = address.toHostAndPort() + this.path;
-        this.setResponder(new DefaultJettyResponder(getContext(), this.uniqueIdentifier));
+        this.setResponder(new DefaultJettyResponder(getContext(), mmapEnabled, this.format, this.uniqueIdentifier));
     }
 
     protected Deferred<Message, Exception> createDeferred() {
@@ -62,11 +70,6 @@ public class AbstractJettyConsumer extends AbstractHasResponderConsumer implemen
         return "consumer.jetty.http-server." + this.uniqueIdentifier;
     }
 
-    protected HttpRequestParser getHttpRequestParser() {
-        var parser = this.getContext().getRegistry().lookup("httpRequestParser");
-        return parser == null ? HttpRequestParser.DEFAULT : (HttpRequestParser) parser;
-    }
-
     protected JettyResponder getJettyResponder() {
         return (JettyResponder) this.getResponder();
     }
@@ -75,7 +78,7 @@ public class AbstractJettyConsumer extends AbstractHasResponderConsumer implemen
         Message requestMessage = null;
         try {
             // parse http servlet request to message object
-            requestMessage = this.getHttpRequestParser().parse(request, this.options);
+            requestMessage = this.requestParser.parse(request, this.options);
         } catch (Exception e) {
             getLogger().error("error while parsing http request", e);
             Message responseMessage = this.failureHandler != null ? this.failureHandler.apply(e) : this.getJettyResponder().generateFailureMessage(e);

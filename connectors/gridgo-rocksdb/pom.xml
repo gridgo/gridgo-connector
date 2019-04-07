@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>io.gridgo</groupId>
 		<artifactId>gridgo-connector-base</artifactId>
-		<version>0.4.0</version>
+		<version>0.5.0</version>
 	</parent>
 
 	<properties>
@@ -13,6 +13,11 @@
 	</properties>
 
 	<dependencies>
+		<dependency>
+			<groupId>io.gridgo</groupId>
+			<artifactId>gridgo-keyvalue-common</artifactId>
+			<version>${project.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>org.rocksdb</groupId>
 			<artifactId>rocksdbjni</artifactId>

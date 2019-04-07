@@ -5,17 +5,20 @@
 	<parent>
 		<groupId>io.gridgo</groupId>
 		<artifactId>gridgo-connector-base</artifactId>
-		<version>0.4.0</version>
+		<version>0.5.0</version>
+		<relativePath>../pom.xml</relativePath>
 	</parent>
 
 	<properties>
+		<vertx.version>3.5.4</vertx.version>
+		<httpclient.version>4.5.6</httpclient.version>
 	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>io.vertx</groupId>
 			<artifactId>vertx-web</artifactId>
-			<version>3.5.4</version>
+			<version>${vertx.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.gridgo</groupId>
@@ -25,7 +28,7 @@
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
-			<version>4.5.6</version>
+			<version>${httpclient.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

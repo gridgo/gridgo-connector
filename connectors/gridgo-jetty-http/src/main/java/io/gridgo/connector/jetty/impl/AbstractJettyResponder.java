@@ -3,11 +3,13 @@ package io.gridgo.connector.jetty.impl;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel.MapMode;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -21,6 +23,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.StringBody;
+import org.eclipse.jetty.server.HttpOutput;
 import org.joo.promise4j.Deferred;
 import org.joo.promise4j.DeferredStatus;
 import org.joo.promise4j.impl.CompletableDeferredObject;
@@ -53,30 +56,14 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
 
     private final String uniqueIdentifier;
 
-    protected AbstractJettyResponder(ConnectorContext context, @NonNull String uniqueIdentifier) {
-        super(context);
-        this.uniqueIdentifier = uniqueIdentifier;
-    }
+    private final boolean mmapEnabled;
+    private final String format;
 
-    private InputStream createInputStream(BElement body) {
-        if (!(body instanceof BReference))
-            return null;
-        var obj = body.asReference().getReference();
-        if (obj instanceof InputStream)
-            return (InputStream) obj;
-        if (obj instanceof ByteBuffer)
-            return new ByteBufferInputStream((ByteBuffer) obj);
-        if (obj instanceof byte[])
-            return new ByteArrayInputStream((byte[]) obj);
-        if (obj instanceof File || obj instanceof Path) {
-            var file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
-            try {
-                return new FileInputStream(file);
-            } catch (FileNotFoundException e) {
-                handleException(e);
-            }
-        }
-        return null;
+    protected AbstractJettyResponder(ConnectorContext context, boolean mmapEnabled, String format, @NonNull String uniqueIdentifier) {
+        super(context);
+        this.format = format;
+        this.uniqueIdentifier = uniqueIdentifier;
+        this.mmapEnabled = mmapEnabled;
     }
 
     @Override
@@ -221,42 +208,71 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         }
     }
 
-    protected void takeWriter(HttpServletResponse response, Consumer<PrintWriter> writerConsumer) {
+    protected void takeWriter(HttpServletResponse response, Consumer<PrintWriter> osConsumer) {
         PrintWriter writer = null;
 
         try {
             writer = response.getWriter();
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            handleException(e);
+            return;
         }
 
         try {
-            writerConsumer.accept(writer);
+            osConsumer.accept(writer);
         } finally {
             writer.flush();
         }
     }
 
-    protected void writeBodyBinary(BElement body, HttpServletResponse response) {
-        writeBodyBinary(body, response, null);
+    private boolean trySendContent(ServletOutputStream output, BElement body) throws Exception {
+        if (output instanceof HttpOutput) {
+            HttpOutput httpOutput = (HttpOutput) output;
+            if (body.isReference()) {
+                var ref = body.asReference().getReference();
+                if (ref instanceof File) {
+                    File file = (File) ref;
+                    if (mmapEnabled) {
+                        long length = file.length();
+                        try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "r")) {
+                            ByteBuffer buffer = randomAccessFile.getChannel().map(MapMode.READ_ONLY, 0, length);
+                            httpOutput.sendContent(buffer);
+                        }
+                    } else {
+                        try (InputStream input = new FileInputStream(file)) {
+                            httpOutput.sendContent(input);
+                        }
+                    }
+                } else if (ref instanceof ByteBuffer) {
+                    httpOutput.sendContent((ByteBuffer) ref);
+                } else if (ref instanceof InputStream) {
+                    httpOutput.sendContent((InputStream) ref);
+                } else if (ref instanceof ReadableByteChannel) {
+                    httpOutput.sendContent((ReadableByteChannel) ref);
+                } else {
+                    return false;
+                }
+
+                return true;
+            }
+        }
+        return false;
     }
 
     protected void writeBodyBinary(BElement body, HttpServletResponse response, LongConsumer contentLengthConsumer) {
         takeOutputStream(response, output -> {
-            var inputStream = createInputStream(body);
-            if (inputStream != null) {
-                try (var is = inputStream) {
-                    if (contentLengthConsumer != null) {
-                        contentLengthConsumer.accept((long) is.available());
-                    }
-                    is.transferTo(output);
-                } catch (Exception e) {
-                    handleException(e);
+            try {
+                if (!trySendContent(output, body)) {
+                    body.writeBytes(output, format);
                 }
-            } else {
-                body.writeBytes(output);
+            } catch (Exception e) {
+                handleException(e);
             }
         });
+    }
+
+    protected void writeBodyBinary(BElement body, HttpServletResponse response) {
+        writeBodyBinary(body, response, null);
     }
 
     protected void writeBodyJson(BElement body, HttpServletResponse response) {
@@ -265,7 +281,7 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         } else if (body instanceof BReference) {
             writeBodyBinary(body, response);
         } else {
-            takeWriter(response, body::writeJson);
+            takeOutputStream(response, body::writeJson);
         }
     }
 
@@ -274,14 +290,14 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         if (body instanceof BObject) {
             for (var entry : body.asObject().entrySet()) {
                 String name = entry.getKey();
-                writePart(name, entry.getValue(), builder);
+                addMultipartEntity(name, entry.getValue(), builder);
             }
         } else if (body instanceof BArray) {
             for (var entry : body.asArray()) {
-                writePart(null, entry, builder);
+                addMultipartEntity(null, entry, builder);
             }
         } else {
-            writePart(null, body, builder);
+            addMultipartEntity(null, body, builder);
         }
 
         takeOutputStream(response, outstream -> {
@@ -296,12 +312,53 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
 
     }
 
+    protected void addMultipartEntity(String name, @NonNull BElement value, @NonNull MultipartEntityBuilder builder) {
+        name = name == null ? "" : name;
+        if (value.isValue()) {
+            if (value.getType() == BType.RAW) {
+                builder.addBinaryBody(name, value.asValue().getRaw());
+            } else {
+                builder.addTextBody(name, value.asValue().getString());
+            }
+        } else if (value.isReference()) {
+            var obj = value.asReference().getReference();
+            if (obj instanceof File || obj instanceof Path) {
+                var file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
+                builder.addBinaryBody(name, file);
+                return;
+            }
+            var inputStream = getInputStreamFromBody(obj);
+
+            if (inputStream != null) {
+                builder.addBinaryBody(name, inputStream);
+            } else {
+                handleException(new IllegalArgumentException("cannot make input stream from BReferrence"));
+            }
+        } else {
+            builder.addPart(name, new StringBody(value.toJson(), ContentType.APPLICATION_JSON));
+        }
+    }
+
     protected void writeBodyTextPlain(BElement body, HttpServletResponse response) {
         if (body instanceof BReference) {
             writeBodyBinary(body, response, //
                     contentLength -> response.addHeader(HttpCommonConstants.CONTENT_LENGTH, String.valueOf(contentLength)));
         } else {
-            takeWriter(response, writer -> writer.write(body.toJson()));
+            if (body.isValue()) {
+                if (body.getType() == BType.RAW) {
+                    takeOutputStream(response, output -> {
+                        try {
+                            output.write(body.asValue().getRaw());
+                        } catch (IOException e) {
+                            handleException(e);
+                        }
+                    });
+                } else {
+                    takeWriter(response, writer -> writer.write(body.asValue().getString()));
+                }
+            } else {
+                takeOutputStream(response, body::writeJson);
+            }
         }
     }
 
@@ -313,33 +370,6 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
                     response.addHeader(stdHeaderName, entry.getValue().asValue().getString());
                 }
             }
-        }
-    }
-
-    protected void writePart(String name, BElement value, MultipartEntityBuilder builder) {
-        name = name == null ? "" : name;
-        if (value instanceof BValue) {
-            writeValue(name, value, builder);
-        } else if (value instanceof BReference) {
-            writeReference(name, value, builder);
-        } else {
-            builder.addPart(name, new StringBody(value.toJson(), ContentType.APPLICATION_JSON));
-        }
-    }
-
-    private void writeReference(String name, BElement value, MultipartEntityBuilder builder) {
-        var obj = value.asReference().getReference();
-        if (obj instanceof File || obj instanceof Path) {
-            var file = obj instanceof File ? (File) obj : ((Path) obj).toFile();
-            builder.addBinaryBody(name, file);
-            return;
-        }
-        var inputStream = getInputStreamFromBody(obj);
-
-        if (inputStream != null) {
-            builder.addBinaryBody(name, inputStream);
-        } else {
-            handleException(new IllegalArgumentException("cannot make input stream from BReferrence"));
         }
     }
 
@@ -368,13 +398,5 @@ public class AbstractJettyResponder extends AbstractTraceableResponder implement
         }
 
         sendResponse(response, headers, body, contentType);
-    }
-
-    private void writeValue(String name, BElement value, MultipartEntityBuilder builder) {
-        if (value.getType() == BType.RAW) {
-            builder.addBinaryBody(name, value.asValue().getRaw());
-        } else {
-            builder.addTextBody(name, value.asValue().getString());
-        }
     }
 }

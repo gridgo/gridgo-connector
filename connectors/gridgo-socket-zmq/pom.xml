@@ -5,10 +5,12 @@
 	<parent>
 		<groupId>io.gridgo</groupId>
 		<artifactId>gridgo-connector-base</artifactId>
-		<version>0.4.0</version>
+		<version>0.5.0</version>
+		<relativePath>../pom.xml</relativePath>
 	</parent>
 
 	<properties>
+		<zmq.version>1.0.0</zmq.version>
 	</properties>
 
 	<dependencies>
@@ -20,7 +22,7 @@
 		<dependency>
 			<groupId>org.zeromq</groupId>
 			<artifactId>zmq</artifactId>
-			<version>1.0.0</version>
+			<version>${zmq.version}</version>
 			<systemPath>${project.basedir}/lib/org.zeromq.jar</systemPath>
 			<scope>system</scope>
 		</dependency>

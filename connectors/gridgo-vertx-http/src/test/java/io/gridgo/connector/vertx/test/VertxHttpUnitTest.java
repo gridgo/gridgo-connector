@@ -120,7 +120,8 @@ public class VertxHttpUnitTest {
 
     @Test
     public void testCompression() throws ClientProtocolException, IOException {
-        var connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8080/?method=POST&gzip=true&compressionLevel=5");
+        var connector = new DefaultConnectorFactory().createConnector(
+                "vertx:http://127.0.0.1:8080/?method=POST&gzip=true&compressionLevel=5");
         connector.start();
         var consumer = connector.getConsumer().orElseThrow();
         consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
@@ -150,7 +151,8 @@ public class VertxHttpUnitTest {
             BObject headers = BObject.ofEmpty().setAny("error", true).setAny("cause", ex.getMessage());
             return Message.of(Payload.of(headers, BValue.of("Error")));
         }).build();
-        var connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8082/?method=POST&format=xml", connectorContext);
+        var connector = new DefaultConnectorFactory().createConnector(
+                "vertx:http://127.0.0.1:8082/?method=POST&format=xml", connectorContext);
 
         connector.start();
 
@@ -182,7 +184,8 @@ public class VertxHttpUnitTest {
 
     @Test
     public void testFailure() throws ClientProtocolException, IOException {
-        var connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8082/?method=POST&format=xml");
+        var connector = new DefaultConnectorFactory().createConnector(
+                "vertx:http://127.0.0.1:8082/?method=POST&format=xml");
         connector.start();
         Assert.assertNotNull(connector.getProducer());
         Assert.assertTrue(!connector.getProducer().isPresent());
@@ -275,10 +278,13 @@ public class VertxHttpUnitTest {
 
     @Test
     public void testXml() throws ClientProtocolException, IOException {
-        var connector = new DefaultConnectorFactory().createConnector("vertx:http://127.0.0.1:8081/?method=POST&format=xml");
+        var connector = new DefaultConnectorFactory().createConnector(
+                "vertx:http://127.0.0.1:8081/?method=POST&format=xml");
         connector.start();
         var consumer = connector.getConsumer().orElseThrow();
-        consumer.subscribe((msg, deferred) -> deferred.resolve(msg));
+        consumer.subscribe((msg, deferred) -> {
+            deferred.resolve(Message.ofAny(BObject.of("test-header", "XYZ"), msg.body()));
+        });
 
         String url = "http://127.0.0.1:8081";
         var client = HttpClientBuilder.create().build();

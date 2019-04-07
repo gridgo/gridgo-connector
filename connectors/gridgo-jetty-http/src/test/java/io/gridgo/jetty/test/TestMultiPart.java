@@ -121,7 +121,7 @@ public class TestMultiPart {
                         String partBodyAsString = readInputStreamAsString((InputStream) partBody.asReference().getReference());
                         body.putAny(part.getString(HttpCommonConstants.NAME), partBodyAsString);
                     } else {
-                        body.putAny(part.getString(HttpCommonConstants.NAME), partBody.toJson());
+                        body.putAny(part.getString(HttpCommonConstants.NAME), partBody);
                     }
                 }
                 response.put("body", body);
