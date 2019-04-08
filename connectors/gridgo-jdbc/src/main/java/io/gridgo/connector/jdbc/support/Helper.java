@@ -9,8 +9,9 @@ import java.util.Map;
 
 import org.jdbi.v3.core.statement.SqlStatement;
 
+import io.gridgo.bean.BArray;
 import io.gridgo.bean.BObject;
-import io.gridgo.bean.impl.MutableBValue;
+import io.gridgo.bean.BValue;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -40,8 +41,10 @@ public class Helper {
     public static void bindParams(SqlStatement<?> sqlStatement, BObject params) {
         try {
             for (var entry : params.entrySet()) {
-                if (entry.getValue() instanceof MutableBValue) {
+                if (entry.getValue() instanceof BValue) {
                     sqlStatement.bind(entry.getKey(), entry.getValue().asValue().getData());
+                } else if (entry.getValue() instanceof BArray) {
+                    sqlStatement.bindList(entry.getKey(), entry.getValue().asArray().toList());
                 } else {
                     sqlStatement.bind(entry.getKey(), (Object) entry.getValue().asReference().getReference());
                 }
