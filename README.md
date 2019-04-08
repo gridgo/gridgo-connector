@@ -8,6 +8,10 @@
 
 Gridgo Connector is the I/O abstraction level of Gridgo. It provides easy-to-use I/O connector for various protocols, including Kafka, ZMQ, VertX, etc. Connector consists of Producer and Consumer.
 
+*DEPRECATED*
+
+*This repo has been merged into the main Gridgo repository and thus become deprecated*
+
 ## build status
 
 View [build status](https://github.com/gridgo/gridgo-connector/wiki/build-status) for all branches
