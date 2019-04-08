@@ -7,18 +7,19 @@ import lombok.Getter;
 
 public class SingleRedisUnitTest extends RedisUnitTest {
 
-    @Getter(AccessLevel.PROTECTED)
-    private final String endpoint = "redis:single://[localhost:6379]";
+	@Getter(AccessLevel.PROTECTED)
+	private final String endpoint = "redis:single://[localhost:6379]";
 
-    @Test
-    @Override
-    public void testAppend() throws InterruptedException {
-        super.testAppend();
-    }
+	@Test
+	@Override
+	public void testAppend() throws InterruptedException {
+		super.testAppend();
+	}
 
-    @Test
-    @Override
-    public void testSetAndGet() throws InterruptedException {
-        super.testSetAndGet();
-    }
+	@Test
+	@Override
+	public void testSetAndGet() throws InterruptedException {
+		super.testSetAndGet();
+	}
+
 }
